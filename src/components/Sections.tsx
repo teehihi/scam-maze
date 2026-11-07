@@ -8,6 +8,22 @@ const traps = [
   { name: "Fake login pages", text: "Looks identical, but the domain is off by one character." },
 ];
 
+const GASA_GLOBAL_2025 =
+  "https://gasa.org/knowledge-base/blog/global-scams-on-the-rise-over-half-of-adults-worldwide-report-scam-encounters";
+const GASA_VIETNAM_2026 = "https://gasa.org/knowledge-base/reports/state-of-scams-in-vietnam-2026";
+
+const evidence = [
+  { k: "57%", v: "of adults worldwide experienced a scam in the past 12 months.", href: GASA_GLOBAL_2025 },
+  { k: "85%", v: "of adults in Vietnam encountered a scam in the past year.", href: GASA_VIETNAM_2026 },
+  {
+    k: "75%",
+    v: "of those exposed in Vietnam interacted with the scammer, even though 55% felt confident they could spot scams.",
+    href: GASA_VIETNAM_2026,
+  },
+];
+
+const externalLink = { target: "_blank", rel: "noreferrer noopener" } as const;
+
 export function Problem() {
   return (
     <Section
@@ -16,15 +32,98 @@ export function Problem() {
       title="Everyone knows “be careful”. Few notice when they are being led."
       intro="Scammers rarely strike in a single move. They create pressure, then walk you through small steps that each sound reasonable, until it is too late."
     >
-      <ul className="border-t border-line">
+      <dl className="grid border-t border-line sm:grid-cols-3">
+        {evidence.map((e) => (
+          <div key={e.k} className="border-b border-line py-6 sm:border-b-0 sm:pr-8">
+            <dt className="text-4xl font-bold text-accent-ink">{e.k}</dt>
+            <dd className="mt-2 text-muted">{e.v}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-4 text-sm text-muted">
+        Sources: Global Anti-Scam Alliance (GASA),{" "}
+        <a href={GASA_GLOBAL_2025} {...externalLink} className="text-ink underline underline-offset-4">
+          Global State of Scams 2025
+        </a>{" "}
+        (46,000 adults in 42 markets) and{" "}
+        <a href={GASA_VIETNAM_2026} {...externalLink} className="text-ink underline underline-offset-4">
+          State of Scams in Vietnam 2026
+        </a>{" "}
+        (1,250 adults). Survey data, not SCAMMAZE results.
+      </p>
+
+      <h3 className="mt-16 font-mono text-xs font-medium uppercase tracking-widest">Common traps</h3>
+      <ul className="mt-4 border-t border-line">
         {traps.map((t, i) => (
           <li key={t.name} className="grid gap-1 border-b border-line py-5 sm:grid-cols-[3rem_14rem_1fr] sm:gap-6">
             <span className="font-mono text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
-            <h3 className="font-semibold">{t.name}</h3>
+            <h4 className="font-semibold">{t.name}</h4>
             <p className="text-muted">{t.text}</p>
           </li>
         ))}
       </ul>
+    </Section>
+  );
+}
+
+const same = [
+  "A rush: a countdown, a deadline, a threat",
+  "A trusted name: a company, an official, a relative",
+  "An offer that is too good to be true",
+  "A request for a one-time password (OTP), password or PIN",
+  "A move to another app or another way to pay",
+];
+
+const changes = [
+  "The delivery company, bank or shop they pretend to be",
+  "The chat app or channel they use",
+  "How money moves: card, bank transfer, QR code, wallet",
+  "Phone numbers, addresses and currency",
+  "The language, and where you report a scam",
+];
+
+export function Everywhere() {
+  return (
+    <Section
+      id="everywhere"
+      eyebrow="Vietnam and worldwide"
+      title="The tricks are the same everywhere. Only the details change."
+      intro="SCAMMAZE is built by a team in Vietnam for people in Vietnam and around the world. We teach the pattern, not the brand, so the skill goes with you."
+    >
+      <div className="grid gap-12 md:grid-cols-2">
+        <div>
+          <h3 className="border-b-2 border-ink pb-3 font-semibold">Same in every country</h3>
+          <ul>
+            {same.map((s) => (
+              <li key={s} className="flex gap-4 border-b border-line py-3">
+                <Marker className="bg-accent" />
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h3 className="border-b-2 border-ink pb-3 font-semibold">Changes from place to place</h3>
+          <ul>
+            {changes.map((s) => (
+              <li key={s} className="flex gap-4 border-b border-line py-3 text-muted">
+                <Marker className="bg-muted" />
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div className="mt-12 grid gap-6 bg-line p-6 sm:grid-cols-2 sm:p-8">
+        <p>
+          <span className="font-semibold">Fictional on purpose.</span> Every company, phone number and web address in our
+          scenarios is made up, so each story makes sense wherever you live.
+        </p>
+        <p>
+          <span className="font-semibold">Languages.</span> English today. Vietnamese is next, with the same scenarios and
+          the same checklist.
+        </p>
+      </div>
     </Section>
   );
 }

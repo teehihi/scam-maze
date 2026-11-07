@@ -24,7 +24,7 @@ export function Footer() {
       </div>
       <p className="mx-auto max-w-5xl px-5 py-8 text-sm text-muted">
         SCAMMAZE · Kiroween 2026 project · For educational purposes only. If you think you are being scammed, contact your
-        bank and the authorities right away.
+        bank and your local authorities right away.
       </p>
     </footer>
   );
