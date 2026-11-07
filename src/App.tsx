@@ -9,7 +9,7 @@ export default function App() {
   return (
     <>
       <Header />
-      <main>
+      <main id="main" tabIndex={-1} className="outline-none">
         <Hero />
         <Problem />
         <Loop />

@@ -11,28 +11,36 @@ const links = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-ink-950/75 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-        <a href="#top" className="flex items-center gap-2 font-bold tracking-tight text-white">
-          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={28} height={28} />
-          SCAM<span className="text-pumpkin">MAZE</span>
-        </a>
-        <nav aria-label="Điều hướng chính" className="hidden items-center gap-6 text-sm text-violet-200/80 lg:flex">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} className="transition hover:text-white">
-              {l.label}
-            </a>
-          ))}
-        </nav>
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white transition hover:border-pumpkin hover:text-pumpkin"
-        >
-          GitHub ↗
-        </a>
-      </div>
-    </header>
+    <>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:bg-ink focus:px-4 focus:py-2 focus:text-paper"
+      >
+        Bỏ qua đến nội dung chính
+      </a>
+      <header className="sticky top-0 z-50 border-b border-line bg-paper">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
+          <a href="#top" className="flex items-center gap-2 font-bold tracking-tight">
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={24} height={24} />
+            SCAMMAZE
+          </a>
+          <nav aria-label="Điều hướng chính" className="hidden items-center gap-6 text-sm text-muted lg:flex">
+            {links.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-ink">
+                {l.label}
+              </a>
+            ))}
+          </nav>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-sm font-medium underline underline-offset-4 hover:text-accent-ink"
+          >
+            GitHub
+          </a>
+        </div>
+      </header>
+    </>
   );
 }

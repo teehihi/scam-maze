@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { analyzeUrl, type RiskLevel } from "../lib/urlCheck";
-import { Section } from "./Section";
+import { Marker, Section } from "./Section";
 
 const examples = [
   "http://ghn-xacminh.top/otp",
@@ -8,20 +8,23 @@ const examples = [
   "https://www.vietcombank.com.vn/",
 ];
 
-const verdict: Record<Exclude<RiskLevel, "invalid">, { title: string; cls: string; note: string }> = {
+const verdict: Record<Exclude<RiskLevel, "invalid">, { title: string; cls: string; marker: string; note: string }> = {
   high: {
     title: "Nhiều tín hiệu rủi ro cao",
-    cls: "border-blood/50 bg-blood/10 text-blood",
+    cls: "bg-red-100 text-red-950",
+    marker: "bg-red-700",
     note: "Không bấm, không nhập thông tin. Xác minh qua kênh chính thức bạn tự mở.",
   },
   medium: {
     title: "Có tín hiệu đáng ngờ",
-    cls: "border-pumpkin/50 bg-pumpkin/10 text-pumpkin",
+    cls: "bg-amber-100 text-amber-950",
+    marker: "bg-amber-600",
     note: "Hãy xác minh độc lập trước khi tiếp tục.",
   },
   "none-found": {
     title: "Chưa phát hiện tín hiệu xấu nào",
-    cls: "border-violet-300/40 bg-violet-300/10 text-violet-200",
+    cls: "bg-line text-ink",
+    marker: "bg-muted",
     note: "Điều này KHÔNG có nghĩa là an toàn. Công cụ chỉ phân tích chuỗi ký tự, không biết nội dung trang. Vẫn xác minh qua kênh chính thức.",
   },
 };
@@ -38,8 +41,8 @@ export function UrlChecker() {
       title="Mang checklist sang kiểm tra URL"
       intro="Phân tích hoàn toàn trong trình duyệt bằng luật xác định. Link bạn nhập không bao giờ được tải hay gửi đi đâu."
     >
-      <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-ink-900/80 p-5 sm:p-8">
-        <label htmlFor="url-input" className="text-sm font-medium text-violet-200">
+      <div className="mx-auto max-w-3xl border border-line bg-surface p-5 sm:p-8">
+        <label htmlFor="url-input" className="text-sm font-medium">
           Dán một URL để xem tín hiệu
         </label>
         <input
@@ -51,16 +54,17 @@ export function UrlChecker() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="ví dụ: http://ghn-xacminh.top/otp"
-          className="mt-2 w-full rounded-xl border border-white/15 bg-ink-800 px-4 py-3 font-mono text-sm text-white placeholder:text-violet-300/40 focus:border-pumpkin focus:outline-none"
+          className="mt-2 w-full border border-ink bg-surface px-4 py-3 font-mono text-sm placeholder:text-muted"
         />
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted">Thử:</span>
           {examples.map((ex) => (
             <button
               key={ex}
               type="button"
               onClick={() => setValue(ex)}
-              className="rounded-full border border-white/10 px-3 py-1 font-mono text-xs text-violet-200 transition hover:border-grape"
+              className="bg-paper px-2.5 py-1 font-mono text-xs hover:bg-line"
             >
               {ex}
             </button>
@@ -69,28 +73,29 @@ export function UrlChecker() {
 
         <div className="mt-6" aria-live="polite">
           {hasInput && result.level === "invalid" && (
-            <p className="rounded-xl bg-ink-800 px-4 py-3 text-sm text-violet-200">
-              Không nhận dạng được URL hợp lệ (http/https).
-            </p>
+            <p className="bg-paper px-4 py-3 text-sm">Không nhận dạng được URL hợp lệ (http/https).</p>
           )}
 
           {result.level !== "invalid" && (
             <div>
-              <div className={`rounded-xl border px-4 py-3 ${verdict[result.level].cls}`}>
+              <div className={`px-4 py-3 ${verdict[result.level].cls}`}>
                 <p className="font-semibold">{verdict[result.level].title}</p>
-                <p className="mt-1 text-sm opacity-90">{verdict[result.level].note}</p>
+                <p className="mt-1 text-sm">{verdict[result.level].note}</p>
               </div>
 
-              <p className="mt-4 font-mono text-xs text-violet-300/70">
-                Tên miền gốc: <span className="text-white">{result.registrableDomain}</span>
+              <p className="mt-4 font-mono text-xs text-muted">
+                Tên miền gốc: <span className="text-ink">{result.registrableDomain}</span>
               </p>
 
               {result.signals.length > 0 && (
-                <ul className="mt-3 space-y-2">
+                <ul className="mt-3 border-t border-line">
                   {result.signals.map((s) => (
-                    <li key={s.id} className="rounded-lg bg-ink-800 px-4 py-2 text-sm">
-                      <span className="text-white">🚩 {s.label}</span>
-                      <span className="mt-0.5 block font-mono text-xs text-violet-300/70">{s.evidence}</span>
+                    <li key={s.id} className="flex gap-3 border-b border-line py-3 text-sm">
+                      <Marker className={verdict[result.level as Exclude<RiskLevel, "invalid">].marker} />
+                      <span>
+                        {s.label}
+                        <span className="mt-0.5 block font-mono text-xs text-muted">{s.evidence}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>
