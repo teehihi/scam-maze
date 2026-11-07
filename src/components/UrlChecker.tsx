@@ -2,10 +2,16 @@ import { useMemo, useState } from "react";
 import { analyzeUrl, type RiskLevel } from "../lib/urlCheck";
 import { Marker, Section } from "./Section";
 
+/**
+ * Example inputs use only reserved names (.test, example.com) and a
+ * documentation IP (192.0.2.0/24), so none of them can point to a real site.
+ * Together they show every result level.
+ */
 const examples = [
-  "http://ghn-xacminh.top/otp",
-  "https://shopee.vn.giao-hang-nhanh.xyz/login",
-  "https://www.vietcombank.com.vn/",
+  "http://192.0.2.10/verify",
+  "https://examplebank.com@secure-login.test/unlock",
+  "http://swiftparcel-verify.test/otp",
+  "https://example.com/",
 ];
 
 const verdict: Record<Exclude<RiskLevel, "invalid">, { title: string; cls: string; marker: string; note: string }> = {
@@ -53,7 +59,7 @@ export function UrlChecker() {
           spellCheck={false}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="e.g. http://ghn-xacminh.top/otp"
+          placeholder="e.g. http://swiftparcel-verify.test/otp"
           className="mt-2 w-full border border-ink bg-surface px-4 py-3 font-mono text-sm placeholder:text-muted"
         />
 

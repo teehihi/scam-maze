@@ -1,6 +1,8 @@
 /**
  * Demo scenario (curated, JSON-like data). All content is simulated.
- * The domains below are examples and must NEVER be visited or opened.
+ * Region: global. The company "SwiftParcel" is fictional, and every domain uses
+ * a reserved TLD (.test, .example) so it can never point to a real site.
+ * The domains must NEVER be rendered as links, visited or opened.
  */
 
 export type Outcome = "safe" | "partial" | "loss";
@@ -46,7 +48,7 @@ export const scenario: Record<string, ScenarioNode> = {
     channel: "SMS · unknown number",
     title: "Parcel on hold",
     body:
-      "[GHN-Express] Order #VN88213 is on hold due to an incorrect address. Confirm within 30 MINUTES at ghn-xacminh.top/otp or the parcel will be returned.",
+      "[SwiftParcel] Order #SP-88213 is on hold due to an incorrect address. Confirm within 30 MINUTES at swiftparcel-verify.test/otp or the parcel will be returned.",
     choices: [
       {
         id: "tap",
@@ -54,7 +56,7 @@ export const scenario: Record<string, ScenarioNode> = {
         next: "form",
         flags: [
           "Time pressure: “30 MINUTES”, “or the parcel will be returned”.",
-          "The domain ghn-xacminh.top is not ghn.vn (the .top ending is often abused).",
+          "The domain swiftparcel-verify.test only looks like the courier's name. Their official website is swiftparcel.example.",
           "The /otp path: a real delivery service never needs an OTP to confirm an address.",
         ],
         verify: "Open the official app or a website address you type yourself, or call the hotline printed on your receipt.",
@@ -75,7 +77,7 @@ export const scenario: Record<string, ScenarioNode> = {
   form: {
     kind: "step",
     id: "form",
-    channel: "Simulated page · ghn-xacminh.top",
+    channel: "Simulated page · swiftparcel-verify.test",
     title: "“Verify your identity to keep your order”",
     body:
       "The page asks for your phone number and the 6-digit OTP that was just sent to your phone. A 04:59 countdown is running.",

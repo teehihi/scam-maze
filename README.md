@@ -4,6 +4,8 @@ Landing page for **SCAMMAZE**: practice spotting online scam traps through inter
 
 **Live demo:** <https://teehihi.github.io/scam-maze/>
 
+**Who it's for:** internet users aged 16+ in Vietnam and around the world, with equal weight. Scam tactics are the same everywhere; only the details change, so SCAMMAZE teaches the pattern, not the brand. See [docs/positioning.md](docs/positioning.md).
+
 **Learning loop:** learn the scenario → spot the signals → apply the checklist.
 
 ## Stack
@@ -30,6 +32,8 @@ Requires Node.js >= 22.12.
   - `safety.md`: never claim a URL is "safe"
   - `icons.md`: no emoji as icons
   - `language.md`: all repository content in English
+  - `audience.md`: build for Vietnam and worldwide with equal weight
+- `docs/positioning.md`: audiences, positioning, messaging and writing rules
 - `SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`: full build plan for the hackathon
 
 ## Deploy

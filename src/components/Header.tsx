@@ -2,6 +2,7 @@ export const REPO_URL = "https://github.com/teehihi/scam-maze";
 
 const links = [
   { href: "#problem", label: "Problem" },
+  { href: "#everywhere", label: "Worldwide" },
   { href: "#loop", label: "Learning loop" },
   { href: "#play", label: "Try it" },
   { href: "#url-check", label: "URL check" },

@@ -69,7 +69,12 @@ This project is built with [Kiro](https://kiro.dev). For non-trivial features:
 
 Scenarios live in `src/data/`. A good scenario:
 
-- uses **fictional brands and domains** (no real company logos or names);
+- uses **fictional brands and reserved domains** (`.test`, `.example`,
+  `.invalid`, `example.com`, documentation IPs such as `192.0.2.x`); no real
+  company logos or names;
+- works for **people in Vietnam and worldwide**: built on a tactic that exists
+  everywhere, with no country-specific currency, phone format or payment
+  method (see [docs/positioning.md](docs/positioning.md));
 - reflects a real, current tactic, and cites a public source in the PR;
 - has at least one safe path and one risky path, and **no dead ends**;
 - explains every red flag with concrete evidence from the message;
