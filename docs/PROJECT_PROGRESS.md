@@ -106,7 +106,9 @@ From the master plan roadmap (section 8); none started unless listed above.
   table column counts; reviewed Mermaid syntax manually; searched for proposed domain names,
   database selection claims and deployment claims; scanned for secrets, emoji and non-English
   text.
-- **Build/test results:** See the pull request for this task; no test suite exists.
+- **Build/test results:** PR #6, CI `build` job passed (`pnpm install` + `pnpm build`);
+  documentation checks passed (86 relative links and anchors, 54 tables, cost tables, Mermaid
+  structure, secrets, emoji, language). No test suite exists, so no tests were run.
 - **Known limitations:** Prices for AWS free allowances, Neon and domains come from public pages
   and third-party reports as of Nov 2026 and were not checked in the AWS Pricing Calculator.
   Mermaid diagrams were not rendered by a Mermaid parser in this environment.
