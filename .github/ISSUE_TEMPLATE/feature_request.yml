@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest an idea or improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Who is affected, and what is hard for them today?
+      placeholder: "As a player who ..., I can't ... because ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should happen? Describe the behavior, not only the UI.
+    validations:
+      required: true
+  - type: textarea
+    id: learning
+    attributes:
+      label: How does this improve scam recognition?
+      description: SCAMMAZE must change behavior, not only add visuals. How could we measure the effect?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety rules
+      description: See CONTRIBUTING.md.
+      options:
+        - label: This idea never tells users a link is "safe".
+          required: true
+        - label: This idea works without AI and without loading real URLs.
+          required: true

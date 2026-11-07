@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/teehihi/scam-maze/security/advisories/new
+    about: Please report security problems privately, not as a public issue.
+  - name: Live demo
+    url: https://teehihi.github.io/scam-maze/
+    about: Try the current version of SCAMMAZE.

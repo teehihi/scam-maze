@@ -4,6 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "description": "SCAMMAZE landing page — luyện nhận diện bẫy lừa đảo Internet bằng tình huống tương tác.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teehihi/scam-maze.git"
+  },
+  "homepage": "https://teehihi.github.io/scam-maze/",
   "packageManager": "pnpm@10.26.0",
   "engines": {
     "node": ">=22.12.0"
