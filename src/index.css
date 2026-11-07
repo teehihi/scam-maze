@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-ink-950: #0b0613;
+  --color-ink-900: #120a1f;
+  --color-ink-800: #1b1130;
+  --color-ink-700: #2a1b47;
+  --color-pumpkin: #f97316;
+  --color-slime: #a3e635;
+  --color-grape: #a855f7;
+  --color-blood: #ef4444;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-flicker: flicker 4s linear infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes flicker {
+    0%, 19%, 21%, 23%, 100% { opacity: 1; }
+    20%, 22% { opacity: 0.55; }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-ink-950);
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #e9e4f5;
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, rgb(168 85 247 / 0.22), transparent 60%),
+    radial-gradient(50rem 30rem at -10% 10%, rgb(249 115 22 / 0.14), transparent 60%),
+    var(--color-ink-950);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-slime);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--color-pumpkin);
+  color: #0b0613;
+}
+
+.maze-grid {
+  background-image:
+    linear-gradient(rgb(168 85 247 / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(168 85 247 / 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
