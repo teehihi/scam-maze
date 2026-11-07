@@ -1,0 +1,83 @@
+name: Scenario proposal
+description: Propose a new scam scenario or update an outdated one.
+title: "[Scenario]: "
+labels: ["scenario"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Scenarios must use **fictional brands and domains**. Defang every URL (`hxxps://shop-fake[.]top`),
+        and never paste real personal data, OTPs or credentials.
+  - type: input
+    id: name
+    attributes:
+      label: Scenario name
+      placeholder: "e.g. Fake job offer asking for a deposit"
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Scam type
+      options:
+        - Suspicious link / SMS
+        - Prize / giveaway
+        - Fake job / recruitment
+        - OTP / account takeover
+        - Fake login page
+        - Marketplace / shopping
+        - Impersonation (bank, police, family)
+        - Investment / crypto
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Channel
+      multiple: true
+      options:
+        - SMS
+        - Chat app
+        - Email
+        - Social media
+        - Phone call
+        - Website
+        - Marketplace
+    validations:
+      required: true
+  - type: textarea
+    id: flow
+    attributes:
+      label: Story flow and branches
+      description: List the steps and at least one safe and one risky choice per step. Every branch must end in an outcome.
+      placeholder: |
+        Step 1: Message "..."
+          - Choice A (risky) -> Step 2
+          - Choice B (safe)  -> Outcome: safe
+        Step 2: ...
+    validations:
+      required: true
+  - type: textarea
+    id: red-flags
+    attributes:
+      label: Red flags and how to verify
+      description: For each red flag, quote the evidence and give an independent way to verify.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Public source showing this tactic is real
+      description: News article, police or bank warning, etc.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checklist
+      options:
+        - label: All brands and domains are fictional, and all URLs are defanged.
+          required: true
+        - label: No real personal data, OTPs or credentials are included.
+          required: true
+        - label: The scenario does not shame players who make the risky choice.
+          required: true

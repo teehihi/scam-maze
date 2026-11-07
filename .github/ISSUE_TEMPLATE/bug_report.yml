@@ -1,0 +1,66 @@
+name: Bug report
+description: Something does not work as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Security problems** (for example the app calling a link "safe", or loading a URL) must go through
+        [private reporting](https://github.com/teehihi/scam-maze/security/advisories/new) instead.
+        Please **defang** any URL (`hxxps://example[.]top/otp`) and remove personal data from screenshots.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Scenario / game
+        - URL checker
+        - Landing page / layout
+        - Accessibility
+        - Deployment / build
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and device
+      placeholder: "e.g. Chrome 140 on Android 15, Safari on iPhone"
+    validations:
+      required: true
+  - type: input
+    id: assistive-tech
+    attributes:
+      label: Assistive technology (if any)
+      placeholder: "e.g. VoiceOver, NVDA, keyboard only, zoom 200%"
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or extra context
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I did not include live malicious links or personal data.
+          required: true

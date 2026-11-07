@@ -34,3 +34,14 @@ Workflow `.github/workflows/deploy.yml` build và deploy lên GitHub Pages khi p
 ## Lưu ý an toàn
 
 Mọi tên miền trong demo đều giả lập và không bao giờ được truy cập. Công cụ kiểm tra URL chỉ nêu tín hiệu; "chưa thấy tín hiệu xấu" không có nghĩa là an toàn.
+
+## Đóng góp
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — cách cài đặt, quy trình branch/PR, quy tắc an toàn khi viết kịch bản
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — quy tắc ứng xử
+- [SECURITY.md](SECURITY.md) — báo cáo lỗ hổng bảo mật (không mở issue công khai)
+- [ACCESSIBILITY.md](ACCESSIBILITY.md) — cam kết và giới hạn về khả năng tiếp cận
+
+## Giấy phép
+
+[MIT](LICENSE) © 2026 SCAMMAZE contributors
