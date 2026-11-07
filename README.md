@@ -104,3 +104,11 @@ The site and documentation are in English; Vietnamese is planned.
 ## License
 
 [MIT](LICENSE) © 2026 SCAMMAZE contributors
+
+
+## Game entry configuration
+
+"ENTER THE GAME" is driven by one setting, `VITE_GAME_URL` (see `.env.example` and
+`src/config/site.ts`). While it is empty, the button opens a "world is being
+prepared" dialog. When the separately deployed game app is live, build the site
+with `VITE_GAME_URL=https://play.scammaze.com` and every entry button becomes a link to it.
