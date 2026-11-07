@@ -1,97 +1,97 @@
 # SCAMMAZE — KIROWEEN 2026 MASTER PLAN
 
-> **Version:** 2.0 — Full build plan, không phân công thành viên · **Ngày lập:** 07/11/2026 · **Trạng thái:** Build blueprint / chưa xác nhận implementation  
-> **Category duy nhất:** **Frankenstein** · **Platform:** responsive web/PWA · **Tổ chức:** task-based, không chia vai trò/thành viên  
+> **Version:** 2.0 — Full build plan, no assignment by team member · **Date drafted:** 7 Nov 2026 · **Status:** Build blueprint / implementation not yet confirmed  
+> **Sole category:** **Frankenstein** · **Platform:** responsive web/PWA · **Organization:** task-based, no roles/members assigned  
 > **North star:** *A safe, interactive Internet where people learn to spot scams before facing them in real life.*  
-> **Đích đến:** một ứng dụng live, public, có demo end-to-end, có thử nghiệm người dùng và bằng chứng phát triển thực sự bằng Kiro.  
-> **Quan trọng:** Không kế hoạch nào bảo đảm đoạt giải. Đây là chiến lược tối ưu chất lượng, tính khác biệt, khả năng hoàn thành và tuân thủ luật; không dùng tuyên bố “chắc chắn thắng”.
+> **Destination:** a live, public application with an end-to-end demo, user testing, and real evidence of development with Kiro.  
+> **Important:** No plan can guarantee a win. This is a strategy to optimize quality, differentiation, deliverability, and rules compliance; do not use "guaranteed to win" claims.
 
 ---
 
-**Cách sử dụng tài liệu:** Đây là **full master plan** (single source of truth). Không chia công việc theo thành viên. Đọc theo thứ tự: Rulebook → Feature Contract → Architecture → Security/Evaluation → Kiro Workflow → Task Roadmap → Release Gates. Mỗi task chỉ được đánh dấu hoàn thành khi có test evidence.
+**How to use this document:** This is the **full master plan** (single source of truth). Work is not divided by team member. Read in this order: Rulebook → Feature Contract → Architecture → Security/Evaluation → Kiro Workflow → Task Roadmap → Release Gates. Each task may be marked complete only when there is test evidence.
 
 ---
 
-## 0. Executive decision — Những gì phải làm đúng
+## 0. Executive decision — What must be done right
 
-**ScamMaze không phải phishing quiz, không phải chatbot hỏi đáp, không phải website chấm điểm URL.** ScamMaze là **interactive scam simulation + explainable decision graph + evidence-driven learning + optional real-world safety checklist**, trong đó:
+**ScamMaze is not a phishing quiz, not a Q&A chatbot, and not a URL-scoring website.** ScamMaze is an **interactive scam simulation + explainable decision graph + evidence-driven learning + optional real-world safety checklist**, in which:
 
-1. Người dùng bước vào một **Internet giả lập an toàn** (chat, website, email, marketplace, notification), gặp các chiến thuật thao túng theo chuỗi.
-2. **Quyết định thực sự thay đổi cốt truyện**: xem kỹ nguồn, xác minh từ kênh độc lập, dừng giao dịch, hoặc tiếp tục làm theo yêu cầu.
-3. **Consequence Replay** trình bày hậu quả mô phỏng, những tín hiệu người chơi bỏ lỡ và nhánh có thể thay thế — không thu thập tài khoản hay tiền thật.
-4. **Risk DNA Graph** nối **tín hiệu → chiến thuật → quyết định → hậu quả → hành động an toàn**, dựa trên scenario annotations được biên tập, không suy luận vô căn cứ.
-5. **Transfer Test** đưa tình huống mới chưa có trong phần học để đo năng lực vận dụng; không đánh đồng hoàn thành màn chơi với năng lực chống lừa đảo đời thực.
-6. **AI là adapter không bắt buộc**: tắt AI, timeout, hết quota, mất internet tạm thời vẫn chơi được các scenario đã tải, có chấm điểm, explanation, graph, bài luyện tập và tiến trình local.
+1. The user steps into a **safe simulated Internet** (chat, website, email, marketplace, notification) and encounters manipulation tactics in sequence.
+2. **Decisions genuinely change the storyline**: examine the source closely, verify through an independent channel, stop the transaction, or keep following the request.
+3. **Consequence Replay** presents the simulated consequences, the signals the player missed, and the alternative branches available — without collecting real accounts or money.
+4. **Risk DNA Graph** connects **signal → tactic → decision → consequence → safe action**, based on curated scenario annotations, not unfounded inference.
+5. **Transfer Test** presents new situations not covered in the learning portion to measure the ability to apply what was learned; it does not equate completing a level with real-life scam-resistance skills.
+6. **AI is an optional adapter**: with AI turned off, a timeout, an exhausted quota, or a temporary loss of internet, loaded scenarios can still be played, with scoring, explanations, graph, practice exercises, and local progress.
 
-### 0.1 Các tuyên bố phải bảo vệ
+### 0.1 Claims that must be defended
 
-- **Không cam kết phát hiện mọi scam**, không chứng nhận link “an toàn”.
-- Không tự động mở hay crawl những URL nghi độc hại khi đang chơi, không đòi credentials/OTP, không mô phỏng trang login để thu thập dữ liệu thật.
-- Không làm giả nhận diện thương hiệu thật; dùng brand hư cấu và assets tự tạo/có giấy phép.
-- Không lừa người dùng thật tham gia một phishing experiment; chỉ test trong môi trường đồng thuận.
-- Security score chỉ thể hiện **các tín hiệu quan sát được trong bối cảnh kiểm tra**, không phải xác suất fraud khách quan nếu không có calibration và ground truth.
+- **No commitment to detecting every scam**, and no certifying a link as "safe".
+- Do not automatically open or crawl suspected malicious URLs during play, do not ask for credentials/OTP, and do not simulate login pages to collect real data.
+- Do not forge real brand identities; use fictional brands and assets that are self-made or licensed.
+- Do not trick real users into taking part in a phishing experiment; test only in a consent-based environment.
+- The security score only reflects **signals observed in the context of the check**, not an objective probability of fraud without calibration and ground truth.
 
 ### 0.2 Product principles
 
 **Safe by design • User agency • Learn by doing • Evidence over verdict • No-AI-first resilience • Accessibility • Privacy minimalism • Reproducibility.**
 
-**Furthest worthwhile scope:** 3 kịch bản chất lượng cao (mỗi kịch bản 6–12 nút quyết định), 1 kịch bản holdout, mô phỏng Internet nhất quán, graph giải thích có trích dẫn node, optional AI được giới hạn, PWA offline, production deploy và video dưới 3 phút. 20 màn chơi sơ sài sẽ thua 3 màn chơi xuất sắc.
+**Furthest worthwhile scope:** 3 high-quality scenarios (6–12 decision nodes each), 1 holdout scenario, a consistent Internet simulation, an explanation graph with node citations, bounded optional AI, offline PWA, production deploy, and a video under 3 minutes. 20 sketchy levels will lose to 3 excellent levels.
 
 ---
 
-## 1. Rulebook — Compliance đối chiếu Devpost 2026
+## 1. Rulebook — Compliance checked against Devpost 2026
 
-**Nguồn chính xác:** https://kiroween.devpost.com/rules ; https://kiroween.devpost.com/ ; https://kiroween.devpost.com/details/faqs  
-**Ưu tiên nguồn 2026; trang Devpost có thể trả nội dung cache của 2025 ở vài đường truy cập, không lấy ngày 2025 làm luật 2026.** Kiểm tra lại rules trước khi submit; các hạng mục dưới đây dựa trên bản quy định 2026 đã kiểm tra 07/11/2026.
+**Exact sources:** https://kiroween.devpost.com/rules ; https://kiroween.devpost.com/ ; https://kiroween.devpost.com/details/faqs  
+**Prioritize 2026 sources; Devpost pages may return cached 2025 content on some access paths; do not treat 2025 dates as 2026 rules.** Re-check the rules before submitting; the items below are based on the 2026 rules as checked on 7 Nov 2026.
 
 ### 1.1 Eligibility & timeline
 
-| Quy định xác minh | Kế hoạch thực hiện / bằng chứng | Status |
+| Verified rule | Implementation plan / evidence | Status |
 |---|---|---|
-| Hackathon submission period: **30/10/2026 09:00 Pacific → 04/12/2026 14:00 PST** | Chỉ claim công việc project xây dựng trong khoảng này; lưu Git history, issue/PR, Kiro history | [ ] |
-| Hạn nộp tại Việt Nam: **05/12/2026 05:00 ICT** (PST UTC−8, ICT UTC+7, +15h) | **Internal deadline: 03/12/2026 23:00 ICT**, có buffer | [ ] |
-| Team **tối đa 3**, một authorized Representative (yêu cầu luật) | Xác nhận đủ điều kiện và người đại diện khi nộp bài; đây không phải phân công xây dựng | [ ] |
-| **New projects only**: tạo mới sau thời điểm bắt đầu submission; dùng library/template chuẩn hợp lệ, disclose pre-existing work ngoài standard resources | New repo, commit đầu và original source được tạo trong kỳ; `THIRD_PARTY_NOTICES.md`; không copy ScopeGraph hay project cũ | [ ] |
-| Chọn **đúng một category** | Frankenstein trong Devpost; không đăng thêm Costume Contest dưới cùng submission | [ ] |
-| **Working app** chạy ổn định, đúng demo | Live hosted URL, smoke tests và backup deployment | [ ] |
-| App được truy cập miễn phí trong thời gian chấm | Guest demo không login là default; nếu cần demo account ghi trong private field Devpost | [ ] |
-| **GitHub public** (không dùng GitLab/Bitbucket làm link submission) | Repo đầy đủ code/asset/setup; không secrets | [ ] |
-| **Open-source license** hiện rõ trên GitHub | Chọn MIT/Apache-2.0 nếu phù hợp dependencies/assets; `LICENSE`, GitHub About/license detection | [ ] |
-| `/.kiro` tồn tại ở **root** và được commit, không ignore | Specs/steering/hooks thực sự được dùng; `git ls-files .kiro` | [ ] |
-| **Sử dụng Kiro có ý nghĩa**; insufficient use có thể bị loại | Spec → PR/commit → test → iteration, hooks, steering, documented Kiro write-up | [ ] |
-| YouTube **public**, footage app chạy thật, **< 3:00** | Video 2:40–2:55; bản backup; kiểm tra link incognito | [ ] |
-| Materials bằng English hoặc kèm English translations | Devpost description, video EN narration/subtitle, testing instructions, README EN | [ ] |
-| Phần tích hợp bên thứ ba được phép; IP/branding/music có quyền sử dụng | License audit, asset manifest, audio self-created/royalty-cleared | [ ] |
-| **Best Student Project** chỉ nếu **tất cả thành viên dự thi** thực sự đang học tại cơ sở được công nhận | Chứng từ tình trạng sinh viên của từng người theo yêu cầu ban tổ chức; không khai thay cho người khác | [ ] |
-| Kiro Crew bonus chỉ nếu có Kiro Crew app riêng, đáp ứng điều kiện riêng | Không làm chỉ để săn bonus nếu ảnh hưởng core; không claim khi chưa có app | [ ] |
-| Blog/Social bonus nếu tham gia | Blog công khai đăng trong period, nói rõ Kiroween 2026; social post bắt đầu bằng `#KiroweenHackathon26` | [ ] |
-| Không thay đổi submission sau deadline | Freeze link/video/description trước internal deadline; lưu snapshot | [ ] |
+| Hackathon submission period: **30 Oct 2026 09:00 Pacific → 4 Dec 2026 14:00 PST** | Only claim project work built within this window; keep Git history, issues/PRs, Kiro history | [ ] |
+| Submission deadline in Vietnam: **5 Dec 2026 05:00 ICT** (PST UTC−8, ICT UTC+7, +15h) | **Internal deadline: 3 Dec 2026 23:00 ICT**, with a buffer | [ ] |
+| Team of **at most 3**, one authorized Representative (legal requirement) | Confirm eligibility and the representative when submitting; this is not an assignment of build work | [ ] |
+| **New projects only**: created after the submission start time; standard libraries/templates are allowed, disclose pre-existing work outside standard resources | New repo, first commit and original source created within the period; `THIRD_PARTY_NOTICES.md`; do not copy ScopeGraph or any old project | [ ] |
+| Choose **exactly one category** | Frankenstein on Devpost; do not also enter Costume Contest under the same submission | [ ] |
+| **Working app** that runs reliably and matches the demo | Live hosted URL, smoke tests, and a backup deployment | [ ] |
+| App is freely accessible during judging | Guest demo without login is the default; if a demo account is needed, put it in the private Devpost field | [ ] |
+| **Public GitHub** (do not use GitLab/Bitbucket as the submission link) | Repo with complete code/assets/setup; no secrets | [ ] |
+| Clearly visible **open-source license** on GitHub | Choose MIT/Apache-2.0 if compatible with dependencies/assets; `LICENSE`, GitHub About/license detection | [ ] |
+| `/.kiro` exists at the **root** and is committed, not ignored | Specs/steering/hooks are actually used; `git ls-files .kiro` | [ ] |
+| **Meaningful use of Kiro**; insufficient use may lead to disqualification | Spec → PR/commit → test → iteration, hooks, steering, documented Kiro write-up | [ ] |
+| YouTube **public**, footage of the app actually running, **< 3:00** | Video 2:40–2:55; backup version; check the link in incognito | [ ] |
+| Materials in English or accompanied by English translations | Devpost description, video with EN narration/subtitles, testing instructions, README in EN | [ ] |
+| Third-party integrations are allowed; IP/branding/music must be used with permission | License audit, asset manifest, audio self-created/royalty-cleared | [ ] |
+| **Best Student Project** only if **all participating members** are actually enrolled at a recognized institution | Proof of student status for each person as required by the organizers; do not make declarations on behalf of others | [ ] |
+| Kiro Crew bonus only if there is a separate Kiro Crew app meeting its own conditions | Do not build it just to chase the bonus if it affects the core; do not claim it without an app | [ ] |
+| Blog/Social bonus if participating | Public blog published within the period, explicitly mentioning Kiroween 2026; social post starting with `#KiroweenHackathon26` | [ ] |
+| No changes to the submission after the deadline | Freeze link/video/description before the internal deadline; save a snapshot | [ ] |
 
-**Ghi chú:** Best Demo bonus có điều kiện nằm trong top 10% overall eligible scores **và** dẫn đầu tiêu chí Presentation, không đơn thuần chỉ có video đẹp. Overall và Category không cùng thắng, nhưng có thể thêm bonus nếu eligible. Giải thưởng không phải deliverable bắt buộc.
+**Notes:** The Best Demo bonus is conditional on being in the top 10% of overall eligible scores **and** leading the Presentation criterion, not simply having a nice video. Overall and Category cannot both be won, but a bonus may be added if eligible. Prizes are not a mandatory deliverable.
 
-### 1.2 5 judging criteria, mỗi tiêu chí 20%
+### 1.2 The 5 judging criteria, 20% each
 
-| Criterion | Minh chứng cần tạo ra, không chỉ tuyên bố |
+| Criterion | Evidence to produce, not merely claim |
 |---|---|
-| **Potential Impact** | Persona rõ, user study, baseline, transfer test pre/post, accessibility và giới hạn tác dụng |
-| **Technological Implementation** | Kiro specs/hook/steering thật, decision engine, deterministic analyzer, integration tests, architecture and evidence |
-| **Design** | Visual system nhất quán, mobile responsiveness, UX transition, accessibility, zero confusing dead ends |
-| **Innovation / Idea** | Frankenstein mechanism, prior-art matrix, chứng minh interdependence giữa các module, không phải ghép bốn trang CRUD |
-| **Presentation** | Video <3 phút quay hoạt động thật, clear hook, visible branching, actual outcome, live URL không lỗi |
+| **Potential Impact** | Clear personas, user study, baseline, pre/post transfer test, accessibility and limits of effectiveness |
+| **Technological Implementation** | Real Kiro specs/hooks/steering, decision engine, deterministic analyzer, integration tests, architecture and evidence |
+| **Design** | Consistent visual system, mobile responsiveness, UX transitions, accessibility, zero confusing dead ends |
+| **Innovation / Idea** | Frankenstein mechanism, prior-art matrix, proof of interdependence among modules, not four CRUD pages stitched together |
+| **Presentation** | Video under 3 minutes showing real operation, clear hook, visible branching, actual outcome, live URL without errors |
 
-**Stage-one pass/fail:** đúng theme và dùng Kiro đủ thực chất. **Stage-two:** 5 tiêu chí nêu trên. Không được tối ưu UI mà bỏ stage-one.
+**Stage-one pass/fail:** fits the theme and uses Kiro substantively enough. **Stage-two:** the 5 criteria above. Do not optimize the UI at the expense of stage one.
 
-### 1.3 Submission package bắt buộc
+### 1.3 Required submission package
 
-- [ ] Devpost submission category **Frankenstein** và bonus **chỉ các loại đủ điều kiện**.
-- [ ] Public live app, free to judge, guest demo mode; nếu login cần credential trong trường chỉ cho judges.
-- [ ] Public GitHub repo, OSI-approved open-source license, README EN, instructions, content/assets có quyền sử dụng.
-- [ ] `.kiro/` ở root và có artifacts làm việc thật.
-- [ ] Kiro usage write-up kể cụ thể spec/hook/steering/experimentation, không claim công cụ chưa chạy.
-- [ ] Demo video YouTube public <180 giây, có footage app thật; không IP/music vi phạm.
-- [ ] Tiếng Anh cho mô tả/viết hướng dẫn/video hoặc kèm English translation.
-- [ ] Testing instructions 3 phút, supported browser/version và expected result.
-- [ ] Kiểm tra toàn bộ ẩn danh ở máy khác, không cần API key để trải nghiệm core.
+- [ ] Devpost submission in category **Frankenstein** and bonuses **only for eligible types**.
+- [ ] Public live app, free to judge, guest demo mode; if login is required, put credentials in the judges-only field.
+- [ ] Public GitHub repo, OSI-approved open-source license, README in EN, instructions, content/assets with usage rights.
+- [ ] `.kiro/` at the root with real working artifacts.
+- [ ] Kiro usage write-up describing the specific specs/hooks/steering/experimentation; do not claim tools that have not been run.
+- [ ] Public YouTube demo video under 180 seconds, with real app footage; no infringing IP/music.
+- [ ] English for the description/guide text/video, or accompanied by an English translation.
+- [ ] 3-minute testing instructions, supported browser/version, and expected result.
+- [ ] Run the full check anonymously on another machine, with no API key needed to experience the core.
 
 ---
 
@@ -99,30 +99,30 @@
 
 ### 2.1 Audience
 
-**Primary:** người dùng Internet phổ thông 16+ (trong MVP test chỉ sử dụng người lớn có đồng ý), sinh viên, người mua sắm online, người mới đi làm. **Secondary:** nhóm giáo dục kỹ năng số, trường học và nhóm cộng đồng.
+**Primary:** general Internet users aged 16+ (in MVP testing, only consenting adults), students, online shoppers, new entrants to the workforce. **Secondary:** digital-skills education groups, schools, and community groups.
 
 ### 2.2 Jobs to be done
 
-- Khi nhận tin nhắn/website có hành động khẩn, tôi cần nhận diện áp lực và kiểm tra độc lập **trước** khi nhập dữ liệu/chuyển tiền.
-- Khi đã chọn sai trong trò chơi, tôi muốn thấy **chính xác** tại đâu mình bị thao túng và phản ứng an toàn khác là gì.
-- Khi gặp tình huống khác trong đời thật, tôi muốn dùng phương pháp đã học, không cần dựa vào “AI bảo an toàn”.
+- When I receive a message/website demanding urgent action, I need to recognize the pressure and verify independently **before** entering data/transferring money.
+- When I have made the wrong choice in the game, I want to see **exactly** where I was manipulated and what the other safe response is.
+- When I face a different situation in real life, I want to use the method I learned, without relying on "the AI says it's safe".
 
 ### 2.3 Prior art / competitive gap
 
-| Alternative | Giải quyết tốt | Điều ScamMaze cần chứng minh **khác biệt** |
+| Alternative | What it does well | What ScamMaze needs to prove is **different** |
 |---|---|---|
-| Google/Jigsaw Phishing Quiz | Nhận diện phishing qua ví dụ | Multi-step connected channels, causal consequences, repeat/replay, transfer test |
-| Google Interland / Be Internet Awesome | Game giáo dục an toàn mạng | Adult-oriented realistic scam workflows với evidence-driven feedback |
-| Basic URL scanners/reputation checkers | Tín hiệu domain/phishing detection | Không chỉ verdict URL; kết hợp mô phỏng hành vi và kỹ năng xác minh độc lập |
-| Security awareness modules | Nội dung đào tạo và quiz | Interactive simulator có nhánh thật, measurable transfer outcome, không cần AI |
+| Google/Jigsaw Phishing Quiz | Recognizing phishing through examples | Multi-step connected channels, causal consequences, repeat/replay, transfer test |
+| Google Interland / Be Internet Awesome | Educational online-safety game | Adult-oriented realistic scam workflows with evidence-driven feedback |
+| Basic URL scanners/reputation checkers | Domain signals/phishing detection | Not just a URL verdict; combines behavior simulation with independent verification skills |
+| Security awareness modules | Training content and quizzes | Interactive simulator with real branches, measurable transfer outcome, no AI required |
 
-**Novelty claim có điều kiện:** không được claim “game chống scam đầu tiên”. Đề xuất mới là **vòng lặp liên tục**: *scenario state → user decision → simulated consequence → evidence graph → safe alternative → new-context transfer test*. Nếu các module hoạt động biệt lập thì **Frankenstein fail**.
+**Conditional novelty claim:** do not claim "the first anti-scam game". The new proposal is a **continuous loop**: *scenario state → user decision → simulated consequence → evidence graph → safe alternative → new-context transfer test*. If the modules operate in isolation, then **Frankenstein fails**.
 
-### 2.4 Three proof points cho judge
+### 2.4 Three proof points for judges
 
-1. **Causal divergence:** cùng một kịch bản, hai lựa chọn tạo kết quả có thể quan sát khác nhau, có screenshot/test.
-2. **Transparent explanation:** mỗi “red flag” hiển thị dấu hiệu gốc trong giao diện giả lập và lý do liên quan; không hallucinated explanation.
-3. **Measurable learning:** holdout test kiểm tra chuyển giao kỹ năng, báo sample size và uncertainty, không hứa hiệu quả khi chưa đo.
+1. **Causal divergence:** within the same scenario, two choices produce observably different results, backed by screenshots/tests.
+2. **Transparent explanation:** each "red flag" shows the original sign in the simulated interface and the relevant reason; no hallucinated explanations.
+3. **Measurable learning:** the holdout test checks skill transfer, reporting sample size and uncertainty; do not promise effectiveness before it is measured.
 
 ---
 
@@ -134,64 +134,64 @@
 
 | ID | Feature | User story | Acceptance criteria |
 |---|---|---|---|
-| F01 | Instant playable guest onboarding | Người mới chơi ngay không đăng ký | <=2 click tới scenario; hiểu đây là giả lập; không yêu cầu email |
-| F02 | Scenario selector 3 tình huống | Chọn mức khó/chủ đề | Title, estimated minutes, skill targets, progress; no broken entries |
-| F03 | Sandbox Internet UI | Người chơi thấy fake chat/email/browser/checkout | Phân biệt rõ `.test`/fictional, không mở external malicious URL, responsive mobile |
-| F04 | Deterministic branching engine | Lựa chọn có hậu quả | Transition guard, terminal outcomes, multiple paths, reload/resume; property tests |
-| F05 | Evidence-linked red flags | Thấy tại sao sai | Mỗi flag chứa `evidenceRef`, `ruleId`, actionable explanation đã biên tập |
-| F06 | Consequence Replay | Xem lại hành động và nhánh khác | Timeline từng quyết định, selected alternative + expected hypothetical consequence rõ nhãn |
-| F07 | Risk DNA Graph | Xem mối liên hệ chiến thuật và hành vi | Chọn node graph làm nổi UI event liên quan; không node thiếu nguồn |
-| F08 | Safety habits / independent verification | Học phương pháp áp dụng | 4–6 bước tùy scenario; không khẳng định kiểm tra xong là an toàn |
-| F09 | Transfer test (holdout) | Thử trường hợp mới | Tình huống không trùng training, điểm giải thích rõ, lưu quiz version |
-| F10 | Local progress & privacy | Quay lại không mất tiến độ | IndexedDB/local storage có versioning, clear data button, không gửi PII |
-| F11 | AI-off mode + failover | Không có AI vẫn chơi | Toggle ON/OFF; fail after 2–3s; deterministic fallback; automated E2E on AI disabled |
-| F12 | Accessibility & responsive | Người dùng điện thoại/bàn phím | Keyboard controls, contrast, reduced motion, captions, no color-only status |
-| F13 | Production live/demo | Judges test độc lập | Guest flow runs incognito, logs do not disclose secrets, stable deployment |
+| F01 | Instant playable guest onboarding | New users play right away without registering | <=2 clicks to a scenario; understands this is a simulation; no email required |
+| F02 | Scenario selector with 3 situations | Choose difficulty/topic | Title, estimated minutes, skill targets, progress; no broken entries |
+| F03 | Sandbox Internet UI | Player sees fake chat/email/browser/checkout | Clearly distinguishes `.test`/fictional, does not open external malicious URLs, responsive on mobile |
+| F04 | Deterministic branching engine | Choices have consequences | Transition guards, terminal outcomes, multiple paths, reload/resume; property tests |
+| F05 | Evidence-linked red flags | See why it was wrong | Each flag contains `evidenceRef`, `ruleId`, curated actionable explanation |
+| F06 | Consequence Replay | Review actions and other branches | Timeline of each decision, selected alternative + expected hypothetical consequence clearly labeled |
+| F07 | Risk DNA Graph | See the relationship between tactics and behavior | Selecting a graph node highlights the related UI events; no node without a source |
+| F08 | Safety habits / independent verification | Learn applicable methods | 4–6 steps depending on scenario; never claims that completing the check means it is safe |
+| F09 | Transfer test (holdout) | Try a new case | Situation does not overlap with training, clearly explained score, quiz version saved |
+| F10 | Local progress & privacy | Return without losing progress | IndexedDB/local storage with versioning, clear data button, no PII sent |
+| F11 | AI-off mode + failover | Play without AI | Toggle ON/OFF; fail after 2–3s; deterministic fallback; automated E2E with AI disabled |
+| F12 | Accessibility & responsive | Phone/keyboard users | Keyboard controls, contrast, reduced motion, captions, no color-only status |
+| F13 | Production live/demo | Judges test independently | Guest flow runs in incognito, logs do not disclose secrets, stable deployment |
 
-**P1 — High-value polish sau P0**
+**P1 — High-value polish after P0**
 
 | ID | Feature | Acceptance |
 |---|---|---|
 | F14 | Scenario editor (internal only) | Schema validation, preview all branches, unreachable/dead-end detection |
-| F15 | Adaptive practice (rule-based) | Chọn scenario tiếp theo dựa trên `skillTag` yếu; deterministic, explainable |
-| F16 | Optional AI coach | Chỉ giải thích dựa trên approved scenario/rules, JSON schema validation và guardrail, fallback nguyên vẹn |
-| F17 | Challenge mode / scorecard | Điểm theo dấu hiệu đã xác minh, không khuyến khích click link nguy hiểm; có disclaimer |
-| F18 | Shareable anonymized result card | Không tiết lộ đường đi nhạy cảm hay dữ liệu cá nhân, opt-in only |
-| F19 | Localized UI EN + VI | EN hoàn thiện cho judges, VI cho thử nghiệm địa phương; content translation reviewed |
-| F20 | Replay comparison | Before/after side-by-side có evidence timeline và kiến thức vừa học |
+| F15 | Adaptive practice (rule-based) | Chooses the next scenario based on weak `skillTag`; deterministic, explainable |
+| F16 | Optional AI coach | Only explains based on approved scenarios/rules, JSON schema validation and guardrails, fallback fully intact |
+| F17 | Challenge mode / scorecard | Score by verified signals, does not encourage clicking dangerous links; includes disclaimer |
+| F18 | Shareable anonymized result card | Does not reveal sensitive paths or personal data, opt-in only |
+| F19 | Localized UI EN + VI | EN finished for judges, VI for local testing; content translation reviewed |
+| F20 | Replay comparison | Before/after side-by-side with evidence timeline and what was just learned |
 
-**P2 — Stretch; không được làm trước khi release-ready**
+**P2 — Stretch; must not be started before release-ready**
 
-- Optional voice narration có caption, simple achievement badges, instructor classroom screen, thêm scenario.
-- Browser extension “real URL check” **chỉ nếu** có threat model, permission rationale, safe API design và test; **không cần** để dự thi.
-- Generative scenario runtime, autonomous phishing website ingestion, live scraping, 3D full world, full multiplayer: **explicitly out of scope**.
+- Optional voice narration with captions, simple achievement badges, instructor classroom screen, additional scenarios.
+- Browser extension "real URL check" **only if** there is a threat model, permission rationale, safe API design, and tests; it is **not needed** to compete.
+- Generative scenario runtime, autonomous phishing website ingestion, live scraping, full 3D world, full multiplayer: **explicitly out of scope**.
 
 ### 3.2 Scenario lineup (authored, original)
 
-| Scenario | Channels | Kỹ năng chính | Branching / twists | Outcome |
+| Scenario | Channels | Main skills | Branching / twists | Outcome |
 |---|---|---|---|---|
 | **S1: The Missing Parcel** | Fake SMS → fake delivery site → OTP request | Link provenance, urgency, OTP never share | Verify from official channel vs trust SMS, fake tracking page, late fee twist | Safe stop / simulated account risk |
 | **S2: The Dream Job** | Fake recruiter chat → fake form → advance-fee demand | Identity verification, too-good-to-be-true, fee red flag | Cross-check company domain vs immediate payment, forged “HR confirmation” | Avoid scam / simulated loss |
 | **S3: The Impossible Deal** | Fake marketplace → chat → payment request | Seller evidence, pressure, off-platform payment | Seller changes terms after reservation; inspect item vs pay deposit | Safe cancel / simulated loss |
 | **H1: The Family Emergency** (holdout) | Friend account imitation → urgent transfer demand | Independent contact verification | Different wording/channel from training; DO NOT teach content-specific memorization | Transfer score |
 
-**Important:** scenarios dùng tên/biểu tượng hư cấu, phone numbers giả/làm mờ, domains `example.test` hoặc `example.invalid`; không dùng OTP thật hay tên ngân hàng/shipper thật. Mỗi scenario có ít nhất **2 safe routes, 2 unsafe routes và 1 ambiguous route** khiến người dùng được khuyên xác minh thêm. Outcome phải nhất quán với lựa chọn và evidence.
+**Important:** scenarios use fictional names/icons, fake or blurred phone numbers, and domains `example.test` or `example.invalid`; do not use real OTPs or real bank/courier names. Each scenario has at least **2 safe routes, 2 unsafe routes, and 1 ambiguous route** that leads the user to be advised to verify further. Outcomes must be consistent with the choices and evidence.
 
 ### 3.3 Non-AI gameplay contract
 
-- Engine trả cùng state với cùng scenario version + decision sequence.
-- Human-authored explanations đã sẵn và đầy đủ cho mọi nhánh.
-- URL inspector dùng các heuristic minh bạch (host, punycode, IP-literal, spelling, unexpected subdomain...) **không gọi network bằng URL người dùng cung cấp** trừ khi xây riêng cơ chế proxy được xét duyệt; không đưa “safe badge”.
-- Offline PWA có app shell và scenarios được pre-cache; **không** giả định backend luôn có network.
-- AI OFF: `coachEnabled=false` → graph, scoring, scenario, achievements, progress hoạt động bình thường; không render placeholder rỗng.
+- The engine returns the same state given the same scenario version + decision sequence.
+- Human-authored explanations are ready and complete for every branch.
+- The URL inspector uses transparent heuristics (host, punycode, IP-literal, spelling, unexpected subdomain...) and **does not make network calls using user-supplied URLs** unless a separately vetted proxy mechanism is built; no "safe badge".
+- Offline PWA has the app shell and scenarios pre-cached; **do not** assume the backend always has network.
+- AI OFF: `coachEnabled=false` → graph, scoring, scenarios, achievements, and progress work normally; no empty placeholders rendered.
 
 ### 3.4 UX flows / screens
 
 1. **Landing:** 1-line promise, CTA `Enter the Maze`, mode indicator, safety disclaimer.
-2. **Choose a Case:** 3 cases dạng casefile (difficulty, length, skill outcomes), demo spotlight.
+2. **Choose a Case:** 3 cases as casefiles (difficulty, length, skill outcomes), demo spotlight.
 3. **Mission Brief:** “Fictional simulation, never enter real credentials.”
 4. **Internet Simulator:** center artifact (fake browser/chat), side investigative notebook, top progress/exit/safety.
-5. **Decision Moment:** choice cards; reversible exploration khi phù hợp, no deceptive forced capture.
+5. **Decision Moment:** choice cards; reversible exploration where appropriate, no deceptive forced capture.
 6. **Outcome:** safe/unsafe/uncertain, consequences labelled SIMULATED, without shaming player.
 7. **Risk DNA / Evidence Board:** interactive graph nodes and event overlay, connection to actual artifact.
 8. **Replay:** sequence scrubber, alternate pathway marker.
@@ -266,7 +266,7 @@ scammaze/
 │   │   ├── 04-ai-optional/{requirements,design,tasks}.md
 │   │   ├── 05-evaluation/{requirements,design,tasks}.md
 │   │   └── 06-release/{requirements,design,tasks}.md
-│   └── hooks/                 # Cấu hình hợp lệ theo version Kiro đang dùng
+│   └── hooks/                 # Valid configuration for the Kiro version in use
 ├── apps/
 │   └── web/
 │       ├── src/{app,pages,features,components,assets,styles,tests}/
@@ -295,7 +295,7 @@ scammaze/
 └── package.json
 ```
 
-**Không commit:** `.env`, provider keys, raw participant data, private student emails outside necessary submission, user screenshots with identifiers. **Có commit:** sanitized demo fixtures, `.kiro/`, reproducible run instructions, tests.
+**Do not commit:** `.env`, provider keys, raw participant data, private student emails beyond what the submission requires, user screenshots with identifiers. **Do commit:** sanitized demo fixtures, `.kiro/`, reproducible run instructions, tests.
 
 ### 4.4 Data contracts / schema (illustrative)
 
@@ -332,17 +332,17 @@ type RunEvent = {
 
 **Invariants:**
 
-- Mỗi `nextNodeId` tồn tại; start reachable; không orphan outcome; vòng lặp phải có max depth/exit.
-- Mỗi `rationaleId` trỏ tới authored evidence; mỗi evidence có source hợp lệ; không hiển thị giải thích không gắn artifact.
-- `replay(events)` phải tái tạo chính xác final state cho cùng scenario version; event sequence monotonic.
-- Replay không sửa original run; alternate branches là **hypothetical** và được gắn nhãn.
-- Điểm số được tính bằng pure function, bounded 0–100; không dựa trên LLM text; `unknown` không được suy ra `safe`.
-- Offline progress không làm lẫn các phiên bản scenario; có migration hoặc reset minh bạch.
-- Local guest data xóa được; không gửi lên backend trừ khi rõ ràng opt-in.
+- Every `nextNodeId` exists; the start node is reachable; no orphan outcomes; loops must have a max depth/exit.
+- Every `rationaleId` points to authored evidence; every piece of evidence has a valid source; no explanation is shown without being tied to an artifact.
+- `replay(events)` must reproduce the final state exactly for the same scenario version; the event sequence is monotonic.
+- Replay does not modify the original run; alternate branches are **hypothetical** and labeled as such.
+- Scores are computed by a pure function, bounded 0–100; they do not depend on LLM text; `unknown` must not be inferred as `safe`.
+- Offline progress does not mix scenario versions; there is a migration or a transparent reset.
+- Local guest data can be deleted; nothing is sent to the backend unless the user explicitly opts in.
 
 ### 4.5 State ownership and AI boundaries
 
-`GameCore` không import provider SDK và không gọi API. `CoachService` nhận payload tối thiểu: scenario version, anonymized event IDs, approved evidence IDs; không nhận nội dung real credentials. Chỉ output thông qua `CoachResponse` có schema, được sanitize/render text only. Nếu AI trả thông tin ngoài authored evidence, UI tách biệt `AI suggestion (may be inaccurate)` và không sửa authored facts/scoring/graph.
+`GameCore` does not import a provider SDK and does not call any API. `CoachService` receives a minimal payload: scenario version, anonymized event IDs, approved evidence IDs; it does not receive real credential content. Output goes only through a schema-defined `CoachResponse`, sanitized and rendered as text only. If the AI returns information outside the authored evidence, the UI separates it as `AI suggestion (may be inaccurate)` and does not alter authored facts/scoring/graph.
 
 ```text
 Coach request -> timeout 2.5s -> validate structured output
@@ -350,7 +350,7 @@ Coach request -> timeout 2.5s -> validate structured output
               -> no / error / quota -> authored explanation
 ```
 
-**AI OFF smoke test:** startup offline → play S1 → choose risky branch → review evidence graph → replay → take transfer test → clear progress; toàn bộ PASS không cần internet/API key.
+**AI OFF smoke test:** start offline → play S1 → choose risky branch → review evidence graph → replay → take transfer test → clear progress; everything PASSES without internet/API key.
 
 ---
 
@@ -430,11 +430,11 @@ Assets: player progress, user trust, game integrity, provider keys, optional ana
 
 ---
 
-## 7. Kiro-first execution strategy — không dùng Kiro như tên gắn cho đẹp
+## 7. Kiro-first execution strategy — do not use Kiro as a decorative label
 
 ### 7.1 Required artifacts and workflow
 
-Mỗi feature P0 phải có chuỗi bằng chứng:
+Every P0 feature must have a chain of evidence:
 
 `Problem / acceptance scenario → .kiro/specs/requirements.md → design.md → tasks.md → Kiro agent execution → git diff/PR → tests → manual acceptance → docs/video evidence`.
 
@@ -531,13 +531,13 @@ Output BLOCKER/WARN/PASS and exact reproduction steps. Do not assert completion 
 
 ---
 
-## 8. Roadmap — Dependency-first, acceptance-driven (không phân công thành viên)
+## 8. Roadmap — Dependency-first, acceptance-driven (no assignment by team member)
 
-**Period:** 07/11–03/12/2026 build/freeze; submission externally before 05/12 05:00 ICT. Tasks are gated by correctness, not fixed-hour estimates. **Không cố định người phụ trách:** chỉ lựa chọn task chưa đạt theo dependency và acceptance criteria.
+**Period:** 7 Nov–3 Dec 2026 build/freeze; submission externally before 5 Dec 05:00 ICT. Tasks are gated by correctness, not fixed-hour estimates. **No fixed owners:** only pick tasks that have not yet been met, based on dependencies and acceptance criteria.
 
 ### Phase A — Foundation / rule compliance (07–10 Nov)
 
-| ID | Task (không phân công người) | Definition of Done |
+| ID | Task (no owner assigned) | Definition of Done |
 |---|---|---|
 | A01 | Create new public GitHub repo + LICENSE + issue board | New-project provenance after 30 Oct, OSI license visible, minimal README, `.kiro` committed |
 | A02 | Devpost registration/category/student eligibility review | Representative chosen; no unverified bonus eligibility |
@@ -551,7 +551,7 @@ Output BLOCKER/WARN/PASS and exact reproduction steps. Do not assert completion 
 
 ### Phase B — Core vertical slice S1 (11–16 Nov)
 
-| ID | Task (không phân công người) | Definition of Done |
+| ID | Task (no owner assigned) | Definition of Done |
 |---|---|---|
 | B01 | Implement typed scenario schema/validator | Missing IDs/dead ends/cycles caught; 20+ schema fixtures |
 | B02 | Implement deterministic transition/replay engine | Pure, versioned, property-based replay invariants pass |
@@ -565,7 +565,7 @@ Output BLOCKER/WARN/PASS and exact reproduction steps. Do not assert completion 
 
 ### Phase C — Frankenstein integration + content (17–23 Nov)
 
-| ID | Task (không phân công người) | Definition of Done |
+| ID | Task (no owner assigned) | Definition of Done |
 |---|---|---|
 | C01 | S2 Dream Job + S3 Impossible Deal | Content QA; 3 scenarios all reachable & complete |
 | C02 | Risk DNA interactive graph | Every node clickable highlights actual content, causal explanations not decorative |
@@ -579,7 +579,7 @@ Output BLOCKER/WARN/PASS and exact reproduction steps. Do not assert completion 
 
 ### Phase D — User testing, polish, evidence (24–29 Nov)
 
-| ID | Task (không phân công người) | Definition of Done |
+| ID | Task (no owner assigned) | Definition of Done |
 |---|---|---|
 | D01 | 5 usability sessions; fix top blockers | Recorded anonymized issues + before/after fixes |
 | D02 | 15–25 participant pilot if feasible | Protocol, consent, matched pre/post, honest results with limitations |
@@ -593,7 +593,7 @@ Output BLOCKER/WARN/PASS and exact reproduction steps. Do not assert completion 
 
 ### Phase E — Submission / freeze (30 Nov–03 Dec)
 
-| ID | Task (không phân công người) | Definition of Done |
+| ID | Task (no owner assigned) | Definition of Done |
 |---|---|---|
 | E01 | Capture end-to-end demo footage | Real product capture, no mock behavior passed as working |
 | E02 | Edit 2:40–2:55 EN video, public YouTube | Clear opening/impact, branching, graph, Kiro use, results, live link |
@@ -614,49 +614,49 @@ Output BLOCKER/WARN/PASS and exact reproduction steps. Do not assert completion 
 
 ---
 
-## 9. Execution protocol — Task-based, không phân chia thành viên
+## 9. Execution protocol — Task-based, no division by team member
 
-Không gắn chức năng cho bất kỳ cá nhân cố định nào. Mọi task được nhận và thực hiện theo **dependency graph + trạng thái readiness + acceptance criteria**. Khi đã có một task đang sửa những module liên quan, không mở một task khác có thể tạo conflict trước khi chốt API contract.
+No function is tied to any fixed individual. Every task is picked up and carried out according to the **dependency graph + readiness state + acceptance criteria**. When one task is already modifying related modules, do not open another task that could create a conflict before the API contract is finalized.
 
-### 9.1 Trạng thái task và điều kiện chuyển trạng thái
+### 9.1 Task states and transition conditions
 
-`BACKLOG → READY → IN_PROGRESS → REVIEW → VERIFIED → DONE` (hoặc `BLOCKED`).
+`BACKLOG → READY → IN_PROGRESS → REVIEW → VERIFIED → DONE` (or `BLOCKED`).
 
-- **BACKLOG:** yêu cầu ban đầu, chưa thống nhất phạm vi.
-- **READY:** spec rõ, dependencies đã hoàn thành, có Given-When-Then và test fixture.
-- **IN_PROGRESS:** triển khai đúng task ID, thay đổi có kiểm soát, không sửa module không liên quan.
-- **REVIEW:** pull request có diff, tests, ảnh/video nếu chạm UI, risk note nếu chạm security.
-- **VERIFIED:** test tự động + manual demo đều đạt; người kiểm tra đã xác nhận acceptance criteria.
-- **DONE:** cập nhật tài liệu, changelog, Kiro BUILD_LOG, commit hash và đóng task.
-- **BLOCKED:** ghi rõ lý do, phương án thay thế và phạm vi bị chặn; không tự nhận hoàn thành.
+- **BACKLOG:** initial request, scope not yet agreed.
+- **READY:** spec is clear, dependencies are complete, Given-When-Then and test fixtures exist.
+- **IN_PROGRESS:** implementing exactly the task ID, with controlled changes and no edits to unrelated modules.
+- **REVIEW:** pull request has a diff, tests, screenshots/video if it touches the UI, and a risk note if it touches security.
+- **VERIFIED:** automated tests and the manual demo both pass; the checker has confirmed the acceptance criteria.
+- **DONE:** documentation, changelog, Kiro BUILD_LOG updated, commit hash recorded, and the task closed.
+- **BLOCKED:** state the reason, the alternative plan, and the scope that is blocked; never self-declare completion.
 
-**Working rule:** một PR = một task chính, hạn chế kéo nhiều việc không liên quan; merge phải qua CI. Các file có rủi ro cao (`risk-rules`, scenario explanations, AI guardrails, auth, `.kiro` và `LICENSE`) cần independent review trước khi merge.
+**Working rule:** one PR = one main task; avoid pulling in many unrelated items; merges must pass CI. High-risk files (`risk-rules`, scenario explanations, AI guardrails, auth, `.kiro`, and `LICENSE`) need independent review before merging.
 
 ### 9.2 Definition of Ready (DoR)
 
-- [ ] Task có ID duy nhất, phạm vi, dependencies và non-goals.
-- [ ] Có ít nhất 2 đường đi success/failure và AI-OFF behavior nếu liên quan.
-- [ ] Có test fixture, expected result và cách đo acceptance.
-- [ ] Có đánh giá an toàn đối với nội dung phishing mô phỏng.
-- [ ] Kiro spec đã được duyệt trước khi chạy implementation.
+- [ ] The task has a unique ID, scope, dependencies, and non-goals.
+- [ ] There are at least 2 success/failure paths and AI-OFF behavior where relevant.
+- [ ] There is a test fixture, an expected result, and a way to measure acceptance.
+- [ ] A safety assessment exists for the simulated phishing content.
+- [ ] The Kiro spec has been approved before implementation is run.
 
 ### 9.3 Definition of Done (DoD)
 
-- [ ] Code + tests + lint + typecheck + build pass; kết quả cụ thể được ghi lại.
-- [ ] Không phá invariant: branch deterministic, evidence provenance, không thu thập credential, không phụ thuộc AI.
-- [ ] Accessibility và responsive checked nếu thay UI; PWA offline if applicable.
-- [ ] Docs và Kiro evidence cập nhật, PR có link commit và test report.
-- [ ] End-to-end demo flow vẫn chạy sau merge; không có hardcoded success/demo-only behavior.
+- [ ] Code + tests + lint + typecheck + build pass; specific results are recorded.
+- [ ] No invariant is broken: deterministic branches, evidence provenance, no credential collection, no dependence on AI.
+- [ ] Accessibility and responsiveness checked if the UI changed; PWA offline if applicable.
+- [ ] Docs and Kiro evidence updated, PR has a commit link and test report.
+- [ ] The end-to-end demo flow still runs after merge; no hardcoded success/demo-only behavior.
 
 ### 9.4 Continuous demo cadence
 
-- Sau mỗi milestone: deploy staging, chạy smoke test guest/AI-OFF, lưu screencast ngắn.
-- Mỗi tuần: dry-run demo **dưới 3 phút**; ghi time-to-first-interaction, dead ends và top UX friction.
-- Trước release: thử với browser incognito/máy khác và mạng yếu, có bằng chứng pass/fail.
+- After each milestone: deploy to staging, run the guest/AI-OFF smoke test, save a short screencast.
+- Every week: dry-run the demo **under 3 minutes**; record time-to-first-interaction, dead ends, and top UX friction.
+- Before release: try in an incognito browser/another machine and on a weak network, with pass/fail evidence.
 
-### 9.5 Sprint/task prompt để chạy lần lượt trên Kiro
+### 9.5 Sprint/task prompt to run sequentially on Kiro
 
-Đối với từng `A01..E07`, dùng cùng giao thức này và **không bắt đầu task tiếp theo chỉ vì code đã sinh ra**:
+For each `A01..E07`, use this same protocol and **do not start the next task just because code has been generated**:
 
 ```text
 TASK_ID: [A01/B02/C04/...]
@@ -672,7 +672,7 @@ STEP 8: Report exact files changed, commits, decisions, and next READY task.
 STOP on any critical blocker; do not bypass tests or claim undocumented behavior.
 ```
 
-**Dependency map để chọn task tiếp theo:**
+**Dependency map for choosing the next task:**
 
 ```text
 A01 → A04 → B01 → B02 → B04 → B05 → C02 → D05
@@ -687,7 +687,7 @@ D01 + D03 + D04 + D06 → E01 → E02 → E03 → E05 → E06 → E07
 
 This dependency map is an implementation proposal, not a claim about actual repository state. Update it only from verified merged work.
 
-### 9.6 Feature completeness matrix — tránh demo đẹp nhưng thiếu chức năng
+### 9.6 Feature completeness matrix — avoid a beautiful demo that lacks functionality
 
 | Feature cluster | Observable test | Block release if |
 |---|---|---|
@@ -802,7 +802,7 @@ If monorepo scripts differ, document exact commands in README; don't claim these
 - [ ] Public YouTube <3 mins includes running product.
 - [ ] Devpost English + live URL + GitHub + testing guide.
 - [ ] Eligibility and consent for bonus categories reviewed.
-- [ ] Submit by internal deadline; retain access through end of judging (29/01/2027).
+- [ ] Submit by internal deadline; retain access through end of judging (29 Jan 2027).
 
 ### 12.4 Definition of COMPLETE
 
@@ -856,7 +856,7 @@ ScamMaze's best chance is **not** “more AI” or “more features.” It is th
 
 The highest-quality submission will have: **one unforgettable hero flow, three polished scenarios, one credible independent transfer test, an AI-off proof, an auditable Kiro development trail, and zero submission-rule mistakes.** If two goals conflict, **ship quality and compliance first**.
 
-### Source of truth / reviewed on 07 Nov 2026
+### Source of truth / reviewed on 7 Nov 2026
 
 - [Kiroween 2026 Official Rules](https://kiroween.devpost.com/rules)
 - [Kiroween 2026 Overview](https://kiroween.devpost.com/)

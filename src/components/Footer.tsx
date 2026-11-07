@@ -5,11 +5,11 @@ export function Footer() {
     <footer>
       <div className="bg-accent px-5 py-20">
         <div className="mx-auto max-w-5xl">
-          <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">Sẵn sàng tìm lối ra khỏi mê cung?</h2>
-          <p className="mt-3 max-w-xl text-lg">Dừng lại một nhịp, tách kênh xác minh, không bao giờ đưa OTP cho ai.</p>
+          <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">Ready to find your way out of the maze?</h2>
+          <p className="mt-3 max-w-xl text-lg">Pause for a moment, verify through another channel, and never share your OTP.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href="#choi-thu" className="bg-ink px-6 py-3 font-semibold text-paper hover:bg-zinc-700">
-              Chơi lại kịch bản
+            <a href="#play" className="bg-ink px-6 py-3 font-semibold text-paper hover:bg-zinc-700">
+              Play again
             </a>
             <a
               href={REPO_URL}
@@ -23,8 +23,8 @@ export function Footer() {
         </div>
       </div>
       <p className="mx-auto max-w-5xl px-5 py-8 text-sm text-muted">
-        SCAMMAZE · Dự án Kiroween 2026 · Chỉ phục vụ mục đích giáo dục. Nếu bạn nghi ngờ bị lừa đảo, hãy liên hệ ngân
-        hàng và cơ quan chức năng ngay.
+        SCAMMAZE · Kiroween 2026 project · For educational purposes only. If you think you are being scammed, contact your
+        bank and the authorities right away.
       </p>
     </footer>
   );

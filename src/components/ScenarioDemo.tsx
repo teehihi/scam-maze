@@ -4,7 +4,7 @@ import { Marker, Section } from "./Section";
 
 interface State {
   nodeId: string;
-  /** Lựa chọn vừa thực hiện — dùng để hiển thị phản hồi trước khi sang bước kế tiếp. */
+  /** The choice just made, used to show feedback before moving to the next step. */
   pending: Choice | null;
   trail: string[];
 }
@@ -13,7 +13,7 @@ type Action = { type: "choose"; choice: Choice } | { type: "continue" } | { type
 
 const initial: State = { nodeId: START_ID, pending: null, trail: [] };
 
-/** State machine thuần: (state, action) → state, dễ kiểm thử mọi nhánh. */
+/** Pure state machine: (state, action) → state, so every branch is easy to test. */
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "choose":
@@ -28,9 +28,9 @@ function reducer(state: State, action: Action): State {
 }
 
 const outcomeStyle: Record<Outcome, { label: string; cls: string }> = {
-  safe: { label: "Thoát được trong tình huống này", cls: "bg-green-100 text-green-900" },
-  partial: { label: "Thoát hiểm, còn dư chấn", cls: "bg-amber-100 text-amber-900" },
-  loss: { label: "Mắc bẫy", cls: "bg-red-100 text-red-900" },
+  safe: { label: "You got out of this one", cls: "bg-green-100 text-green-900" },
+  partial: { label: "Escaped, with side effects", cls: "bg-amber-100 text-amber-900" },
+  loss: { label: "Trapped", cls: "bg-red-100 text-red-900" },
 };
 
 export function ScenarioDemo() {
@@ -40,10 +40,10 @@ export function ScenarioDemo() {
 
   return (
     <Section
-      id="choi-thu"
-      eyebrow="Chơi thử"
-      title="Kịch bản: “Đơn hàng bị giữ, hãy nhập OTP”"
-      intro="Chọn một nhánh. Hệ thống chỉ ra tín hiệu cảnh báo sau mỗi bước. Thử cả hai nhánh để thấy kết quả khác nhau."
+      id="play"
+      eyebrow="Try it"
+      title="Scenario: “Your parcel is on hold, enter your OTP”"
+      intro="Pick a path. The system points out the warning signs after every step. Try both paths to see different outcomes."
     >
       <div className="mx-auto max-w-3xl border border-line bg-surface">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-5 py-3 sm:px-8">
@@ -54,10 +54,10 @@ export function ScenarioDemo() {
               onChange={(e) => setAi(e.target.checked)}
               className="size-4 accent-ink"
             />
-            AI giải thích <span className="text-muted">(nội dung mẫu)</span>
+            AI explanation <span className="text-muted">(sample content)</span>
           </label>
           <button type="button" onClick={() => dispatch({ type: "reset" })} className="text-sm underline underline-offset-4">
-            Chơi lại
+            Restart
           </button>
         </div>
 
@@ -70,8 +70,8 @@ export function ScenarioDemo() {
         </div>
 
         <p className="border-t border-line px-5 py-3 text-xs text-muted sm:px-8">
-          {ai ? "AI bật: có thêm giải thích bằng ngôn ngữ tự nhiên." : "AI tắt: luật cảnh báo và kịch bản vẫn chạy đầy đủ."}{" "}
-          Mọi tên miền trong demo là giả lập và không bao giờ được truy cập.
+          {ai ? "AI on: adds a natural-language explanation." : "AI off: the warning rules and the scenario still run in full."}{" "}
+          Every domain in this demo is fictional and is never visited.
         </p>
       </div>
     </Section>
@@ -99,7 +99,7 @@ function StepView({
       </blockquote>
 
       {!pending ? (
-        <div className="mt-6 grid gap-2" role="group" aria-label="Lựa chọn của bạn">
+        <div className="mt-6 grid gap-2" role="group" aria-label="Your choices">
           {node.choices.map((c) => (
             <button
               key={c.id}
@@ -113,10 +113,10 @@ function StepView({
         </div>
       ) : (
         <div className="mt-6" aria-live="polite">
-          <p className="text-sm text-muted">Bạn đã chọn</p>
+          <p className="text-sm text-muted">You chose</p>
           <p className="font-medium">{pending.label}</p>
 
-          <h4 className="mt-6 font-mono text-xs font-medium uppercase tracking-widest text-red-800">Tín hiệu cảnh báo</h4>
+          <h4 className="mt-6 font-mono text-xs font-medium uppercase tracking-widest text-red-800">Warning signs</h4>
           <ul className="mt-2 space-y-1">
             {pending.flags.map((f) => (
               <li key={f} className="flex gap-3 bg-red-50 px-4 py-2.5 text-sm text-red-950">
@@ -127,7 +127,7 @@ function StepView({
           </ul>
 
           <h4 className="mt-6 font-mono text-xs font-medium uppercase tracking-widest text-green-800">
-            Cách xác minh độc lập
+            How to verify independently
           </h4>
           <p className="mt-2 flex gap-3 bg-green-50 px-4 py-2.5 text-sm text-green-950">
             <Marker className="bg-green-700" />
@@ -136,7 +136,7 @@ function StepView({
 
           {ai && (
             <p className="mt-4 bg-paper px-4 py-3 text-sm">
-              <span className="font-semibold">AI giải thích (mẫu): </span>
+              <span className="font-semibold">AI explanation (sample): </span>
               {pending.aiNote}
             </p>
           )}
@@ -146,7 +146,7 @@ function StepView({
             onClick={() => dispatch({ type: "continue" })}
             className="mt-6 bg-ink px-5 py-2.5 font-semibold text-paper hover:bg-accent-ink"
           >
-            Tiếp tục
+            Continue
           </button>
         </div>
       )}
@@ -161,7 +161,7 @@ function EndView({ node }: { node: EndNode }) {
       <span className={`inline-block px-3 py-1 font-mono text-xs font-medium ${o.cls}`}>{o.label}</span>
       <h3 className="mt-3 text-2xl font-bold">{node.title}</h3>
       <p className="mt-2 leading-relaxed text-muted">{node.body}</p>
-      <h4 className="mt-6 font-mono text-xs font-medium uppercase tracking-widest">Checklist mang theo</h4>
+      <h4 className="mt-6 font-mono text-xs font-medium uppercase tracking-widest">Checklist to take with you</h4>
       <ol className="mt-2 border-t border-line">
         {node.checklist.map((c, i) => (
           <li key={c} className="flex gap-4 border-b border-line py-3 text-sm">
@@ -171,11 +171,11 @@ function EndView({ node }: { node: EndNode }) {
         ))}
       </ol>
       <p className="mt-6 text-sm text-muted">
-        Tiếp theo: thử{" "}
-        <a href="#kiem-tra-url" className="text-ink underline underline-offset-4">
-          chế độ kiểm tra URL
+        Next: try{" "}
+        <a href="#url-check" className="text-ink underline underline-offset-4">
+          URL check mode
         </a>{" "}
-        với cùng quy tắc.
+        with the same rules.
       </p>
     </div>
   );

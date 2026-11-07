@@ -10,22 +10,22 @@ const examples = [
 
 const verdict: Record<Exclude<RiskLevel, "invalid">, { title: string; cls: string; marker: string; note: string }> = {
   high: {
-    title: "Nhiều tín hiệu rủi ro cao",
+    title: "Many high-risk signals",
     cls: "bg-red-100 text-red-950",
     marker: "bg-red-700",
-    note: "Không bấm, không nhập thông tin. Xác minh qua kênh chính thức bạn tự mở.",
+    note: "Don't tap it and don't enter anything. Verify through an official channel you open yourself.",
   },
   medium: {
-    title: "Có tín hiệu đáng ngờ",
+    title: "Suspicious signals found",
     cls: "bg-amber-100 text-amber-950",
     marker: "bg-amber-600",
-    note: "Hãy xác minh độc lập trước khi tiếp tục.",
+    note: "Verify independently before you continue.",
   },
   "none-found": {
-    title: "Chưa phát hiện tín hiệu xấu nào",
+    title: "No warning signs found yet",
     cls: "bg-line text-ink",
     marker: "bg-muted",
-    note: "Điều này KHÔNG có nghĩa là an toàn. Công cụ chỉ phân tích chuỗi ký tự, không biết nội dung trang. Vẫn xác minh qua kênh chính thức.",
+    note: "This does NOT mean it is safe. The tool only analyzes the text of the URL and knows nothing about the page. Still verify through an official channel.",
   },
 };
 
@@ -36,14 +36,14 @@ export function UrlChecker() {
 
   return (
     <Section
-      id="kiem-tra-url"
-      eyebrow="Chế độ đời thực"
-      title="Mang checklist sang kiểm tra URL"
-      intro="Phân tích hoàn toàn trong trình duyệt bằng luật xác định. Link bạn nhập không bao giờ được tải hay gửi đi đâu."
+      id="url-check"
+      eyebrow="Real-life mode"
+      title="Take the checklist to a URL check"
+      intro="The analysis runs entirely in your browser with deterministic rules. The link you enter is never loaded or sent anywhere."
     >
       <div className="mx-auto max-w-3xl border border-line bg-surface p-5 sm:p-8">
         <label htmlFor="url-input" className="text-sm font-medium">
-          Dán một URL để xem tín hiệu
+          Paste a URL to see its signals
         </label>
         <input
           id="url-input"
@@ -53,12 +53,12 @@ export function UrlChecker() {
           spellCheck={false}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="ví dụ: http://ghn-xacminh.top/otp"
+          placeholder="e.g. http://ghn-xacminh.top/otp"
           className="mt-2 w-full border border-ink bg-surface px-4 py-3 font-mono text-sm placeholder:text-muted"
         />
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted">Thử:</span>
+          <span className="text-xs text-muted">Try:</span>
           {examples.map((ex) => (
             <button
               key={ex}
@@ -73,7 +73,7 @@ export function UrlChecker() {
 
         <div className="mt-6" aria-live="polite">
           {hasInput && result.level === "invalid" && (
-            <p className="bg-paper px-4 py-3 text-sm">Không nhận dạng được URL hợp lệ (http/https).</p>
+            <p className="bg-paper px-4 py-3 text-sm">This is not a valid http or https URL.</p>
           )}
 
           {result.level !== "invalid" && (
@@ -84,7 +84,7 @@ export function UrlChecker() {
               </div>
 
               <p className="mt-4 font-mono text-xs text-muted">
-                Tên miền gốc: <span className="text-ink">{result.registrableDomain}</span>
+                Registrable domain: <span className="text-ink">{result.registrableDomain}</span>
               </p>
 
               {result.signals.length > 0 && (

@@ -1,47 +1,57 @@
 # SCAMMAZE
 
-Landing page cho **SCAMMAZE** — tập nhận diện bẫy lừa đảo Internet bằng tình huống tương tác, sau đó áp dụng checklist kiểm tra trước khi hành động ngoài đời. Dự án tham dự **Kiroween**.
+Landing page for **SCAMMAZE**: practice spotting online scam traps through interactive scenarios, then apply a checklist before you act in real life. A **Kiroween 2026** entry.
 
-**Vòng lặp:** học tình huống → quan sát tín hiệu → áp dụng checklist.
+**Live demo:** <https://teehihi.github.io/scam-maze/>
+
+**Learning loop:** learn the scenario → spot the signals → apply the checklist.
 
 ## Stack
 
 React 19 · TypeScript · Vite 8 · Tailwind CSS v4 · pnpm
 
-## Chạy local
+## Run locally
 
 ```bash
 pnpm install
 pnpm dev        # http://localhost:5173
-pnpm build      # typecheck + build ra dist/
+pnpm build      # typecheck + production build into dist/
 pnpm preview
 ```
 
-Yêu cầu Node.js >= 22.12.
+Requires Node.js >= 22.12.
 
-## Cấu trúc
+## Project structure
 
-- `src/data/scenario.ts` — kịch bản demo phân nhánh (dữ liệu giả lập)
-- `src/lib/urlCheck.ts` — heuristics URL xác định, chỉ phân tích chuỗi, không gọi mạng
-- `src/components/` — các section của landing page
-- `.kiro/steering/safety.md` — quy tắc: không bao giờ khẳng định URL "an toàn"
+- `src/data/scenario.ts`: branching demo scenario (simulated data)
+- `src/lib/urlCheck.ts`: deterministic URL heuristics; string analysis only, no network requests
+- `src/components/`: landing page sections
+- `.kiro/steering/`: rules for Kiro and contributors
+  - `safety.md`: never claim a URL is "safe"
+  - `icons.md`: no emoji as icons
+  - `language.md`: all repository content in English
+- `SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`: full build plan for the hackathon
 
 ## Deploy
 
-Workflow `.github/workflows/deploy.yml` build và deploy lên GitHub Pages khi push vào `main`
-(bật Settings → Pages → Source: GitHub Actions).
+The `.github/workflows/deploy.yml` workflow builds and deploys to GitHub Pages on every push to `main`
+(Settings → Pages → Source: GitHub Actions). The `ci.yml` workflow builds every pull request.
 
-## Lưu ý an toàn
+## Safety note
 
-Mọi tên miền trong demo đều giả lập và không bao giờ được truy cập. Công cụ kiểm tra URL chỉ nêu tín hiệu; "chưa thấy tín hiệu xấu" không có nghĩa là an toàn.
+Every domain in the demo is fictional and is never visited. The URL checker only reports signals; "no warning signs found" does not mean a link is safe.
 
-## Đóng góp
+## Contributing
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) — cách cài đặt, quy trình branch/PR, quy tắc an toàn khi viết kịch bản
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — quy tắc ứng xử
-- [SECURITY.md](SECURITY.md) — báo cáo lỗ hổng bảo mật (không mở issue công khai)
-- [ACCESSIBILITY.md](ACCESSIBILITY.md) — cam kết và giới hạn về khả năng tiếp cận
+- [CONTRIBUTING.md](CONTRIBUTING.md): setup, branch and PR workflow, safety rules for writing scenarios
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): code of conduct
+- [SECURITY.md](SECURITY.md): reporting security vulnerabilities (do not open a public issue)
+- [ACCESSIBILITY.md](ACCESSIBILITY.md): accessibility commitments and known limitations
 
-## Giấy phép
+## Localization
+
+The site and documentation are in English. Multi-language support (English and Vietnamese) is planned.
+
+## License
 
 [MIT](LICENSE) © 2026 SCAMMAZE contributors

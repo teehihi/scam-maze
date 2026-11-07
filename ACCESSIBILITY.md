@@ -12,7 +12,7 @@ site has **not yet been formally audited**.
 ## What is in place today
 
 - Semantic landmarks (`header`, `nav`, `main`, `footer`) and one `h1` per page.
-- Page language declared (`lang="vi"`).
+- Page language declared (`lang="en"`).
 - Visible keyboard focus ring on every interactive element.
 - All game choices and the URL checker are native `button` / `input` elements,
   usable with keyboard only.
@@ -38,7 +38,8 @@ and Chrome on Android / Safari on iOS.
 
 - No automated audit (axe, Lighthouse) or screen-reader testing (NVDA,
   VoiceOver, TalkBack) has been run yet.
-- Content is currently Vietnamese only; English is planned.
+- Content is currently English only; Vietnamese is planned as part of
+  multi-language support.
 
 ## Report a barrier
 

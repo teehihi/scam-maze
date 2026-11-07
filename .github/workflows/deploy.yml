@@ -23,8 +23,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      # Chưa có pnpm-lock.yaml trong repo nên không dùng --frozen-lockfile.
-      # Khi đã commit lockfile: thêm `cache: pnpm` ở trên và đổi thành `pnpm install --frozen-lockfile`.
+      # No pnpm-lock.yaml is committed yet, so --frozen-lockfile is not used.
+      # Once the lockfile is committed: add `cache: pnpm` above and switch to `pnpm install --frozen-lockfile`.
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm build
         env:

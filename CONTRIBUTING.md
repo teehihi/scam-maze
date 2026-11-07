@@ -84,6 +84,12 @@ Propose a scenario with the **Scenario proposal** issue template first.
 - React function components; keep scenario logic pure and testable.
 - Tailwind CSS utility classes; reuse theme colors from `src/index.css`.
 - Accessibility is required, not optional — see [ACCESSIBILITY.md](ACCESSIBILITY.md).
+- **No emoji as icons**, anywhere. Use an installed icon library (preferred:
+  `lucide-react`), a PNG/SVG asset chosen by the developer, or a hand-written
+  SVG component. Details: [`.kiro/steering/icons.md`](.kiro/steering/icons.md).
+- **English only** for UI copy, docs, comments, commits and PRs.
+  Multi-language support comes later; do not add other languages or an i18n
+  library yet. Details: [`.kiro/steering/language.md`](.kiro/steering/language.md).
 
 ## License
 

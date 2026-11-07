@@ -1,29 +1,29 @@
 import { REPO_URL } from "./Header";
 
 const stats = [
-  { k: "3 bước", v: "Tình huống → Tín hiệu → Checklist" },
-  { k: "100%", v: "Phần lõi chạy offline, không cần AI" },
-  { k: "0", v: "Link độc hại thật được tải" },
+  { k: "3 steps", v: "Scenario → Signals → Checklist" },
+  { k: "100%", v: "Core runs offline, no AI needed" },
+  { k: "0", v: "Real malicious links loaded" },
 ];
 
 export function Hero() {
   return (
     <section id="top" className="px-5 pb-20 pt-20 sm:pt-28">
       <div className="mx-auto max-w-5xl">
-        <p className="text-sm font-medium text-accent-ink">Dự án tham dự Kiroween 2026</p>
+        <p className="text-sm font-medium text-accent-ink">Kiroween 2026 entry</p>
 
         <h1 className="mt-4 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
-          Thoát khỏi <span className="bg-accent px-1.5">mê cung</span> lừa đảo trước khi bị dẫn vào ngõ cụt.
+          Escape the scam <span className="bg-accent px-1.5">maze</span> before it leads you to a dead end.
         </h1>
 
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-          SCAMMAZE luyện nhận diện bẫy Internet bằng tình huống tương tác. Mỗi lựa chọn đổi kịch bản, mỗi bước chỉ
-          ra tín hiệu cảnh báo, rồi bạn mang cùng checklist đó ra đời thực.
+          SCAMMAZE trains you to spot online traps through interactive scenarios. Every choice changes the story, every
+          step reveals the warning signs, and you take the same checklist into real life.
         </p>
 
         <div className="mt-10 flex flex-wrap gap-3">
-          <a href="#choi-thu" className="bg-ink px-6 py-3 font-semibold text-paper hover:bg-accent-ink">
-            Chơi thử kịch bản
+          <a href="#play" className="bg-ink px-6 py-3 font-semibold text-paper hover:bg-accent-ink">
+            Play a scenario
           </a>
           <a
             href={REPO_URL}
@@ -31,7 +31,7 @@ export function Hero() {
             rel="noreferrer noopener"
             className="border border-ink px-6 py-3 font-semibold hover:bg-ink hover:text-paper"
           >
-            Xem mã nguồn
+            View source
           </a>
         </div>
 
