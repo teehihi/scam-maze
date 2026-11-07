@@ -1,0 +1,30 @@
+name: CI
+
+# Builds every pull request so changes are typechecked and compiled before merge.
+# Deployment stays in deploy.yml (main only).
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm build
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+      # Built site for reviewers: download, then serve dist/ under /scam-maze/.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+          retention-days: 7

@@ -34,7 +34,9 @@ pnpm preview      # serve dist/
 ```
 
 There is no automated test suite or linter yet; until there is, `pnpm build` must
-pass and you must check your change manually in the browser.
+pass and you must check your change manually in the browser. The **CI** workflow
+runs `pnpm build` on every pull request and uploads the built site as a `dist`
+artifact for review.
 
 ## Workflow
 

@@ -18,10 +18,14 @@ site has **not yet been formally audited**.
   usable with keyboard only.
 - Results of the game and of the URL checker are announced through
   `aria-live` regions.
+- A "skip to main content" link is the first focusable element.
 - The URL input has a visible label.
-- Decorative icons are hidden from assistive technology (`aria-hidden`).
-- Animations and smooth scrolling are disabled when the user prefers
-  reduced motion.
+- No emoji or icon fonts; list markers are decorative shapes hidden from
+  assistive technology (`aria-hidden`).
+- Text color pairs are chosen for at least 4.5:1 contrast (calculated from the
+  design tokens in `src/index.css`, not yet measured on the live site).
+- No decorative animation; smooth scrolling and transitions are disabled when
+  the user prefers reduced motion.
 - Status is never shown by color alone: each warning also has text.
 - Responsive layout from small phones to desktop.
 
@@ -34,10 +38,6 @@ and Chrome on Android / Safari on iOS.
 
 - No automated audit (axe, Lighthouse) or screen-reader testing (NVDA,
   VoiceOver, TalkBack) has been run yet.
-- Some small, low-opacity helper text may not meet the 4.5:1 contrast ratio.
-- There is no "skip to content" link yet.
-- Some emoji inside warning and checklist text (🚩, ✅, ☑, ⚠) are read aloud
-  by screen readers.
 - Content is currently Vietnamese only; English is planned.
 
 ## Report a barrier
