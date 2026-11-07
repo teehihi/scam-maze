@@ -1,6 +1,6 @@
 /**
- * Kịch bản demo (curated JSON-like data). Tất cả nội dung đều giả lập —
- * tên miền dưới đây là ví dụ, KHÔNG được truy cập hay mở thật.
+ * Demo scenario (curated, JSON-like data). All content is simulated.
+ * The domains below are examples and must NEVER be visited or opened.
  */
 
 export type Outcome = "safe" | "partial" | "loss";
@@ -9,11 +9,11 @@ export interface Choice {
   id: string;
   label: string;
   next: string;
-  /** Tín hiệu cảnh báo được chỉ ra sau khi người chơi chọn. */
+  /** Warning signs revealed after the player makes this choice. */
   flags: string[];
-  /** Cách xác minh độc lập. */
+  /** How to verify independently. */
   verify: string;
-  /** Giải thích mở rộng — chỉ hiển thị khi bật “AI giải thích” (nội dung mẫu). */
+  /** Extended explanation, shown only when "AI explanation" is on (sample content). */
   aiNote: string;
 }
 
@@ -43,67 +43,62 @@ export const scenario: Record<string, ScenarioNode> = {
   sms: {
     kind: "step",
     id: "sms",
-    channel: "SMS · số lạ",
-    title: "Đơn hàng bị giữ",
+    channel: "SMS · unknown number",
+    title: "Parcel on hold",
     body:
-      "[GHN-Express] Đơn #VN88213 đang bị giữ do sai địa chỉ. Xác nhận trong 30 PHÚT tại ghn-xacminh.top/otp, nếu không đơn sẽ bị hoàn về.",
+      "[GHN-Express] Order #VN88213 is on hold due to an incorrect address. Confirm within 30 MINUTES at ghn-xacminh.top/otp or the parcel will be returned.",
     choices: [
       {
         id: "tap",
-        label: "Bấm vào link để xác nhận ngay",
+        label: "Tap the link and confirm right away",
         next: "form",
         flags: [
-          "Áp lực thời gian: “30 PHÚT”, “nếu không sẽ bị hoàn”.",
-          "Tên miền ghn-xacminh.top không phải ghn.vn (đuôi .top hay bị lạm dụng).",
-          "Đường dẫn /otp — dịch vụ giao hàng thật không cần OTP để xác nhận địa chỉ.",
+          "Time pressure: “30 MINUTES”, “or the parcel will be returned”.",
+          "The domain ghn-xacminh.top is not ghn.vn (the .top ending is often abused).",
+          "The /otp path: a real delivery service never needs an OTP to confirm an address.",
         ],
-        verify: "Mở app/website chính thức bạn tự gõ, hoặc gọi hotline in trên hóa đơn.",
+        verify: "Open the official app or a website address you type yourself, or call the hotline printed on your receipt.",
         aiNote:
-          "Kẻ lừa đảo tạo cảm giác khẩn cấp để bạn hành động trước khi kịp suy nghĩ. Đây là bước đầu của chuỗi dẫn dắt nhiều bước.",
+          "Scammers create urgency so you act before you have time to think. This is the first step of a multi-step funnel.",
       },
       {
         id: "verify",
-        label: "Không bấm link, tự mở app mua hàng để kiểm tra đơn",
+        label: "Don't tap the link; open your shopping app and check the order",
         next: "safe-1",
-        flags: [
-          "Bạn tách kênh xác minh: không đi theo đường dẫn do người lạ gửi.",
-        ],
-        verify: "Tra mã đơn trong app bạn đã cài từ trước; nếu không có đơn, đó là dấu hiệu rõ ràng.",
+        flags: ["You switched channels: you did not follow a link sent by a stranger."],
+        verify: "Look up the order in an app you installed earlier. If there is no such order, that is a clear sign.",
         aiNote:
-          "Xác minh độc lập (out-of-band) là thói quen hiệu quả nhất: dùng kênh bạn tự chọn, không dùng kênh đối phương đưa.",
+          "Out-of-band verification is the most effective habit: use a channel you choose, never the one the other side gives you.",
       },
     ],
   },
   form: {
     kind: "step",
     id: "form",
-    channel: "Trang giả lập · ghn-xacminh.top",
-    title: "“Xác nhận danh tính để giữ đơn”",
+    channel: "Simulated page · ghn-xacminh.top",
+    title: "“Verify your identity to keep your order”",
     body:
-      "Trang yêu cầu số điện thoại và mã OTP 6 số vừa được gửi tới máy bạn. Đồng hồ đếm ngược 04:59 đang chạy.",
+      "The page asks for your phone number and the 6-digit OTP that was just sent to your phone. A 04:59 countdown is running.",
     choices: [
       {
         id: "otp",
-        label: "Nhập mã OTP vừa nhận",
+        label: "Enter the OTP you just received",
         next: "loss",
         flags: [
-          "OTP là chìa khoá xác thực giao dịch của CHÍNH BẠN — không ai chính danh yêu cầu bạn đọc/nhập cho họ.",
-          "Đồng hồ đếm ngược nhân tạo để chặn bạn suy nghĩ.",
+          "An OTP is the key that authorizes YOUR transactions. No legitimate party asks you to read it out or type it in for them.",
+          "An artificial countdown to stop you from thinking.",
         ],
-        verify: "Đọc nội dung tin nhắn OTP: nó thường ghi rõ giao dịch/ngân hàng mà mã dùng để duyệt.",
-        aiNote:
-          "Mã OTP bạn nhận lúc này thực chất đang duyệt một giao dịch hoặc đăng nhập do kẻ lừa đảo khởi tạo.",
+        verify: "Read the OTP message itself: it usually states which transaction or bank the code approves.",
+        aiNote: "The OTP you received is actually approving a transaction or a login started by the scammer.",
       },
       {
         id: "stop",
-        label: "Dừng lại, đóng trang, không nhập gì cả",
+        label: "Stop, close the page and enter nothing",
         next: "partial",
-        flags: [
-          "Bạn nhận ra yêu cầu OTP là điểm không thể chấp nhận.",
-        ],
-        verify: "Đổi mật khẩu nếu đã nhập thông tin khác; báo cáo số điện thoại/link cho nhà mạng hoặc cơ quan chức năng.",
-        aiNote:
-          "Dừng lại muộn vẫn tốt hơn không dừng. Bước tiếp theo là kiểm tra xem bạn đã lộ thông tin gì.",
+        flags: ["You recognized the OTP request as a line you never cross."],
+        verify:
+          "Change your password if you already entered other details, and report the number or link to your carrier or the authorities.",
+        aiNote: "Stopping late is still better than not stopping. Next, check what information you may have exposed.",
       },
     ],
   },
@@ -111,36 +106,36 @@ export const scenario: Record<string, ScenarioNode> = {
     kind: "end",
     id: "safe-1",
     outcome: "safe",
-    title: "Bạn thoát khỏi mê cung",
-    body: "Trong app không có đơn nào bị giữ. Tin nhắn chỉ là mồi nhử.",
+    title: "You found the way out",
+    body: "There is no order on hold in the app. The message was just bait.",
     checklist: [
-      "Dừng — áp lực thời gian là tín hiệu, không phải lý do để vội.",
-      "Tách kênh — tự mở app/website chính thức.",
-      "Không chia sẻ OTP, mật khẩu, mã PIN với bất kỳ ai.",
+      "Pause: time pressure is a signal, not a reason to hurry.",
+      "Switch channels: open the official app or website yourself.",
+      "Never share OTPs, passwords or PINs with anyone.",
     ],
   },
   partial: {
     kind: "end",
     id: "partial",
     outcome: "partial",
-    title: "Thoát được, nhưng đã chạm vào bẫy",
-    body: "Bạn đã mở link lạ nên số điện thoại có thể bị đánh dấu là “đang hoạt động”. Hãy cảnh giác với các tin nhắn tiếp theo.",
+    title: "You got out, but touched the trap",
+    body: "You opened a suspicious link, so your number may now be marked as “active”. Watch out for follow-up messages.",
     checklist: [
-      "Đừng bấm link ngay cả khi tò mò — chỉ nhìn tên miền là đủ.",
-      "Đừng nhập bất kỳ thông tin gì nếu trang đòi OTP.",
-      "Báo cáo tin nhắn và chặn số.",
+      "Don't tap links, even out of curiosity. Reading the domain is enough.",
+      "Never enter anything on a page that asks for an OTP.",
+      "Report the message and block the number.",
     ],
   },
   loss: {
     kind: "end",
     id: "loss",
     outcome: "loss",
-    title: "Bạn mắc bẫy",
-    body: "Kẻ lừa đảo dùng OTP bạn vừa nhập để duyệt giao dịch. Trong đời thật: liên hệ ngân hàng ngay để khoá thẻ/tài khoản.",
+    title: "You fell into the trap",
+    body: "The scammer used the OTP you entered to approve a transaction. In real life, contact your bank immediately to lock your card or account.",
     checklist: [
-      "Gọi ngay hotline mặt sau thẻ để khoá giao dịch.",
-      "Đổi mật khẩu các tài khoản liên quan, bật xác thực 2 lớp bằng ứng dụng.",
-      "Lưu bằng chứng (tin nhắn, link) và trình báo cơ quan chức năng.",
+      "Call the hotline on the back of your card right away to block transactions.",
+      "Change the passwords of related accounts and turn on app-based two-factor authentication.",
+      "Keep the evidence (messages, links) and report it to the authorities.",
     ],
   },
 };

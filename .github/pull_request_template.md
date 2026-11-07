@@ -33,4 +33,5 @@ Closes #
 - [ ] No code fetches, loads or redirects to user-entered or scenario URLs.
 - [ ] Scenario content uses fictional brands and defanged, non-clickable domains.
 - [ ] No secrets, real personal data, OTPs or credentials.
+- [ ] No emoji used as icons; all new text is in English.
 - [ ] Commits follow Conventional Commits; AI-assisted commits carry a `Co-authored-by` trailer.

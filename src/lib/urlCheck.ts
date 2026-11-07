@@ -1,8 +1,8 @@
 /**
- * Kiểm tra URL bằng heuristics xác định (deterministic) — CHỈ phân tích chuỗi.
- * Không bao giờ tải trang, không gọi mạng, không chạy link.
+ * Deterministic URL heuristics: string analysis ONLY.
+ * Never loads the page, never makes a network request, never opens the link.
  *
- * Nguyên tắc: kết quả KHÔNG BAO GIỜ là "an toàn". Thiếu tín hiệu xấu ≠ an toàn.
+ * Principle: the result is NEVER "safe". No bad signals ≠ safe.
  */
 
 export type RiskLevel = "high" | "medium" | "none-found" | "invalid";
@@ -30,7 +30,7 @@ const SHORTENERS = new Set([
   "bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd", "cutt.ly", "rb.gy", "s.id", "shorturl.at",
 ]);
 
-/** Thương hiệu thường bị giả mạo → tên miền chính thức (registrable domain). */
+/** Commonly impersonated brands → their official registrable domains. */
 const BRANDS: Record<string, string[]> = {
   vietcombank: ["vietcombank.com.vn"],
   momo: ["momo.vn"],
@@ -45,6 +45,12 @@ const BRANDS: Record<string, string[]> = {
   vnpost: ["vnpost.vn"],
 };
 
+/**
+ * Path keywords that suggest a sensitive action. Detection data, not UI copy:
+ * includes Vietnamese slugs seen in real scam URLs (xacminh = verify,
+ * dangnhap = log in, thanhtoan = payment, trungthuong = prize,
+ * khoa-tai-khoan = account locked).
+ */
 const PATH_KEYWORDS = ["otp", "verify", "xacminh", "xac-minh", "login", "dangnhap", "thanhtoan", "trungthuong", "khoa-tai-khoan", "unlock"];
 
 const SECOND_LEVEL = new Set(["com", "net", "org", "gov", "edu", "co"]);
@@ -55,7 +61,7 @@ function registrable(hostname: string): string {
   if (labels.length <= 2) return hostname;
   const last = labels[labels.length - 1];
   const second = labels[labels.length - 2];
-  // ví dụ: *.com.vn, *.co.uk
+  // e.g. *.com.vn, *.co.uk
   if (last.length === 2 && SECOND_LEVEL.has(second)) return labels.slice(-3).join(".");
   return labels.slice(-2).join(".");
 }
@@ -92,36 +98,36 @@ export function analyzeUrl(raw: string): UrlAnalysis {
     signals.push({ id, weight, label, evidence });
 
   if (hasScheme && url.protocol === "http:")
-    add("no-https", 1, "Không dùng HTTPS", `Giao thức: ${url.protocol}//`);
+    add("no-https", 1, "Does not use HTTPS", `Protocol: ${url.protocol}//`);
 
   if (isIpv4(hostname))
-    add("ip-host", 3, "Dùng địa chỉ IP thay vì tên miền", hostname);
+    add("ip-host", 3, "Uses an IP address instead of a domain name", hostname);
 
   if (hostname.split(".").some((l) => l.startsWith("xn--")))
-    add("punycode", 3, "Tên miền Punycode (có thể giả ký tự giống nhau)", hostname);
+    add("punycode", 3, "Punycode domain (may imitate look-alike characters)", hostname);
 
   if (url.username || url.password || input.includes("@"))
-    add("userinfo", 3, "Có ký tự “@” / thông tin đăng nhập trong URL", "Phần trước @ có thể đánh lạc hướng tên miền thật");
+    add("userinfo", 3, "Contains “@” or login details in the URL", "The part before @ can hide the real domain");
 
   if (RISKY_TLDS.has(tld))
-    add("risky-tld", 2, "Đuôi tên miền hay bị lạm dụng", `.${tld}`);
+    add("risky-tld", 2, "Domain ending that is often abused", `.${tld}`);
 
   if (SHORTENERS.has(hostname))
-    add("shortener", 2, "Link rút gọn che đích đến thật", hostname);
+    add("shortener", 2, "Link shortener hides the real destination", hostname);
 
   if (!isIpv4(hostname) && hostname.split(".").length >= 5)
-    add("deep-subdomain", 1, "Quá nhiều lớp subdomain", hostname);
+    add("deep-subdomain", 1, "Too many subdomain levels", hostname);
 
   if ((hostname.match(/-/g) ?? []).length >= 3)
-    add("many-hyphens", 1, "Tên miền chứa nhiều dấu gạch ngang", hostname);
+    add("many-hyphens", 1, "Domain contains many hyphens", hostname);
 
   for (const [brand, officials] of Object.entries(BRANDS)) {
     if (hostname.includes(brand) && !officials.includes(domain)) {
       add(
         `brand-${brand}`,
         3,
-        `Nhắc tên “${brand}” nhưng tên miền gốc không phải của họ`,
-        `Tên miền gốc thực sự: ${domain}`,
+        `Mentions “${brand}”, but the registrable domain is not theirs`,
+        `Actual registrable domain: ${domain}`,
       );
       break;
     }
@@ -130,10 +136,10 @@ export function analyzeUrl(raw: string): UrlAnalysis {
   const pathLower = (url.pathname + url.search).toLowerCase();
   const hit = PATH_KEYWORDS.find((k) => pathLower.includes(k));
   if (hit)
-    add("urgent-path", 1, "Đường dẫn gợi ý thao tác nhạy cảm", `Chứa “${hit}”`);
+    add("urgent-path", 1, "Path suggests a sensitive action", `Contains “${hit}”`);
 
   if (input.length > 100)
-    add("long-url", 1, "URL rất dài", `${input.length} ký tự`);
+    add("long-url", 1, "Very long URL", `${input.length} characters`);
 
   const score = signals.reduce((s, x) => s + x.weight, 0);
   const level: RiskLevel = score >= 4 ? "high" : score >= 2 ? "medium" : "none-found";

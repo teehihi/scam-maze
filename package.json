@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "SCAMMAZE landing page — luyện nhận diện bẫy lừa đảo Internet bằng tình huống tương tác.",
+  "description": "SCAMMAZE landing page: practice spotting online scams through interactive scenarios.",
   "license": "MIT",
   "repository": {
     "type": "git",
