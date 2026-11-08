@@ -262,7 +262,7 @@ quotes**. Re-check on the registrar's site before any purchase.
 6. Privacy protection (WHOIS redaction) and any extra fees.
 
 Positioning note: SCAMMAZE targets Vietnam **and** worldwide with equal weight
-([positioning](../positioning.md)); a generic extension such as `.com` fits both audiences,
+([product positioning](../product/PRODUCT_POSITIONING.md)); a generic extension such as `.com` fits both audiences,
 while `.vn` or `.com.vn` signal Vietnam only.
 
 ## 10. Database cost comparison
@@ -289,7 +289,8 @@ If RDS replaced DynamoDB in the baseline, the 3-month estimate would rise by at 
 | Public IPv4 addresses | Hourly charge per address | Avoid public instances and Elastic IPs |
 | CloudWatch growth | Verbose logs, no retention, custom metrics, dashboards | Retention 7–14 days; minimal metrics and alarms |
 | Unthrottled API | Abuse can multiply Lambda, API and log costs | Route throttling; authentication on user routes |
-| Large assets / 3D | CDN egress and storage scale with asset size | Compression, lazy loading; 3D only if approved |
+| Large assets / 3D | The game is now 3D (owner decision, 8 Nov 2026); CDN egress and storage scale with asset size and players | Compression, area-based loading, caching; re-check the 5 GB storage and 15 GB egress assumptions once the asset size is known |
+| AI provider usage | The AI layer is now a planned product component (signature capability), not just an optional coach | Event-driven calls only, per-session and per-day caps, authored fallback; provider and budget `PENDING` (section 15) |
 | Direct S3 access | Uncached egress outside CloudFront | Private bucket with origin access control |
 | AI provider calls | Paid per token; not covered by AWS credits | Optional, capped, cached, never in the core loop |
 | Cognito add-ons | SMS messages and the Plus tier are not free | No SMS; stay on Lite/Essentials unless justified |
@@ -362,3 +363,17 @@ Other sources used in this document:
 [Vercel Hobby plan](https://vercel.com/docs/plans/hobby)
 
 Third-party price reports are marked as such where used; they are not authoritative.
+
+## 15. Impact of the 8 Nov 2026 product direction
+
+The owner decided on 8 Nov 2026 that SCAMMAZE is a first-person 3D narrative game with a bounded
+AI layer ([product positioning](../product/PRODUCT_POSITIONING.md)). **The baseline in sections
+3–6 is unchanged** and was not re-estimated. Two assumptions now need validation:
+
+| Area | Why it changes | What to estimate before building |
+|---|---|---|
+| Static assets (S3, CloudFront) | 3D models and textures are much larger than landing-page assets | Download size per player per chapter × expected players; whether assets ship in the frontend build instead of S3 for the hackathon |
+| AI provider | AI is now a planned component; the signature capability is an AI scam actor | Calls per chapter (event-driven, capped), tokens per call, provider price; whether the provider is an AWS service covered by the credits (credit terms and, on the Free account plan, service restrictions apply) or an external provider paid out of pocket |
+
+No AI provider is selected and no AI cost is included in the baseline. Do not choose a paid
+provider without owner approval.

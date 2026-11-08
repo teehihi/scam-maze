@@ -82,7 +82,7 @@ Scenarios live in `src/data/`. A good scenario:
   company logos or names;
 - works for **people in Vietnam and worldwide**: built on a tactic that exists
   everywhere, with no country-specific currency, phone format or payment
-  method (see [docs/positioning.md](docs/positioning.md));
+  method (see [product positioning](docs/product/PRODUCT_POSITIONING.md));
 - reflects a real, current tactic, and cites a public source in the PR;
 - has at least one safe path and one risky path, and **no dead ends**;
 - explains every red flag with concrete evidence from the message;

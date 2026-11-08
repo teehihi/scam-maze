@@ -11,32 +11,54 @@ authoritative for their topics:
 | `.kiro/steering/language.md` | All repository content in English; localization later |
 | `.kiro/steering/audience.md` | Vietnam and worldwide with equal weight; fictional brands and reserved domains |
 
-Key documents: [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
+Key documents: **[product positioning](docs/product/PRODUCT_POSITIONING.md) (canonical product
+definition)** · [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
 [architecture](docs/architecture/OVERVIEW.md) · [deployment](docs/architecture/DEPLOYMENT.md) ·
 [database strategy](docs/architecture/DATABASE_STRATEGY.md) ·
 [cost estimation](docs/finops/COST_ESTIMATION.md) · [project progress](docs/PROJECT_PROGRESS.md) ·
-[positioning](docs/positioning.md) · [contributing](CONTRIBUTING.md)
+[contributing](CONTRIBUTING.md)
 
 ## 1. Project principles
 
-- Follow the master plan. When the plan and a newer owner instruction differ, follow the owner,
-  and record the deviation in `docs/PROJECT_PROGRESS.md`.
-- Preserve the product vision: *a safe, interactive Internet where people learn to spot scams
-  before facing them in real life.* SCAMMAZE is not a quiz, chatbot or URL scanner.
+- **The product is defined by [`docs/product/PRODUCT_POSITIONING.md`](docs/product/PRODUCT_POSITIONING.md).**
+  It overrides older descriptions in the master plan and elsewhere. If documents conflict, follow
+  it and record the conflict in `docs/PROJECT_PROGRESS.md`.
+- Follow the master plan for process, rules compliance, safety and evaluation. When the plan and
+  a newer owner instruction differ, follow the owner, and record the deviation.
+- Preserve the product identity (owner decision, 8 Nov 2026): **SCAMMAZE is a browser-based,
+  first-person 3D narrative game** in a small persistent fictional world with chapter-based
+  stories. Scams reach the player through an in-game smartphone and through people in the world;
+  the core loop is *physical world → digital interaction → investigation → decision →
+  consequence → learning*. North star: *a safe, living world where people learn to spot scams
+  before facing them in real life.*
+- **Do not revert** to the earlier 2D "simulated Internet" concept as the main experience. The
+  phone, websites and chats are embedded in the 3D world, not a replacement for it.
+- SCAMMAZE is not a phishing quiz, a chatbot with a 3D background, a URL scanner, a set of
+  disconnected simulations, a dashboard, or an open world with scam dialogue added later.
+- Keep the scope small: one apartment and one street for the MVP; no open world, multiplayer or
+  Halloween/horror art direction (art direction: stylized realism / stylized low-poly).
+- **Hybrid intelligence:** the deterministic core owns game state, rules, evidence, decisions,
+  consequences and progression. AI may only *propose* dialogue or wording, validated against
+  schemas and scenario rules, with authored fallbacks. AI must never change financial state,
+  decide success or failure, invent evidence, or change outcomes. No AI provider is selected;
+  keys stay server-side.
 - Prioritize working functionality over mockups and visual polish.
 - **Do not fabricate features.** Never describe something as implemented, deployed, measured or
   verified unless you verified it in this task.
 - Avoid unnecessary architecture complexity (plan section 4.1: no microservices, Kubernetes,
   vector databases, etc. without a measured need).
 - Respect safety and privacy: fictional brands, reserved domains (`.test`, `.example`,
-  `.invalid`), no real credentials, OTPs or banking data, ever.
-- The core game must work without AI and without the backend.
+  `.invalid`), no real credentials, OTPs or banking data, ever. AI scammer dialogue stays
+  fictional and defensive and must never contain instructions usable for real fraud.
+- The core game must work without AI and without the backend (offline once assets and scenarios
+  are loaded).
 
 ## 2. Engineering rules
 
 - Inspect the existing code and docs before changing anything; reuse existing conventions.
-- Current stack (verified): React 19, TypeScript, Vite 8, Tailwind CSS v4, pnpm. Single app at
-  the repository root. No backend, no database, no tests yet.
+- Current stack (verified): React 19, TypeScript, Vite 8, Tailwind CSS v4, pnpm (lockfile
+  committed), `lucide-react` for icons. Single app at the repository root: the landing page only.
+  No game code, no 3D library, no backend, no database, no tests yet. The 3D library is `PENDING`.
 - Commands:
 
   ```bash

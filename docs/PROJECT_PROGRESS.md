@@ -5,18 +5,24 @@
 
 ## Project Status
 
-- **Product stage:** Pre-MVP. A public landing page with a small playable demo; the game client
-  does not exist yet.
-- **Current milestone:** Master plan Phase A — Foundation / rule compliance (plan dates 7–10 Nov 2026).
-- **Architecture status:** Target architecture documented; frontend landing page `IMPLEMENTED`;
-  game client, backend and all AWS services `PLANNED`; nothing provisioned.
+- **Product definition:** Browser-based, first-person 3D narrative game in a small persistent
+  world with chapter-based stories (owner decision, 2026-11-08). Canonical document:
+  [product positioning](product/PRODUCT_POSITIONING.md).
+- **Product stage:** Pre-MVP. A public marketing landing page only; **no game code exists yet**
+  (no 3D library, no narrative engine, no phone UI).
+- **Current milestone:** Master plan Phase A — Foundation / rule compliance (plan dates 7–10 Nov
+  2026). Phase B now targets the 3D vertical slice (positioning section 11).
+- **Architecture status:** Target architecture documented; landing page `IMPLEMENTED`; 3D game
+  client, deterministic core, backend and all AWS services `PLANNED`; 3D library `PENDING`;
+  AI layer `PROPOSED`; nothing provisioned.
 - **Database decision:** `PENDING` ([database strategy](architecture/DATABASE_STRATEGY.md)).
 - **Domain status:** No domain purchased. Domain & DNS cost `TBD`.
 - **Deployment status:** Landing page on GitHub Pages, <https://teehihi.github.io/scam-maze/>
-  (last deployment `9a80a43`, reported `success` on 2026-11-07). No backend deployment.
+  (last deployment `8c66005`, reported `success` on 2026-11-08). No game or backend deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
-  ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
-- **Last updated:** 2026-11-07
+  ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet. 3D asset and AI costs not
+  yet estimated (cost estimation, section 15).
+- **Last updated:** 2026-11-08
 
 ## Completed
 
@@ -24,66 +30,145 @@ Verified against merged pull requests on GitHub.
 
 - [x] Public repository, MIT license, community health files (code of conduct, contributing,
       security policy, accessibility statement, issue and PR templates) — PR #1, merged 2026-11-07.
-- [x] Landing page (React 19, TypeScript, Vite 8, Tailwind CSS v4) with a branching demo
-      scenario and a string-only URL checker — initial commit `b23fe11`.
+- [x] First landing page with a branching demo scenario and a string-only URL checker — initial
+      commit `b23fe11` (now in `src/legacy/`).
 - [x] Deploy workflow to GitHub Pages and CI build on pull requests — commits `846c93a`,
       `e9a3880`; `ci.yml` added in PR #2.
-- [x] Flat, minimal redesign; skip link; contrast-checked color tokens — PR #2, merged 2026-11-07.
+- [x] Flat, minimal redesign; skip link; contrast-checked color tokens — PR #2, merged 2026-11-07
+      (replaced by PR #7).
 - [x] All site copy and documentation in English; steering rules for icons and language;
       master plan translated — PR #3, merged 2026-11-07.
 - [x] Positioning for Vietnam and worldwide; `audience.md` steering; demo uses fictional brand
       and reserved domains — PR #5, merged 2026-11-07.
 - [x] Master plan added — commit `0665897`, 2026-11-07.
 - [x] Architecture, deployment, database strategy, cost estimation, agent instructions and this
-      progress tracker documented (documentation only) — see task history.
+      progress tracker documented (documentation only) — PR #6, merged 2026-11-07.
+- [x] Cinematic dark landing page as a game gateway; `VITE_GAME_URL` entry configuration;
+      `pnpm-lock.yaml` and `lucide-react` added; earlier demo moved to `src/legacy/` — PR #7,
+      merged 2026-11-07.
+- [x] Canonical product positioning for the first-person 3D direction; reconciliation of README,
+      AGENTS.md, master plan, architecture and cost documents (documentation only) — see task
+      history, 2026-11-08.
 
 ## In Progress
 
 - [ ] Phase A foundation items not yet done: `.kiro/specs/` for the first features, Kiro hooks,
-      `THIRD_PARTY_NOTICES.md`, committed `pnpm-lock.yaml`, test runner.
+      `THIRD_PARTY_NOTICES.md`, test runner, `--frozen-lockfile` in CI.
 
 ## Planned
 
-From the master plan roadmap (section 8); none started unless listed above.
+Updated for the 3D direction (positioning section 11); none started.
 
-- [ ] Phase B — Core vertical slice S1 "The Missing Parcel": scenario schema, deterministic
-      engine, simulated Internet UI, evidence links, local progress (IndexedDB).
-- [ ] Phase C — S2 "The Dream Job", S3 "The Impossible Deal", Consequence Replay, Risk DNA Graph,
-      transfer test (H1), offline shell, optional AI coach behind the backend.
+- [ ] 3D prototype and benchmark: walkable apartment and street on target devices (integrated
+      GPUs), to set triangle, draw-call and memory budgets.
+- [ ] Deterministic core: chapter state machine, evidence and tactic definitions, persistent
+      world state, local save (IndexedDB), tests for every branch.
+- [ ] In-game smartphone UI: messages, browser with fictional sites, bank app, parcel app.
+- [ ] Vertical slice: Prologue and Chapter 1 "The Missing Parcel" (2 safe, 2 unsafe, 1
+      ambiguous route), debrief, phone-only transfer check.
+- [ ] Bounded AI Scam Actor with authored fallback and AI on/off toggle (after provider approval).
 - [ ] Phase D — Usability sessions with Vietnamese and international participants; polish.
 - [ ] Phase E — Submission package, video, release tag.
+- [ ] Future scope: Chapters 2–4 in 3D, mobile controls, character customization, AI hints and
+      learning analyst, cloud save.
 - [ ] Split the repository into landing page and game client; host both on Vercel.
-- [ ] Serverless backend (API Gateway HTTP API + Lambda) for opt-in sync, only after the
-      database and authentication decisions.
+- [ ] Serverless backend (API Gateway HTTP API + Lambda) for the AI proxy and opt-in sync, only
+      after the AI provider, database and authentication decisions.
 
 ## Pending Decisions
 
+- [ ] 3D library: React Three Fiber (Three.js), Babylon.js, PlayCanvas or other.
+- [ ] AI provider and monthly AI budget (paid provider requires explicit approval).
+- [ ] Approve the signature AI capability (Bounded Scam Actor) and its input modality (options
+      only, or options plus free text).
+- [ ] Approve the MVP vertical slice details (positioning section 11.1) and chapter content.
+- [ ] Phone-centred fallback mode for devices that cannot run the 3D world.
+- [ ] Update the live landing page copy to the 3D direction.
+- [ ] Master plan co-author (SaiCT) to review the 8 Nov 2026 amendments.
 - [ ] Select database technology (`DATABASE_DECISION = PENDING`; recommendation in
       [database strategy](architecture/DATABASE_STRATEGY.md#5-recommendation-not-an-approved-decision)).
 - [ ] Evaluate and purchase a suitable domain (cost `TBD`, not covered by AWS credits).
 - [ ] Finalize deployment configuration: move landing page from GitHub Pages to Vercel or keep it.
-- [ ] Authentication: Amazon Cognito or an alternative; whether accounts are needed for the MVP.
+- [ ] Authentication: Amazon Cognito or an alternative; whether accounts are needed at all.
 - [ ] Lambda runtime language: Python (plan: FastAPI + Pydantic) or TypeScript.
 - [ ] Confirm deprecating "FastAPI on an always-on host" in favour of the serverless backend.
-- [ ] Scope of 3D environments, character models and character customization (master plan
-      lists a full 3D world as out of scope).
 - [ ] Scenario state owner: XState or Zustand (plan section 4.1).
 - [ ] Confirm the source, expiry date and terms of the $200 AWS credit.
 - [ ] Infrastructure-as-code tool (for example AWS SAM or AWS CDK).
 
+Resolved:
+
+- [x] Scope of 3D environments — **resolved 2026-11-08** by owner decision: a small first-person 3D
+      world is the core platform; full/open world and multiplayer remain out of scope; character
+      customization is future scope.
+
 ## Known Issues
 
-- Landing page copy describes planned capabilities in the present tense (offline support,
-  scenario authoring, learning analytics, optional AI, Kiro specs and hooks). See
+- The live landing page (PR #7) describes the earlier concept ("five fictional digital
+  environments, linked together") and does not mention the 3D world. See
   [OVERVIEW.md section 10](architecture/OVERVIEW.md#10-known-inaccuracies-on-the-live-landing-page).
+- Delivery risk: about 25 days remain before the internal deadline (3 Dec 2026 23:00 ICT) and no
+  3D code exists; the slice must stay small (positioning section 11, master plan risk register).
 - Issue #4 (URL checker flags official country domains such as `google.co.uk`) was closed as
   completed on 2026-11-07, but `src/lib/urlCheck.ts` has not been changed; the false positive
-  still exists.
-- The demo scenario has 2 choices per step; the plan requires at least 2 safe, 2 unsafe and
-  1 ambiguous route per scenario.
-- No automated tests; no lockfile; no accessibility audit yet.
+  still exists (the checker is now legacy code, not shown on the site).
+- PR #7 did not update this file or the architecture documents; reconciled on 2026-11-08.
+- `ACCESSIBILITY.md` still describes the flat light theme of PR #2; not re-audited after PR #7.
+- No automated tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-08 — Product positioning for the first-person 3D direction
+
+- **Objective:** Establish the canonical product positioning after the owner's decision that
+  SCAMMAZE is a browser-based, first-person 3D narrative game (Frankenstein category), and
+  reconcile conflicting documents. Documentation only.
+- **Changes:** Audited the repository, including PR #7, which had merged after the previous
+  documentation task. Wrote the canonical positioning: definition, vision and north star,
+  problem, audiences, core loop, world and chapters, technology chimera with an interdependence
+  trace, hybrid intelligence architecture, AI capability matrix with the Bounded Scam Actor as the
+  signature capability, differentiation, visual direction and browser 3D performance principles,
+  MVP slice and non-goals, Kiroween mapping, messaging. Turned `docs/positioning.md` into a
+  pointer. Updated README, AGENTS.md product principles, the master plan's executive summary
+  (with "Amended 8 Nov 2026" notes in sections 0, 3.1, 3.4, 3.5, 4.1, 10, 11.1 and 13),
+  OVERVIEW (current state after PR #7, 3D game client, deterministic core, AI layer,
+  reconciliation, landing page accuracy), DEPLOYMENT and COST_ESTIMATION (3D assets, AI cost,
+  `VITE_GAME_URL`, lockfile). Corrected a code comment in `src/config/site.ts` and the README
+  that presented `play.scammaze.com` as planned. No application behaviour changed, no
+  dependencies installed, no AWS resources, domains, databases or AI providers.
+- **Files modified:** created `docs/product/PRODUCT_POSITIONING.md`; modified
+  `docs/positioning.md`, `README.md`, `AGENTS.md`, `CONTRIBUTING.md`,
+  `SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`, `docs/architecture/OVERVIEW.md`,
+  `docs/architecture/DEPLOYMENT.md`, `docs/finops/COST_ESTIMATION.md`,
+  `docs/PROJECT_PROGRESS.md`, `.kiro/steering/audience.md`, `src/config/site.ts` (comment only).
+- **Validation:** Documentation checks for relative links and anchors, Markdown table column
+  counts, Mermaid structure, emoji, non-English text, secrets and cost-table arithmetic; grep
+  review for 2D-only framing, 3D out-of-scope claims, proposed domains and AI overreach; CI
+  `pnpm build` on the pull request.
+- **Build/test results:** PR #8, CI `build` job passed (`pnpm install` + `pnpm build`).
+  Documentation checks passed (110 relative links and anchors, 65 tables, 5 Mermaid blocks,
+  cost tables, emoji, language, secrets); the checker also caught seeded errors. `pnpm build`
+  could not run locally because the sandbox cannot reach the npm registry. No test suite exists.
+- **Known limitations:** The Kiroween 2026 judging criteria and category text were taken from
+  master plan section 1.2 and the published Kiroween category description; the 2026 rules page
+  was not re-read in this task. Mermaid diagrams were checked structurally, not rendered. No
+  performance figures exist; all budgets are deferred to prototype benchmarks.
+- **Architecture deviations:** 3D world moved from out of scope to the core platform; AI layer
+  elevated from optional coach to a proposed product component with the same safety boundaries;
+  the landing page copy no longer matches the product definition.
+- **Follow-up tasks:** owner decisions listed above; update landing page copy; 3D prototype and
+  benchmark; `.kiro/specs/` for the deterministic core and Chapter 1; switch CI to
+  `--frozen-lockfile`; re-audit accessibility after PR #7.
+
+### 2026-11-07 — Cinematic landing page redesign (PR #7, recorded retroactively)
+
+- **Note:** Recorded on 2026-11-08 from the merged pull request; the original PR did not add an
+  entry.
+- **Changes (from PR #7):** Replaced the flat landing page with an 11-section dark marketing
+  page; added `src/config/site.ts` and `.env.example` (`VITE_GAME_URL`); added `lucide-react` and
+  self-hosted fonts; committed `pnpm-lock.yaml`; moved the demo scenario, URL checker and old
+  sections to `src/legacy/` (not mounted).
+- **Build/test results:** The `main` deployment of `8c66005` was reported `success` by GitHub.
 
 ### 2026-11-07 — Architecture, AWS FinOps and project documentation update
 

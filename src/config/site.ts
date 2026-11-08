@@ -1,9 +1,10 @@
 /**
  * Single source of truth for where "ENTER THE GAME" leads.
  *
- * The game is a separate application that will be deployed on its own domain
- * (planned: https://play.scammaze.com). This marketing site never hardcodes
- * that domain. Set VITE_GAME_URL at build time once the game is live.
+ * The game is a separate application with its own deployment URL. No custom
+ * domain has been purchased; names such as play.scammaze.com are examples
+ * only. This marketing site never hardcodes the URL. Set VITE_GAME_URL at build
+ * time once a game build is deployed.
  *
  * - Unset or invalid: visitors see the "world is being prepared" entry state.
  * - Valid http(s) URL: every entry button becomes a plain link to that URL.
