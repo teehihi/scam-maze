@@ -1,26 +1,22 @@
 # SCAMMAZE positioning
 
-> **Version:** 1.0 · **Date:** 7 Nov 2026 · **Status:** agreed direction, to be validated in user testing
+> **Version:** 1.1 · **Date:** 9 Nov 2026 · **Status:** updated with first-person 3D investigation game orientation
 > This document extends section 2 ("Market & product thesis") of
 > [`SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`](../SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md).
 > It does not replace it. If the two disagree, raise it in an issue.
 
 ## 1. Positioning in one sentence
 
-**SCAMMAZE is a safe place to practise scams before they happen: you walk
-through a real scam journey, make the risky choice without real
-consequences, see exactly where the pressure worked, and leave with a
-checklist that works in any country.**
+**SCAMMAZE is an interactive, browser-based, first-person 3D narrative game where players walk into everyday environments, investigate suspicious digital situations, and solve realistic online scam traps before facing them in real life.**
 
 ### Positioning statement
 
 For **everyday internet users in Vietnam and around the world** who already
 know they should "be careful" but still get pulled in one step at a time,
-**SCAMMAZE** is an **interactive scam simulator** that trains the decision
+**SCAMMAZE** is a **first-person 3D scam investigation game** that trains the decision
 itself, under pressure, across several steps.
 Unlike **phishing quizzes** (one screen, one answer) and **URL checkers**
-(a verdict, no skill), SCAMMAZE shows the consequence of each choice, points to
-the evidence, and tests whether the skill carries over to a new case.
+(a verdict, no skill), SCAMMAZE lets players navigate a 3D environment, inspect virtual devices and signals directly, experience the consequence of each choice, point to the evidence, and resolve the case.
 
 ## 2. The insight: the confidence gap
 

@@ -12,6 +12,12 @@ import { GAME_URL, REPO_URL, isGameAvailable } from "../../config/site";
 
 const GameEntryContext = createContext<{ openEntry: () => void } | null>(null);
 
+export function useGameEntry() {
+  const ctx = useContext(GameEntryContext);
+  if (!ctx) throw new Error("useGameEntry must be used inside GameEntryProvider");
+  return ctx;
+}
+
 export function GameEntryProvider({ children }: { children: ReactNode }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -104,7 +110,7 @@ export function GameEntryProvider({ children }: { children: ReactNode }) {
 }
 
 interface EnterGameButtonProps {
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "ghost" | "halloween" | "dark";
   className?: string;
   children?: ReactNode;
 }
@@ -114,7 +120,16 @@ export function EnterGameButton({ variant = "primary", className = "", children 
   const ctx = useContext(GameEntryContext);
   if (!ctx) throw new Error("EnterGameButton must be used inside GameEntryProvider");
 
-  const classes = `btn ${variant === "primary" ? "btn-primary" : "btn-ghost"} ${className}`;
+  const variantClass =
+    variant === "halloween"
+      ? "btn-halloween"
+      : variant === "dark"
+        ? "btn-dark"
+        : variant === "primary"
+          ? "btn-primary"
+          : "btn-ghost";
+
+  const classes = `btn ${variantClass} ${className}`;
   const content = (
     <>
       {children}

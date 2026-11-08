@@ -1,16 +1,28 @@
 # SCAMMAZE
 
-Landing page for **SCAMMAZE**: practice spotting online scam traps through interactive scenarios, then apply a checklist before you act in real life. A **Kiroween 2026** entry.
+**SCAMMAZE** is an interactive, browser-based, first-person 3D narrative game where players walk into everyday environments, investigate suspicious situations, and solve realistic online scam traps from a hands-on detective perspective. A **Kiroween 2026** entry.
 
 **Live demo:** <https://teehihi.github.io/scam-maze/>
 
-**Who it's for:** internet users aged 16+ in Vietnam and around the world, with equal weight. Scam tactics are the same everywhere; only the details change, so SCAMMAZE teaches the pattern, not the brand. See [docs/positioning.md](docs/positioning.md).
+**Who it's for:** internet users aged 16+ in Vietnam and around the world, with equal weight. Scam tactics are universally identical; only the surface details change. SCAMMAZE teaches defensive reflexes and pattern recognition rather than abstract theory. See [docs/positioning.md](docs/positioning.md).
 
-**Learning loop:** learn the scenario → spot the signals → apply the checklist.
+**Detective loop:** explore 3D scenarios → inspect suspicious signals → resolve and solve the scam.
+
+## Current Progress & Status (Phase A Complete · Phase B In Progress)
+
+- ✅ **Gate A Passed (09 Nov 2026):**
+  - **Cinematic Gateway:** 4 responsive sections (Hero, The World of Scams, 4-Phase Progression, Halloween FAQ).
+  - **Full-Page Knowledge Hub:** Dedicated pages for Documentation (`/#docs`), MIT License (`/#license`), Privacy Policy (`/#privacy`), Terms of Use (`/#terms`), Disclaimer (`/#disclaimer`), Cookie Policy (`/#cookies`), About (`/#about`), Credits (`/#credits`), and Contact (`/#contact`).
+  - **Brand Identity & Favicons:** Custom isometric `S` ribbon logo, multi-resolution favicons, and Halloween dark design system (`#171521`).
+  - **Build & CI Pipeline:** React 19, TypeScript, Vite 8, Tailwind CSS v4, automated GitHub Pages deployment workflow verified GREEN.
+- 🔄 **Phase B In Progress:**
+  - First-person 3D WebGL investigation game slice.
+  - Branching narrative scenario state engine (`scenario.ts`).
+  - Deterministic client-side URL heuristics (`urlCheck.ts`).
 
 ## Stack
 
-React 19 · TypeScript · Vite 8 · Tailwind CSS v4 · pnpm
+React 19 · TypeScript · Vite 8 · Tailwind CSS v4 · WebGL/Three.js · pnpm
 
 ## Run locally
 
@@ -25,16 +37,24 @@ Requires Node.js >= 22.12.
 
 ## Project structure
 
+- `src/components/pages/InfoPage.tsx`: full-page Knowledge Hub (Docs, License, Legal, About)
+- `src/components/sections/`:
+  - `Hero.tsx`: cinematic entrance and gateway
+  - `WorldOfScams.tsx`: three deception arts (Optical Illusions, Psychological Pressure, Social Engineering)
+  - `InvestigateAndUncover.tsx`: 4-phase investigation progression
+  - `FinalCallToAction.tsx`: interactive Halloween pumpkin FAQ and wave transition
+- `src/components/Footer.tsx`: 4-column structured footer with `#171521` theme
+- `src/components/Header.tsx`: responsive smart navigation header with custom branding
 - `src/data/scenario.ts`: branching demo scenario (simulated data)
 - `src/lib/urlCheck.ts`: deterministic URL heuristics; string analysis only, no network requests
-- `src/components/`: landing page sections
+- `src/assets/`: custom logos, character art, and Halloween visual assets
 - `.kiro/steering/`: rules for Kiro and contributors
   - `safety.md`: never claim a URL is "safe"
   - `icons.md`: no emoji as icons
   - `language.md`: all repository content in English
   - `audience.md`: build for Vietnam and worldwide with equal weight
 - `docs/positioning.md`: audiences, positioning, messaging and writing rules
-- `SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`: full build plan for the hackathon
+- `SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`: full build plan and roadmap for the hackathon
 
 ## Deploy
 

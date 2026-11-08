@@ -1,8 +1,8 @@
 # SCAMMAZE — KIROWEEN 2026 MASTER PLAN
 
-> **Version:** 2.0 — Full build plan, no assignment by team member · **Date drafted:** 7 Nov 2026 · **Status:** Build blueprint / implementation not yet confirmed  
+> **Version:** 2.1 — Full build plan, no assignment by team member · **Date updated:** 9 Nov 2026 · **Status:** Phase A Complete (Gate A Passed), Phase B In Progress  
 > **Sole category:** **Frankenstein** · **Platform:** responsive web/PWA · **Organization:** task-based, no roles/members assigned  
-> **North star:** *A safe, interactive Internet where people learn to spot scams before facing them in real life.*  
+> **North star:** *A safe, interactive first-person 3D Internet where people learn to spot and solve scams before facing them in real life.*  
 > **Destination:** a live, public application with an end-to-end demo, user testing, and real evidence of development with Kiro.  
 > **Important:** No plan can guarantee a win. This is a strategy to optimize quality, differentiation, deliverability, and rules compliance; do not use "guaranteed to win" claims.
 
@@ -14,9 +14,9 @@
 
 ## 0. Executive decision — What must be done right
 
-**ScamMaze is not a phishing quiz, not a Q&A chatbot, and not a URL-scoring website.** ScamMaze is an **interactive scam simulation + explainable decision graph + evidence-driven learning + optional real-world safety checklist**, in which:
+**ScamMaze is not a phishing quiz, not a Q&A chatbot, and not a URL-scoring website.** ScamMaze is an **interactive first-person 3D scam investigation game + explainable decision graph + evidence-driven learning + optional real-world safety checklist**, in which:
 
-1. The user steps into a **safe simulated Internet** (chat, website, email, marketplace, notification) and encounters manipulation tactics in sequence.
+1. The user steps into a **safe simulated 3D world and Internet** (first-person workstation, devices, notifications, chat, website, email) and investigates manipulation tactics in sequence.
 2. **Decisions genuinely change the storyline**: examine the source closely, verify through an independent channel, stop the transaction, or keep following the request.
 3. **Consequence Replay** presents the simulated consequences, the signals the player missed, and the alternative branches available — without collecting real accounts or money.
 4. **Risk DNA Graph** connects **signal → tactic → decision → consequence → safe action**, based on curated scenario annotations, not unfounded inference.
@@ -535,19 +535,19 @@ Output BLOCKER/WARN/PASS and exact reproduction steps. Do not assert completion 
 
 **Period:** 7 Nov–3 Dec 2026 build/freeze; submission externally before 5 Dec 05:00 ICT. Tasks are gated by correctness, not fixed-hour estimates. **No fixed owners:** only pick tasks that have not yet been met, based on dependencies and acceptance criteria.
 
-### Phase A — Foundation / rule compliance (07–10 Nov)
+### Phase A — Foundation / rule compliance (07–10 Nov) [COMPLETED]
 
-| ID | Task (no owner assigned) | Definition of Done |
-|---|---|---|
-| A01 | Create new public GitHub repo + LICENSE + issue board | New-project provenance after 30 Oct, OSI license visible, minimal README, `.kiro` committed |
-| A02 | Devpost registration/category/student eligibility review | Representative chosen; no unverified bonus eligibility |
-| A03 | Competitive research and novelty proof | Comparative matrix with ≥3 real alternatives, novelty claim precise; no first-of-kind claim |
-| A04 | Architecture/security/privacy spec | Data flow, threat model, no real phishing/PII, AI-off contract approved |
-| A05 | UX design system and storyboards | Landing + simulator + outcomes + evidence board in mobile/desktop mocks |
-| A06 | Content outline and editorial review | 3 original scenarios with storyboard, narrative state graphs, no real brand misuse |
-| A07 | CI, lint/typecheck/test/build pipeline | PR protection and baseline GREEN; Kiro BUILD_LOG started |
+| ID | Task (no owner assigned) | Definition of Done | Status |
+|---|---|---|---|
+| A01 | Create new public GitHub repo + LICENSE + issue board | New-project provenance after 30 Oct, OSI license visible, minimal README, `.kiro` committed | [x] Completed (07 Nov) |
+| A02 | Devpost registration/category/student eligibility review | Representative chosen; no unverified bonus eligibility | [ ] In progress |
+| A03 | Competitive research and novelty proof | Comparative matrix with ≥3 real alternatives, novelty claim precise; no first-of-kind claim | [x] Completed (08 Nov) |
+| A04 | Architecture/security/privacy spec | Data flow, threat model, no real phishing/PII, AI-off contract approved, Knowledge Hub live | [x] Completed (09 Nov) |
+| A05 | UX design system and storyboards | Cinematic landing gateway, first-person 3D storyboards, Halloween design system, responsive UI | [x] Completed (09 Nov) |
+| A06 | Content outline and editorial review | 3 original scenarios with storyboard, narrative state graphs, no real brand misuse | [x] Completed (08 Nov) |
+| A07 | CI, lint/typecheck/test/build pipeline | PR protection and baseline GREEN; Vite 8 + React 19 + Tailwind v4 build verified | [x] Completed (09 Nov) |
 
-**Gate A:** repo public, `.kiro` tracked, docs/plans agreed, scenario contracts valid, no borrowed pre-Oct project code. Stop if not met.
+**Gate A:** repo public, `.kiro` tracked, docs/plans agreed, scenario contracts valid, no borrowed pre-Oct project code. **STATUS: PASSED (09 Nov 2026).**
 
 ### Phase B — Core vertical slice S1 (11–16 Nov)
 

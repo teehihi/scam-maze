@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
  * Falls back to visible when IntersectionObserver is unavailable so content
  * is never trapped behind an animation.
  */
-export function useInView<T extends Element>(rootMargin = "0px 0px -12% 0px") {
+export function useInView<T extends Element>(rootMargin = "0px 0px -8% 0px") {
   const ref = useRef<T>(null);
   const [visible, setVisible] = useState(false);
 
@@ -23,7 +23,7 @@ export function useInView<T extends Element>(rootMargin = "0px 0px -12% 0px") {
           io.disconnect();
         }
       },
-      { rootMargin, threshold: 0.08 },
+      { rootMargin, threshold: 0.05 },
     );
     io.observe(el);
     return () => io.disconnect();
