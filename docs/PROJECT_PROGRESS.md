@@ -145,7 +145,10 @@ Resolved:
   counts, Mermaid structure, emoji, non-English text, secrets and cost-table arithmetic; grep
   review for 2D-only framing, 3D out-of-scope claims, proposed domains and AI overreach; CI
   `pnpm build` on the pull request.
-- **Build/test results:** recorded in the pull request for this task; no test suite exists.
+- **Build/test results:** PR #8, CI `build` job passed (`pnpm install` + `pnpm build`).
+  Documentation checks passed (110 relative links and anchors, 65 tables, 5 Mermaid blocks,
+  cost tables, emoji, language, secrets); the checker also caught seeded errors. `pnpm build`
+  could not run locally because the sandbox cannot reach the npm registry. No test suite exists.
 - **Known limitations:** The Kiroween 2026 judging criteria and category text were taken from
   master plan section 1.2 and the published Kiroween category description; the 2026 rules page
   was not re-read in this task. Mermaid diagrams were checked structurally, not rendered. No
