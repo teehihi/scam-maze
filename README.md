@@ -25,7 +25,7 @@ equal weight.
 |---|---|
 | Landing page (marketing site, "Enter the game" entry point) | `IMPLEMENTED` (GitHub Pages) |
 | First-person 3D game: hub world, in-game smartphone, narrative engine, Chapter 1 "The Missing Parcel", debrief | `PLANNED` |
-| 3D library | `PENDING` |
+| Game stack: Three.js + React Three Fiber + Drei, Zustand, TypeScript engine + Zod, IndexedDB/Dexie | `PLANNED` (not installed); Rapier physics `PROPOSED` |
 | AI layer (signature capability: bounded AI scam actor) | `PROPOSED`; no AI provider selected or integrated |
 | Backend (API Gateway HTTP API + Lambda), static assets (S3 + CloudFront), monitoring | `PLANNED`, nothing provisioned on AWS |
 | Database | `PENDING` decision ([database strategy](docs/architecture/DATABASE_STRATEGY.md)) |
@@ -49,12 +49,18 @@ Details and progress: [project progress](docs/PROJECT_PROGRESS.md).
 Fictional brands and reserved domains only; no real credentials, codes or payments, ever. The
 game is designed to work without AI.
 
-## Technology stack (verified)
+## Technology stack
 
-React 19 · TypeScript · Vite 8 · Tailwind CSS v4 · lucide-react · pnpm · GitHub Actions · GitHub Pages
+**Landing page (verified, in this repository):** React 19 · TypeScript · Vite 8 · Tailwind CSS v4 ·
+lucide-react · pnpm · GitHub Actions · GitHub Pages
 
-Target additions (`PLANNED`/`PENDING`): a browser 3D library, Vercel, AWS API Gateway HTTP API,
-Lambda, S3, CloudFront, CloudWatch, an AI provider, a database, authentication. See
+**Game application (`PLANNED`, not installed):** React 19 · TypeScript · Vite · Three.js (3D
+engine) · React Three Fiber · Drei · Rapier (physics, `PROPOSED`) · Zustand · TypeScript
+scenario engine · Zod · IndexedDB/Dexie. Needs a performance benchmark on target devices
+([OVERVIEW.md, section 3.1](docs/architecture/OVERVIEW.md#31-game-application-stack)).
+
+**Other target additions** (`PLANNED`/`PENDING`): Vercel, AWS API Gateway HTTP API, Lambda, S3,
+CloudFront, CloudWatch, an AI provider, a database, authentication. See
 [architecture overview](docs/architecture/OVERVIEW.md).
 
 ## Architecture overview
