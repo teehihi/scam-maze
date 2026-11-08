@@ -1,8 +1,9 @@
 # SCAMMAZE — KIROWEEN 2026 MASTER PLAN
 
 > **Version:** 2.1 — Full build plan, no assignment by team member · **Date updated:** 9 Nov 2026 · **Status:** Phase A Complete (Gate A Passed), Phase B In Progress  
-> **Sole category:** **Frankenstein** · **Platform:** responsive web/PWA · **Organization:** task-based, no roles/members assigned  
-> **North star:** *A safe, interactive first-person 3D Internet where people learn to spot and solve scams before facing them in real life.*  
+> **Sole category:** **Frankenstein** · **Platform:** browser-based first-person 3D game (desktop first), web/PWA · **Organization:** task-based, no roles/members assigned  
+> **North star:** *A safe, living world where people learn to spot and solve scams before facing them in real life.* (Updated 8 Nov 2026; previously "a safe, interactive Internet …".)  
+> **Owner update, 8 Nov 2026:** SCAMMAZE is now a **browser-based, first-person 3D narrative game** in a small persistent world with chapter-based stories. The canonical product definition is [`docs/product/PRODUCT_POSITIONING.md`](docs/product/PRODUCT_POSITIONING.md); where this plan's product framing differs, that document wins. Rules compliance, safety, evaluation, Kiro workflow and the scenario rules in this plan still apply. Amended passages are marked **Amended 8 Nov 2026**.  
 > **Destination:** a live, public application with an end-to-end demo, user testing, and real evidence of development with Kiro.  
 > **Important:** No plan can guarantee a win. This is a strategy to optimize quality, differentiation, deliverability, and rules compliance; do not use "guaranteed to win" claims.
 
@@ -14,14 +15,14 @@
 
 ## 0. Executive decision — What must be done right
 
-**ScamMaze is not a phishing quiz, not a Q&A chatbot, and not a URL-scoring website.** ScamMaze is an **interactive first-person 3D scam investigation game + explainable decision graph + evidence-driven learning + optional real-world safety checklist**, in which:
+**Amended 8 Nov 2026.** **ScamMaze is not a phishing quiz, not a Q&A chatbot, not a URL-scoring website, and not a chatbot with a 3D background.** ScamMaze is a **browser-based, first-person 3D narrative game: an immersive, AI-enhanced simulation where players learn to recognize and respond to deception by experiencing its consequences in a living world**. The core loop is *physical world → digital interaction → investigation → decision → consequence → learning*, in which:
 
-1. The user steps into a **safe simulated 3D world and Internet** (first-person workstation, devices, notifications, chat, website, email) and investigates manipulation tactics in sequence.
-2. **Decisions genuinely change the storyline**: examine the source closely, verify through an independent channel, stop the transaction, or keep following the request.
+1. The player lives an ordinary life in a **small persistent fictional neighbourhood** (an apartment and a street for the MVP). Scams arrive through an **in-game smartphone** (chat, website, email, marketplace, notification) and through **people and places in the 3D world**; evidence is spread across both. *(Previously: "steps into a safe simulated Internet"; the simulated Internet is now embedded in the 3D world instead of being the whole experience.)*
+2. **Decisions genuinely change the storyline**: examine the source closely, verify through an independent channel (including in the world, for example at the parcel locker), stop the transaction, or keep following the request. Simulated consequences persist across chapters.
 3. **Consequence Replay** presents the simulated consequences, the signals the player missed, and the alternative branches available — without collecting real accounts or money.
 4. **Risk DNA Graph** connects **signal → tactic → decision → consequence → safe action**, based on curated scenario annotations, not unfounded inference.
 5. **Transfer Test** presents new situations not covered in the learning portion to measure the ability to apply what was learned; it does not equate completing a level with real-life scam-resistance skills.
-6. **AI is an optional adapter**: with AI turned off, a timeout, an exhausted quota, or a temporary loss of internet, loaded scenarios can still be played, with scoring, explanations, graph, practice exercises, and local progress.
+6. **Hybrid intelligence, AI-first resilience preserved** (**Amended 8 Nov 2026**): a deterministic core owns state, rules, evidence, decisions, consequences and progression. A bounded AI layer is now a meaningful component (signature capability: an AI scam actor that answers and pushes back within authored tactics), but it only *proposes* dialogue, validated against schemas and scenario rules. With AI turned off, a timeout, an exhausted quota, or a temporary loss of internet, loaded chapters can still be played on authored dialogue, with scoring, explanations, graph, practice exercises, and local progress. See the positioning document, section 8.
 
 ### 0.1 Claims that must be defended
 
@@ -36,6 +37,8 @@
 **Safe by design • User agency • Learn by doing • Evidence over verdict • No-AI-first resilience • Accessibility • Privacy minimalism • Reproducibility.**
 
 **Furthest worthwhile scope:** 3 high-quality scenarios (6–12 decision nodes each), 1 holdout scenario, a consistent Internet simulation, an explanation graph with node citations, bounded optional AI, offline PWA, production deploy, and a video under 3 minutes. 20 sketchy levels will lose to 3 excellent levels.
+
+**Amended 8 Nov 2026 — hackathon MVP:** one polished 3D vertical slice instead: an apartment and one street, 3–4 NPCs, first-person movement and interaction, the in-game smartphone, a short Prologue and **one complete chapter (S1, The Missing Parcel)** with at least 2 safe, 2 unsafe and 1 ambiguous route, deterministic consequences, one bounded AI scam actor conversation with authored fallback, a debrief, and a short phone-only transfer check. S2, S3 and H1 as full 3D chapters are future scope. See positioning document, section 11.
 
 ---
 
@@ -165,6 +168,7 @@
 - Optional voice narration with captions, simple achievement badges, instructor classroom screen, additional scenarios.
 - Browser extension "real URL check" **only if** there is a threat model, permission rationale, safe API design, and tests; it is **not needed** to compete.
 - Generative scenario runtime, autonomous phishing website ingestion, live scraping, full 3D world, full multiplayer: **explicitly out of scope**.
+- **Amended 8 Nov 2026:** a **small** first-person 3D world (one apartment and one street) is now the core platform, not a stretch goal. A *full* or open 3D world, multiplayer and runtime-generated scenarios remain out of scope.
 
 ### 3.2 Scenario lineup (authored, original)
 
@@ -187,6 +191,8 @@
 
 ### 3.4 UX flows / screens
 
+> **Amended 8 Nov 2026:** the "Internet Simulator" screen (4) becomes the first-person 3D world with an in-game smartphone the player raises; "Choose a Case" (2) becomes chapter progression in one persistent world. The other screens (brief, decision, outcome, evidence board, replay, transfer test, report, settings, demo route) still apply, as in-game or overlay UI. See positioning document, sections 5 and 10.
+
 1. **Landing:** 1-line promise, CTA `Enter the Maze`, mode indicator, safety disclaimer.
 2. **Choose a Case:** 3 cases as casefiles (difficulty, length, skill outcomes), demo spotlight.
 3. **Mission Brief:** “Fictional simulation, never enter real credentials.”
@@ -201,6 +207,8 @@
 12. **Demo Route:** `/demo` with deterministic start seed and stable test dataset; accessible to judges without login.
 
 ### 3.5 UX design system — Premium but functional
+
+> **Amended 8 Nov 2026:** the game's art direction is **stylized realism / stylized low-poly**: believable everyday environments, warm daylight, first-person camera. Halloween and horror are not the art direction. The rules below still apply to 2D UI (phone, overlays, landing page). See positioning document, section 10.
 
 - Visual language: **Cyber-noir detective lab meets story-driven escape room**, not generic neon hacker console.
 - Palette: graphite/navy base + amber caution + teal verified action + red danger **with text/icons**, dark/light modes.
@@ -217,6 +225,8 @@
 ## 4. System architecture — Production-oriented but hackathon-sized
 
 ### 4.1 Selected stack
+
+> **Amended 8 Nov 2026:** the game uses **Three.js** as its 3D rendering engine through **React Three Fiber** and **Drei**; **Rapier** is the proposed physics engine; **Zustand** is the gameplay state owner (this resolves the "Zustand or XState" choice below); the scenario engine stays pure TypeScript with **Zod** validation; local persistence uses **IndexedDB/Dexie**. ECS is not adopted (future evaluation only). Nothing is installed yet; details in [`docs/architecture/OVERVIEW.md`, section 3.1](docs/architecture/OVERVIEW.md#31-game-application-stack). The backend direction is a small serverless AWS backend instead of an always-on FastAPI host; see [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md). The deterministic engine, scenario schema and AI boundaries below are unchanged.
 
 - **Frontend:** React + TypeScript + Vite, Tailwind CSS + hand-curated design tokens, TanStack Query for server state, React Router, Zustand or XState for scenario UI orchestration (choose one state owner; no duplicate state sources).
 - **Simulation engine:** pure TypeScript library (`packages/game-engine`) with typed state machine and deterministic transitions; scenario definitions in versioned JSON/YAML, validation with Zod/JSON Schema.
@@ -714,6 +724,8 @@ This dependency map is an implementation proposal, not a claim about actual repo
 
 ## 10. Design detail — Three hero moments
 
+> **Amended 8 Nov 2026:** in the 3D game these moments happen on the in-game phone and in the world (for example, checking the parcel locker in moment A). Replay and evidence highlights also point to world locations.
+
 ### Hero moment A: “The friendly trap”
 
 User receives fake delivery notification. Browser simulator opens a professional-looking but fictional page. A tiny domain mismatch is inspectable; notification urgency escalates. User chooses verify independently vs press pay. Scenario diverges.
@@ -750,6 +762,8 @@ After learning S1–S3, player sees a novel family-emergency impersonation with 
 **Video checklist:** public YouTube, duration <=2:55 target; text large enough on mobile; English voice/subtitle, no copyrighted music/brand assets; **all screen interactions from running app**, don't fabricate loading/performance/results.
 
 ### 11.1 Devpost pitch draft (English; adjust to implemented reality)
+
+> **Amended 8 Nov 2026:** superseded by the drafts in the positioning document, section 13 (taglines, 30- and 60-second pitches, Devpost texts). The draft below is kept for history. The demo plan in section 11 should show the 3D slice: walk to the locker, the scammer argues back, two paths diverge, the debrief links a clue to its place in the world, AI toggled off.
 
 > **ScamMaze** is an interactive Internet simulator where everyday users practice recognizing online scams by making decisions inside realistic, fictional scenarios. It combines branching narrative systems, explainable security rules, and evidence-linked replay to show how small choices can change outcomes. The core game works without AI; an optional assistant helps explain curated lessons. Built with Kiro spec-driven development, automated tests and documented agent workflows.
 
@@ -822,6 +836,7 @@ If monorepo scripts differ, document exact commands in README; don't claim these
 | Fake novelty / competitor overlap | High / high | Comparison finds same interdependent flow | Test distinctive replay-to-evidence loop; honestly narrow claim |
 | UX too complex for 3 min | Medium / high | First meaningful choice >45s, graph confusing | Demo route, one interaction per reveal, user tests, progressive disclosure |
 | Scope overbuilds 3D/multiplayer | High / high | P0 incomplete by Gate B | Hard stop; cut P2/P1 immediately |
+| **(Added 8 Nov 2026)** 3D vertical slice not playable in time, or too slow in the browser | High / critical | No walkable slice with Chapter 1 decisions by the mid-point; frame rate unacceptable on integrated GPUs | Keep the world to one apartment and one street; benchmark early; Low quality tier; phone-centred fallback that keeps Chapter 1 playable; cut extra NPCs and props first |
 | Site fails during judging | Medium / critical | Guest URL needs auth or backend unavailable | Static core/PWA; uptime checks; valid test instructions |
 | Scope/IP violations | Low–medium / critical | Unlicensed music/logos/assets | Asset register, original graphics, license scans |
 | Deadline or English assets missed | Medium / critical | Video/Devpost missing on Dec 3 | Internal freeze, final rehearsal, backup uploads |

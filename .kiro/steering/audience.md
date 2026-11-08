@@ -4,7 +4,8 @@ inclusion: always
 
 # Audience and positioning
 
-Full positioning: #[[file:docs/positioning.md]]
+Canonical product positioning: `docs/product/PRODUCT_POSITIONING.md` (read it before any product,
+content or messaging work; it is not inlined here because of its length).
 
 ## Who we build for
 

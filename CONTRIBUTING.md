@@ -50,10 +50,18 @@ artifact for review.
    `feat: add marketplace scenario`, `fix(url-check): handle IPv6 hosts`.
 4. Open a pull request into `main` and fill in the template.
    Do not push directly to `main`; it deploys the live site.
+5. For every meaningful change, add an entry to
+   [`docs/PROJECT_PROGRESS.md`](docs/PROJECT_PROGRESS.md) in the same pull request, and update
+   the architecture, deployment, database or cost documents in `docs/` if they become
+   inaccurate.
+
+Never provision cloud resources, buy a domain, or add a database without owner approval; see
+[AGENTS.md](AGENTS.md) and [docs/architecture/](docs/architecture/OVERVIEW.md).
 
 ### Working with Kiro
 
-This project is built with [Kiro](https://kiro.dev). For non-trivial features:
+This project is built with [Kiro](https://kiro.dev). AI agents follow [AGENTS.md](AGENTS.md),
+which Kiro loads automatically. For non-trivial features:
 
 - write or update a spec in `.kiro/specs/` (requirements → design → tasks)
   before coding, and link it in the PR;
@@ -74,7 +82,7 @@ Scenarios live in `src/data/`. A good scenario:
   company logos or names;
 - works for **people in Vietnam and worldwide**: built on a tactic that exists
   everywhere, with no country-specific currency, phone format or payment
-  method (see [docs/positioning.md](docs/positioning.md));
+  method (see [product positioning](docs/product/PRODUCT_POSITIONING.md));
 - reflects a real, current tactic, and cites a public source in the PR;
 - has at least one safe path and one risky path, and **no dead ends**;
 - explains every red flag with concrete evidence from the message;
