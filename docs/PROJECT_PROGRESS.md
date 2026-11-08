@@ -143,7 +143,9 @@ Resolved:
 - **Validation:** grep across all Markdown for 3D engine, physics, state, ECS, PixiJS, XState,
   Zod and Dexie mentions; documentation checks (links, anchors, tables, Mermaid structure,
   emoji, language, secrets); CI `pnpm build` on the pull request.
-- **Build/test results:** recorded in the pull request; no test suite exists.
+- **Build/test results:** PR #9, CI `build` job passed (`pnpm install` + `pnpm build`);
+  documentation checks passed (116 links and anchors, 67 tables, 5 Mermaid blocks). No test
+  suite exists.
 - **Known limitations:** No library versions are pinned; React 19 compatibility of React Three
   Fiber, Drei and Rapier must be confirmed when they are installed. No benchmark exists.
 - **Architecture deviations:** none beyond the owner decision; the plan's open state-owner choice
