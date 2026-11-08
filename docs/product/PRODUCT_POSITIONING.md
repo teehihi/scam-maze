@@ -458,9 +458,12 @@ to be the first anti-scam game; its claim is the **connected loop**: world → p
 memory budgets will be set from prototype benchmarks on real target devices, not chosen in
 advance. A small, carefully built world is preferred over a large world that runs poorly.
 
-The 3D library is `PENDING`. A React-based option such as React Three Fiber (Three.js) fits the
-existing React and TypeScript stack; Babylon.js and PlayCanvas are alternatives. No library has
-been installed.
+Planned game stack (owner decision, 8 Nov 2026; details in
+[OVERVIEW.md, section 3.1](../architecture/OVERVIEW.md#31-game-application-stack)): **Three.js**
+as the 3D rendering engine through **React Three Fiber** and **Drei**, **Rapier** proposed for
+physics, **Zustand** for gameplay state, a pure **TypeScript** scenario engine with **Zod**
+validation, and **IndexedDB/Dexie** for local saves. Nothing is installed yet, and the stack
+still has to be benchmarked on target devices.
 
 ---
 
@@ -656,7 +659,9 @@ Brand line kept from v1.0 for the landing page: *Escape the scam maze.*
 
 | Decision | Status |
 |---|---|
-| 3D library (React Three Fiber, Babylon.js, PlayCanvas, other) | `PENDING` |
+| 3D stack | **Decided 8 Nov 2026:** Three.js + React Three Fiber + Drei (`PLANNED`); performance benchmark required |
+| Physics engine | Rapier `PROPOSED`; prototype required |
+| ECS | Not approved; option for future evaluation only |
 | AI provider and monthly AI budget | `PENDING` (paid provider needs explicit approval) |
 | Scam Actor input modality (options only, or options plus free text) | `PENDING` |
 | Phone-centred fallback mode for devices without adequate 3D support | `PROPOSED` |

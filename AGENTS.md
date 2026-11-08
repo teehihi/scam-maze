@@ -58,7 +58,18 @@ definition)** · [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
 - Inspect the existing code and docs before changing anything; reuse existing conventions.
 - Current stack (verified): React 19, TypeScript, Vite 8, Tailwind CSS v4, pnpm (lockfile
   committed), `lucide-react` for icons. Single app at the repository root: the landing page only.
-  No game code, no 3D library, no backend, no database, no tests yet. The 3D library is `PENDING`.
+  No game code, no 3D library, no backend, no database, no tests yet.
+- **Planned game stack** (owner decision, 8 Nov 2026; not installed; details in
+  [OVERVIEW.md, section 3.1](docs/architecture/OVERVIEW.md#31-game-application-stack)):
+  React 19 + TypeScript + Vite; **Three.js** is the primary 3D engine, used through **React Three
+  Fiber** and **Drei**; **Rapier** is the *proposed* physics engine; **Zustand** for gameplay
+  state; a pure **TypeScript** deterministic scenario engine; **Zod** for runtime validation;
+  **IndexedDB via Dexie** for local saves.
+  - Do not use PixiJS (a 2D renderer) as the 3D engine, and do not substitute other 3D engines.
+  - ECS is **not** approved; do not introduce it without a documented evaluation and owner
+    approval.
+  - The scenario engine must not import React, Three.js, Rapier, Zustand or Dexie.
+  - Do not install any of these libraries outside an approved game implementation task.
 - Commands:
 
   ```bash

@@ -226,7 +226,7 @@
 
 ### 4.1 Selected stack
 
-> **Amended 8 Nov 2026:** add a browser 3D runtime for the game (library `PENDING`; React Three Fiber, Babylon.js or PlayCanvas). The backend direction is a small serverless AWS backend instead of an always-on FastAPI host; see [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md). The deterministic engine, scenario schema and AI boundaries below are unchanged.
+> **Amended 8 Nov 2026:** the game uses **Three.js** as its 3D rendering engine through **React Three Fiber** and **Drei**; **Rapier** is the proposed physics engine; **Zustand** is the gameplay state owner (this resolves the "Zustand or XState" choice below); the scenario engine stays pure TypeScript with **Zod** validation; local persistence uses **IndexedDB/Dexie**. ECS is not adopted (future evaluation only). Nothing is installed yet; details in [`docs/architecture/OVERVIEW.md`, section 3.1](docs/architecture/OVERVIEW.md#31-game-application-stack). The backend direction is a small serverless AWS backend instead of an always-on FastAPI host; see [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md). The deterministic engine, scenario schema and AI boundaries below are unchanged.
 
 - **Frontend:** React + TypeScript + Vite, Tailwind CSS + hand-curated design tokens, TanStack Query for server state, React Router, Zustand or XState for scenario UI orchestration (choose one state owner; no duplicate state sources).
 - **Simulation engine:** pure TypeScript library (`packages/game-engine`) with typed state machine and deterministic transitions; scenario definitions in versioned JSON/YAML, validation with Zod/JSON Schema.

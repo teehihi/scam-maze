@@ -13,7 +13,9 @@
 - **Current milestone:** Master plan Phase A — Foundation / rule compliance (plan dates 7–10 Nov
   2026). Phase B now targets the 3D vertical slice (positioning section 11).
 - **Architecture status:** Target architecture documented; landing page `IMPLEMENTED`; 3D game
-  client, deterministic core, backend and all AWS services `PLANNED`; 3D library `PENDING`;
+  client, deterministic core, backend and all AWS services `PLANNED`; game stack decided
+  (Three.js + React Three Fiber + Drei, Zustand, TypeScript engine + Zod, Dexie; Rapier
+  `PROPOSED`), not installed;
   AI layer `PROPOSED`; nothing provisioned.
 - **Database decision:** `PENDING` ([database strategy](architecture/DATABASE_STRATEGY.md)).
 - **Domain status:** No domain purchased. Domain & DNS cost `TBD`.
@@ -59,9 +61,11 @@ Verified against merged pull requests on GitHub.
 
 Updated for the 3D direction (positioning section 11); none started.
 
-- [ ] 3D prototype and benchmark: walkable apartment and street on target devices (integrated
+- [ ] 3D prototype and benchmark with Three.js + React Three Fiber + Drei (and Rapier, if
+      adopted): walkable apartment and street on target devices (integrated
       GPUs), to set triangle, draw-call and memory budgets.
-- [ ] Deterministic core: chapter state machine, evidence and tactic definitions, persistent
+- [ ] Deterministic core (pure TypeScript, Zod-validated scenarios, Zustand store, Dexie
+      saves): chapter state machine, evidence and tactic definitions, persistent
       world state, local save (IndexedDB), tests for every branch.
 - [ ] In-game smartphone UI: messages, browser with fictional sites, bank app, parcel app.
 - [ ] Vertical slice: Prologue and Chapter 1 "The Missing Parcel" (2 safe, 2 unsafe, 1
@@ -77,7 +81,8 @@ Updated for the 3D direction (positioning section 11); none started.
 
 ## Pending Decisions
 
-- [ ] 3D library: React Three Fiber (Three.js), Babylon.js, PlayCanvas or other.
+- [ ] Physics: confirm Rapier after the prototype (`PROPOSED`).
+- [ ] ECS: evaluate only if prototype profiling shows a need (not approved).
 - [ ] AI provider and monthly AI budget (paid provider requires explicit approval).
 - [ ] Approve the signature AI capability (Bounded Scam Actor) and its input modality (options
       only, or options plus free text).
@@ -92,11 +97,15 @@ Updated for the 3D direction (positioning section 11); none started.
 - [ ] Authentication: Amazon Cognito or an alternative; whether accounts are needed at all.
 - [ ] Lambda runtime language: Python (plan: FastAPI + Pydantic) or TypeScript.
 - [ ] Confirm deprecating "FastAPI on an always-on host" in favour of the serverless backend.
-- [ ] Scenario state owner: XState or Zustand (plan section 4.1).
 - [ ] Confirm the source, expiry date and terms of the $200 AWS credit.
 - [ ] Infrastructure-as-code tool (for example AWS SAM or AWS CDK).
 
 Resolved:
+
+- [x] Game rendering and state stack — **resolved 2026-11-08** by owner decision: Three.js
+      (primary 3D engine) + React Three Fiber + Drei; Zustand for gameplay state (resolves the
+      plan's "XState or Zustand"); TypeScript engine; Zod; IndexedDB/Dexie. Rapier stays
+      `PROPOSED`; PixiJS is not the 3D engine; ECS is not approved.
 
 - [x] Scope of 3D environments — **resolved 2026-11-08** by owner decision: a small first-person 3D
       world is the core platform; full/open world and multiplayer remain out of scope; character
@@ -117,6 +126,30 @@ Resolved:
 - No automated tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-08 — Game application stack alignment
+
+- **Objective:** Align all documentation with the owner's decision on the game application
+  stack, without changing the product positioning or the landing page.
+- **Changes:** Added the game application stack to OVERVIEW (new section 3.1: technologies,
+  roles, statuses, boundaries, dependency direction, benchmark list) and updated its target
+  table, diagram, component and reconciliation sections. Replaced "3D library `PENDING`"
+  (React Three Fiber, Babylon.js or PlayCanvas) and "XState or Zustand" with the decided stack
+  in the product positioning (section 10.1 and open decisions only), README, AGENTS.md, master
+  plan (section 4.1 amendment) and this file. Recorded that PixiJS is not the 3D engine and that
+  ECS is not approved. Documentation only: no code or dependency changes.
+- **Files modified:** `docs/architecture/OVERVIEW.md`, `docs/product/PRODUCT_POSITIONING.md`,
+  `README.md`, `AGENTS.md`, `SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`, `docs/PROJECT_PROGRESS.md`.
+- **Validation:** grep across all Markdown for 3D engine, physics, state, ECS, PixiJS, XState,
+  Zod and Dexie mentions; documentation checks (links, anchors, tables, Mermaid structure,
+  emoji, language, secrets); CI `pnpm build` on the pull request.
+- **Build/test results:** recorded in the pull request; no test suite exists.
+- **Known limitations:** No library versions are pinned; React 19 compatibility of React Three
+  Fiber, Drei and Rapier must be confirmed when they are installed. No benchmark exists.
+- **Architecture deviations:** none beyond the owner decision; the plan's open state-owner choice
+  is resolved in favour of Zustand.
+- **Follow-up tasks:** 3D prototype and benchmark (OVERVIEW section 3.1); decide on Rapier after
+  the prototype.
 
 ### 2026-11-08 — Product positioning for the first-person 3D direction
 

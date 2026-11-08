@@ -69,11 +69,13 @@ proxying, persistence and server-side operations.
 |---|---|---|
 | Landing page | React + Vite (existing stack) | `IMPLEMENTED` (on GitHub Pages) |
 | Landing page hosting on Vercel | Vercel | `PLANNED` (today: GitHub Pages) |
-| Game client | Separate browser game: **first-person 3D world** with an embedded in-game smartphone, hosted on Vercel | `PLANNED` (owner decision, 8 Nov 2026) |
-| 3D runtime | WebGL 2 baseline; library: React Three Fiber (Three.js), Babylon.js or PlayCanvas | `PENDING` |
+| Game client | Separate browser game: **first-person 3D world** with an embedded in-game smartphone, hosted on Vercel; React 19 + TypeScript + Vite (section 3.1) | `PLANNED` (owner decision, 8 Nov 2026) |
+| 3D rendering | **Three.js** (primary 3D engine) via **React Three Fiber**, with **Drei** utilities; WebGL 2 baseline | `PLANNED` (owner decision, 8 Nov 2026); performance benchmark required |
+| Physics | **Rapier** | `PROPOSED`; prototype required |
+| Gameplay state | **Zustand** stores | `PLANNED` |
 | In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `PLANNED` |
-| Narrative engine + scam intelligence engine (deterministic core) | Pure TypeScript chapter state machines, evidence and tactic definitions, versioned scenario files, schema validation (plan section 4.1) | `PLANNED` (a legacy demo reducer exists in `src/legacy/`) |
-| Local progress store | IndexedDB (plan section 4.1) | `PLANNED` |
+| Narrative engine + scam intelligence engine (deterministic core) | Pure **TypeScript** chapter state machines, evidence and tactic definitions, versioned scenario files validated with **Zod** | `PLANNED` (a legacy demo reducer exists in `src/legacy/`) |
+| Local progress store | **IndexedDB** through **Dexie** | `PLANNED` |
 | Offline shell | Service worker / PWA (plan F11, section 3.3) | `PLANNED` |
 | Backend API | Amazon API Gateway **HTTP API** | `PLANNED` |
 | Compute | AWS Lambda | `PLANNED` |
@@ -94,10 +96,10 @@ flowchart TB
     subgraph FE["Frontend layer"]
         L["Landing page<br/>IMPLEMENTED on GitHub Pages<br/>Vercel PLANNED"]
         G["Game client<br/>first-person 3D, PLANNED"]
-        W3["3D world runtime<br/>library PENDING"]
+        W3["3D world<br/>Three.js + R3F + Drei, PLANNED<br/>Rapier physics PROPOSED"]
         PHONE["In-game smartphone UI<br/>PLANNED"]
-        LOCAL["Deterministic core<br/>narrative + scam rules, PLANNED"]
-        IDB[("Local save<br/>IndexedDB, PLANNED")]
+        LOCAL["Deterministic core<br/>TypeScript engine + Zod, Zustand store, PLANNED"]
+        IDB[("Local save<br/>IndexedDB via Dexie, PLANNED")]
     end
 
     subgraph AWSB["AWS backend, ap-southeast-1<br/>PLANNED, nothing provisioned"]
@@ -135,8 +137,8 @@ flowchart TB
     classDef pending fill:#fef3c7,stroke:#b45309,color:#451a03
     classDef proposed fill:#f4f4f5,stroke:#a1a1aa,stroke-dasharray:2 4,color:#18181b
     class L implemented
-    class G,PHONE,LOCAL,IDB,CDN,S3B,API,FN,CW planned
-    class DB,AUTH,W3 pending
+    class G,W3,PHONE,LOCAL,IDB,CDN,S3B,API,FN,CW planned
+    class DB,AUTH pending
     class AI proposed
 ```
 
@@ -151,6 +153,55 @@ flowchart TB
 - The **database is undecided**; Lambda code should talk to it through a small storage interface.
 - **AI only proposes**. The game works when AI is off, slow, rate-limited or unreachable;
   authored dialogue is used instead.
+
+### 3.1 Game application stack
+
+**Owner decision, 8 Nov 2026.** This is the stack for the future game application. **None of
+these libraries is installed**, and no game code exists. The landing page keeps its own verified
+stack (section 2) and is not changed by this decision.
+
+| Concern | Technology | Role | Status |
+|---|---|---|---|
+| Application | React 19 + TypeScript + Vite | Same base as the landing page; separate app | `PLANNED` |
+| 3D rendering engine | **Three.js** | The primary and only 3D renderer (WebGL 2 baseline) | `PLANNED` |
+| React integration | **React Three Fiber** | Declarative Three.js scene graph inside React | `PLANNED` |
+| 3D utilities | **Drei** | Reusable helpers (for example controls, loaders, LOD, instancing helpers) | `PLANNED` |
+| Physics | **Rapier** | Character collision, movement against walls and props | `PROPOSED` |
+| Gameplay state | **Zustand** | Container for engine state and UI/game state; no rules inside stores | `PLANNED` |
+| Deterministic scenario engine | **TypeScript** (pure functions) | Chapter state machines, evidence, tactics, consequences, scoring; no React, Three.js or network imports | `PLANNED` |
+| Runtime schema validation | **Zod** | Validates scenario files, saved state on load, and AI proposals before the engine sees them | `PLANNED` |
+| Local persistence | **IndexedDB** via **Dexie** | Local saves with versioned schema; clear-data support | `PLANNED` |
+| In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief | `PLANNED` |
+| Entity Component System (ECS) | Not chosen | Option for future evaluation only if prototype profiling shows a need (for example many NPCs or props with shared behaviour) | `PROPOSED` (not approved) |
+
+Boundaries:
+
+- **Three.js is the 3D engine.** PixiJS is a 2D renderer and is **not** the 3D engine for
+  SCAMMAZE; it is not part of this stack.
+- **ECS is not an architectural decision.** Do not introduce an ECS library or structure the
+  engine around ECS without a documented evaluation and owner approval.
+- **Dependency direction:** React Three Fiber scene → reads Zustand → Zustand applies events
+  through the pure TypeScript engine. The engine never imports React, Three.js, Rapier, Zustand
+  or Dexie, so it can be unit-tested on its own and stays deterministic.
+- **Physics is not game logic.** Rapier (if adopted) only handles movement and collision; it
+  emits events such as "entered locker area" but never decides outcomes.
+- **Versions are not pinned yet.** When installing, choose versions that are compatible with
+  React 19 and with each other, and record them in the pull request.
+
+**Requires a prototype or benchmark before the MVP build relies on it** (results to be recorded
+in [Project progress](../PROJECT_PROGRESS.md)):
+
+| Item | What to measure |
+|---|---|
+| Three.js + React Three Fiber + Drei scene | Frame rate and frame time on integrated-GPU laptops for the apartment and street; draw calls; memory; load time and download size |
+| Rapier | WebAssembly download size and initialisation time; first-person character controller behaviour; CPU cost per frame |
+| Quality tiers (Low/Medium/High) | Whether the Low tier stays playable on the weakest target device |
+| Dexie persistence | Save and load time; schema migration between scenario versions |
+| Zustand + React Three Fiber | That state updates do not trigger unnecessary React re-renders of the 3D scene |
+| ECS (only if considered) | Whether it measurably simplifies or speeds up NPC and prop updates compared with plain components |
+
+No triangle, draw-call or memory budgets are set until these benchmarks exist
+([product positioning, section 10.1](../product/PRODUCT_POSITIONING.md#101-performance-first-browser-3d)).
 
 ## 4. Component responsibilities
 
@@ -170,7 +221,8 @@ live on an **in-game smartphone** inside the 3D world. Full definition:
 
 Components inside the game client, all `PLANNED`:
 
-- **3D world runtime** (library `PENDING`): rendering, first-person movement, interaction,
+- **3D world runtime** (Three.js + React Three Fiber + Drei, Rapier proposed for physics; see
+  section 3.1): rendering, first-person movement, interaction,
   NPCs, area-based loading, quality tiers. Emits world events such as `visited_locker`.
 - **In-game smartphone UI**: 2D React UI; emits phone events such as `opened_link`,
   `entered_code`.
@@ -202,7 +254,11 @@ accepted or rejected here. It also owns:
 - replay of the user's own decision sequence, with alternative branches labelled hypothetical;
 - scoring as a pure function that never turns "unknown" into "safe".
 
-The plan leaves the state owner open (XState or Zustand, section 4.1). Status: `PENDING`.
+State ownership (`PLANNED`, owner decision, 8 Nov 2026; resolves the plan's open "XState or
+Zustand" choice in favour of **Zustand**): the engine's transitions are pure TypeScript functions
+`(state, event) → state`; a Zustand store holds the current engine state, applies events through
+those functions and persists through Dexie. Zustand is the state *container*; the rules live in
+the engine, so they stay testable without React, Three.js or Zustand. XState is not used.
 
 ### 4.4 Backend (`PLANNED`)
 
@@ -329,7 +385,9 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 | 3D world | Full 3D world out of scope (3.1 P2) | Small first-person 3D world is the core platform | Small world `PLANNED`; full/open world still out of scope; plan 3.1 amended |
 | Character customization | Not in the feature contract | Listed in the 7 Nov brief | `PROPOSED`, future scope, not in the MVP |
 | AI role | Optional coach adapter | Bounded AI layer as a meaningful component; deterministic core decides | `PROPOSED`; provider `PENDING`; same safety boundaries |
-| Scenario state owner | XState or Zustand | Not specified | `PENDING`; legacy demo uses `useReducer` |
+| Scenario state owner | XState or Zustand | Zustand for gameplay state; deterministic engine in pure TypeScript | `PLANNED` (Zustand); XState not used; legacy demo uses `useReducer` |
+| 3D and physics libraries | Not specified (3D out of scope) | Three.js + React Three Fiber + Drei; Rapier proposed | Three.js stack `PLANNED`; Rapier `PROPOSED`; nothing installed |
+| Schema validation and local persistence | Zod/JSON Schema; IndexedDB/Dexie | Zod; IndexedDB/Dexie | `PLANNED`; consistent with the plan |
 | Visual system | "Cyber-noir detective lab", dark and light modes (section 3.5) | Game: stylized realism / stylized low-poly, not Halloween | Landing page: dark cinematic theme `IMPLEMENTED` (PR #7, replaced the flat theme of PR #2); game art `PLANNED`; plan 3.5 amended |
 | Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | None yet |
 
