@@ -1,10 +1,13 @@
 # SCAMMAZE architecture overview
 
-> **Last reviewed:** 7 Nov 2026 · **Scope:** current implementation and target architecture
-> **Sources of truth:** the repository on `main`, the master plan
+> **Last reviewed:** 8 Nov 2026 · **Scope:** current implementation and target architecture
+> **Sources of truth:** the repository on `main`; the canonical product definition
+> [`docs/product/PRODUCT_POSITIONING.md`](../product/PRODUCT_POSITIONING.md) (owner decision of
+> 8 Nov 2026: first-person 3D narrative game); the master plan
 > [`SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md`](../../SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md)
 > (added in commit [`0665897`](https://github.com/teehihi/scam-maze/commit/0665897619ed026cf1166288e32579b9a0969228),
-> translated to English in PR #3), and the owner's target architecture brief of 7 Nov 2026.
+> translated to English in PR #3, product framing amended 8 Nov 2026); and the owner's target
+> architecture brief of 7 Nov 2026.
 >
 > This file fulfils the "architecture" deliverable listed in section 14 of the master plan
 > (`docs/architecture/ARCHITECTURE.md` there).
@@ -28,45 +31,48 @@ Every architecture statement in `docs/` uses one of these labels.
 
 ## 2. What exists today (`IMPLEMENTED`)
 
-Verified on `main` at commit `9a80a43` (7 Nov 2026).
+Verified on `main` at commit `8c66005` (8 Nov 2026), after PR #7 (cinematic landing page redesign).
 
 | Area | Current implementation |
 |---|---|
-| Application | One single-page app at the repository root (no monorepo yet): React 19, TypeScript, Vite 8, Tailwind CSS v4. Package manager pnpm (`packageManager: pnpm@10.26.0`). No lockfile committed yet. |
-| Pages | One landing page (`src/App.tsx`) with sections: hero, problem, Vietnam and worldwide, learning loop, demo scenario, URL checker, features, Kiro, risks, footer. No router. |
-| Demo scenario | One short branching demo of "The Missing Parcel" in `src/data/scenario.ts` (TypeScript data, not JSON). Two steps, two choices each, three endings. Logic is a pure `useReducer` reducer in `src/components/ScenarioDemo.tsx`. It does **not** yet meet the plan's rule of at least two safe, two unsafe and one ambiguous route. |
-| URL checker | `src/lib/urlCheck.ts`: deterministic, string-only heuristics. No network calls. Never returns "safe". Known false positives on official country domains (for example `google.co.uk`), see [Project progress](../PROJECT_PROGRESS.md). |
-| "AI explanation" toggle | Shows **pre-written sample text** from the scenario data. No AI provider is called. |
-| State and storage | In-memory React state only. No `localStorage`, IndexedDB or service worker. Progress is lost on reload. The site is **not** offline-capable beyond an already-loaded page. |
-| Backend, API, database, auth | **None.** The app makes no `fetch` or XHR calls. |
-| Environment variables | Only `VITE_BASE` (build time, optional, default `/`), read in `vite.config.ts`. |
+| Application | One single-page app at the repository root (no monorepo yet): React 19, TypeScript, Vite 8, Tailwind CSS v4, `lucide-react` icons, self-hosted variable fonts. Package manager pnpm (`packageManager: pnpm@10.26.0`); `pnpm-lock.yaml` committed (PR #7). |
+| Pages | One dark, marketing-only landing page (`src/App.tsx`): hero, connected-threat timeline, digital world showcase, investigation method, branching preview, evidence workspace, mission case files, skills, safety principles, final call to action. No router. **No game code.** |
+| Interactive previews | `Branching`, `Systems` and `Skills` sections have small client-side previews with hand-authored, fictional data (`src/data/*.ts`). They are labelled as simulated examples, "not the real mission engine". |
+| Game entry | `src/config/site.ts` reads `VITE_GAME_URL`. Empty or invalid (non-http/https): the entry buttons open a "world is being prepared" dialog. Valid: they link to that URL. No game is deployed, so the dialog is what visitors see. |
+| Legacy code | `src/legacy/`: the earlier demo scenario (pure `useReducer` state machine with `src/data/scenario.ts`) and the URL checker (`src/lib/urlCheck.ts`, string-only, never fetches, never returns "safe"). Not mounted; still typechecked. The URL checker's false positive on official country domains (issue #4) remains. |
+| State and storage | In-memory React state only. No `localStorage`, IndexedDB or service worker. Not offline-capable beyond an already-loaded page. |
+| Backend, API, database, auth, AI | **None.** The app makes no `fetch` or XHR calls and calls no AI provider. |
+| 3D | **None.** No 3D library is installed. |
+| Environment variables | `VITE_BASE` (build time, optional, default `/`, in `vite.config.ts`) and `VITE_GAME_URL` (build time, optional, in `src/config/site.ts`; template in `.env.example`). |
 | Tests | **None.** No test runner is installed. Quality gate today: `pnpm build` (TypeScript build + Vite build). |
 | CI/CD | `.github/workflows/ci.yml` builds every pull request and uploads `dist` as an artifact. `.github/workflows/deploy.yml` builds and deploys to GitHub Pages on every push to `main`. |
-| Hosting | GitHub Pages: <https://teehihi.github.io/scam-maze/>. The latest deployment (`9a80a43`) was reported `success` by the GitHub Deployments API on 7 Nov 2026. |
-| Kiro | `.kiro/steering/` has `safety.md`, `icons.md`, `language.md`, `audience.md`. There are **no** `.kiro/specs/` or `.kiro/hooks/` yet. |
+| Hosting | GitHub Pages: <https://teehihi.github.io/scam-maze/>. The latest deployment (`8c66005`) was reported `success` by the GitHub Deployments API on 8 Nov 2026. |
+| Kiro | `.kiro/steering/` has `safety.md`, `icons.md`, `language.md`, `audience.md`; root `AGENTS.md`. There are **no** `.kiro/specs/` or `.kiro/hooks/` yet. |
 
 ```mermaid
 flowchart LR
     V["Visitor browser"] --> GHP["GitHub Pages<br/>static hosting"]
-    GHP --> SPA["React single-page app<br/>Vite build"]
-    SPA --> DEMO["Demo scenario<br/>useReducer + scenario.ts"]
-    SPA --> URLC["URL checker<br/>string-only heuristics"]
+    GHP --> SPA["React landing page<br/>Vite build"]
+    SPA --> PREV["Section previews<br/>authored fictional data"]
+    SPA --> ENTRY["Game entry<br/>VITE_GAME_URL or coming-soon dialog"]
     GHA["GitHub Actions"] -->|"deploy.yml, push to main"| GHP
     GHA -->|"ci.yml, pull requests"| BUILD["Build check<br/>tsc + vite build"]
 ```
 
 ## 3. Target architecture
 
-The target separates a **landing page** from a **game client**, keeps gameplay **local and
-deterministic**, and uses a small **serverless AWS backend** only for persistence and
-server-side operations.
+The target separates a **landing page** from a **first-person 3D game client**, keeps gameplay
+**local and deterministic**, and uses a small **serverless AWS backend** only for optional AI
+proxying, persistence and server-side operations.
 
 | Layer | Target technology | Status |
 |---|---|---|
 | Landing page | React + Vite (existing stack) | `IMPLEMENTED` (on GitHub Pages) |
 | Landing page hosting on Vercel | Vercel | `PLANNED` (today: GitHub Pages) |
-| Game client | Separate frontend app on Vercel | `PLANNED` |
-| Local scenario engine | Pure TypeScript engine, versioned scenario files, schema validation (plan section 4.1) | `PLANNED` (a demo reducer is `IMPLEMENTED`) |
+| Game client | Separate browser game: **first-person 3D world** with an embedded in-game smartphone, hosted on Vercel | `PLANNED` (owner decision, 8 Nov 2026) |
+| 3D runtime | WebGL 2 baseline; library: React Three Fiber (Three.js), Babylon.js or PlayCanvas | `PENDING` |
+| In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `PLANNED` |
+| Narrative engine + scam intelligence engine (deterministic core) | Pure TypeScript chapter state machines, evidence and tactic definitions, versioned scenario files, schema validation (plan section 4.1) | `PLANNED` (a legacy demo reducer exists in `src/legacy/`) |
 | Local progress store | IndexedDB (plan section 4.1) | `PLANNED` |
 | Offline shell | Service worker / PWA (plan F11, section 3.3) | `PLANNED` |
 | Backend API | Amazon API Gateway **HTTP API** | `PLANNED` |
@@ -77,7 +83,8 @@ server-side operations.
 | CDN | Amazon CloudFront | `PLANNED` |
 | Authentication | Amazon Cognito or an alternative | `PENDING` |
 | Monitoring | Amazon CloudWatch | `PLANNED` |
-| AI capabilities | Optional AI provider behind the backend | `PROPOSED` |
+| AI layer | Bounded AI scam actor (signature capability) and optional hint/debrief phrasing, behind the backend, with schema validation and authored fallbacks | `PROPOSED` |
+| AI provider | Not selected | `PENDING` |
 | Region | `ap-southeast-1` (Singapore) | `PLANNED` |
 
 ```mermaid
@@ -86,9 +93,11 @@ flowchart TB
 
     subgraph FE["Frontend layer"]
         L["Landing page<br/>IMPLEMENTED on GitHub Pages<br/>Vercel PLANNED"]
-        G["Game client<br/>PLANNED"]
-        LOCAL["Local scenario engine<br/>PLANNED"]
-        IDB[("Local progress store<br/>IndexedDB, PLANNED")]
+        G["Game client<br/>first-person 3D, PLANNED"]
+        W3["3D world runtime<br/>library PENDING"]
+        PHONE["In-game smartphone UI<br/>PLANNED"]
+        LOCAL["Deterministic core<br/>narrative + scam rules, PLANNED"]
+        IDB[("Local save<br/>IndexedDB, PLANNED")]
     end
 
     subgraph AWSB["AWS backend, ap-southeast-1<br/>PLANNED, nothing provisioned"]
@@ -101,12 +110,15 @@ flowchart TB
         CW["CloudWatch<br/>PLANNED"]
     end
 
-    AI["Optional AI provider<br/>PROPOSED"]
+    AI["AI provider<br/>PENDING; AI layer PROPOSED"]
 
     U --> L
     U --> G
-    L -->|"Enter the maze"| G
-    G --> LOCAL
+    L -->|"Enter the game"| G
+    G --> W3
+    G --> PHONE
+    W3 -->|"world events"| LOCAL
+    PHONE -->|"phone events, decisions"| LOCAL
     LOCAL --> IDB
     G -->|"static assets"| CDN
     CDN --> S3B
@@ -116,53 +128,72 @@ flowchart TB
     FN --> DB
     FN --> AUTH
     FN --> CW
-    FN -.->|"optional, timeout and fallback"| AI
+    FN -.->|"proposals only, validated, timeout and fallback"| AI
 
     classDef implemented fill:#dcfce7,stroke:#166534,color:#14532d
     classDef planned fill:#ffffff,stroke:#52525b,stroke-dasharray:5 5,color:#18181b
     classDef pending fill:#fef3c7,stroke:#b45309,color:#451a03
     classDef proposed fill:#f4f4f5,stroke:#a1a1aa,stroke-dasharray:2 4,color:#18181b
     class L implemented
-    class G,LOCAL,IDB,CDN,S3B,API,FN,CW planned
-    class DB,AUTH pending
+    class G,PHONE,LOCAL,IDB,CDN,S3B,API,FN,CW planned
+    class DB,AUTH,W3 pending
     class AI proposed
 ```
 
 **Reading the diagram**
 
-- The **game engine runs in the browser**. Branching, evidence, replay and the transfer test do
-  not need the backend.
+- The **game runs in the browser**: the 3D world and the phone emit events; the deterministic
+  core (narrative engine and scam intelligence engine) decides what happens. Branching, evidence,
+  consequences, replay and the transfer check do not need the backend.
 - The **backend handles persistence and server-side operations** only (dotted lines are optional
   and opt-in).
 - **Static assets** are delivered through CloudFront from a private S3 bucket.
 - The **database is undecided**; Lambda code should talk to it through a small storage interface.
-- **AI is optional**. The game works when AI is off, slow, rate-limited or unreachable.
+- **AI only proposes**. The game works when AI is off, slow, rate-limited or unreachable;
+  authored dialogue is used instead.
 
 ## 4. Component responsibilities
 
 ### 4.1 Landing page (`IMPLEMENTED`, hosting move to Vercel `PLANNED`)
 
-Introduces SCAMMAZE, explains the learning loop, shows a small playable demo and the URL checker,
-and links to the game. It has no backend dependency and must stay fully static.
+Introduces SCAMMAZE and links to the game through `VITE_GAME_URL`. It has no backend dependency
+and must stay fully static. Its copy still describes the earlier "linked digital environments"
+concept; see section 10.
 
 ### 4.2 Game client (`PLANNED`)
 
-A separate app that will hold the real experience: the simulated Internet (chat, email,
-notifications, browser, marketplace), multi-step scenarios S1, S2, S3 and holdout H1, Consequence
-Replay, the Risk DNA Graph and the transfer test.
+**Owner decision, 8 Nov 2026:** the game is a browser-based, **first-person 3D narrative game**
+in a small persistent world (one apartment and one street for the MVP) with chapter-based
+stories. The digital interfaces (messages, email, websites, marketplace, bank and parcel apps)
+live on an **in-game smartphone** inside the 3D world. Full definition:
+[product positioning](../product/PRODUCT_POSITIONING.md).
 
-Also listed in the owner's brief, **none of them built yet**: a loading scene, a main menu, level
-selection and character customization.
+Components inside the game client, all `PLANNED`:
 
-> **Plan conflict, needs an owner decision.** The master plan marks a "full 3D world" as
-> explicitly out of scope (section 3.1, P2) and lists 3D/multiplayer overbuild as a high risk
-> (section 13). Character customization is not in the plan's feature contract. 3D environments,
-> character models and character customization are therefore `PROPOSED` only, and they drive
-> asset, CDN and storage costs.
+- **3D world runtime** (library `PENDING`): rendering, first-person movement, interaction,
+  NPCs, area-based loading, quality tiers. Emits world events such as `visited_locker`.
+- **In-game smartphone UI**: 2D React UI; emits phone events such as `opened_link`,
+  `entered_code`.
+- **Deterministic core** (section 4.3): the only component that changes game state.
+- **Debrief and replay**: reads the event log; links missed clues back to world and phone
+  locations.
 
-### 4.3 Local scenario engine (`PLANNED`)
+Performance principles (WebGL 2 baseline, integrated GPUs first, baked lighting, LOD and
+instancing, quality tiers, budgets set from prototype benchmarks) are in
+[product positioning, section 10.1](../product/PRODUCT_POSITIONING.md#101-performance-first-browser-3d).
 
-Pure TypeScript, no network access, no AI SDK (plan section 4.5). It owns:
+Status of items from the 7 Nov brief: loading scene and main menu `PLANNED` (as part of the
+slice); level selection replaced by chapter progression in one world `PLANNED`; character
+customization `PROPOSED`, future scope, not in the MVP. A *full* or open 3D world and
+multiplayer remain out of scope.
+
+### 4.3 Deterministic core: narrative engine and scam intelligence engine (`PLANNED`)
+
+Pure TypeScript, no network access, no AI SDK (plan section 4.5). It runs outside the render
+loop and does not depend on the 3D library. It owns game, mission and chapter state, persistent
+world and player state (exposed information, simulated balance, NPC trust, skills demonstrated),
+evidence and tactic definitions, decision validation, consequences and scoring. AI proposals are
+accepted or rejected here. It also owns:
 
 - loading downloaded, versioned scenario definitions;
 - branching state and deterministic transitions (same scenario version + same decisions →
@@ -195,10 +226,12 @@ client keeps local progress and retries later.
 
 `Game client → CloudFront → S3 (private, origin access control)`.
 
-Images, audio, UI assets and mission resources; 3D models and textures only if 3D is approved.
-Assets use content-hashed file names, long cache lifetimes, compression, and lazy loading per
-mission, so the game does not download everything at start-up. Until the game client exists, the
-landing page keeps its assets in its own build.
+3D models (glTF with mesh compression), compressed textures, audio, UI assets and chapter
+resources. The 3D direction is approved, so asset size is now a primary cost and performance
+driver. Assets use content-hashed file names, long cache lifetimes, compression, and loading per
+area and per chapter, so the game does not download everything at start-up. Until the game
+client exists, the landing page keeps its assets in its own build. For the hackathon, assets may
+also ship inside the game's own static build if that keeps cost and setup lower (`PENDING`).
 
 ## 5. Data flow and ownership
 
@@ -207,6 +240,8 @@ landing page keeps its assets in its own build.
 | Scenario definitions | Client (downloaded, cached) | Versioned; authored content only. |
 | Branching state, temporary decisions, evidence state, replay data | Client memory, then IndexedDB | Never sent by default. |
 | Current mission progress | IndexedDB | Survives reloads and network loss. |
+| Persistent world and player state (exposed fictional information, simulated balance, NPC trust, skills demonstrated, chapter flags) | IndexedDB | Written only by the deterministic core; never by AI. Includes `scenarioVersion` so saves do not mix versions. |
+| AI conversation context | Client memory for the current scene | Only minimal, fictional game context is sent to the AI proxy; not stored remotely by default. |
 | Profile, preferences | Backend database (`PENDING`) | Only if the user creates an account. |
 | Completed mission summaries, learning progress, transfer test results | Backend database (`PENDING`) | Only with opt-in sync; summaries, not raw event streams. |
 | Achievements, inventory, customization | Backend database (`PENDING`) | Only if these features are approved. |
@@ -226,10 +261,18 @@ data is stored; see [Database strategy](DATABASE_STRATEGY.md#7-privacy-retention
 - No SMS-based sign-in or MFA in the MVP: it adds per-message cost, and a scam-awareness product
   should not train people to type codes received by SMS.
 
-## 7. Optional AI integration (`PROPOSED`)
+## 7. AI layer (`PROPOSED`; provider `PENDING`)
 
-Follows plan section 4.5:
+The AI layer is now a meaningful product component (signature capability: the **Bounded Scam
+Actor**), but it remains optional at runtime and only **proposes** content. Capability matrix,
+contract and priorities: [product positioning, section 8](../product/PRODUCT_POSITIONING.md#8-ai-product-strategy).
 
+Rules, following plan section 4.5:
+
+- the deterministic core accepts or rejects every AI proposal against a schema and the node's
+  allowed tactics; AI never writes game state, never decides outcomes, never adds evidence;
+- AI is called only on meaningful events (a player message to the scammer, a hint request, the
+  debrief), never per frame;
 - the game core never imports an AI SDK and never calls a provider;
 - requests go through a backend Lambda, so keys never reach the browser;
 - the payload is minimal (scenario version, anonymized event IDs, approved evidence IDs);
@@ -262,7 +305,10 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 
 **Reliability**
 
-- Core gameplay works without AI and without the backend.
+- Core gameplay works without AI and without the backend, including offline once assets and
+  scenarios have loaded.
+- The 3D world degrades through quality tiers; a phone-centred fallback keeps a chapter playable
+  on devices that cannot run the 3D world (`PROPOSED`).
 - Scenario execution is deterministic and reproducible.
 - Network failure must not destroy local progress; sync retries with back-off.
 - AI calls have a timeout and an authored fallback.
@@ -279,19 +325,23 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 | Database | PostgreSQL for scenario metadata and opt-in anonymized results | DynamoDB or PostgreSQL | `PENDING` |
 | Progress storage | IndexedDB, privacy-first, server storage optional | Backend persistence for profiles and progress | Both are compatible if sync is opt-in; `PLANNED` |
 | Accounts | Guest play without email (F01) | User profiles, authentication | Accounts must stay optional; auth `PENDING` |
-| 3D and customization | Full 3D world out of scope | Character models, 3D if required, character customization | `PROPOSED`, conflict flagged in section 4.2 |
-| Scenario state owner | XState or Zustand | Not specified | `PENDING`; demo uses `useReducer` |
-| Visual system | "Cyber-noir detective lab", dark and light modes (section 3.5) | Not specified | Flat, minimal light theme `IMPLEMENTED` at the owner's request (PR #2) |
+| Product framing | "Safe simulated Internet" (section 0) | Owner decision 8 Nov 2026: first-person 3D narrative game, persistent world, chapters | 3D game `PLANNED`; plan section 0 amended; [positioning](../product/PRODUCT_POSITIONING.md) is canonical |
+| 3D world | Full 3D world out of scope (3.1 P2) | Small first-person 3D world is the core platform | Small world `PLANNED`; full/open world still out of scope; plan 3.1 amended |
+| Character customization | Not in the feature contract | Listed in the 7 Nov brief | `PROPOSED`, future scope, not in the MVP |
+| AI role | Optional coach adapter | Bounded AI layer as a meaningful component; deterministic core decides | `PROPOSED`; provider `PENDING`; same safety boundaries |
+| Scenario state owner | XState or Zustand | Not specified | `PENDING`; legacy demo uses `useReducer` |
+| Visual system | "Cyber-noir detective lab", dark and light modes (section 3.5) | Game: stylized realism / stylized low-poly, not Halloween | Landing page: dark cinematic theme `IMPLEMENTED` (PR #7, replaced the flat theme of PR #2); game art `PLANNED`; plan 3.5 amended |
 | Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | None yet |
 
 ## 10. Known inaccuracies on the live landing page
 
-The landing page copy describes some planned capabilities in the present tense. Documentation is
-the source of truth until the copy is corrected (tracked in [Project progress](../PROJECT_PROGRESS.md)).
+Reviewed against the PR #7 landing page on 8 Nov 2026. The previous list (offline claims,
+features, Kiro specs and hooks) no longer applies: that copy was removed in PR #7. Documentation
+is the source of truth until the copy is corrected (tracked in [Project progress](../PROJECT_PROGRESS.md)).
 
-| Claim on the page | Reality |
+| On the page | Reality |
 |---|---|
-| Hero: "100% — Core runs offline, no AI needed" | No AI is needed (true), but there is no service worker; the site is not offline-capable. |
-| Features: "state-machine engine with curated JSON scenarios that run fully offline" | Demo uses a reducer and a TypeScript data file; no offline support. |
-| Features: "Scenario authoring", "Learning analytics", "Optional AI" | Not implemented. |
-| Kiro section: "Specs" and "Hooks" | No `.kiro/specs/` or `.kiro/hooks/` exist yet. Steering exists. |
+| Product concept: "Five fictional digital environments, linked together" (messages, websites, email, social, marketplace); no mention of a 3D world, a neighbourhood, NPCs or a first-person game | Superseded by the 8 Nov 2026 owner decision (3D narrative game with an in-game phone). Copy update `PENDING`. |
+| Interactive previews ("Try the preview…", evidence workspace) | Accurate: labelled as simulated examples, not the real mission engine. |
+| Mission case files 001–003 | Accurate as plans: `src/data/missions.ts` states none is playable. Chapter 4 and the Prologue are not shown. |
+| "Enter the game" | Accurate: opens a "world is being prepared" dialog because `VITE_GAME_URL` is not set. |

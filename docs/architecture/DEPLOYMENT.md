@@ -10,7 +10,7 @@
 
 | Component | URL / endpoint | How it is deployed | Status |
 |---|---|---|---|
-| Landing page | <https://teehihi.github.io/scam-maze/> | GitHub Actions `.github/workflows/deploy.yml` on every push to `main`; build with `VITE_BASE=/scam-maze/`; GitHub Pages "GitHub Actions" source | `IMPLEMENTED`; last deployment `9a80a43` reported `success` (7 Nov 2026) |
+| Landing page | <https://teehihi.github.io/scam-maze/> | GitHub Actions `.github/workflows/deploy.yml` on every push to `main`; build with `VITE_BASE=/scam-maze/`; GitHub Pages "GitHub Actions" source | `IMPLEMENTED`; last deployment `8c66005` reported `success` (8 Nov 2026) |
 | Pull request builds | Artifact `dist` on each CI run | `.github/workflows/ci.yml` on every pull request | `IMPLEMENTED` |
 | Game client | `TBD` | — | `PLANNED` |
 | Backend API | `TBD` | — | `PLANNED` |
@@ -18,8 +18,9 @@
 
 Current CI notes:
 
-- Install uses `pnpm install --no-frozen-lockfile` because no `pnpm-lock.yaml` is committed yet.
-  Once a lockfile is committed, switch to `--frozen-lockfile` and enable the pnpm cache.
+- Install uses `pnpm install --no-frozen-lockfile`. `pnpm-lock.yaml` has been committed since
+  PR #7, so both workflows can now switch to `--frozen-lockfile` and enable the pnpm cache
+  (follow-up; not changed in this documentation task).
 - CI runs on Node.js 24. `package.json` requires Node.js `>=22.12.0`.
 
 ## 2. Environments and configuration
@@ -36,7 +37,7 @@ Current CI notes:
 |---|---|---|---|
 | `VITE_BASE` | `vite.config.ts` (build time) | Base path; `/scam-maze/` on GitHub Pages, `/` elsewhere (default) | `IMPLEMENTED` |
 | `VITE_API_BASE_URL` | Game client | Backend base URL (AWS-provided URL until a custom domain exists) | `PROPOSED`, not read by any code yet |
-| `VITE_GAME_URL` | Landing page | Link target for "Enter the maze" | `PROPOSED` |
+| `VITE_GAME_URL` | Landing page (`src/config/site.ts`, template in `.env.example`) | Link target for "Enter the game"; empty shows a coming-soon dialog; only http/https accepted | `IMPLEMENTED` (PR #7); not set in CI, so the dialog is shown |
 | `VITE_ASSET_BASE_URL` | Game client | CloudFront base URL for assets | `PROPOSED` |
 | `ALLOWED_ORIGINS` | Lambda | CORS allow-list of frontend origins | `PROPOSED` |
 | `TABLE_NAME` / `DATABASE_URL` | Lambda | Depends on the database decision | `PENDING` |
@@ -132,8 +133,11 @@ infrastructure code should be applied without owner approval.**
   origin access control. No direct public S3 URLs, so there is no second, uncached egress path.
 - **CloudFront:** compression on, long `Cache-Control` for content-hashed files, short for
   manifests (for example the scenario index).
-- **Optimization:** modern image formats, compressed audio, lazy loading per mission. 3D models
-  and textures only if 3D is approved (see [OVERVIEW.md](OVERVIEW.md#42-game-client-planned)).
+- **Optimization:** the game is a first-person 3D game (owner decision, 8 Nov 2026), so 3D
+  models and textures are the main assets: glTF with mesh compression, compressed textures,
+  compressed audio, loading per area and per chapter (see
+  [OVERVIEW.md](OVERVIEW.md#42-game-client-planned)). Total download size is set after
+  prototyping.
 - Until the game client exists and assets outgrow the frontend build, assets stay in the
   frontend build and S3/CloudFront are not needed.
 
