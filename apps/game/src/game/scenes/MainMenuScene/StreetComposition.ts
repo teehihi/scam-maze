@@ -24,12 +24,12 @@ export interface TreeInstance {
 export interface ParkedCarSlot {
   position: [number, number, number];
   rotationY: number;
-  carIndex: number; // Index of car model (0 = sedan, 1 = van, 2 = compact, 3 = taxi)
+  carIndex: number; // 0 = Red Sedan, 1 = Yellow Taxi, 2 = Blue Hatchback, 3 = White Van, 4 = Yellow Cab Van, 5 = Silver Pickup
 }
 
 export const STREET_CONFIG = {
   // Road & eye level reference
-  groundY: 0.35,
+  groundY: 0.32,
   eyeHeightY: 2.05,
 
   // Camera settings (First person viewpoint on the street looking down the avenue)
@@ -71,16 +71,18 @@ export const STREET_CONFIG = {
     { position: [22, 0.35, 13.0], scale: [1.3, 1.5, 1.3], rotationY: 0.9, type: "cone", color: "#497d57" },
   ] as TreeInstance[],
 
-  // Parked cars along both curbs
+  // Parked cars along both curbs (North curb Z ≈ -2.2m, South curb Z ≈ +9.2m)
   parkedCars: [
-    // North curb (curb at Z ≈ -2.2m, facing left towards X-)
-    { position: [18.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 0 },
-    { position: [0.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 1 },
-    { position: [-16.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 2 },
-    { position: [-32.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 3 },
-    // South curb (curb at Z ≈ +9.0m, facing right towards X+)
-    { position: [10.0, 0.35, 9.0], rotationY: 0, carIndex: 3 },
-    { position: [-8.0, 0.35, 9.0], rotationY: 0, carIndex: 0 },
-    { position: [-24.0, 0.35, 9.0], rotationY: 0, carIndex: 2 },
+    // North curb (facing down the street along -X)
+    { position: [8.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 1 },  // Yellow Taxi
+    { position: [-6.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 3 }, // White Delivery Van
+    { position: [-22.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 0 }, // Red Sedan
+    { position: [-36.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 2 }, // Blue Hatchback
+
+    // South curb (facing up the street along +X)
+    { position: [12.0, 0.32, 9.2], rotationY: 0, carIndex: 0 },        // Red Sedan
+    { position: [-2.0, 0.32, 9.2], rotationY: 0, carIndex: 5 },        // Silver Pickup
+    { position: [-16.0, 0.32, 9.2], rotationY: 0, carIndex: 4 },       // Yellow Cab Van
+    { position: [-30.0, 0.32, 9.2], rotationY: 0, carIndex: 1 },       // Yellow Taxi
   ] as ParkedCarSlot[],
 };

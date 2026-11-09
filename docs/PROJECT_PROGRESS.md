@@ -117,6 +117,31 @@ Resolved:
 
 ## Task History
 
+### 2026-11-09 — Parked Vehicles Extraction, Alignment & Visual Polish
+
+- **Objective:** Fix vehicle rendering in the 3D Main Menu scene: resolve pitch-black material artifact, orient car models upright on the asphalt, extract complete vehicles (bodies + wheels + glass) from `low_poly_cars_pack.glb`, and adjust parking positions so the camera view is unobstructed and cinematic.
+- **Completed work:**
+  1. Diagnosed root causes:
+     - GLTF spec default metallic factor caused Three.js PBR materials without envMap to attenuate diffuse colors to 0, producing pitch-black car bodies.
+     - Asset geometry had Z as the up-axis instead of Y, causing vehicles to lie on their side.
+     - The nearest car was positioned at `X = 18m, Z = -2m`, only 6m ahead of the camera, dominating the foreground.
+     - Vehicle pack merged all wheels into `Object_58` and glass into `Object_57` across all cars.
+  2. Implemented `extractBoxSubGeometry` in `StreetEnvironment.tsx` to extract matching wheels and glass sub-geometries for 6 distinct vehicle types (Red Sedan, Yellow Taxi, Blue Hatchback, White Delivery Van, Yellow Cab Van, Silver Pickup).
+  3. Rotated geometries by `-Math.PI / 2` around X so that Z becomes Y (Three.js up-axis).
+  4. Normalized geometry bounding boxes so horizontal center is `(0, 0)` and lowest tire vertices sit precisely at `Y = 0.0`.
+  5. Tuned materials to low metalness (`0.05`), roughness `0.45`, flat shading, and sRGB color space, revealing vibrant low-poly liveries.
+  6. Recomposed parking slots in `StreetComposition.ts`: moved nearest cars to `X = 8m` (North curb) and `X = 12m` (South curb), oriented them naturally with traffic direction, leaving the camera foreground open and cinematic.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `pnpm typecheck` passed (3/3 workspaces).
+  - `pnpm --filter @scammaze/game build` passed (519ms).
+  - `pnpm build` passed (full workspace).
+- **Unresolved issues / limitations:** None for the main menu vehicles.
+- **Follow-up tasks:** Player movement controller (WASD / pointer lock), interactive smartphone UI.
+
 ### 2026-11-09 — Monorepo restructure, 3D asset integration & First-Person 3D Main Menu implementation
 
 - **Objective:** Reorganize the repository into a pnpm monorepo, prepare independent deployment for future subdomains, inspect and integrate the owner's downloaded 3D assets from `Kiroween/Asset3D/`, and implement the game application's first-person 3D Main Menu street scene.
