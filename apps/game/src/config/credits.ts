@@ -16,11 +16,18 @@ export const GAME_CREDITS: CreditGroup[] = [
     category: "3D World Environments & Architecture",
     items: [
       {
+        name: "Low Poly City Game-Ready",
+        creator: "costoWRLD (Sketchfab)",
+        sourceUrl: "https://sketchfab.com/3d-models/low-poly-city-game-ready-e39be33fa0f443bca4162e084323b7e7",
+        license: "Creative Commons Attribution (CC-BY 4.0)",
+        notes: "Full neighborhood city environment with high-rise apartments, motel, diner, shops, multi-lane avenues, sidewalks, and street trees.",
+      },
+      {
         name: "Low Poly City Asset Pack",
         creator: "Calipo (https://sketchfab.com/ImJester)",
         sourceUrl: "https://sketchfab.com/3d-models/low-poly-city-asset-pack-decdce23606842988a8b4cbd09008584",
         license: "Creative Commons Attribution (CC-BY 4.0)",
-        notes: "Modular city buildings, storefronts, hospital, road sections, street lights, and street furniture.",
+        notes: "Modular city buildings, storefronts, hospital, road sections, and street furniture.",
       },
     ],
   },

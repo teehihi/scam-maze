@@ -16,34 +16,34 @@ export const EnvironmentLighting: React.FC<EnvironmentLightingProps> = ({
       {/* Clear natural sky color (Crisp afternoon daylight) */}
       <color attach="background" args={["#86a9d2"]} />
 
-      {/* Atmospheric distance fog matching sky */}
-      <fog attach="fog" args={["#86a9d2", 55, 175]} />
+      {/* Subtle distant horizon fog - pushed far back so street & buildings stay razor sharp */}
+      <fog attach="fog" args={["#86a9d2", 220, 520]} />
 
-      {/* Ambient Skylight (Soft sky illumination so shadows are never pitch black) */}
-      <ambientLight color="#dbe7f7" intensity={1.15} />
+      {/* Ambient Skylight (Soft sky illumination so shadows are clean and never pitch black) */}
+      <ambientLight color="#dbe7f7" intensity={1.2} />
 
       {/* Natural Hemisphere Light (Sky bounce from above, warm pavement bounce from below) */}
       <hemisphereLight
         color="#a5c9f0"
         groundColor="#5c5344"
-        intensity={0.95}
+        intensity={1.0}
       />
 
-      {/* Main Directional Sun (Crisp angled sunlight creating depth and architectural shadows) */}
+      {/* Main Directional Sun (Crisp angled sunlight illuminating the avenue) */}
       <directionalLight
-        position={[38, 52, 28]}
-        color="#fff7eb"
-        intensity={2.5}
+        position={[35, 65, -15]}
+        color="#fff8ed"
+        intensity={2.8}
         castShadow={isHigh}
         shadow-mapSize-width={isHigh ? 2048 : 1024}
         shadow-mapSize-height={isHigh ? 2048 : 1024}
         shadow-camera-near={1.0}
-        shadow-camera-far={160}
-        shadow-camera-left={-55}
-        shadow-camera-right={55}
-        shadow-camera-top={55}
-        shadow-camera-bottom={-55}
-        shadow-bias={-0.0004}
+        shadow-camera-far={220}
+        shadow-camera-left={-75}
+        shadow-camera-right={75}
+        shadow-camera-top={75}
+        shadow-camera-bottom={-75}
+        shadow-bias={-0.0003}
       />
 
       {/* Warm Street Lamp Point Lights along sidewalks */}

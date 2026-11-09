@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { STREET_CONFIG, type TreeInstance } from "./StreetComposition";
+import { STREET_CONFIG } from "./StreetComposition";
 
-const CITY_MODEL_PATH = "/assets/3d/environments/low_poly_city_asset_pack.glb";
+const CITY_MODEL_PATH = "/assets/3d/environments/low_poly_city_game-ready.glb";
 const CARS_MODEL_PATH = "/assets/3d/vehicles/low_poly_cars_pack.glb";
 
 // Preload models for instant display
@@ -91,46 +91,36 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({ shadows = 
   const cityGltf = useGLTF(CITY_MODEL_PATH);
   const carsGltf = useGLTF(CARS_MODEL_PATH);
 
-  // Prepare primary city block at TRUE scale (x100 to compensate for FBX cm-to-m conversion)
+  // Prepare complete game-ready city environment with vivid materials & emissive neon signs
   const primaryCityScene = useMemo(() => {
     const cloned = cityGltf.scene.clone(true);
     cloned.traverse((child) => {
-      // Hide untextured authoring mannequin
-      if (child.name.includes("Person_Scale")) {
+      // Hide authoring scale human
+      if (child.name.includes("Human")) {
         child.visible = false;
       }
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = shadows;
         mesh.receiveShadow = shadows;
-        if (mesh.material && (mesh.material as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          mat.roughness = 0.75;
-          mat.metalness = 0.05;
+        if (mesh.material) {
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          mats.forEach((m) => {
+            if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+              const mat = m as THREE.MeshStandardMaterial;
+              mat.roughness = 0.65;
+              mat.metalness = mat.name.includes("air_consitioner") ? 0.4 : 0.0;
+              if (mat.map) {
+                mat.map.colorSpace = THREE.SRGBColorSpace;
+              }
+              // Make the Motel sign glow vibrant cyan neon
+              if (mat.name === "text_color") {
+                mat.emissive = new THREE.Color("#3bc8e0");
+                mat.emissiveIntensity = 2.0;
+              }
+            }
+          });
         }
-      }
-    });
-    return cloned;
-  }, [cityGltf, shadows]);
-
-  // Prepare south-side buildings (opposite facade lining the other side of the road)
-  const southSideBuildings = useMemo(() => {
-    const cloned = cityGltf.scene.clone(true);
-    cloned.traverse((child) => {
-      // Hide hospital, road, and props from duplicate clone so we only duplicate the residential building facade
-      if (
-        child.name.includes("Hospital") ||
-        child.name.includes("Road") ||
-        child.name.includes("Bench") ||
-        child.name.includes("StreetLight") ||
-        child.name.includes("Person_Scale")
-      ) {
-        child.visible = false;
-      }
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        mesh.castShadow = shadows;
-        mesh.receiveShadow = shadows;
       }
     });
     return cloned;
@@ -259,22 +249,14 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({ shadows = 
 
   return (
     <group name="StreetEnvironment">
-      {/* Primary City Block (Scaled 100x to full architectural meter scale) */}
+      {/* Complete Game-Ready 3D City Environment (1:1 Metric Scale) */}
       <primitive
         object={primaryCityScene}
-        scale={[100, 100, 100]}
+        scale={[1, 1, 1]}
         position={[0, 0, 0]}
       />
 
-      {/* Opposite Facade (Rotated across the street at Z = +24 to create a complete two-sided street) */}
-      <primitive
-        object={southSideBuildings}
-        scale={[100, 100, 100]}
-        position={[0, 0, 24]}
-        rotation={[0, Math.PI, 0]}
-      />
-
-      {/* Parked Cars along curbs (Complete bodies + wheels, upright on road surface at Y = 0.32m) */}
+      {/* Parked Cars along avenue curbs (Complete bodies + wheels, upright on road surface at Y = 0.05m) */}
       {STREET_CONFIG.parkedCars.map((slot, index) => {
         const car = extractedCars[slot.carIndex % (extractedCars.length || 1)];
         if (!car) return null;
@@ -297,74 +279,6 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({ shadows = 
           </group>
         );
       })}
-
-      {/* Stylized Low-Poly Sidewalk Trees */}
-      {STREET_CONFIG.trees.map((tree, index) => (
-        <LowPolyTree key={`tree-${index}`} config={tree} castShadow={shadows} />
-      ))}
-
-      {/* Surrounding Ground Plane (Covers distant horizon under road & buildings) */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.25, 0]}
-        receiveShadow={shadows}
-      >
-        <planeGeometry args={[220, 220]} />
-        <meshStandardMaterial color="#4a5242" roughness={0.95} metalness={0.0} />
-      </mesh>
-    </group>
-  );
-};
-
-interface LowPolyTreeProps {
-  config: TreeInstance;
-  castShadow?: boolean;
-}
-
-const LowPolyTree: React.FC<LowPolyTreeProps> = ({ config, castShadow = true }) => {
-  const [posX, posY, posZ] = config.position;
-
-  return (
-    <group
-      position={[posX, posY, posZ]}
-      scale={config.scale}
-      rotation={[0, config.rotationY, 0]}
-    >
-      {/* Tree Trunk */}
-      <mesh position={[0, 1.1, 0]} castShadow={castShadow} receiveShadow={castShadow}>
-        <cylinderGeometry args={[0.16, 0.24, 2.2, 6]} />
-        <meshStandardMaterial color="#5c4533" roughness={0.9} />
-      </mesh>
-
-      {/* Tree Foliage */}
-      {config.type === "cone" && (
-        <mesh position={[0, 2.8, 0]} castShadow={castShadow} receiveShadow={castShadow}>
-          <coneGeometry args={[1.2, 2.6, 7]} />
-          <meshStandardMaterial color={config.color} roughness={0.8} />
-        </mesh>
-      )}
-
-      {config.type === "dodeca" && (
-        <group position={[0, 2.6, 0]}>
-          <mesh castShadow={castShadow} receiveShadow={castShadow}>
-            <dodecahedronGeometry args={[1.1, 0]} />
-            <meshStandardMaterial color={config.color} roughness={0.8} />
-          </mesh>
-          <mesh position={[0, 0.9, 0]} scale={0.7} castShadow={castShadow}>
-            <dodecahedronGeometry args={[0.9, 0]} />
-            <meshStandardMaterial color={config.color} roughness={0.8} />
-          </mesh>
-        </group>
-      )}
-
-      {config.type === "sphere" && (
-        <group position={[0, 2.6, 0]}>
-          <mesh castShadow={castShadow} receiveShadow={castShadow}>
-            <icosahedronGeometry args={[1.15, 1]} />
-            <meshStandardMaterial color={config.color} roughness={0.8} flatShading />
-          </mesh>
-        </group>
-      )}
     </group>
   );
 };

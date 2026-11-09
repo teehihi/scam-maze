@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
+import * as THREE from "three";
 import type { GameSettings } from "@scammaze/shared-types";
 import { MainMenuScene } from "../scenes/MainMenuScene";
+import { STREET_CONFIG } from "../scenes/MainMenuScene/StreetComposition";
 import { WebGLFallback } from "../../components/ui/WebGLFallback";
 
 interface GameCanvasProps {
@@ -36,13 +38,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ settings }) => {
     return <WebGLFallback error={errorMessage} />;
   }
 
-  // Determine DPR scale based on quality preset
+  // Crisp native DPR scale - eliminates blurriness on Retina/High-DPI displays
+  const maxDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
   const dpr =
     settings.graphicsQuality === "low"
-      ? 0.8
+      ? 1.0
       : settings.graphicsQuality === "medium"
-        ? 1.0
-        : [1.0, 1.5];
+        ? Math.min(maxDpr, 1.5)
+        : Math.min(maxDpr, 2.0);
 
   const shadows = settings.graphicsQuality === "high";
 
@@ -50,19 +53,21 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ settings }) => {
     <div className="absolute inset-0 w-full h-full bg-[#86a9d2]">
       <Canvas
         shadows={shadows}
-        dpr={dpr as any}
+        dpr={dpr}
         camera={{
           fov: settings.fov,
-          position: [24.0, 2.05, 0.0],
+          position: STREET_CONFIG.camera.defaultPosition,
           near: 0.1,
-          far: 250,
+          far: 500,
         }}
         gl={{
-          antialias: settings.graphicsQuality !== "low",
+          antialias: true,
           powerPreference: "high-performance",
           alpha: false,
           stencil: false,
           depth: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.12,
         }}
         onCreated={({ gl }) => {
           gl.setClearColor("#86a9d2", 1);

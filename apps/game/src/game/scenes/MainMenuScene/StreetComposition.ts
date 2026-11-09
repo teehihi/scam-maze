@@ -1,9 +1,9 @@
 /**
  * SCAMMAZE Main Menu Scene Layout & Composition
- * Calibrated for true world scale (City pack scale x100, Units = Meters).
- * Road runs along X-axis from X = +48m to X = -48m.
- * Road surface is at Y = 0.35m.
- * Human eye-level camera height is Y = 2.05m.
+ * Built for "Low Poly City Game-Ready" (1:1 Metric World Scale).
+ * Main avenue runs along Z-axis from Z = -35m to Z = -150m.
+ * Road surface is at Y = 0.05m.
+ * Human eye-level camera height is Y = 1.85m.
  */
 
 export interface StreetLightFixture {
@@ -29,60 +29,43 @@ export interface ParkedCarSlot {
 
 export const STREET_CONFIG = {
   // Road & eye level reference
-  groundY: 0.32,
-  eyeHeightY: 2.05,
+  groundY: 0.05,
+  eyeHeightY: 1.85,
 
-  // Camera settings (First person viewpoint on the street looking down the avenue)
+  // Camera settings (First person viewpoint on the avenue looking past the Motel & Diner towards city towers)
   camera: {
-    defaultPosition: [24.0, 2.05, 0.0] as [number, number, number],
-    targetPosition: [-45.0, 2.4, 2.0] as [number, number, number],
-    fov: 72,
+    defaultPosition: [-1.2, 1.85, -38.0] as [number, number, number],
+    targetPosition: [-1.0, 2.5, -135.0] as [number, number, number],
+    fov: 68,
     near: 0.1,
-    far: 250,
+    far: 450,
   },
 
   // Street lighting fixtures (warm lantern glow placed along sidewalks)
   streetLights: [
-    // Built-in pack lights (North sidewalk)
-    { position: [6.2, 6.8, -11.3], color: "#ffc266", intensity: 3.2, distance: 20 },
-    { position: [8.3, 6.8, -11.4], color: "#ffc266", intensity: 3.2, distance: 20 },
-    // Additional lamps along North sidewalk
-    { position: [-12.0, 6.8, -8.0], color: "#ffc266", intensity: 3.0, distance: 18 },
-    { position: [-28.0, 6.8, -8.0], color: "#ffc266", intensity: 3.0, distance: 18 },
-    { position: [24.0, 6.8, -8.0], color: "#ffc266", intensity: 3.0, distance: 18 },
-    // Lamps along South sidewalk
-    { position: [-20.0, 6.8, 14.0], color: "#ffbe5c", intensity: 3.0, distance: 18 },
-    { position: [0.0, 6.8, 14.0], color: "#ffbe5c", intensity: 3.0, distance: 18 },
-    { position: [18.0, 6.8, 14.0], color: "#ffbe5c", intensity: 3.0, distance: 18 },
+    { position: [-6.8, 5.5, -48.0], color: "#ffc266", intensity: 3.5, distance: 22 },
+    { position: [6.8, 5.5, -52.0], color: "#ffc266", intensity: 3.5, distance: 22 },
+    { position: [-6.8, 5.5, -72.0], color: "#ffbe5c", intensity: 3.5, distance: 22 },
+    { position: [6.8, 5.5, -76.0], color: "#ffbe5c", intensity: 3.5, distance: 22 },
+    { position: [-6.8, 5.5, -96.0], color: "#ffbe5c", intensity: 3.5, distance: 22 },
+    { position: [6.8, 5.5, -100.0], color: "#ffbe5c", intensity: 3.5, distance: 22 },
   ] as StreetLightFixture[],
 
-  // Stylized low-poly trees planted along sidewalks
-  trees: [
-    // North sidewalk line
-    { position: [-38, 0.35, -5.5], scale: [1.2, 1.4, 1.2], rotationY: 0.3, type: "dodeca", color: "#3d7049" },
-    { position: [-22, 0.35, -5.5], scale: [1.3, 1.6, 1.3], rotationY: 1.2, type: "sphere", color: "#477c55" },
-    { position: [-4, 0.35, -5.5], scale: [1.1, 1.3, 1.1], rotationY: 2.1, type: "cone", color: "#36603f" },
-    { position: [14, 0.35, -5.5], scale: [1.3, 1.5, 1.3], rotationY: 0.8, type: "dodeca", color: "#40734c" },
-    { position: [30, 0.35, -5.5], scale: [1.2, 1.4, 1.2], rotationY: 1.7, type: "sphere", color: "#3a6844" },
-    // South sidewalk line
-    { position: [-30, 0.35, 13.0], scale: [1.3, 1.5, 1.3], rotationY: 0.5, type: "cone", color: "#457952" },
-    { position: [-12, 0.35, 13.0], scale: [1.2, 1.4, 1.2], rotationY: 2.4, type: "dodeca", color: "#3b6946" },
-    { position: [6, 0.35, 13.0], scale: [1.4, 1.7, 1.4], rotationY: 1.5, type: "sphere", color: "#42764f" },
-    { position: [22, 0.35, 13.0], scale: [1.3, 1.5, 1.3], rotationY: 0.9, type: "cone", color: "#497d57" },
-  ] as TreeInstance[],
-
-  // Parked cars along both curbs (North curb Z ≈ -2.2m, South curb Z ≈ +9.2m)
+  // Parked cars along avenue curbs (West curb at X ≈ -4.8m, East curb at X ≈ +4.8m)
+  // Car orientation: front is +X in car local space.
+  // To face along -Z (down the street): rotationY = Math.PI / 2
+  // To face along +Z (up the street): rotationY = -Math.PI / 2
   parkedCars: [
-    // North curb (facing down the street along -X)
-    { position: [8.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 1 },  // Yellow Taxi
-    { position: [-6.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 3 }, // White Delivery Van
-    { position: [-22.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 0 }, // Red Sedan
-    { position: [-36.0, 0.32, -2.2], rotationY: Math.PI, carIndex: 2 }, // Blue Hatchback
+    // West curb (facing down the avenue towards -Z)
+    { position: [-4.75, 0.05, -54.0], rotationY: Math.PI / 2, carIndex: 1 },  // Yellow Taxi
+    { position: [-4.75, 0.05, -74.0], rotationY: Math.PI / 2, carIndex: 3 },  // White Delivery Van
+    { position: [-4.75, 0.05, -96.0], rotationY: Math.PI / 2, carIndex: 0 },  // Red Sedan
+    { position: [-4.75, 0.05, -118.0], rotationY: Math.PI / 2, carIndex: 2 }, // Blue Hatchback
 
-    // South curb (facing up the street along +X)
-    { position: [12.0, 0.32, 9.2], rotationY: 0, carIndex: 0 },        // Red Sedan
-    { position: [-2.0, 0.32, 9.2], rotationY: 0, carIndex: 5 },        // Silver Pickup
-    { position: [-16.0, 0.32, 9.2], rotationY: 0, carIndex: 4 },       // Yellow Cab Van
-    { position: [-30.0, 0.32, 9.2], rotationY: 0, carIndex: 1 },       // Yellow Taxi
+    // East curb (facing up the avenue towards +Z)
+    { position: [4.75, 0.05, -50.0], rotationY: -Math.PI / 2, carIndex: 0 },   // Red Sedan
+    { position: [4.75, 0.05, -68.0], rotationY: -Math.PI / 2, carIndex: 5 },   // Silver Pickup
+    { position: [4.75, 0.05, -90.0], rotationY: -Math.PI / 2, carIndex: 4 },   // Yellow Cab Van
+    { position: [4.75, 0.05, -112.0], rotationY: -Math.PI / 2, carIndex: 1 },  // Yellow Taxi
   ] as ParkedCarSlot[],
 };

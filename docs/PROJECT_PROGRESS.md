@@ -117,6 +117,37 @@ Resolved:
 
 ## Task History
 
+### 2026-11-09 — Integration of Game-Ready City Asset, Sharpness Boost & Atmosphere Overhaul
+
+- **Objective:** Replace the basic city strip with the rich "Low Poly City Game-Ready" environment downloaded by the owner, eliminate canvas blurriness on Retina displays, remove heavy distance fog, and overhaul lighting and composition for a cinematic, razor-sharp first-person street view.
+- **Completed work:**
+  1. Identified root causes of blurriness ("cứ mờ mờ"):
+     - DPR was clamped to 1.5/1.0 on 2x Retina screens, causing browser bilinear upscaling blur.
+     - Distance fog started at only 55m, cloaking half the avenue in dense grayish-blue haze.
+     - Tone mapping was default linear, yielding low dynamic range and washed-out contrast.
+  2. Integrated `low_poly_city_game-ready.glb` (costoWRLD, CC-BY 4.0, 44.2 MB) into `apps/game/public/assets/3d/environments/`:
+     - Built at true 1:1 metric scale: high-rise apartment towers, glowing neon motel sign, retro diner, post office, commercial storefronts, pedestrian crosswalks, sidewalks, and avenue trees.
+     - Materials tuned with sRGB textures, zero metalness (no black bugs), clean matte roughness (0.65), and emissive cyan neon for the "Motel" sign.
+  3. Composed cinematic first-person avenue camera at `[-1.2, 1.85, -38.0]` looking down `-Z` toward `[-1.0, 2.5, -135.0]` past the Motel and Diner towards city towers.
+  4. Repositioned extracted low-poly parked cars (Yellow Taxi, White Van, Red Sedan, Silver Pickup, Blue Hatchback) along avenue curbs (`X = ±4.75m`) aligned with traffic directions.
+  5. Enhanced `GameCanvas.tsx` with native Retina DPR (`Math.min(window.devicePixelRatio, 2.0)`), `ACESFilmicToneMapping` with exposure 1.12, and pushed distance fog far back (`[220, 520]`) for crystal-clear clarity.
+  6. Updated `THIRD_PARTY_NOTICES.md` and `credits.ts` with CC-BY 4.0 attribution for costoWRLD.
+- **Files created/copied:**
+  - `apps/game/public/assets/3d/environments/low_poly_city_game-ready.glb`
+- **Files modified:**
+  - `apps/game/src/config/credits.ts`
+  - `apps/game/src/game/core/GameCanvas.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `THIRD_PARTY_NOTICES.md`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `pnpm typecheck` passed (3/3 workspaces).
+  - `pnpm --filter @scammaze/game build` passed (1m 2s).
+- **Unresolved issues / limitations:** None.
+- **Follow-up tasks:** WASD player movement controller, in-game phone UI.
+
 ### 2026-11-09 — Parked Vehicles Extraction, Alignment & Visual Polish
 
 - **Objective:** Fix vehicle rendering in the 3D Main Menu scene: resolve pitch-black material artifact, orient car models upright on the asphalt, extract complete vehicles (bodies + wheels + glass) from `low_poly_cars_pack.glb`, and adjust parking positions so the camera view is unobstructed and cinematic.

@@ -6,6 +6,17 @@ This document records the third-party assets, 3D models, fonts, and external cre
 
 ## 1. 3D World & Environment Models
 
+### Low Poly City Game-Ready
+- **Title:** Low Poly City Game-Ready
+- **Creator / Author:** costoWRLD ([https://sketchfab.com/costoWRLD](https://sketchfab.com/costoWRLD))
+- **Source URL:** [https://sketchfab.com/3d-models/low-poly-city-game-ready-e39be33fa0f443bca4162e084323b7e7](https://sketchfab.com/3d-models/low-poly-city-game-ready-e39be33fa0f443bca4162e084323b7e7)
+- **License:** Creative Commons Attribution 4.0 International ([CC-BY 4.0](http://creativecommons.org/licenses/by/4.0/))
+- **Local Source Directory:** `Kiroween/Asset3D/low_poly_city_game-ready.glb`
+- **Production Asset Path:** `apps/game/public/assets/3d/environments/low_poly_city_game-ready.glb`
+- **File Format & Size:** Binary glTF (`.glb`), 44.2 MB (970 meshes, 37 materials, 10 embedded textures).
+- **Optimization / Changes:** Self-contained 1:1 metric scale game-ready environment with emissive neon motel signage, high-rise apartment towers, retro diner, post office, commercial storefronts, wide avenues, pedestrian crosswalks, and street trees.
+- **Used In:** Main menu first-person 3D city avenue environment.
+
 ### Low Poly City Asset Pack
 - **Title:** Low Poly City Asset Pack
 - **Creator / Author:** Calipo ([https://sketchfab.com/ImJester](https://sketchfab.com/ImJester))
