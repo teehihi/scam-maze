@@ -10,10 +10,6 @@ import {
   RotateCcw,
   Sliders,
   Award,
-  Volume2,
-  VolumeX,
-  ExternalLink,
-  Compass,
   MapPin,
 } from "lucide-react";
 
@@ -32,62 +28,11 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
 
-  const landingUrl = import.meta.env.VITE_LANDING_URL ?? "http://localhost:5173";
-
   return (
     <div className="absolute inset-0 z-20 flex flex-col justify-between p-6 sm:p-10 pointer-events-none select-none">
       {/* Top Header Bar */}
       <header className="flex items-center justify-between w-full">
-        <div className="flex items-center gap-4">
-          <BrandLogo size="md" />
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="text-[10px] font-mono tracking-widest uppercase bg-[#1d1b2b]/90 border border-[#38344f] px-2.5 py-1 rounded-full text-[#b9a5f5] backdrop-blur-md">
-              FIRST-PERSON NARRATIVE GAME
-            </span>
-            <span className="text-[10px] font-mono tracking-wider uppercase bg-emerald-950/70 border border-emerald-800/40 px-2 py-0.5 rounded-full text-emerald-400 backdrop-blur-md">
-              3D PREVIEW
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Link to HCM 3D Map Route */}
-          {onOpenHCM && (
-            <button
-              type="button"
-              onClick={onOpenHCM}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-950/80 to-[#1e1b33]/90 hover:from-emerald-900 hover:to-[#2b2747] border border-emerald-500/40 text-xs font-medium text-emerald-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
-              title="Khám phá Bản đồ 3D TP. Hồ Chí Minh"
-            >
-              <MapPin className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Bản đồ TP.HCM 3D</span>
-            </button>
-          )}
-
-          {/* Quick Sound Mute Toggle */}
-          <button
-            type="button"
-            onClick={() => onUpdateSettings({ soundEnabled: !settings.soundEnabled })}
-            aria-label={settings.soundEnabled ? "Mute audio" : "Unmute audio"}
-            className="p-2.5 rounded-xl bg-[#171521]/80 hover:bg-[#221e33] border border-[#38344f] text-zinc-300 hover:text-white backdrop-blur-md transition-colors cursor-pointer shadow-lg"
-          >
-            {settings.soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-emerald-400" />
-            ) : (
-              <VolumeX className="w-4 h-4 text-zinc-500" />
-            )}
-          </button>
-
-          {/* Return to Landing Page */}
-          <a
-            href={landingUrl}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#171521]/80 hover:bg-[#221e33] border border-[#38344f] text-xs font-medium text-zinc-300 hover:text-white backdrop-blur-md transition-colors cursor-pointer shadow-lg"
-          >
-            <Compass className="w-3.5 h-3.5 text-[#b9a5f5]" />
-            <span className="hidden md:inline">Portal & Knowledge Hub</span>
-            <ExternalLink className="w-3 h-3 opacity-60" />
-          </a>
-        </div>
+        <BrandLogo size="md" />
       </header>
 
       {/* Main Content / Menu Column */}
@@ -160,18 +105,6 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
           </nav>
         </div>
       </main>
-
-      {/* Bottom Bar: Environmental Info & Controls Reminder */}
-      <footer className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] font-mono text-zinc-200 bg-[#12101e]/80 px-4 py-2 rounded-xl backdrop-blur-md border border-[#38344f]/60">
-        <div className="flex items-center gap-3">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Cinematic Camera: Mouse Parallax & Breathing Motion active</span>
-        </div>
-        <div className="flex items-center gap-4 text-zinc-300">
-          <span>Three.js r174 · R3F · WebGL 2.0</span>
-          <span>© 2026 SCAMMAZE</span>
-        </div>
-      </footer>
 
       {/* Modals */}
       <IntroPrologueModal isOpen={introOpen} onClose={() => setIntroOpen(false)} />

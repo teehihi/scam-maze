@@ -23,16 +23,16 @@ export const MenuCamera: React.FC<MenuCameraProps> = ({ fov }) => {
 
     const time = state.clock.getElapsedTime();
 
-    // Subtle human eye-level breathing idle motion
-    const breathY = Math.sin(time * 1.1) * 0.025 + Math.cos(time * 0.6) * 0.015;
-    const swayX = Math.sin(time * 0.45) * 0.035;
+    // Subtle breathing idle motion (gentle human eye-level presence)
+    const breathY = Math.sin(time * 1.1) * 0.012 + Math.cos(time * 0.6) * 0.008;
+    const swayX = Math.sin(time * 0.45) * 0.012;
 
-    // Mouse parallax (subtle shift based on pointer coordinates)
-    const mouseShiftX = state.pointer.x * 0.8;
-    const mouseShiftY = state.pointer.y * 0.4;
+    // Restrained mouse parallax: keeps framing locked to the authored scene while adding life
+    const mouseShiftX = state.pointer.x * 0.35;
+    const mouseShiftY = state.pointer.y * 0.18;
 
-    const desiredCamX = baseX + swayX + state.pointer.x * 0.15;
-    const desiredCamY = baseY + breathY + state.pointer.y * 0.1;
+    const desiredCamX = baseX + swayX + state.pointer.x * 0.04;
+    const desiredCamY = baseY + breathY + state.pointer.y * 0.03;
     const desiredCamZ = baseZ;
 
     // Smooth lerp camera position
@@ -43,7 +43,7 @@ export const MenuCamera: React.FC<MenuCameraProps> = ({ fov }) => {
     // Target look-at calculation
     const desiredTarget = new THREE.Vector3(
       targetX + mouseShiftX,
-      targetY + mouseShiftY + breathY * 0.5,
+      targetY + mouseShiftY + breathY * 0.3,
       targetZ
     );
 

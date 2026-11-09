@@ -58,7 +58,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ settings }) => {
           fov: settings.fov,
           position: STREET_CONFIG.camera.defaultPosition,
           near: 0.1,
-          far: 500,
+          far: STREET_CONFIG.camera.far,
         }}
         gl={{
           antialias: true,
@@ -67,7 +67,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ settings }) => {
           stencil: false,
           depth: true,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.12,
+          toneMappingExposure: 0.95,
         }}
         onCreated={({ gl }) => {
           gl.setClearColor("#86a9d2", 1);

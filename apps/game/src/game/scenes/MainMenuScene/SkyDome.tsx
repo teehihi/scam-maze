@@ -15,10 +15,10 @@ export const SkyDome: React.FC = () => {
 
   const skyRef = useRef<THREE.Mesh>(null);
 
-  // Gentle atmospheric cloud drift across the city skyline
+  // Gentle atmospheric cloud drift across the skyline
   useFrame((_, delta) => {
     if (skyRef.current) {
-      skyRef.current.rotation.y += delta * 0.006;
+      skyRef.current.rotation.y += delta * 0.004;
     }
   });
 
@@ -27,10 +27,10 @@ export const SkyDome: React.FC = () => {
   return (
     <mesh
       ref={skyRef}
-      position={[camX, -135, camZ]}
+      position={[camX, -130, camZ]}
       rotation={[0, Math.PI / 3, 0]}
     >
-      <sphereGeometry args={[380, 64, 40]} />
+      <sphereGeometry args={[900, 64, 40]} />
       <meshBasicMaterial
         map={texture}
         side={THREE.BackSide}

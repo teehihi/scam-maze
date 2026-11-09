@@ -118,6 +118,108 @@ Resolved:
 
 ## Task History
 
+### 2026-11-09 — Exact Unity Game View Camera Framing & Composition Match
+
+- **Objective:** Match the camera composition of the 3D Main Menu exactly to the Unity 2022.3 Game View screenshot (`MenuBG.glb`), properly displaying the Bánh Mì street food cart in the right foreground, Lexus GX 550 down the street, VinFast VF3 & pedestrians on the left sidewalk, and Landmark 81 / Bitexco on the horizon.
+- **Completed work:**
+  - Aligned camera parameters to exact Unity Camera values: `position: [188.6, -91.3, -88.89]`, `target: [188.6, -91.3, 50.0]` (horizontal forward pitch along +Z), `fov: 60`.
+  - Calibrated mouse parallax in `MenuCamera.tsx` with restrained offsets to preserve the authored framing without camera drift.
+  - Verified framing: Bánh Mì cart with spoke wheels on the right foreground, Lexus GX 550 in center-right, left sidewalk shophouses and pedestrians clearly visible.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/MenuCamera.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+- **Results:** Clean check, 0 errors.
+
+### 2026-11-09 — Main Menu UI Streamlining (Header Badges & Footer Bar Removal)
+
+- **Objective:** Streamline the 3D Main Menu UI by removing top header badges/buttons and the bottom developer footer bar as requested by the user, creating a clean, unobstructed cinematic view.
+- **Completed work:**
+  - Removed top header badges (`FIRST-PERSON NARRATIVE GAME`, `3D PREVIEW`) and top-right auxiliary buttons (`Bản đồ TP.HCM 3D`, sound button, and portal link) from `MainMenuOverlay.tsx`. Clean brand logo is retained.
+  - Removed the entire bottom environmental footer bar (`Cinematic Camera: Mouse Parallax... Three.js r174...`).
+  - Menu navigation buttons and settings modals remain fully functional.
+- **Files modified:**
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+- **Results:** Clean typecheck, 0 errors.
+
+### 2026-11-09 — Vietnamese Street Scene Visual Tuning & Foreground NPC Removal
+
+- **Objective:** Address user feedback by removing the foreground character (`19_6_2025 ai guy`) from the bottom frame, eliminating road surface glare/overexposure, and aligning camera framing and lighting contrast to match the Unity editor scene view.
+- **Completed work:**
+  - Removed/hidden `19_6_2025 ai guy` from the scene (`child.visible = false`).
+  - Fixed asphalt road glaring issue: eliminated accidental full-white emissive factor (`emissiveFactor: [1, 1, 1]`) on `streets` material, restoring natural dark pavement roughness.
+  - Balanced scene lighting: lowered sun intensity from 2.6 to 1.45, ambient from 1.15 to 0.7, hemisphere to 0.55, and lowered ACESFilmic tone mapping exposure from 1.12 to 0.95 to eliminate blown-out highlights while preserving clear, pleasant daytime illumination.
+  - Re-centered camera directly behind the Lexus GX 550 at `[186.4, -92.2, -83.5]` looking towards `[186.4, -93.0, -45.0]`, mirroring the Unity scene view.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/game/core/GameCanvas.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build, zero errors.
+- **Follow-up:** First-person character controller and in-game phone UI.
+
+### 2026-11-09 — Integrate Unity-Authored Vietnamese Urban Street Scene (MenuBG.glb) into Main Menu
+
+- **Objective:** Integrate the actual Unity-authored 3D street scene (`MenuBG.glb`, 420MB) into SCAMMAZE's 3D Main Menu, establishing an authentic, cinematic Vietnamese neighborhood environment featuring local shophouses ("nhà phố"), Saigon skyline (Landmark 81, Bitexco), Bánh Mì carts, parked vehicles, and pedestrians.
+- **Completed work:**
+  - Audited `MenuBG.glb`: identified 1,366 nodes, 669 meshes, 150 materials, 57 embedded textures, and confirmed static meshes for NPCs (no skeletal rigs/clips embedded).
+  - Copied and wired `MenuBG.glb` into `apps/game/public/assets/3d/environments/MenuBG.glb`.
+  - Calibrated PBR materials in `StreetEnvironment.tsx`: normalized high metallic factors, clamped unmapped reflections, enforced sRGB color space, and added emissive warmth for shophouse exterior lights.
+  - Implemented procedural subtle idle breathing and micro-turning for Vietnamese NPC pedestrians (`19_6_2025 ai guy`, `rp_mei_posed_001_100k`, `20261110000447_177df9df`) without artificial deformation.
+  - Added subtle tropical breeze animation to banana trees and street greenery.
+  - Realigned camera viewpoint at `[188.6, -91.3, -88.89]` looking along +Z towards `[188.6, -92.2, -50.0]`, precisely preserving the Unity scene authoring perspective with responsive mouse parallax and gentle breathing motion.
+  - Aligned tropical directional sunlight and street fixture point lights.
+  - Extended sky dome radius to 900m to seamlessly envelope the expanded scene.
+  - Updated `GAME_CREDITS` with proper documentation and attribution.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/SkyDome.tsx`
+  - `apps/game/src/config/credits.ts`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** TypeScript verification and Vite production build passed cleanly.
+- **Unresolved issues / Limitations:** Characters are static posed meshes without skeletal animation clips in the GLB; animated with subtle procedural micro-motions. If skeletal walk cycles are desired in future phases, rigged humanoid GLBs can be swapped in.
+- **Follow-up:** First-person character navigation and smartphone interface.
+
+### 2026-11-09 — Integrate Complete "Low Poly City" 3D Environment for Main Menu
+
+- **Objective:** Upgrade the 3D Main Menu scene in `apps/game` with `low_poly_city.glb` (from local `Kiroween/Asset3D/`), reproducing the exact neighborhood intersection scene composed in Unity 2022.3 with orange corner building, blue and yellow shops, mosque, horizon windmills, vehicles, and clear daylight atmosphere.
+- **Completed work:**
+  - Integrated `low_poly_city.glb` (70MB, metric 1:1 scale, 1930 meshes) as the primary 3D environment for `apps/game`.
+  - Calibrated PBR materials in `StreetEnvironment.tsx`: normalized `Color` and `Material` to non-metallic (`metalness: 0.05`, `roughness: 0.65`) and enforced `sRGB` color space to prevent Three.js dark reflection void.
+  - Activated bloom emissive materials on `Color_Bloom.001` with warm glow (`#ffe888`) for streetlights, vehicle lamps, and neon highlights.
+  - Created animated wind turbine rotation in `useFrame` for all `Windmil Fan` objects on the background horizon hill.
+  - Composed camera viewpoint at `[-48.0, 7.5, 36.0]` looking towards `[-55.0, 3.8, 86.0]` with mouse parallax and gentle breathing motion, framing the orange curved building, blue/yellow storefronts, mosque, and windmills seamlessly.
+  - Extended sky dome radius to 500m with continuous atmospheric drift.
+  - Updated `GAME_CREDITS` and documentation.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/SkyDome.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/config/credits.ts`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Builds clean with zero errors. All assets served locally via Vite.
+- **Unresolved issues / Limitations:** None.
+- **Deviations:** Used the complete `low_poly_city.glb` as requested to provide a richer, complete neighborhood without manual tile composition.
+- **Follow-up:** First-person character controller (WASD) and in-game phone UI.
+
 ### 2026-11-09 — User-Provided Cloud Sky Texture & 360-Degree Panoramic Dome Integration for HCM Map
 
 - **Objective:** Replace the procedural sky with the user-provided realistic cloud sky photo (`saigon_sky.png`), integrating a 360-degree panoramic sky dome with gentle atmospheric cloud drift to eliminate synthetic visual artifacts.
