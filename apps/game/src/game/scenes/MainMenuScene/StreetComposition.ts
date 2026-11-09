@@ -1,9 +1,12 @@
 /**
  * SCAMMAZE Main Menu Scene Layout & Composition
- * Defines street layout coordinates, lighting fixtures, props, and camera viewpoints.
+ * Calibrated for true world scale (City pack scale x100, Units = Meters).
+ * Road runs along X-axis from X = +48m to X = -48m.
+ * Road surface is at Y = 0.35m.
+ * Human eye-level camera height is Y = 2.05m.
  */
 
-export interface StreetLightPoint {
+export interface StreetLightFixture {
   position: [number, number, number];
   color: string;
   intensity: number;
@@ -21,18 +24,18 @@ export interface TreeInstance {
 export interface ParkedCarSlot {
   position: [number, number, number];
   rotationY: number;
-  scale: number;
+  carIndex: number; // Index of car model (0 = sedan, 1 = van, 2 = compact, 3 = taxi)
 }
 
 export const STREET_CONFIG = {
-  // Road surface reference
-  roadY: 0.35,
+  // Road & eye level reference
+  groundY: 0.35,
+  eyeHeightY: 2.05,
 
-  // Camera settings (First person viewpoint on the sidewalk looking down the avenue)
+  // Camera settings (First person viewpoint on the street looking down the avenue)
   camera: {
-    // Sidewalk viewpoint looking down the street avenue towards the vanishing point
-    defaultPosition: [32, 2.05, 14] as [number, number, number],
-    targetPosition: [-25, 2.3, 0] as [number, number, number],
+    defaultPosition: [24.0, 2.05, 0.0] as [number, number, number],
+    targetPosition: [-45.0, 2.4, 2.0] as [number, number, number],
     fov: 72,
     near: 0.1,
     far: 250,
@@ -40,34 +43,44 @@ export const STREET_CONFIG = {
 
   // Street lighting fixtures (warm lantern glow placed along sidewalks)
   streetLights: [
-    { position: [-22.1, 7.2, 3.5], color: "#ffc870", intensity: 2.8, distance: 16 },
-    { position: [-19.1, 6.2, 1.3], color: "#ffc870", intensity: 2.5, distance: 14 },
-    { position: [0.5, 6.5, 4.5], color: "#ffc870", intensity: 2.8, distance: 16 },
-    { position: [18.5, 6.5, 4.5], color: "#ffc870", intensity: 2.8, distance: 16 },
-    { position: [34.0, 5.5, 3.5], color: "#ffc870", intensity: 2.5, distance: 14 },
-    // Opposite sidewalk lights
-    { position: [-10.0, 6.5, 15.0], color: "#ffa850", intensity: 2.2, distance: 15 },
-    { position: [10.0, 6.5, 15.0], color: "#ffa850", intensity: 2.2, distance: 15 },
-  ] as StreetLightPoint[],
+    // Built-in pack lights (North sidewalk)
+    { position: [6.2, 6.8, -11.3], color: "#ffc266", intensity: 3.2, distance: 20 },
+    { position: [8.3, 6.8, -11.4], color: "#ffc266", intensity: 3.2, distance: 20 },
+    // Additional lamps along North sidewalk
+    { position: [-12.0, 6.8, -8.0], color: "#ffc266", intensity: 3.0, distance: 18 },
+    { position: [-28.0, 6.8, -8.0], color: "#ffc266", intensity: 3.0, distance: 18 },
+    { position: [24.0, 6.8, -8.0], color: "#ffc266", intensity: 3.0, distance: 18 },
+    // Lamps along South sidewalk
+    { position: [-20.0, 6.8, 14.0], color: "#ffbe5c", intensity: 3.0, distance: 18 },
+    { position: [0.0, 6.8, 14.0], color: "#ffbe5c", intensity: 3.0, distance: 18 },
+    { position: [18.0, 6.8, 14.0], color: "#ffbe5c", intensity: 3.0, distance: 18 },
+  ] as StreetLightFixture[],
 
-  // Stylized low-poly trees along the sidewalks
+  // Stylized low-poly trees planted along sidewalks
   trees: [
-    { position: [42, 0.35, 7.5], scale: [1.2, 1.5, 1.2], rotationY: 0.2, type: "dodeca", color: "#3e704b" },
-    { position: [26, 0.35, 7.5], scale: [1.1, 1.4, 1.1], rotationY: 1.1, type: "sphere", color: "#477c55" },
-    { position: [8, 0.35, 7.5], scale: [1.3, 1.6, 1.3], rotationY: 2.3, type: "cone", color: "#376241" },
-    { position: [-6, 0.35, 7.5], scale: [1.1, 1.3, 1.1], rotationY: 0.8, type: "dodeca", color: "#42754f" },
-    { position: [-28, 0.35, 7.5], scale: [1.4, 1.7, 1.4], rotationY: 1.7, type: "sphere", color: "#3b6946" },
-    // Opposite sidewalk trees
-    { position: [22, 0.35, 16.5], scale: [1.3, 1.5, 1.3], rotationY: 0.5, type: "cone", color: "#4a7e58" },
-    { position: [4, 0.35, 16.5], scale: [1.2, 1.4, 1.2], rotationY: 2.1, type: "dodeca", color: "#3d6b47" },
-    { position: [-14, 0.35, 16.5], scale: [1.3, 1.6, 1.3], rotationY: 1.4, type: "sphere", color: "#437851" },
+    // North sidewalk line
+    { position: [-38, 0.35, -5.5], scale: [1.2, 1.4, 1.2], rotationY: 0.3, type: "dodeca", color: "#3d7049" },
+    { position: [-22, 0.35, -5.5], scale: [1.3, 1.6, 1.3], rotationY: 1.2, type: "sphere", color: "#477c55" },
+    { position: [-4, 0.35, -5.5], scale: [1.1, 1.3, 1.1], rotationY: 2.1, type: "cone", color: "#36603f" },
+    { position: [14, 0.35, -5.5], scale: [1.3, 1.5, 1.3], rotationY: 0.8, type: "dodeca", color: "#40734c" },
+    { position: [30, 0.35, -5.5], scale: [1.2, 1.4, 1.2], rotationY: 1.7, type: "sphere", color: "#3a6844" },
+    // South sidewalk line
+    { position: [-30, 0.35, 13.0], scale: [1.3, 1.5, 1.3], rotationY: 0.5, type: "cone", color: "#457952" },
+    { position: [-12, 0.35, 13.0], scale: [1.2, 1.4, 1.2], rotationY: 2.4, type: "dodeca", color: "#3b6946" },
+    { position: [6, 0.35, 13.0], scale: [1.4, 1.7, 1.4], rotationY: 1.5, type: "sphere", color: "#42764f" },
+    { position: [22, 0.35, 13.0], scale: [1.3, 1.5, 1.3], rotationY: 0.9, type: "cone", color: "#497d57" },
   ] as TreeInstance[],
 
-  // Parked cars positions along curbs
+  // Parked cars along both curbs
   parkedCars: [
-    { position: [14.0, 0.35, 8.5], rotationY: 0, scale: 0.75 },
-    { position: [-2.0, 0.35, 8.5], rotationY: 0, scale: 0.75 },
-    { position: [28.0, 0.35, 13.5], rotationY: Math.PI, scale: 0.75 },
-    { position: [-12.0, 0.35, 13.5], rotationY: Math.PI, scale: 0.75 },
+    // North curb (curb at Z ≈ -2.2m, facing left towards X-)
+    { position: [18.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 0 },
+    { position: [0.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 1 },
+    { position: [-16.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 2 },
+    { position: [-32.0, 0.35, -2.0], rotationY: Math.PI, carIndex: 3 },
+    // South curb (curb at Z ≈ +9.0m, facing right towards X+)
+    { position: [10.0, 0.35, 9.0], rotationY: 0, carIndex: 3 },
+    { position: [-8.0, 0.35, 9.0], rotationY: 0, carIndex: 0 },
+    { position: [-24.0, 0.35, 9.0], rotationY: 0, carIndex: 2 },
   ] as ParkedCarSlot[],
 };

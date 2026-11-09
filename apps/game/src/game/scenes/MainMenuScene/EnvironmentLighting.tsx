@@ -13,40 +13,40 @@ export const EnvironmentLighting: React.FC<EnvironmentLightingProps> = ({
 
   return (
     <>
-      {/* Background color matching dark palette */}
-      <color attach="background" args={["#13111f"]} />
+      {/* Clear natural sky color (Crisp afternoon daylight) */}
+      <color attach="background" args={["#86a9d2"]} />
 
-      {/* Atmospheric distance fog fading street into the horizon */}
-      <fog attach="fog" args={["#151324", 25, 105]} />
+      {/* Atmospheric distance fog matching sky */}
+      <fog attach="fog" args={["#86a9d2", 55, 175]} />
 
-      {/* Ambient Fill */}
-      <ambientLight color="#36314f" intensity={0.7} />
+      {/* Ambient Skylight (Soft sky illumination so shadows are never pitch black) */}
+      <ambientLight color="#dbe7f7" intensity={1.15} />
 
-      {/* Soft Hemisphere sky/ground gradient */}
+      {/* Natural Hemisphere Light (Sky bounce from above, warm pavement bounce from below) */}
       <hemisphereLight
-        color="#8372aa"
-        groundColor="#231d2e"
-        intensity={0.55}
+        color="#a5c9f0"
+        groundColor="#5c5344"
+        intensity={0.95}
       />
 
-      {/* Directional Sunlight (Warm Morning / Golden Hour Sun) */}
+      {/* Main Directional Sun (Crisp angled sunlight creating depth and architectural shadows) */}
       <directionalLight
-        position={[28, 35, 20]}
-        color="#ffeed8"
-        intensity={1.5}
+        position={[38, 52, 28]}
+        color="#fff7eb"
+        intensity={2.5}
         castShadow={isHigh}
         shadow-mapSize-width={isHigh ? 2048 : 1024}
         shadow-mapSize-height={isHigh ? 2048 : 1024}
-        shadow-camera-near={0.5}
-        shadow-camera-far={120}
-        shadow-camera-left={-35}
-        shadow-camera-right={35}
-        shadow-camera-top={35}
-        shadow-camera-bottom={-35}
-        shadow-bias={-0.0005}
+        shadow-camera-near={1.0}
+        shadow-camera-far={160}
+        shadow-camera-left={-55}
+        shadow-camera-right={55}
+        shadow-camera-top={55}
+        shadow-camera-bottom={-55}
+        shadow-bias={-0.0004}
       />
 
-      {/* Street Lantern Point Lights & Glow Bulbs */}
+      {/* Warm Street Lamp Point Lights along sidewalks */}
       {STREET_CONFIG.streetLights.map((light, index) => (
         <group key={`streetlight-${index}`} position={light.position}>
           <pointLight
@@ -55,10 +55,10 @@ export const EnvironmentLighting: React.FC<EnvironmentLightingProps> = ({
             distance={light.distance}
             decay={2}
           />
-          {/* Subtle glowing bulb sphere */}
+          {/* Glowing lantern bulb marker */}
           <mesh>
-            <sphereGeometry args={[0.18, 12, 12]} />
-            <meshBasicMaterial color="#ffe8aa" />
+            <sphereGeometry args={[0.22, 10, 10]} />
+            <meshBasicMaterial color="#ffe399" />
           </mesh>
         </group>
       ))}

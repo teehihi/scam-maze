@@ -47,13 +47,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ settings }) => {
   const shadows = settings.graphicsQuality === "high";
 
   return (
-    <div className="absolute inset-0 w-full h-full bg-[#13111f]">
+    <div className="absolute inset-0 w-full h-full bg-[#86a9d2]">
       <Canvas
         shadows={shadows}
         dpr={dpr as any}
         camera={{
           fov: settings.fov,
-          position: [32, 2.05, 14],
+          position: [24.0, 2.05, 0.0],
           near: 0.1,
           far: 250,
         }}
@@ -65,7 +65,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ settings }) => {
           depth: true,
         }}
         onCreated={({ gl }) => {
-          gl.setClearColor("#13111f", 1);
+          gl.setClearColor("#86a9d2", 1);
         }}
       >
         <MainMenuScene settings={settings} />
