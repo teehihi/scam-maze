@@ -31,32 +31,33 @@ Every architecture statement in `docs/` uses one of these labels.
 
 ## 2. What exists today (`IMPLEMENTED`)
 
-Verified on `main` at commit `8c66005` (8 Nov 2026), after PR #7 (cinematic landing page redesign).
+Verified on `feat/game-foundation-monorepo-main-menu` (9 Nov 2026):
 
 | Area | Current implementation |
 |---|---|
-| Application | One single-page app at the repository root (no monorepo yet): React 19, TypeScript, Vite 8, Tailwind CSS v4, `lucide-react` icons, self-hosted variable fonts. Package manager pnpm (`packageManager: pnpm@10.26.0`); `pnpm-lock.yaml` committed (PR #7). |
-| Pages | One dark, marketing-only landing page (`src/App.tsx`): hero, connected-threat timeline, digital world showcase, investigation method, branching preview, evidence workspace, mission case files, skills, safety principles, final call to action. No router. **No game code.** |
-| Interactive previews | `Branching`, `Systems` and `Skills` sections have small client-side previews with hand-authored, fictional data (`src/data/*.ts`). They are labelled as simulated examples, "not the real mission engine". |
-| Game entry | `src/config/site.ts` reads `VITE_GAME_URL`. Empty or invalid (non-http/https): the entry buttons open a "world is being prepared" dialog. Valid: they link to that URL. No game is deployed, so the dialog is what visitors see. |
-| Legacy code | `src/legacy/`: the earlier demo scenario (pure `useReducer` state machine with `src/data/scenario.ts`) and the URL checker (`src/lib/urlCheck.ts`, string-only, never fetches, never returns "safe"). Not mounted; still typechecked. The URL checker's false positive on official country domains (issue #4) remains. |
-| State and storage | In-memory React state only. No `localStorage`, IndexedDB or service worker. Not offline-capable beyond an already-loaded page. |
-| Backend, API, database, auth, AI | **None.** The app makes no `fetch` or XHR calls and calls no AI provider. |
-| 3D | **None.** No 3D library is installed. |
-| Environment variables | `VITE_BASE` (build time, optional, default `/`, in `vite.config.ts`) and `VITE_GAME_URL` (build time, optional, in `src/config/site.ts`; template in `.env.example`). |
-| Tests | **None.** No test runner is installed. Quality gate today: `pnpm build` (TypeScript build + Vite build). |
-| CI/CD | `.github/workflows/ci.yml` builds every pull request and uploads `dist` as an artifact. `.github/workflows/deploy.yml` builds and deploys to GitHub Pages on every push to `main`. |
-| Hosting | GitHub Pages: <https://teehihi.github.io/scam-maze/>. The latest deployment (`8c66005`) was reported `success` by the GitHub Deployments API on 8 Nov 2026. |
-| Kiro | `.kiro/steering/` has `safety.md`, `icons.md`, `language.md`, `audience.md`; root `AGENTS.md`. There are **no** `.kiro/specs/` or `.kiro/hooks/` yet. |
+| Repository Architecture | **pnpm monorepo** with `apps/landing`, `apps/game`, and `packages/shared-types`. Unified workspace scripts: `pnpm dev:landing`, `pnpm dev:game`, `pnpm build:landing`, `pnpm build:game`, `pnpm build`, `pnpm typecheck`. |
+| Landing Application | Located in `apps/landing`: React 19, TypeScript, Vite 8, Tailwind CSS v4, `lucide-react`, self-hosted fonts. Deploys to GitHub Pages via `.github/workflows/deploy.yml`. Features 4 responsive landing sections and a 9-section Full-Page Knowledge Hub (`/#docs`, `/#privacy`, `/#license`, etc.). |
+| Game Application | Located in `apps/game`: React 19, TypeScript, Vite 8, **Three.js r174**, **React Three Fiber v9**, **Drei v10**, Tailwind CSS v4. Implements the cinematic first-person 3D street scene serving as the game's Main Menu. |
+| 3D Environment & Assets | Binary glTF models verified from `Kiroween/Asset3D/`: `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0). Renders modular buildings (B1–B5, corner, shopfront, hospital), road asphalt with dashed lines, streetlights with warm point lights, low-poly trees, and parked cars along curbs. |
+| Camera & Controls | First-person eye-level camera (`y ≈ 2.05m`) facing down the street towards an atmospheric vanishing point. Smooth breathing idle motion and pointer parallax lerping. Configurable FOV (60°–85°). |
+| Menu UI & Modals | Interactive UI overlay over 3D Canvas: `NEW GAME` (opens Prologue introduction modal), `CONTINUE` (disabled with clear notice), `SETTINGS` (real-time graphics quality, FOV, sound toggle, master volume with `localStorage` persistence), `CREDITS` (verified third-party asset licenses), and WebGL fallback detector. |
+| Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings, and scenario metadata. |
+| Quality Gates | Root `pnpm typecheck` and `pnpm build` validate all workspace packages cleanly. |
 
 ```mermaid
-flowchart LR
-    V["Visitor browser"] --> GHP["GitHub Pages<br/>static hosting"]
-    GHP --> SPA["React landing page<br/>Vite build"]
-    SPA --> PREV["Section previews<br/>authored fictional data"]
-    SPA --> ENTRY["Game entry<br/>VITE_GAME_URL or coming-soon dialog"]
-    GHA["GitHub Actions"] -->|"deploy.yml, push to main"| GHP
-    GHA -->|"ci.yml, pull requests"| BUILD["Build check<br/>tsc + vite build"]
+flowchart TD
+    subgraph Monorepo ["pnpm Workspace (SCAMMAZE)"]
+        Landing["apps/landing<br/>(React 19, Vite 8, Tailwind v4)"]
+        Game["apps/game<br/>(Three.js r174, R3F, Drei, Tailwind v4)"]
+        Shared["packages/shared-types<br/>(Pure TS Contracts)"]
+        Landing -.-> Shared
+        Game -.-> Shared
+    end
+    GHP["GitHub Pages<br/>(teehihi.github.io/scam-maze)"]
+    Vercel["Independent Hosting<br/>(Vercel / Subdomains)"]
+    Landing -->|"CI deploy.yml"| GHP
+    Landing -.->|"Future Subdomain"| Vercel
+    Game -.->|"play.scammaze.com (Example)"| Vercel
 ```
 
 ## 3. Target architecture
@@ -67,10 +68,10 @@ proxying, persistence and server-side operations.
 
 | Layer | Target technology | Status |
 |---|---|---|
-| Landing page | React + Vite (existing stack) | `IMPLEMENTED` (on GitHub Pages) |
+| Landing page | React + Vite (in `apps/landing`) | `IMPLEMENTED` (on GitHub Pages) |
 | Landing page hosting on Vercel | Vercel | `PLANNED` (today: GitHub Pages) |
-| Game client | Separate browser game: **first-person 3D world** with an embedded in-game smartphone, hosted on Vercel; React 19 + TypeScript + Vite (section 3.1) | `PLANNED` (owner decision, 8 Nov 2026) |
-| 3D rendering | **Three.js** (primary 3D engine) via **React Three Fiber**, with **Drei** utilities; WebGL 2 baseline | `PLANNED` (owner decision, 8 Nov 2026); performance benchmark required |
+| Game client (`apps/game`) | First-person 3D game client with Main Menu scene; React 19 + TypeScript + Vite 8 (section 3.1) | `IMPLEMENTED` (foundation & 3D main menu) |
+| 3D rendering | **Three.js r174** (primary 3D engine) via **React Three Fiber v9**, with **Drei v10** utilities; WebGL 2 baseline | `IMPLEMENTED` |
 | Physics | **Rapier** | `PROPOSED`; prototype required |
 | Gameplay state | **Zustand** stores | `PLANNED` |
 | In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `PLANNED` |

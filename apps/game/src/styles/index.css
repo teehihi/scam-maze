@@ -1,0 +1,45 @@
+@import "@fontsource-variable/bricolage-grotesque/wght.css";
+@import "@fontsource-variable/inter/wght.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Shojumaru", "Bricolage Grotesque Variable", cursive, system-ui, sans-serif;
+  --font-halloween: "Shojumaru", cursive;
+  --font-spooky: "Nanum Pen Script", cursive;
+  --font-stylish: "Stylish", sans-serif;
+  --font-sans: "Stylish", "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-graphite: #171521;
+  --color-navy: #1d1b2b;
+  --color-navy-2: #26233a;
+  --color-purple: #7654d6;
+  --color-lavender: #b9a5f5;
+  --color-lilac: #e9e2ff;
+  --color-ivory: #f7f5ff;
+  --color-white: #ffffff;
+  --color-mist: #a9a4c4;
+  --color-hairline: #38344f;
+
+  --color-amber: #f2b24b;
+  --color-teal: #4fd1b5;
+  --color-danger: #ff7a85;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0d0c15;
+  color: #f7f5ff;
+  font-family: var(--font-sans);
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}

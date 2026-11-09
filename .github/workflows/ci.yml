@@ -19,12 +19,13 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --no-frozen-lockfile
+      - run: pnpm typecheck
       - run: pnpm build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
-      # Built site for reviewers: download, then serve dist/ under /scam-maze/.
+      # Upload landing dist as artifact for PR preview
       - uses: actions/upload-artifact@v7
         with:
-          name: dist
-          path: dist
+          name: landing-dist
+          path: apps/landing/dist
           retention-days: 7

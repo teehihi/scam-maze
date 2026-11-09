@@ -8,54 +8,44 @@
 - **Product definition:** Browser-based, first-person 3D narrative game in a small persistent
   world with chapter-based stories (owner decision, 2026-11-08). Canonical document:
   [product positioning](product/PRODUCT_POSITIONING.md).
-- **Product stage:** Pre-MVP. A public marketing landing page only; **no game code exists yet**
-  (no 3D library, no narrative engine, no phone UI).
-- **Current milestone:** Master plan Phase A — Foundation / rule compliance (plan dates 7–10 Nov
-  2026). Phase B now targets the 3D vertical slice (positioning section 11).
-- **Architecture status:** Target architecture documented; landing page `IMPLEMENTED`; 3D game
-  client, deterministic core, backend and all AWS services `PLANNED`; game stack decided
-  (Three.js + React Three Fiber + Drei, Zustand, TypeScript engine + Zod, Dexie; Rapier
-  `PROPOSED`), not installed;
-  AI layer `PROPOSED`; nothing provisioned.
+- **Product stage:** Pre-Alpha / Game Foundation.
+  - Landing application (`apps/landing`): live on GitHub Pages with 4 cinematic sections and full Knowledge Hub.
+  - Game application (`apps/game`): 3D first-person street scene serving as the game's Main Menu built with Three.js r174, R3F v9, Drei v10, and verified Sketchfab 3D assets.
+  - Shared contracts (`packages/shared-types`): pure TypeScript types.
+- **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
+- **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
 - **Database decision:** `PENDING` ([database strategy](architecture/DATABASE_STRATEGY.md)).
-- **Domain status:** No domain purchased. Domain & DNS cost `TBD`.
-- **Deployment status:** Landing page on GitHub Pages, <https://teehihi.github.io/scam-maze/>
-  (last deployment `8c66005`, reported `success` on 2026-11-08). No game or backend deployment.
+- **Domain status:** No domain purchased.
+- **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
-  ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet. 3D asset and AI costs not
-  yet estimated (cost estimation, section 15).
-- **Last updated:** 2026-11-08
+  ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
+- **Last updated:** 2026-11-09
 
 ## Completed
 
-Verified against merged pull requests on GitHub.
+Verified against merged pull requests on GitHub and local workspace builds.
 
-- [x] Public repository, MIT license, community health files (code of conduct, contributing,
-      security policy, accessibility statement, issue and PR templates) — PR #1, merged 2026-11-07.
-- [x] First landing page with a branching demo scenario and a string-only URL checker — initial
-      commit `b23fe11` (now in `src/legacy/`).
-- [x] Deploy workflow to GitHub Pages and CI build on pull requests — commits `846c93a`,
-      `e9a3880`; `ci.yml` added in PR #2.
-- [x] Flat, minimal redesign; skip link; contrast-checked color tokens — PR #2, merged 2026-11-07
-      (replaced by PR #7).
-- [x] All site copy and documentation in English; steering rules for icons and language;
-      master plan translated — PR #3, merged 2026-11-07.
-- [x] Positioning for Vietnam and worldwide; `audience.md` steering; demo uses fictional brand
-      and reserved domains — PR #5, merged 2026-11-07.
+- [x] **Monorepo restructure & Game Foundation:** Split repository into pnpm monorepo with `apps/landing`, `apps/game`, and `packages/shared-types`. Root workspace build and typecheck commands (`pnpm build`, `pnpm typecheck`, `pnpm dev:landing`, `pnpm dev:game`).
+- [x] **Verified 3D Assets Integration:** Discovered and integrated `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0) from local `Kiroween/Asset3D/`. Recorded in `THIRD_PARTY_NOTICES.md`.
+- [x] **First-Person 3D Main Menu:** Real Three.js r174 + R3F v9 + Drei v10 scene. Human eye-level camera with subtle breathing motion, mouse parallax, customizable FOV, atmospheric lighting, modular buildings, storefronts, hospital, road, streetlights with warm point lights, low-poly trees, and parked cars along curbs.
+- [x] **Interactive Menu UI & Modals:** Accessible React overlay with `NEW GAME` (prologue introduction), `CONTINUE` (disabled with clear tooltip), `SETTINGS` (real-time graphics quality, FOV, sound toggle, volume with `localStorage` persistence), `CREDITS` (verified attribution), and WebGL context error fallback detector.
+- [x] **Independent Deployment Readiness:** Configured `vercel.json` SPA rewrites for both `apps/landing` and `apps/game`. Preserved GitHub Pages deployment for landing page.
+- [x] Public repository, MIT license, community health files — PR #1, merged 2026-11-07.
+- [x] First landing page with demo scenario — initial commit `b23fe11`.
+- [x] Deploy workflow to GitHub Pages and CI build — PR #2, merged 2026-11-07.
+- [x] Flat, minimal redesign; skip link; contrast-checked color tokens — PR #2.
+- [x] All site copy and documentation in English — PR #3, merged 2026-11-07.
+- [x] Positioning for Vietnam and worldwide; `audience.md` steering — PR #5.
 - [x] Master plan added — commit `0665897`, 2026-11-07.
-- [x] Architecture, deployment, database strategy, cost estimation, agent instructions and this
-      progress tracker documented (documentation only) — PR #6, merged 2026-11-07.
-- [x] Cinematic dark landing page as a game gateway; `VITE_GAME_URL` entry configuration;
-      `pnpm-lock.yaml` and `lucide-react` added; earlier demo moved to `src/legacy/` — PR #7,
-      merged 2026-11-07.
-- [x] Canonical product positioning for the first-person 3D direction; reconciliation of README,
-      AGENTS.md, master plan, architecture and cost documents (documentation only) — see task
-      history, 2026-11-08.
+- [x] Architecture, deployment, database strategy, cost estimation — PR #6.
+- [x] Cinematic dark landing page as a game gateway — PR #7.
+- [x] Full-Page Knowledge Hub with 9 legal & documentation sections and instant tab switching — 2026-11-09.
 
 ## In Progress
 
-- [ ] Phase A foundation items not yet done: `.kiro/specs/` for the first features, Kiro hooks,
-      `THIRD_PARTY_NOTICES.md`, test runner, `--frozen-lockfile` in CI.
+- [ ] First-person player controller and navigation movement (WASD / pointer lock).
+- [ ] In-game smartphone interface and message notifications.
+- [ ] Chapter 1 "The Urgent Call" scenario state machine.
 
 ## Planned
 
@@ -126,6 +116,72 @@ Resolved:
 - No automated tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-09 — Monorepo restructure, 3D asset integration & First-Person 3D Main Menu implementation
+
+- **Objective:** Reorganize the repository into a pnpm monorepo, prepare independent deployment for future subdomains, inspect and integrate the owner's downloaded 3D assets from `Kiroween/Asset3D/`, and implement the game application's first-person 3D Main Menu street scene.
+- **Completed work:**
+  1. Restructured repository into pnpm monorepo: `apps/landing` (marketing site & Knowledge Hub), `apps/game` (3D narrative game client), and `packages/shared-types` (pure TypeScript contracts).
+  2. Preserved the existing landing page with zero regressions; updated GitHub Actions workflows (`ci.yml` and `deploy.yml`) to typecheck and build across the monorepo while deploying `apps/landing/dist` to GitHub Pages.
+  3. Inspected local assets in `Kiroween/Asset3D/`: discovered self-contained glTF binary models `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0). Integrated production copies into `apps/game/public/assets/3d/` and documented full attribution in `THIRD_PARTY_NOTICES.md`.
+  4. Implemented `apps/game` using Three.js r174, React Three Fiber v9, and Drei v10:
+     - First-person cinematic camera at human eye height (`y ≈ 2.05m`) looking down the avenue toward an atmospheric vanishing point.
+     - Subtle breathing idle movement and pointer-based parallax motion for immersion.
+     - Rich street composition: road asphalt with dashed lane markings, modular residential buildings (B1–B5), corner building, neighborhood storefront, hospital with helipad, benches, streetlights, low-poly trees, and parked cars along curbs.
+     - Atmospheric environmental lighting: warm morning sunlight, ambient sky fill, distance fog fading into `#151324`, and glowing streetlight lanterns with point lights.
+  5. Built accessible, stylized React menu overlay on top of 3D Canvas:
+     - `NEW GAME`: opens Prologue introduction modal describing the morning notification scenario.
+     - `CONTINUE`: disabled state explaining save system unlocks after Chapter 1.
+     - `SETTINGS`: functional modal with Graphics Quality (Low, Medium, High DPR and shadow presets), FOV slider (60°–85°), sound toggle, and master volume with `localStorage` persistence.
+     - `CREDITS`: modal displaying verified Sketchfab authors, licenses (CC-BY 4.0), and open-source packages.
+     - WebGL context detection and fallback banner.
+  6. Prepared independent Vercel deployment: configured `vercel.json` SPA rewrites for both `apps/landing` and `apps/game`.
+- **Files created:**
+  - `pnpm-workspace.yaml`
+  - `THIRD_PARTY_NOTICES.md`
+  - `packages/shared-types/package.json`, `packages/shared-types/tsconfig.json`, `packages/shared-types/src/index.ts`
+  - `apps/landing/package.json`, `apps/landing/vercel.json`, `apps/landing/.env.example`
+  - `apps/game/package.json`, `apps/game/tsconfig.json`, `apps/game/tsconfig.app.json`, `apps/game/tsconfig.node.json`, `apps/game/vite.config.ts`, `apps/game/vercel.json`, `apps/game/index.html`, `apps/game/.env.example`
+  - `apps/game/src/main.tsx`, `apps/game/src/app/App.tsx`, `apps/game/src/styles/index.css`
+  - `apps/game/src/config/credits.ts`
+  - `apps/game/src/components/ui/BrandLogo.tsx`, `MenuButton.tsx`, `ModalDialog.tsx`, `WebGLFallback.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`, `SettingsModal.tsx`, `CreditsModal.tsx`, `IntroPrologueModal.tsx`
+  - `apps/game/src/game/core/GameCanvas.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/MainMenuScene.tsx`, `StreetEnvironment.tsx`, `EnvironmentLighting.tsx`, `MenuCamera.tsx`, `StreetComposition.ts`, `index.ts`
+  - `apps/game/public/assets/3d/environments/low_poly_city_asset_pack.glb`, `apps/game/public/assets/3d/vehicles/low_poly_cars_pack.glb`
+- **Files moved:**
+  - `src/` -> `apps/landing/src/`
+  - `public/` -> `apps/landing/public/`
+  - `index.html` -> `apps/landing/index.html`
+  - `vite.config.ts` -> `apps/landing/vite.config.ts`
+  - `tsconfig.*` -> `apps/landing/tsconfig.*`
+- **Files modified:**
+  - `package.json` (root workspace scripts: `dev:landing`, `dev:game`, `build:landing`, `build:game`, `build`, `typecheck`)
+  - `.github/workflows/ci.yml` (validates workspace typecheck and build; uploads landing artifact)
+  - `.github/workflows/deploy.yml` (builds `apps/landing` and deploys `apps/landing/dist`)
+  - `README.md` (updated structure, commands, status table, 3D credits)
+  - `AGENTS.md` (updated current stack and root workspace scripts)
+  - `docs/architecture/OVERVIEW.md` (updated architecture diagram, stack table, implemented status)
+  - `docs/architecture/DEPLOYMENT.md` (documented independent Vercel project configurations)
+  - `docs/PROJECT_PROGRESS.md` (status, completed items, and this entry)
+- **Validation commands executed:**
+  - `pnpm install` (monorepo resolution succeeded with pnpm v10.26.0)
+  - `pnpm --filter @scammaze/landing build` (build succeeded in 334ms)
+  - `pnpm --filter @scammaze/game build` (build succeeded in 665ms)
+  - `pnpm typecheck` (all 3 workspace projects passed TS typechecking with zero errors)
+  - `pnpm build` (workspace-wide production build passed in 3.0s)
+- **Build and test results:**
+  - All workspace packages compile cleanly.
+  - Zero TypeScript errors (`tsc -b --noEmit`).
+  - Production bundles generated cleanly in `apps/landing/dist` and `apps/game/dist`.
+- **Known limitations:**
+  - First-person walking controller (WASD / pointer lock) is intentionally deferred to Chapter 1 exploration milestone; the Main Menu camera is purely cinematic with breathing motion and mouse parallax.
+  - Save game functionality is disabled in the menu until Chapter 1 persistence is implemented.
+  - Audio files are not yet included in the repository; the sound toggle and volume controls persist state in `localStorage` in preparation for ambient audio.
+- **Architecture deviations:** None. Followed the approved game stack (Three.js r174 + R3F v9 + Drei v10) and pnpm monorepo structure.
+- **Follow-up tasks:**
+  - Implement first-person walking and collision controller for scene exploration.
+  - Build the in-game smartphone overlay and Chapter 1 "The Urgent Call" scenario state machine.
 
 ### 2026-11-08 — Game application stack alignment
 

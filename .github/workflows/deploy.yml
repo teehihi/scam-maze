@@ -23,15 +23,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      # No pnpm-lock.yaml is committed yet, so --frozen-lockfile is not used.
-      # Once the lockfile is committed: add `cache: pnpm` above and switch to `pnpm install --frozen-lockfile`.
       - run: pnpm install --no-frozen-lockfile
-      - run: pnpm build
+      - run: pnpm --filter @scammaze/landing build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: dist
+          path: apps/landing/dist
 
   deploy:
     needs: build
