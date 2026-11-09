@@ -25,6 +25,7 @@
 
 Verified against merged pull requests on GitHub and local workspace builds.
 
+- [x] **Ho Chi Minh City 2025 3D Map Explorer (`/hochiminh` route):** Integrated 19.6MB 3D model of Ho Chi Minh City (Saigon 3D City, CC-BY 4.0, 493,715 vertices). Developed dynamic procedural coloring engine mapping elevations, surface normals, and architectural styles across Saigon River, city avenues, colonial shophouse facades, terracotta roofs, and high-rise glass towers (Bitexco, Landmark). Provided 4 aesthetic themes (Daylight, Cyberpunk Neon, Golden Sunset, Tech Blueprint), 3D landmark pins, cinematic camera presets, auto-rotation, and full routing isolation from the main game menu.
 - [x] **Monorepo restructure & Game Foundation:** Split repository into pnpm monorepo with `apps/landing`, `apps/game`, and `packages/shared-types`. Root workspace build and typecheck commands (`pnpm build`, `pnpm typecheck`, `pnpm dev:landing`, `pnpm dev:game`).
 - [x] **Verified 3D Assets Integration:** Discovered and integrated `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0) from local `Kiroween/Asset3D/`. Recorded in `THIRD_PARTY_NOTICES.md`.
 - [x] **First-Person 3D Main Menu:** Real Three.js r174 + R3F v9 + Drei v10 scene. Human eye-level camera with subtle breathing motion, mouse parallax, customizable FOV, atmospheric lighting, modular buildings, storefronts, hospital, road, streetlights with warm point lights, low-poly trees, and parked cars along curbs.
@@ -116,6 +117,82 @@ Resolved:
 - No automated tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-09 — Atmospheric 3D Sky Dome Integration with Dynamic Cloud Motion
+
+- **Objective:** Replace the flat background sky with the owner-downloaded `sky.glb` asset, providing a realistic 360-degree atmospheric dome with hand-painted low-poly clouds and subtle dynamic cloud drift across the city skyline.
+- **Completed work:**
+  1. Inspected and integrated `sky.glb` (2.4 MB) from `Kiroween/Asset3D/sky.glb` to `apps/game/public/assets/3d/environments/sky.glb`.
+  2. Extracted the `Sphere_8` hemisphere skydome geometry with custom UV mapping and self-illuminating painted cloud texture map (`material` with emissive texture).
+  3. Created `<SkyDome />` component with `THREE.BackSide` rendering, calibrated at 6.8x scale (spanning ~450m radius) centered over the city avenue at `[0, -10, -85]`.
+  4. Added gentle atmospheric cloud drift animation (`rotation.y += delta * 0.004`), breathing living motion into the Main Menu scene.
+  5. Updated `THIRD_PARTY_NOTICES.md` with attribution for `sky.glb`.
+- **Files created:**
+  - `apps/game/src/game/scenes/MainMenuScene/SkyDome.tsx`
+  - `apps/game/public/assets/3d/environments/sky.glb`
+  - `apps/game/public/assets/3d/textures/sky.png`
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/MainMenuScene.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/index.ts`
+  - `THIRD_PARTY_NOTICES.md`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `pnpm typecheck` passed (3/3 workspaces).
+  - `pnpm --filter @scammaze/game build` passed (34.7s).
+- **Unresolved issues / limitations:** None.
+- **Follow-up tasks:** WASD player movement controller, in-game phone UI.
+
+### 2026-11-09 — Ho Chi Minh City 2025 3D Map Explorer with Procedural Coloring Engine & Route Isolation
+
+- **Objective:** Integrate the user-uploaded "Ho Chi Minh City 2025" 3D model into the game app, solve the monochromatic gray appearance by engineering a rich procedural coloring engine (Saigon River, terracotta roofs, French colonial facades, glass curtain-wall skyscrapers), and mount it on an isolated route (`/hochiminh`) distinct from the main game menu (`/`).
+- **Completed work:**
+  1. **Asset Integration & Geometry Analysis:**
+     - Copied `ho_chi_minh_city_2025_-_thanh_pho_ho_chi_minh.glb` (19.6 MB, 53 meshes, 493,715 vertices) to `apps/game/public/assets/3d/environments/hochiminh.glb`.
+     - Inspected model bounds (3.38 km x 2.96 km, height up to 312m).
+     - Centered the scene origin at `[-27.756, 0, 24.365]` so all district coordinates align neatly around `[0, 0, 0]`.
+  2. **Procedural Architecture & Surface Coloring Engine (`colorEngine.ts`):**
+     - Developed real-time vertex color computation based on world elevation (`Y`), surface normal tilt (`Ny`), and spatial pseudo-random distributions.
+     - Classified features:
+       - **Saigon River (Sông Sài Gòn & Bến Bạch Đằng):** Elevation `Y < 0.45`, deep sapphire to emerald river gradient, plus physical water specular plane.
+       - **Ground & Infrastructure:** Elevation `0.45 <= Y < 0.88`, dark asphalt avenues, light pedestrian sidewalks, and lush park green belts.
+       - **Low-Rise Saigon Shophouses & Heritage:** Warm ochre yellow, French cream, terracotta, and soft pastel mint facades paired with clay terracotta roofs.
+       - **Mid-Rise Commercial & Residential:** Modern white concrete, architectural slate, and sandstone.
+       - **High-Rise Skyscrapers (Bitexco, Landmark, Vietcombank):** Elevation `Y >= 2.6`, reflective azure-cyan curtain wall glass gradients and rooftop crowns.
+  3. **Multi-Theme Aesthetic Suite:**
+     - ☀️ **Daylight ("Sài Gòn Rực Rỡ"):** Vibrant realistic daylight with crisp sunlight, soft sky bounce, and natural architectural colors.
+     - 🌃 **Cyberpunk ("Sài Gòn Đêm Neon"):** Deep midnight obsidian base, glowing cyan/magenta/amber neon window bands, and pulsing red aviation warning beacons on tower pinnacles.
+     - 🌇 **Sunset ("Hoàng Hôn Sài Gòn"):** Rich golden hour copper and rose gold reflections across the Saigon river and glazed towers.
+     - 📐 **Tech Blueprint ("Bản Đồ Quy Hoạch Công Nghệ"):** Minimalist architectural zoning with cyan waterways, slate infrastructure, and royal blue landmarks.
+  4. **Isolated Client-Side Routing:**
+     - Added route detection supporting both path (`/hochiminh`) and hash (`#/hochiminh`), preserving the existing Main Menu on `/`.
+     - Added smooth transitions via `window.history.pushState` with back/forward browser history support.
+     - Placed discrete entry points in the Main Menu header and navigation stack.
+  5. **Interactive Controls & 3D Landmark Markers:**
+     - Smooth OrbitControls with height-clamping to prevent clipping under ground.
+     - 3D floating landmark markers for Bitexco Financial Tower, Chợ Bến Thành & Ga Metro, Bến Bạch Đằng & Sông Sài Gòn, Cầu Ba Son, and Bán đảo Thủ Thiêm.
+     - 5 cinematic camera presets (Toàn Cảnh, Bitexco, Sông Sài Gòn, Bến Thành, Thủ Thiêm) with smooth animated camera transitions.
+     - Auto-rotate toggle, fullscreen toggle, and architectural info drawer.
+- **Files created:**
+  - `apps/game/public/assets/3d/environments/hochiminh.glb`
+  - `apps/game/src/features/hochiminh/types.ts`
+  - `apps/game/src/features/hochiminh/colorEngine.ts`
+  - `apps/game/src/features/hochiminh/HCMModel.tsx`
+  - `apps/game/src/features/hochiminh/HCMCanvas.tsx`
+  - `apps/game/src/features/hochiminh/HCMOverlay.tsx`
+  - `apps/game/src/features/hochiminh/HCMPage.tsx`
+  - `apps/game/src/features/hochiminh/index.ts`
+- **Files modified:**
+  - `apps/game/src/app/App.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `THIRD_PARTY_NOTICES.md`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - TypeScript type check (`tsc --noEmit`): 0 errors.
+  - Production build (`vite build`): passed in 32s with optimized bundles.
+- **Unresolved issues / limitations:**
+  - The raw Sketchfab asset merged all meshes into a single material slot; our procedural coloring engine resolves this cleanly via vertex colors without requiring external 3D modeling re-export.
+- **Follow-up:**
+  - Optional mini-map / compass HUD when exploring the city.
 
 ### 2026-11-09 — Integration of Game-Ready City Asset, Sharpness Boost & Atmosphere Overhaul
 

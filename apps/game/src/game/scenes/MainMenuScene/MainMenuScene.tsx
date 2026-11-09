@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { EnvironmentLighting } from "./EnvironmentLighting";
 import { MenuCamera } from "./MenuCamera";
+import { SkyDome } from "./SkyDome";
 import { StreetEnvironment } from "./StreetEnvironment";
 import type { GameSettings } from "@scammaze/shared-types";
 
@@ -17,6 +18,7 @@ export const MainMenuScene: React.FC<MainMenuSceneProps> = ({ settings }) => {
       <EnvironmentLighting graphicsQuality={settings.graphicsQuality} />
 
       <Suspense fallback={<SceneLoadingPlaceholder />}>
+        <SkyDome />
         <StreetEnvironment shadows={isHighQuality} />
       </Suspense>
     </>
