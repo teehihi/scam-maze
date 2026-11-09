@@ -25,8 +25,12 @@ export const SkyDome: React.FC = () => {
   const [camX, , camZ] = STREET_CONFIG.camera.defaultPosition;
 
   return (
-    <mesh ref={skyRef} position={[camX, 0, camZ]} rotation={[0, Math.PI / 4, 0]}>
-      <sphereGeometry args={[380, 48, 32]} />
+    <mesh
+      ref={skyRef}
+      position={[camX, -135, camZ]}
+      rotation={[0, Math.PI / 3, 0]}
+    >
+      <sphereGeometry args={[380, 64, 40]} />
       <meshBasicMaterial
         map={texture}
         side={THREE.BackSide}

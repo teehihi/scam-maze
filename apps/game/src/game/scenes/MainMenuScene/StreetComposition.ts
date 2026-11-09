@@ -35,7 +35,7 @@ export const STREET_CONFIG = {
   // Camera settings (First person viewpoint on the avenue looking past the Motel & Diner towards city towers)
   camera: {
     defaultPosition: [-1.2, 1.85, -38.0] as [number, number, number],
-    targetPosition: [-1.0, 2.5, -135.0] as [number, number, number],
+    targetPosition: [-1.0, 7.5, -135.0] as [number, number, number],
     fov: 68,
     near: 0.1,
     far: 450,
