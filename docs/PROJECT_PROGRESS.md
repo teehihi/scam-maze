@@ -127,8 +127,10 @@ Resolved:
   4. Implemented `apps/game` using Three.js r174, React Three Fiber v9, and Drei v10:
      - First-person cinematic camera at human eye height (`y ≈ 2.05m`) looking down the avenue toward an atmospheric vanishing point.
      - Subtle breathing idle movement and pointer-based parallax motion for immersion.
-     - Rich street composition: road asphalt with dashed lane markings, modular residential buildings (B1–B5), corner building, neighborhood storefront, hospital with helipad, benches, streetlights, low-poly trees, and parked cars along curbs.
-     - Atmospheric environmental lighting: warm morning sunlight, ambient sky fill, distance fog fading into `#151324`, and glowing streetlight lanterns with point lights.
+     - Rich street composition: road asphalt with dashed lane markings, modular residential buildings (B1–B5, corner building, neighborhood storefront, hospital with helipad), benches, streetlights, low-poly trees, and parked cars along curbs.
+     - Calibrated true architectural scale (x100 factor on city pack to compensate for FBX cm-to-m conversion) so buildings stand 12m–18m tall and road spans 96m.
+     - Extracted vehicle meshes with `matrixWorld` applied and centered geometry so parked cars sit upright and flush on the pavement with true vehicle proportions.
+     - Atmospheric daylight lighting: crisp sunlight (`directionalLight` with soft shadows), ambient skylight (`#dbe7f7`), hemisphere ground bounce, and natural distance fog (`#86a9d2`) seamlessly matching the clear afternoon sky.
   5. Built accessible, stylized React menu overlay on top of 3D Canvas:
      - `NEW GAME`: opens Prologue introduction modal describing the morning notification scenario.
      - `CONTINUE`: disabled state explaining save system unlocks after Chapter 1.
