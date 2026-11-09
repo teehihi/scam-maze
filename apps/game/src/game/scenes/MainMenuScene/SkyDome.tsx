@@ -1,73 +1,37 @@
-import React, { useMemo, useRef } from "react";
+import React, { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import { STREET_CONFIG } from "./StreetComposition";
 
-const SKY_MODEL_PATH = "/assets/3d/environments/sky.glb";
-useGLTF.preload(SKY_MODEL_PATH);
+const SKY_TEXTURE_PATH = "/assets/3d/textures/sky.png";
+useTexture.preload(SKY_TEXTURE_PATH);
 
 export const SkyDome: React.FC = () => {
-  const skyGltf = useGLTF(SKY_MODEL_PATH);
-  const skyRef = useRef<THREE.Group>(null);
+  const texture = useTexture(SKY_TEXTURE_PATH);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
 
-  const skyObject = useMemo(() => {
-    // Find the Sphere_8 sky dome node inside sky.glb
-    const sphereNode = skyGltf.scene.getObjectByName("Sphere_8");
-    if (!sphereNode) {
-      // Fallback: search for Object_20 or any mesh in the scene
-      const mesh = skyGltf.scene.getObjectByName("Object_20") as THREE.Mesh | undefined;
-      if (mesh && mesh.isMesh) {
-        const cloned = mesh.clone();
-        if (cloned.material) {
-          const mat = (cloned.material as THREE.MeshStandardMaterial).clone();
-          mat.side = THREE.BackSide;
-          if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
-          if (mat.emissiveMap) mat.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-          cloned.material = mat;
-        }
-        return cloned;
-      }
-      return null;
-    }
+  const skyRef = useRef<THREE.Mesh>(null);
 
-    // Clone Sphere_8 and prepare its materials
-    const cloned = sphereNode.clone(true);
-    cloned.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        mesh.castShadow = false;
-        mesh.receiveShadow = false;
-        if (mesh.material) {
-          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          mats.forEach((m) => {
-            if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
-              const mat = m as THREE.MeshStandardMaterial;
-              mat.side = THREE.BackSide;
-              mat.roughness = 0.95;
-              mat.metalness = 0.0;
-              if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
-              if (mat.emissiveMap) mat.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-            }
-          });
-        }
-      }
-    });
-
-    return cloned;
-  }, [skyGltf]);
-
-  // Gentle atmospheric cloud drift
+  // Gentle atmospheric cloud drift across the city skyline
   useFrame((_, delta) => {
     if (skyRef.current) {
-      skyRef.current.rotation.y += delta * 0.004;
+      skyRef.current.rotation.y += delta * 0.006;
     }
   });
 
-  if (!skyObject) return null;
+  const [camX, , camZ] = STREET_CONFIG.camera.defaultPosition;
 
   return (
-    <group ref={skyRef} position={[0, -10, -85]} scale={[6.8, 6.8, 6.8]}>
-      <primitive object={skyObject} />
-    </group>
+    <mesh ref={skyRef} position={[camX, 0, camZ]} rotation={[0, Math.PI / 4, 0]}>
+      <sphereGeometry args={[380, 48, 32]} />
+      <meshBasicMaterial
+        map={texture}
+        side={THREE.BackSide}
+        depthWrite={false}
+      />
+    </mesh>
   );
 };

@@ -13,14 +13,8 @@ export const EnvironmentLighting: React.FC<EnvironmentLightingProps> = ({
 
   return (
     <>
-      {/* Clear natural sky color (Crisp afternoon daylight) */}
-      <color attach="background" args={["#86a9d2"]} />
-
-      {/* Subtle distant horizon fog - pushed far back so street & buildings stay razor sharp */}
-      <fog attach="fog" args={["#86a9d2", 220, 520]} />
-
       {/* Ambient Skylight (Soft sky illumination so shadows are clean and never pitch black) */}
-      <ambientLight color="#dbe7f7" intensity={1.2} />
+      <ambientLight color="#dbe7f7" intensity={1.25} />
 
       {/* Natural Hemisphere Light (Sky bounce from above, warm pavement bounce from below) */}
       <hemisphereLight
