@@ -118,6 +118,60 @@ Resolved:
 
 ## Task History
 
+### 2026-11-09 — User-Provided Cloud Sky Texture & 360-Degree Panoramic Dome Integration for HCM Map
+
+- **Objective:** Replace the procedural sky with the user-provided realistic cloud sky photo (`saigon_sky.png`), integrating a 360-degree panoramic sky dome with gentle atmospheric cloud drift to eliminate synthetic visual artifacts.
+- **Completed work:**
+  1. Processed user-uploaded sky photograph (1024x768) and saved as `apps/game/public/assets/3d/textures/saigon_sky.png`.
+  2. Created `<HCMSky />` component (`HCMSky.tsx`):
+     - Constructed a 260m-radius inverted upper dome geometry (`sphereGeometry args={[260, 48, 32, 0, Math.PI * 2, 0, Math.PI * 0.55]}`).
+     - Applied `THREE.MirroredRepeatWrapping` with `repeat.set(2.5, 1)` for a seamless 360-degree panoramic wrap without visible seams.
+     - Added smooth atmospheric cloud drift animation (`rotation.y += delta * 0.003`).
+     - Added dynamic theme color tinting (pure white for daylight, warm rose gold for sunset, deep midnight indigo for cyberpunk).
+  3. Integrated `<HCMSky />` into `HCMCanvas.tsx` inside `<Suspense fallback={null}>`.
+  4. Calibrated horizon fog (`#adc3e9`) to seamlessly blend distant city edges with the bottom gradient of the sky texture.
+- **Files created:**
+  - `apps/game/public/assets/3d/textures/saigon_sky.png`
+  - `apps/game/src/features/hochiminh/HCMSky.tsx`
+- **Files modified:**
+  - `apps/game/src/features/hochiminh/HCMCanvas.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - TypeScript type check (`tsc --noEmit`): 0 errors.
+  - Production build (`vite build`): passed in 30.8s.
+  - Live HMR refreshed at `http://localhost:5174/hochiminh`.
+
+### 2026-11-09 — Color Calibration & Photorealistic Shading Overhaul for HCM City 3D Map
+
+- **Objective:** Overhaul the coloring of the Ho Chi Minh City 3D map based on user-provided reference aerial photos (Bến Bạch Đằng, Cột cờ Thủ Ngữ, Tháp Bitexco, Sông Sài Gòn, Quận 1). Eliminate unnatural color smearing, replace cartoonish primary tones with authentic sediment river water, neutral architectural curtain-wall glass, manicured park lawns, and realistic roofing.
+- **Completed work:**
+  1. **Photometric Color Sampling & Analysis:**
+     - Sampled real RGB values directly from 4 user-uploaded aerial reference photographs:
+       - Sông Sài Gòn alluvial silt water: `#606756` (warm olive-khaki sediment water, not neon blue).
+       - Bến Bạch Đằng park lawns: `#4d753b` (manicured crescent grass curves) and stone promenade pavers `#bab6ad`.
+       - High-rise curtain glass: `#566878` (neutral slate), `#788c9e` (sky reflective), `#3f4f5d` (deep smoke solar glass).
+       - Rooftops: predominantly light concrete slabs `#abb4bd` and metal decking `#959fa9` with subtle weathered clay red accents `#7c3e30` (15%), eliminating giant orange-red smears.
+  2. **Grid-Cell Quantization & Anti-Smearing Engine (`colorEngine.ts`):**
+     - Replaced continuous vertex random hashing with a 4.0m spatial quantization grid (`gridHash(cellX, cellZ)`), ensuring that all vertices of a building or roof share uniform architectural material parameters without gradient streaks.
+     - Implemented landmark-specific material mapping:
+       - **Bitexco Financial Tower:** Lotus silver-slate curtain glass with cantilevered helipad plate and metallic crown.
+       - **Northern Tower Cluster (Vietcombank):** Refined vertical louvers and reflective slate glass.
+       - **Bến Bạch Đằng Waterfront:** Defined manicured park curves and pedestrian walkways along Tôn Đức Thắng avenue.
+  3. **Atmospheric Lighting & Sky Enhancement (`HCMCanvas.tsx`):**
+     - Replaced dull grayish sky with authentic radiant tropical blue (`#629ad6` to `#8cbbe8`).
+     - Added midday sun directional light (`#fffbf0`, intensity 2.1) casting natural architectural shadows.
+     - Pushed atmospheric fog far back (`[55m, 200m]`) to maintain crystal-clear visibility across the 3km x 3km city.
+- **Files modified:**
+  - `apps/game/src/features/hochiminh/colorEngine.ts`
+  - `apps/game/src/features/hochiminh/HCMModel.tsx`
+  - `apps/game/src/features/hochiminh/HCMCanvas.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `tsc --noEmit` passed with 0 errors.
+  - Live HMR refreshed at `http://localhost:5174/hochiminh`.
+- **Follow-up:**
+  - Additional landmark camera angles if requested.
+
 ### 2026-11-09 — Atmospheric 3D Sky Dome Integration with Dynamic Cloud Motion
 
 - **Objective:** Replace the flat background sky with the owner-downloaded `sky.glb` asset, providing a realistic 360-degree atmospheric dome with hand-painted low-poly clouds and subtle dynamic cloud drift across the city skyline.

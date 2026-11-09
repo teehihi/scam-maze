@@ -14,16 +14,19 @@ import {
   VolumeX,
   ExternalLink,
   Compass,
+  MapPin,
 } from "lucide-react";
 
 interface MainMenuOverlayProps {
   settings: GameSettings;
   onUpdateSettings: (settings: Partial<GameSettings>) => void;
+  onOpenHCM?: () => void;
 }
 
 export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
   settings,
   onUpdateSettings,
+  onOpenHCM,
 }) => {
   const [introOpen, setIntroOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -48,6 +51,19 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
         </div>
 
         <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Link to HCM 3D Map Route */}
+          {onOpenHCM && (
+            <button
+              type="button"
+              onClick={onOpenHCM}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-950/80 to-[#1e1b33]/90 hover:from-emerald-900 hover:to-[#2b2747] border border-emerald-500/40 text-xs font-medium text-emerald-300 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
+              title="Khám phá Bản đồ 3D TP. Hồ Chí Minh"
+            >
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Bản đồ TP.HCM 3D</span>
+            </button>
+          )}
+
           {/* Quick Sound Mute Toggle */}
           <button
             type="button"
@@ -131,6 +147,16 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
               variant="secondary"
               onClick={() => setCreditsOpen(true)}
             />
+
+            {onOpenHCM && (
+              <MenuButton
+                label="BẢN ĐỒ TP. HỒ CHÍ MINH 3D"
+                sublabel="Mô hình 3D trung tâm Sài Gòn có màu sắc"
+                icon={MapPin}
+                variant="secondary"
+                onClick={onOpenHCM}
+              />
+            )}
           </nav>
         </div>
       </main>
