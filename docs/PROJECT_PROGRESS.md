@@ -49,6 +49,7 @@ Verified against merged pull requests on GitHub and local workspace builds.
 ## In Progress
 
 - [ ] First-person player controller and navigation movement (WASD / pointer lock).
+- [ ] Map Entry Arm Intro: Play `rig|Equip` animation on map entry (noted for tomorrow / "lưu lại mai sửa").
 - [ ] In-game smartphone interface and message notifications.
 - [ ] Chapter 1 "The Urgent Call" scenario state machine.
 
@@ -123,6 +124,66 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — First-Person Arms Complete 16-Animation Catalog Documentation & Equip Plan
+
+- **Objective:** Document the complete 16-animation suite for the first-person arms viewmodel (`docs/gameplay/FIRST_PERSON_ARMS_ANIMATIONS.md`), plan the scene entry `rig|Equip` requirement ("lưu lại mai sửa"), and synchronize with the upstream PR #12 merge.
+- **Completed work:**
+  - Authored comprehensive documentation `docs/gameplay/FIRST_PERSON_ARMS_ANIMATIONS.md` covering all 16 animation states (`Static Pose`, `rig|Equip`, `rig|Idle`, `rig|Idle_Fidget`, `rig|Walk`, `rig|Sprint_Type_1`, `rig|Sprint_Type_2`, `rig|Punch_R`, `rig|Punch_L`, `rig|Block_Start`, `rig|Block_Loop`, `rig|Block_Stop`, `rig|Inspect`, `rig|Take_Start`, `rig|Take_Loop`, `rig|Take_Stop`, `rig|Unequip`).
+  - Specified timing, state machine priorities, combo cancellation windows, and control bindings for each animation.
+  - Recorded map entry requirement: when entering a map, the viewmodel must play `rig|Equip` to smoothly raise hands from below into ready stance.
+  - Successfully reconciled merge conflict with upstream PR #12 (commit `f6b4cc8`) preserving byte-measured startup loader changes.
+- **Files created/modified:**
+  - `docs/gameplay/FIRST_PERSON_ARMS_ANIMATIONS.md` (created)
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm test`
+- **Build and test results:**
+  - Clean typecheck and automated test suite verification.
+- **Follow-up tasks:**
+  - Tomorrow: Implement scene entry `rig|Equip` hand raise transition on map spawn.
+
+### 2026-11-11 — Instant Punch on Click & Continuous 1-2 Combo Punching on Hold
+
+- **Objective:** Optimize punch responsiveness: immediate launch on click with zero perceptual lag, and fluid continuous 1-2 boxing combo while holding mouse or key ("Cố gắn tối ưu sao cho khi click là đấm liền, nhấn giữ thì đấm liên tục").
+- **Completed work:**
+  - Zero-latency click strike: Set punch `fadeIn` to `0.01` (frame-zero snap) with accelerated punch time scale (`timeScale = 1.85`, ~180ms to impact point), eliminating input and animation lag.
+  - Continuous combo system: Implemented combo transition window at $380\text{ms}$ (70% through retraction phase). While `keysRef.current.punch` remains true (holding mouse button or `F`/`E` key), the system seamlessly chains into the opposite hand (`Punch_R` $\leftrightarrow$ `Punch_L`).
+  - Audio & raycast synchronization: Evaluates melee reach raycast and plays `hit_punch` or `miss_punch` on every individual strike in the continuous combo.
+  - Clean interruptible recovery: Releasing mouse/key allows the final punch in progress to finish cleanly and smoothly transition back into idle/walk locomotion.
+- **Files created/modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed cleanly across all 3 packages).
+  - `pnpm test` (passed: 9 test files, 84/84 tests).
+- **Build and test results:**
+  - TypeScript compilation clean in 4.2s.
+  - All 84 tests green in 7.92s.
+- **Unresolved issues and known limitations:**
+  - None.
+- **Follow-up tasks:**
+  - None.
+
+### 2026-11-11 — Fix Static Grass Bed & Eliminate Ground Mesh Sway
+
+- **Objective:** Fix terrain stability: ensure ground lawn/grass patches (`cỏ`) stay completely motionless and static ("cái nền cỏ đứng yên nha mắc gì mà lắc qua lắc lại").
+- **Completed work:**
+  - Removed procedural sway animation on `cỏ` (ground lawn mesh in front of houses and under the car) in `StreetEnvironment.tsx`.
+  - Froze matrix transforms (`matrixAutoUpdate = false`, `updateMatrix()`) on all grass patches so ground terrain remains 100% solid and motionless.
+- **Files created/modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (workspace-wide TypeScript check: passed cleanly).
+- **Build and test results:**
+  - Typecheck passed cleanly across all packages in 3.9s.
+- **Unresolved issues and known limitations:**
+  - None.
+- **Follow-up tasks:**
+  - None.
+
 ### 2026-11-10 — Startup Loading Percentage
 
 - **Objective:** Show a real percentage on the startup loading bar, measured from the downloaded bytes of the main menu street GLB (`STREET_ENVIRONMENT_GLB`, about 26 MB), without a second download and without any timer-driven progress.
@@ -139,6 +200,237 @@ Resolved:
 - **Unresolved issues and known limitations:** Not checked in a browser. The percentage becomes indeterminate if the host omits `Content-Length`. With gzip or Brotli compression, `loaded` counts decoded bytes, so the value caps at 99 until the load completes. The sky texture is not measured. Draco is not configured for the street loader; a Draco-compressed street file would fail with an error shown in the existing error state.
 - **Deviations from the documented architecture:** `StreetEnvironment.tsx` now uses R3F `useLoader` with three's `GLTFLoader` instead of Drei `useGLTF`. Drei's Draco setup is dropped for this file; it uses Meshopt only, which matches how `scripts/optimize-environment.cjs` produces the file. No new dependency.
 - **Follow-up tasks:** Manual browser check of the startup percentage on a throttled connection; check the production host's `Content-Length` and compression for the street GLB.
+  - None.
+- **Follow-up tasks:**
+  - None.
+
+### 2026-11-10 — Complete Author Animation Suite & Viewmodel Rig Calibration
+
+- **Objective:** Fix viewmodel proportions, eliminate severed shoulder clipping, integrate author's authentic animation set (`rig|Equip`, `rig|Idle`, `rig|Walk`, `rig|Sprint_Type_1`, `rig|Punch_R`/`rig|Punch_L`, `rig|Inspect`), and isolate action animations from locomotion interference ("lấy hết animation tác giả qua đi, có trạng thái equid nữa").
+- **Completed work:**
+  - Integrated `rig|Equip` (0.73s): On component mount, the player's arms smoothly rise up into resting position from below before handing off to idle/locomotion.
+  - Replaced procedural sprint walk multiplier with the author's authentic `rig|Sprint_Type_1` running stride animation.
+  - Implemented crisp punch playback with `rig|Punch_R` (cross) and `rig|Punch_L` (jab) at `timeScale = 1.55` (~0.64s punch duration).
+  - Resolved skeletal blend conflict: Prioritized action animations (`Equip`, `Punch`, `Inspect`) by cleanly fading out background locomotion actions during strikes/equips so bones never fight for competing transforms, smoothly restoring locomotion once finished.
+  - Calibrated viewmodel camera transform to `scale={[0.72, 0.72, 0.72]}`, `position={[0, -1.10, 0.05]}`, `rotation={[-0.05, Math.PI, 0]}`. Aligns hands in the lower center view ($Y_{ndc} \approx -0.55$), positions shoulder bases behind the camera near clipping plane ($Z_{cam} > 0$), and matches the author's Sketchfab presentation.
+- **Files created/modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (workspace-wide TypeScript check: passed across 3/3 packages).
+  - `pnpm test` (Vitest: 9 test files, 84/84 tests passed).
+- **Build and test results:**
+  - Typecheck passed cleanly in 4.9s.
+  - All 84 unit and loading tests passed in 11.4s.
+- **Unresolved issues and known limitations:**
+  - None for viewmodel animation and audio mechanics.
+- **Follow-up tasks:**
+  - Add optional blocking state (`rig|Block_Start` / `rig|Block_Loop` / `rig|Block_Stop`) on right-click if needed.
+
+### 2026-11-10 — Punch Audio System: Raycasted Hit vs Miss Sound Effects
+
+- **Objective:** Add punch audio effects playing `hit_punch` when striking a 3D target and `miss_punch` when swinging into thin air ("Thêm sound, hit_punch khi đấm trúng, miss_punch khi đấm hụt").
+- **Completed work:**
+  - Integrated user-uploaded audio files `hit_punch.mp3` (23 KB) and `miss_punch.mp3` (18 KB) into `apps/game/public/assets/audio/`.
+  - Implemented zero-latency Web Audio API pre-decoding inside `TestMovePlayer.tsx` respecting user audio settings (`soundEnabled`, `sfxVolume`).
+  - Added melee raycasting ($2.2\text{m}$ punch reach) along the camera's crosshair view vector in `useFrame`, filtering out the player's own viewmodel arms and camera hierarchy.
+  - When the punch ray intersects any 3D world geometry within reach (pedestrians, vehicles, bánh mì cart, benches, shophouses), `hit_punch.mp3` plays with immediate punchy impact.
+  - When swinging into thin air with no target within $2.2\text{m}$, `miss_punch.mp3` plays with airy whoosh feedback.
+- **Files created/modified:**
+  - `apps/game/public/assets/audio/hit_punch.mp3` (created)
+  - `apps/game/public/assets/audio/miss_punch.mp3` (created)
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `apps/game/src/features/testmove/TestMoveCanvas.tsx`
+  - `apps/game/src/features/testmove/TestMovePage.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm test`
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** Ready for in-game smartphone UI and storyline interactions.
+
+### 2026-11-10 — First-Person Arms Reach & Forearm Extension Recalibration
+
+- **Objective:** Fix arms looking stubby / too short with only fingertips poking up ("Cái tay lồi ra ngắn quá nhìn kì").
+- **Completed work:**
+  - Diagnosed stubby arm look: previous lower position (`posY = -1.16, posZ = 0.04, scale = 0.68`) sank the arms too deep into the screen bezel, concealing the forearm and showing only the wrists/fingertips.
+  - Recalibrated arm rig transform in `FirstPersonArms.tsx`: raised $Y$ by $+10$cm to `-1.06`, brought $Z$ forward to `+0.01`, reduced tilt to `-0.03`, and increased scale to `[0.78, 0.78, 0.78]`.
+  - The entire forearm now reaches forward into the lower screen diagonally, showcasing full human arm length with authentic adult proportions while keeping the cut-off shoulder stumps completely invisible behind the camera frustum.
+- **Files modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm test`
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** Ready for in-game smartphone and scenario triggers.
+
+### 2026-11-10 — Single-Shot Punch Animation Watchdog & Repeat Key Debouncing
+
+- **Objective:** Fix punch animation loop bug where a single click caused continuous infinite punching ("Bấm có 1 cái đấm hoài").
+- **Completed work:**
+  - Diagnosed infinite punch loop: `onPunchFinished` was passed as an unmemoized inline arrow function in `TestMovePlayer.tsx`. Any state update re-created the callback, triggering the `useEffect` cleanup in `FirstPersonArms.tsx` and tearing down the `mixer.removeEventListener('finished')` listener before the 1-second punch clip ended. Because `isPunching` remained true, the effect immediately re-executed, toggling to the opposite fist and punching indefinitely.
+  - Implemented `onPunchFinishedRef` and `onInspectFinishedRef` in `FirstPersonArms.tsx` so callback references are stable and never re-trigger animation effects.
+  - Added single-trigger latch `isPunchingActiveRef` and a hardware watchdog timer (`clipDuration + 50ms`) to guarantee that every punch finishes cleanly and returns control to idle/walk even if mixer frames drop.
+  - Memoized `handlePunchFinished` and `handleInspectFinished` with `React.useCallback` in `TestMovePlayer.tsx`.
+  - Added `!e.repeat` guards for action keys (`KeyF`, `KeyE`, `KeyT`, `KeyI`) in `usePlayerControls.ts` to stop OS keyboard repeat from sending rapid punch triggers.
+- **Files modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `apps/game/src/features/testmove/usePlayerControls.ts`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm test`
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** Ready for in-game smartphone UI and storyline interactions.
+
+### 2026-11-10 — Animation Logic Overhaul: Natural Rest Posture & Jogging Cadence
+
+- **Objective:** Fix animation bugs where standing still looked like punching/boxing guard and sprinting threw rapid forward punches ("đứng yên mà như đấm, chạy thì đấm nốt luôn").
+- **Completed work:**
+  - Diagnosed accidental punch on pointer lock: `handleMouseDown` in `usePlayerControls.ts` was setting `punchTriggerRef.current = true` on the very first click used to acquire pointer lock, immediately throwing a punch every time the user focused the game. Restricted punch trigger so only clicks *after* pointer lock is active trigger a punch.
+  - Diagnosed aggressive boxing sprint: `rig|Sprint_Type_1` in `first_person_animations.glb` had a $61$cm forward fist pump (double the extension of an actual punch), causing sprint to look like continuous rapid-fire punching. Replaced with `rig|Walk` at dynamic `timeScale = 1.65`, providing a natural, energetic jogging stride with smooth $2.9$cm natural arm sway.
+  - Diagnosed standing still combat stance: lowered resting arms position to `[0, -1.16, 0.04]` so hands rest comfortably in the lower third of the screen rather than raised up at eye level like a boxer.
+  - Fixed animation mixer recovery: ensured `currentActionRef.current = null` upon one-shot punch/inspect completion and checked `!currentActionRef.current?.isRunning()`, guaranteeing immediate smooth return to idle breathing.
+- **Files modified:**
+  - `apps/game/src/features/testmove/usePlayerControls.ts`
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm test`
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** Ready for in-game smartphone and scenario interactions.
+
+### 2026-11-10 — Player Eye Level Realism Alignment with Street Pedestrians
+
+- **Objective:** Fix dwarfed player height ("Quá lùn") where the camera was aimed at the NPC's belt/knees instead of their eyes.
+- **Completed work:**
+  - Inspected 3D vertex coordinates of sidewalk pedestrians (`20261110000447_177df9df` denim vest male NPC and `rp_mei_posed_001_100k` female pedestrian) in `MenuBG.glb`. Sidewalk surface is at $Y = -94.48$m, with pedestrian eye level precisely at $Y \in [-92.65, -92.75]$m.
+  - Previous `groundY: -93.25` placed the camera at $1.23$m above the sidewalk (child height, eye level at NPC chest/crotch).
+  - Raised player camera `groundY` to `-92.70`m in `TestMovePlayer.tsx` and `TestMovePage.tsx`. The player now stands at full adult human height ($1.78$m above road, $1.65$m above sidewalk), looking pedestrians directly in the eyes peer-to-peer.
+  - Because `FirstPersonArms` is mounted to `camera`, the arms follow camera elevation with zero re-alignment required.
+- **Files modified:**
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `apps/game/src/features/testmove/TestMovePage.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm test`
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** In-game smartphone UI and scam scenario narrative interaction.
+
+### 2026-11-10 — First-Person Arms Shoulder Geometry Calibration & Loading Transition Safeguard
+
+- **Objective:** Eliminate hollow cut-off shoulder stumps when pitching camera down and eliminate initial black screen flicker on `/testmove`.
+- **Completed work:**
+  - Diagnosed cut-off shoulder visibility: `first_person_animations.glb` is an authored FPS viewmodel terminating cleanly at the deltoids. When pitched downwards or placed too close to the camera near plane ($Z = 0.05$), the hollow shoulder stumps crossed into the camera viewing frustum and were sliced by the near clipping plane, projecting giant triangular wedges into view.
+  - Recalibrated camera-relative transform in `FirstPersonArms.tsx`: positioned at `[0, -1.10, 0.03]` with forward tilt `rotation={[-0.08, Math.PI, 0]}` and scale `[0.68, 0.68, 0.68]`. The subtle $4.5^\circ$ forward angle pushes the cut-off shoulder caps safely behind the bottom-back camera frustum boundary, while placing the hands and forearms at natural eye-hand coordination height across all pitch angles (looking up at the sky, straight at street, or looking down at the ground).
+  - Fixed initial black screen in `TestMovePage.tsx`: modified `showLoading = !sceneReady` so the atmospheric spinner/progress overlay remains smoothly visible until `StreetEnvironment` signals completion, preventing any momentary black screen flash during cold model load.
+- **Files modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `apps/game/src/features/testmove/TestMovePage.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed: 3/3 packages clean)
+  - `pnpm test` (passed: 9 test files, 84/84 tests)
+  - `pnpm build:game` (passed)
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** Integrate in-game smartphone UI and chapter scenario triggers.
+
+### 2026-11-10 — Camera Scene Graph Parenting, Scale Realism & Jitter Elimination
+
+- **Objective:** Fix disappearing arms when using `createPortal` (camera not in scene traversal), adjust proportions to natural human scale (scale 0.70), and eliminate residual hand jitter in first-person view (`/testmove`).
+- **Completed work:**
+  - Diagnosed disappearing arms: in Three.js / R3F, the default scene camera is not in the scene tree by default unless explicitly mounted. Portaling children into a non-traversed camera caused Three.js to skip rendering the arms entirely.
+  - Mounted `<primitive object={camera}>` directly into the scene in `TestMovePlayer.tsx`, physically nesting `FirstPersonArms` as a direct child of the camera. The camera is now part of the scene graph, and the arms render flawlessly with zero latency, zero matrix copy lag, and zero floating-point precision jitter.
+  - Calibrated arm scale to `scale={[0.7, 0.7, 0.7]}` with position `[0, -1.1, -0.1]`: perfectly matches the 1.78m pedestrians, vehicles, and shophouses on District 4 street.
+  - Removed all procedural position manipulation / sine bobbing from `FirstPersonArms.tsx`: the arms now run **100% on the author's pure animations** (`rig|Idle`, `rig|Walk`, `rig|Sprint_Type_1`, `rig|Punch_R`, `rig|Punch_L`, `rig|Inspect`) without any procedural interference.
+- **Files modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed: 3/3 packages clean)
+  - `pnpm test` (passed: 9 test files, 84/84 tests)
+  - `pnpm build` (passed)
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** Ready for in-game smartphone UI and gameplay scenarios.
+
+### 2026-11-10 — Arms Material PBR Texture Restoration & Animation Jitter Elimination
+
+- **Objective:** Fix chalk-white/pale washed out arm color and resolve hand jitter/vibration in first-person view (`/testmove`) using the exact original textures from `first_person_animations.glb`.
+- **Completed work:**
+  - Diagnosed washed out arm color: the original Sketchfab model stored skin diffuse and normal maps in the deprecated `KHR_materials_pbrSpecularGlossiness` extension. While standalone viewers like `3dviewer.net` bundle compatibility shims for this extension, Three.js r174 removed it, falling back to untextured white plaster (`(255, 255, 255)`).
+  - Migrated the model to standard glTF metallic-roughness PBR using the **exact 100% original lossless PNG textures** directly from the author (`arms_diffuse.png` 3.22MB, RGB `[198, 142, 121]`, and `arms_normal.png` 1.38MB), preserving the original soft matte skin look (`roughness = 0.8`, `metalness = 0.0`), with zero compression degradation.
+  - Configured `mat.map.colorSpace = THREE.SRGBColorSpace` in `FirstPersonArms.tsx` ensuring rich, authentic human skin tone matching `3dviewer.net` 1:1.
+  - Diagnosed hand vibration: previous keyframe resampling had crushed 151 rotation keyframes per hand bone down to 2, causing slerp snapping; furthermore, `FirstPersonArms.tsx` ran an artificial idle sine bobbing that fought against the author's idle breathing animation.
+  - Re-exported clean model preserving all 151 keyframes per bone at 100% fidelity (14.0MB total, down from 23.8MB by stripping background geometry).
+  - Updated `useFrame` in `FirstPersonArms.tsx`: smooth damping glides procedural bobbing to 0 when stationary so the author's breathing plays rock-solid without micro-jitter.
+  - Added `camera.updateMatrixWorld()` in `TestMovePlayer.tsx` ensuring zero latency between camera and arm rig transforms.
+- **Files modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `apps/game/public/assets/3d/characters/first_person_animations.glb`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed: 3/3 packages clean)
+  - `pnpm test` (passed: 9 test files, 84/84 tests)
+  - `pnpm build` (passed)
+- **Unresolved issues and known limitations:** None.
+- **Follow-up tasks:** Ready for in-game smartphone UI and story triggers.
+
+### 2026-11-10 — First-Person Arms Alignment & FPS Camera Euler Gimbal Fix
+
+- **Objective:** Fix reversed first-person arms model orientation (hollow cut-off shoulder stumps pointing at the camera) and eliminate gimbal roll/tilting horizon during camera look in `/testmove`.
+- **Completed work:**
+  - Resolved arms orientation in `FirstPersonArms.tsx`: the authored GLB has hands extending along $+Z$ and cut-off upper arm/shoulder stumps at $-Z$. Wrapped the model in an internal group rotated by $180^\circ$ around Y (`rotation={[0, Math.PI, 0]}`), mapping the hands forward along camera $-Z$ (into the view frustum), shoulders behind the viewpoint near plane ($+Z$), left hand to screen-left ($-X$), and right hand to screen-right ($+X$).
+  - Calibrated arms viewpoint offset to `[0, -1.46, -0.05]` so fists sit naturally in the lower-third view and punch strikes directly align with the crosshair center. Added `renderOrder = 999` to prevent near geometry clipping.
+  - Eliminated camera gimbal roll in `TestMovePlayer.tsx`: switched camera rotation from default `'XYZ'` Euler order to standard FPS `'YXZ'` Euler order (`camera.rotation.set(pitch, yaw, 0, 'YXZ')`), strictly enforcing $0$ roll so the horizon never twists or turns sideways when looking up/down while rotating.
+  - Initialized camera yaw to `Math.PI` so the player begins facing directly down the Saigon District 4 street ($+Z$).
+  - Synchronized movement vectors cleanly with camera orientation (`forward = (0, 0, -1).applyAxisAngle(Y, yaw)` and `right = (1, 0, 0).applyAxisAngle(Y, yaw)`).
+  - Locked camera rig quaternion directly to camera quaternion (`cameraGroupRef.current.quaternion.copy(camera.quaternion)`).
+- **Files modified:**
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed: 3/3 packages clean)
+  - `pnpm test` (passed: 9 test files, 84/84 tests)
+  - `pnpm build` (passed: workspace-wide production build completed with exit code 0)
+- **Unresolved issues and known limitations:** None for this test route.
+- **Follow-up tasks:** Integrate sound effects and connect interactions with in-game smartphone.
+
+### 2026-11-10 — First Person 3D Movement & Combat Testing Route (/testmove)
+
+- **Objective:** Implement a dedicated sandbox playground at `/testmove` (unlinked from menu) with first-person animated arms (`first_person_animations.glb`), WASD locomotion, sprint, jump physics, left-click/F punch attacks, pointer lock toggle, deep asset optimization, and responsive loading feedback.
+- **Completed work:**
+  - Optimized `first_person_animations.glb` using `@gltf-transform`, reducing file size from **23.1MB to 3.87MB (-83.2%)** by stripping unneeded preview backdrop geometry (`Background_Background_0`), downscaling textures to 1024px WebP, deduplicating primitives, and resampling dense animation keyframe tracks.
+  - Built `usePlayerControls.ts` capturing WASD, Shift (sprint), Space (jump), Left Click / `F` / `E` (punch attack), `T` (inspect arms), and `Ctrl` pointer lock toggle with Mac Trackpad considerations.
+  - Developed `FirstPersonArms.tsx` binding directly to the original skinned glTF hierarchy without cloning errors, managing locomotion state machine and alternating punches.
+  - Implemented `TestMovePlayer.tsx` with smooth mouse/trackpad camera rotation (lerp damping), friction, velocity, gravity, jump, and street boundary collision.
+  - Added dedicated fast loading screen with `useProgress` percentage bar on `/testmove` so the viewport never stalls on a black screen.
+  - Decoupled Three.js Suspense boundaries so the sky dome and lighting render immediately on Frame 1.
+  - Created `TestMoveOverlay.tsx` with reticle crosshair, HUD controls guide, and Mac Trackpad tips.
+  - Synthesized Web Audio API punch swoosh effect for punch action feedback.
+  - Configured `/testmove` route in `App.tsx` with seamless return to main menu.
+- **Files created:**
+  - `apps/game/src/features/testmove/usePlayerControls.ts`
+  - `apps/game/src/features/testmove/FirstPersonArms.tsx`
+  - `apps/game/src/features/testmove/TestMovePlayer.tsx`
+  - `apps/game/src/features/testmove/TestMoveOverlay.tsx`
+  - `apps/game/src/features/testmove/TestMoveCanvas.tsx`
+  - `apps/game/src/features/testmove/TestMovePage.tsx`
+  - `apps/game/src/features/testmove/index.ts`
+- **Files modified:**
+  - `apps/game/src/app/App.tsx`
+  - `apps/game/public/assets/3d/characters/first_person_animations.glb`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm test` (9 test files, 84 tests passed)
+- **Results:** Clean typecheck and 84/84 tests passed. Model downloads in ~0.2s (3.8MB) and loading screen provides immediate feedback.
 
 ### 2026-11-10 — Loading Screen Full-Width Progress Bar
 

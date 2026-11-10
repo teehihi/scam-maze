@@ -1,0 +1,1 @@
+export { TestMovePage } from "./TestMovePage";

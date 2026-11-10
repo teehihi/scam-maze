@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { HCMPage } from "../features/hochiminh";
+import { TestMovePage } from "../features/testmove";
 import { MenuStartupLoading } from "../features/loading/MenuStartupLoading";
 import { ChapterLoadingFlow } from "../features/loading/ChapterLoadingFlow";
 import { ChapterPlaceholder } from "../features/chapter/ChapterPlaceholder";
@@ -44,22 +45,26 @@ const DEFAULT_SETTINGS: GameSettings = {
   fov: 72,
 };
 
-function getIsHCMRoute(): boolean {
-  if (typeof window === "undefined") return false;
+type AppRoute = "menu" | "hochiminh" | "testmove";
+
+function getAppRoute(): AppRoute {
+  if (typeof window === "undefined") return "menu";
   const path = window.location.pathname.toLowerCase();
   const hash = window.location.hash.toLowerCase();
-  return (
+  if (path.startsWith("/testmove") || hash.includes("testmove")) return "testmove";
+  if (
     path.startsWith("/hochiminh") ||
     path.startsWith("/hcm") ||
     hash.includes("hochiminh") ||
     hash.includes("hcm")
-  );
+  ) {
+    return "hochiminh";
+  }
+  return "menu";
 }
 
 export const App: React.FC = () => {
-  const [route, setRoute] = useState<"menu" | "hochiminh">(() =>
-    getIsHCMRoute() ? "hochiminh" : "menu"
-  );
+  const [route, setRoute] = useState<AppRoute>(() => getAppRoute());
   const [sceneReady, setSceneReady] = useState(false);
   // Without WebGL the canvas shows its own fallback, so the startup screen would never finish.
   const [showLoading, setShowLoading] = useState(() => checkBasicWebGLSupport());
@@ -81,7 +86,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const handleLocationChange = () => {
-      setRoute(getIsHCMRoute() ? "hochiminh" : "menu");
+      setRoute(getAppRoute());
     };
 
     window.addEventListener("popstate", handleLocationChange);
@@ -92,8 +97,9 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const navigateTo = (newRoute: "menu" | "hochiminh") => {
-    const targetPath = newRoute === "hochiminh" ? "/hochiminh" : "/";
+  const navigateTo = (newRoute: AppRoute) => {
+    const targetPath =
+      newRoute === "hochiminh" ? "/hochiminh" : newRoute === "testmove" ? "/testmove" : "/";
     window.history.pushState(null, "", targetPath);
     setRoute(newRoute);
   };
@@ -439,6 +445,16 @@ export const App: React.FC = () => {
   // Route: /hochiminh -> Standalone 3D Ho Chi Minh Map Explorer with rich colors
   if (route === "hochiminh") {
     return <HCMPage onBackToMenu={() => navigateTo("menu")} />;
+  }
+
+  // Route: /testmove -> 3D First Person Movement & Combat Testing Playground
+  if (route === "testmove") {
+    return (
+      <TestMovePage
+        settings={settings}
+        onBackToMenu={() => navigateTo("menu")}
+      />
+    );
   }
 
   // Route: / -> Original Main Menu Scene & Overlay

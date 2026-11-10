@@ -37,11 +37,6 @@ interface FoliageAnimSystem {
     object: THREE.Object3D;
     baseRot: THREE.Euler;
   };
-  grassList: Array<{
-    object: THREE.Object3D;
-    baseRotZ: number;
-    phaseOffset: number;
-  }>;
 }
 
 export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
@@ -52,7 +47,7 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
   const [isCompiled, setIsCompiled] = useState(false);
   const cityGltf = useLoader(StreetGLTFLoader, CITY_MODEL_PATH, streetLoaderExtensions);
   const npcsRef = useRef<AnimatedPedestrian[]>([]);
-  const foliageRef = useRef<FoliageAnimSystem>({ grassList: [] });
+  const foliageRef = useRef<FoliageAnimSystem>({});
   const readyNotified = useRef(false);
 
   // Prepare and calibrate the Vietnamese street environment
@@ -60,7 +55,7 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
   const primaryCityScene = useMemo(() => {
     const scene = cityGltf.scene;
     const npcs: AnimatedPedestrian[] = [];
-    const foliage: FoliageAnimSystem = { grassList: [] };
+    const foliage: FoliageAnimSystem = {};
 
     let npcIndex = 0;
     const alreadyCalibrated = Boolean(scene.userData.calibrated);
@@ -124,16 +119,6 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
           object: child,
           baseRot: child.rotation.clone(),
         };
-        return;
-      }
-
-      if (lowerName.startsWith("cỏ")) {
-        child.matrixAutoUpdate = true;
-        foliage.grassList.push({
-          object: child,
-          baseRotZ: child.rotation.z,
-          phaseOffset: foliage.grassList.length * 1.3,
-        });
         return;
       }
 
@@ -303,15 +288,6 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
       const bSwayY = Math.cos(bTime * 0.6) * 0.01;
       object.rotation.z = baseRot.z + bSwayZ;
       object.rotation.y = baseRot.y + bSwayY;
-    }
-
-    // 4. Sidewalk & Planter Grass: Gentle grassy ripples
-    if (foliage.grassList.length > 0) {
-      foliage.grassList.forEach((grass) => {
-        const gTime = time * 1.1 + grass.phaseOffset;
-        const gSway = Math.sin(gTime) * 0.022 + Math.sin(gTime * 1.9) * 0.008;
-        grass.object.rotation.z = grass.baseRotZ + gSway;
-      });
     }
   });
 
