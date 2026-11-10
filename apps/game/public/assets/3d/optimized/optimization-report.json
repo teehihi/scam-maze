@@ -1,0 +1,12 @@
+{
+  "originalPath": "/Users/tee/UTE/Kiroween/scam-maze/apps/game/public/assets/3d/environments/MenuBG.glb",
+  "optimizedPath": "/Users/tee/UTE/Kiroween/scam-maze/apps/game/public/assets/3d/optimized/MenuBG.optimized.glb",
+  "originalSizeBytes": 440527316,
+  "round1SizeBytes": 45093492,
+  "optimizedSizeBytes": 21504784,
+  "reductionRatio": "95.12%",
+  "originalTriangles": 6483271,
+  "optimizedTriangles": 542342,
+  "triangleReductionRatio": "91.63%",
+  "timestamp": "2026-11-10T03:37:00.000Z"
+}

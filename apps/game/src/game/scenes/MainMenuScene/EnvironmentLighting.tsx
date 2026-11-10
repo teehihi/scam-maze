@@ -10,6 +10,7 @@ export const EnvironmentLighting: React.FC<EnvironmentLightingProps> = ({
   graphicsQuality,
 }) => {
   const isHigh = graphicsQuality === "high";
+  const isLow = graphicsQuality === "low";
 
   return (
     <>
@@ -40,22 +41,23 @@ export const EnvironmentLighting: React.FC<EnvironmentLightingProps> = ({
         shadow-bias={-0.0002}
       />
 
-      {/* Warm Street Lamp Point Lights along sidewalks */}
-      {STREET_CONFIG.streetLights.map((light, index) => (
-        <group key={`streetlight-${index}`} position={light.position}>
-          <pointLight
-            color={light.color}
-            intensity={light.intensity}
-            distance={light.distance}
-            decay={2}
-          />
-          {/* Glowing lantern bulb marker */}
-          <mesh>
-            <sphereGeometry args={[0.2, 10, 10]} />
-            <meshBasicMaterial color="#ffe399" />
-          </mesh>
-        </group>
-      ))}
+      {/* Warm Street Lamp Point Lights along sidewalks (omitted on Low to save mobile/integrated GPU fillrate) */}
+      {!isLow &&
+        STREET_CONFIG.streetLights.map((light, index) => (
+          <group key={`streetlight-${index}`} position={light.position}>
+            <pointLight
+              color={light.color}
+              intensity={light.intensity}
+              distance={light.distance}
+              decay={2}
+            />
+            {/* Glowing lantern bulb marker */}
+            <mesh>
+              <sphereGeometry args={[0.2, 8, 8]} />
+              <meshBasicMaterial color="#ffe399" />
+            </mesh>
+          </group>
+        ))}
     </>
   );
 };

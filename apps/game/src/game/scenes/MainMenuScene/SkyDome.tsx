@@ -18,7 +18,7 @@ export const SkyDome: React.FC = () => {
   // Gentle atmospheric cloud drift across the skyline
   useFrame((_, delta) => {
     if (skyRef.current) {
-      skyRef.current.rotation.y += delta * 0.004;
+      skyRef.current.rotation.y += Math.min(delta, 0.05) * 0.004;
     }
   });
 
@@ -30,7 +30,7 @@ export const SkyDome: React.FC = () => {
       position={[camX, -130, camZ]}
       rotation={[0, Math.PI / 3, 0]}
     >
-      <sphereGeometry args={[900, 64, 40]} />
+      <sphereGeometry args={[900, 32, 20]} />
       <meshBasicMaterial
         map={texture}
         side={THREE.BackSide}

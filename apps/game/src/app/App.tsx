@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { HCMPage } from "../features/hochiminh";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
 import type { GameSettings } from "@scammaze/shared-types";
 
 const SETTINGS_STORAGE_KEY = "scammaze_settings_v1";
@@ -30,6 +31,8 @@ export const App: React.FC = () => {
   const [route, setRoute] = useState<"menu" | "hochiminh">(() =>
     getIsHCMRoute() ? "hochiminh" : "menu"
   );
+  const [sceneReady, setSceneReady] = useState(false);
+  const [showLoading, setShowLoading] = useState(true);
 
   const [settings, setSettings] = useState<GameSettings>(() => {
     try {
@@ -74,6 +77,14 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleSceneReady = useCallback(() => {
+    setSceneReady(true);
+  }, []);
+
+  const handleLoadingFinished = useCallback(() => {
+    setShowLoading(false);
+  }, []);
+
   // Global keyboard shortcuts (e.g. 'M' for mute when in menu)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -99,7 +110,7 @@ export const App: React.FC = () => {
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none bg-[#13111f]">
       {/* 3D WebGL Canvas Layer */}
-      <GameCanvas settings={settings} />
+      <GameCanvas settings={settings} onSceneReady={handleSceneReady} />
 
       {/* HTML / React Menu Overlay */}
       <MainMenuOverlay
@@ -107,6 +118,14 @@ export const App: React.FC = () => {
         onUpdateSettings={handleUpdateSettings}
         onOpenHCM={() => navigateTo("hochiminh")}
       />
+
+      {/* Atmospheric Game Loading Screen overlay */}
+      {showLoading && (
+        <LoadingScreen
+          sceneReady={sceneReady}
+          onFinished={handleLoadingFinished}
+        />
+      )}
     </div>
   );
 };

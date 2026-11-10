@@ -7,9 +7,13 @@ import type { GameSettings } from "@scammaze/shared-types";
 
 interface MainMenuSceneProps {
   settings: GameSettings;
+  onSceneReady?: () => void;
 }
 
-export const MainMenuScene: React.FC<MainMenuSceneProps> = ({ settings }) => {
+export const MainMenuScene: React.FC<MainMenuSceneProps> = ({
+  settings,
+  onSceneReady,
+}) => {
   const isHighQuality = settings.graphicsQuality === "high";
 
   return (
@@ -17,22 +21,10 @@ export const MainMenuScene: React.FC<MainMenuSceneProps> = ({ settings }) => {
       <MenuCamera fov={settings.fov} />
       <EnvironmentLighting graphicsQuality={settings.graphicsQuality} />
 
-      <Suspense fallback={<SceneLoadingPlaceholder />}>
+      <Suspense fallback={null}>
         <SkyDome />
-        <StreetEnvironment shadows={isHighQuality} />
+        <StreetEnvironment shadows={isHighQuality} onReady={onSceneReady} />
       </Suspense>
     </>
-  );
-};
-
-const SceneLoadingPlaceholder: React.FC = () => {
-  return (
-    <group position={[0, 0, 0]}>
-      {/* Ground plane */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#1a1827" />
-      </mesh>
-    </group>
   );
 };

@@ -20,5 +20,13 @@
     "build:game": "pnpm --filter @scammaze/game build",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "meshoptimizer": "^1.3.0",
+    "sharp": "^0.35.5"
   }
 }
