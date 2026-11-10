@@ -1,14 +1,14 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { STREET_ENVIRONMENT_GLB } from "../../../config/assetPaths";
+import { StreetGLTFLoader, streetLoaderExtensions } from "./streetGltfLoader";
 
 // Production optimized 3D environment (Meshopt compressed, WebP textures)
 const CITY_MODEL_PATH = STREET_ENVIRONMENT_GLB;
 
 // Preload production-ready optimized street scene
-useGLTF.preload(CITY_MODEL_PATH);
+useLoader.preload(StreetGLTFLoader, CITY_MODEL_PATH, streetLoaderExtensions);
 
 interface StreetEnvironmentProps {
   shadows?: boolean;
@@ -50,7 +50,7 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
 }) => {
   const { gl, camera } = useThree();
   const [isCompiled, setIsCompiled] = useState(false);
-  const cityGltf = useGLTF(CITY_MODEL_PATH);
+  const cityGltf = useLoader(StreetGLTFLoader, CITY_MODEL_PATH, streetLoaderExtensions);
   const npcsRef = useRef<AnimatedPedestrian[]>([]);
   const foliageRef = useRef<FoliageAnimSystem>({ grassList: [] });
   const readyNotified = useRef(false);

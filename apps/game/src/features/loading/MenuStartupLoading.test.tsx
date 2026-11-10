@@ -21,13 +21,24 @@ import {
   type LoadingRun,
 } from "../../test/loadingRuns";
 import { formatFileCount, LOADING_TEXT } from "../../game/loading/loadingStrings";
+import { menuAssetProgress, type ByteProgressEvent } from "../../game/loading/menuAssetProgress";
 
 function setProgress(patch: Partial<typeof progressState>) {
   Object.assign(progressState, patch);
 }
 
+/** Sends a byte progress report to the real store; subscribers re-render inside act. */
+function reportBytes(event: ByteProgressEvent) {
+  act(() => menuAssetProgress.report(event));
+}
+
+function markBytesComplete() {
+  act(() => menuAssetProgress.markComplete());
+}
+
 beforeEach(() => {
   setProgress({ active: false, loaded: 0, total: 0, errors: [] });
+  menuAssetProgress.reset();
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -40,6 +51,42 @@ describe("MenuStartupLoading", () => {
     expect(screen.getByRole("progressbar").getAttribute("data-state")).toBe("indeterminate");
     expect(screen.getByText("Loading the street scene")).toBeTruthy();
     expect(screen.getByText(/1 of 3 files/)).toBeTruthy();
+  });
+
+  it("shows the measured percentage when the download size is known", () => {
+    setProgress({ active: true, loaded: 1, total: 3 });
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    reportBytes({ loaded: 42, total: 100, lengthComputable: true });
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("data-state")).toBe("determinate");
+    expect(bar.getAttribute("aria-valuenow")).toBe("42");
+    expect(screen.getByText("42%")).toBeTruthy();
+    expect(screen.getByText(LOADING_TEXT.menuStartup.loadingFiles)).toBeTruthy();
+    // The Drei file count would contradict the byte percent, so it is omitted.
+    expect(screen.queryByText(/of 3 files/)).toBeNull();
+  });
+
+  it("stays indeterminate with the file count when the download size is unknown", () => {
+    setProgress({ active: true, loaded: 1, total: 3 });
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    reportBytes({ loaded: 5000, total: 0, lengthComputable: false });
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("data-state")).toBe("indeterminate");
+    expect(bar.hasAttribute("aria-valuenow")).toBe(false);
+    expect(screen.getByText(LOADING_TEXT.menuStartup.loadingFiles)).toBeTruthy();
+    expect(screen.getByText(/1 of 3 files/)).toBeTruthy();
+  });
+
+  it("shows a full bar with Preparing the street scene once all bytes are in", () => {
+    setProgress({ active: true, loaded: 1, total: 3 });
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    reportBytes({ loaded: 60, total: 100, lengthComputable: true });
+    markBytesComplete();
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("data-state")).toBe("determinate");
+    expect(bar.getAttribute("aria-valuenow")).toBe("100");
+    expect(screen.getByText(LOADING_TEXT.menuStartup.preparingScene)).toBeTruthy();
+    expect(screen.queryByText(/of 3 files/)).toBeNull();
   });
 
   it("finishes only when the scene reports ready", async () => {
@@ -79,10 +126,10 @@ describe("MenuStartupLoading", () => {
     await clock.advanceTo(STARTUP_LOADING_MIN_DISPLAY_MS - 1);
     expect(layer.getAttribute("data-state")).toBe("visible");
     expect(screen.getByText(LOADING_TEXT.menuStartup.ready)).toBeTruthy();
-    // The hold never invents progress: the bar stays indeterminate.
+    // Loading has really finished, so the bar is full; it stays full for the whole hold.
     const bar = screen.getByRole("progressbar");
-    expect(bar.getAttribute("data-state")).toBe("indeterminate");
-    expect(bar.hasAttribute("aria-valuenow")).toBe(false);
+    expect(bar.getAttribute("data-state")).toBe("determinate");
+    expect(bar.getAttribute("aria-valuenow")).toBe("100");
     expect(onFinished).not.toHaveBeenCalled();
 
     await clock.advanceTo(STARTUP_LOADING_MIN_DISPLAY_MS);
@@ -119,6 +166,21 @@ describe("MenuStartupLoading", () => {
     expect(screen.getByText(/longer than usual/)).toBeTruthy();
     // The watchdog never invents progress.
     expect(screen.getByRole("progressbar").hasAttribute("aria-valuenow")).toBe(false);
+  });
+
+  it("restarts the slow-notice watchdog when byte progress changes", () => {
+    vi.useFakeTimers();
+    setProgress({ active: true, loaded: 0, total: 2 });
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    act(() => vi.advanceTimersByTime(STARTUP_SLOW_NOTICE_MS - 1000));
+    reportBytes({ loaded: 10, total: 100, lengthComputable: true });
+    // Only the byte percent changed; the watchdog starts again from this point.
+    act(() => vi.advanceTimersByTime(STARTUP_SLOW_NOTICE_MS - 1));
+    expect(screen.queryByText(/longer than usual/)).toBeNull();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByText(/longer than usual/)).toBeTruthy();
+    // The watchdog never changes the measured value.
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("10");
   });
 });
 
@@ -219,67 +281,235 @@ async function withStartupClock(reducedMotion: boolean, body: (clock: ReturnType
   }
 }
 
-// Progress honesty: the startup bar is always indeterminate and shows the real file count.
-interface StartupProgressCase {
+/*
+ * Display runs (startup-loading-percentage, design section 4). Each generated step changes the
+ * byte progress store, the mocked Drei loaded/total values, or switches Scene_Ready on (at most
+ * once), and is followed by a wait below the slow-notice time. The screen is observed right
+ * after each step and after each wait, and compared with a reference model of the display
+ * mapping table.
+ */
+type DisplayStep =
+  | { kind: "bytes"; event: ByteProgressEvent; waitMs: number }
+  | { kind: "complete"; waitMs: number }
+  | { kind: "files"; loaded: number; total: number; waitMs: number }
+  | { kind: "ready"; waitMs: number };
+
+interface StartupDisplayCase {
   id: string;
   reducedMotion: boolean;
-  steps: Array<{ loaded: number; total: number; waitMs: number }>;
+  steps: DisplayStep[];
 }
 
-function generateStartupProgressCases(): StartupProgressCase[] {
-  const next = createLcg(PROPERTY_SEED ^ 0x70);
+function generateStartupDisplayCases(seed: number): StartupDisplayCase[] {
+  const next = createLcg(seed);
   return Array.from({ length: PROPERTY_RUNS }, (_, i) => {
-    const steps: StartupProgressCase["steps"] = [];
+    const steps: DisplayStep[] = [];
+    let ready = false;
     const count = randomInt(next, 1, 5);
     for (let j = 0; j < count; j += 1) {
-      const total = next() < 0.15 ? 0 : randomInt(next, 1, 40);
-      // Stays below the 30-second slow notice even if nothing changes between steps.
-      steps.push({ loaded: randomInt(next, 0, total), total, waitMs: randomInt(next, 0, 5000) });
+      // At most 5 waits of at most 5000 ms stay below the 30-second slow notice.
+      const waitMs = randomInt(next, 0, 5000);
+      const roll = next();
+      if (roll < 0.45) {
+        const total = next() < 0.2 ? 0 : randomInt(next, 1, 30_000_000);
+        const lengthComputable = total > 0 && next() < 0.85;
+        // Up to 20% above the total, as with a compressed transfer.
+        const loaded = randomInt(next, 0, total > 0 ? Math.floor(total * 1.2) : 5000);
+        steps.push({ kind: "bytes", event: { loaded, total, lengthComputable }, waitMs });
+      } else if (roll < 0.55) {
+        steps.push({ kind: "complete", waitMs });
+      } else if (roll < 0.85 || ready) {
+        const total = next() < 0.15 ? 0 : randomInt(next, 1, 40);
+        steps.push({ kind: "files", loaded: randomInt(next, 0, total), total, waitMs });
+      } else {
+        ready = true;
+        steps.push({ kind: "ready", waitMs });
+      }
     }
     return { id: `#${i}`, reducedMotion: next() < 0.5, steps };
   });
 }
 
-function expectedStartupStatus(loaded: number, total: number): { status: string; detail: string | null } {
+function describeStep(step: DisplayStep): string {
+  switch (step.kind) {
+    case "bytes": {
+      const { loaded, total, lengthComputable } = step.event;
+      return `bytes ${loaded}/${total}${lengthComputable ? "" : " (unknown)"} wait ${step.waitMs}`;
+    }
+    case "complete":
+      return `complete wait ${step.waitMs}`;
+    case "files":
+      return `files ${step.loaded}/${step.total} wait ${step.waitMs}`;
+    case "ready":
+      return `ready wait ${step.waitMs}`;
+  }
+}
+
+function describeDisplayCase(item: StartupDisplayCase): string {
+  return `case ${item.id} {reducedMotion: ${item.reducedMotion}, steps: [${item.steps.map(describeStep).join(", ")}]}`;
+}
+
+interface DisplayModel {
+  bytePercent: number | null;
+  loaded: number;
+  total: number;
+  sceneReady: boolean;
+}
+
+/** Reference model of the store: running maximum of the event percents, 100 on completion. */
+function applyStep(model: DisplayModel, step: DisplayStep): DisplayModel {
+  switch (step.kind) {
+    case "bytes": {
+      const { loaded, total, lengthComputable } = step.event;
+      if (!lengthComputable || total <= 0 || loaded < 0) return model;
+      const candidate = Math.min(99, Math.floor((loaded / total) * 100));
+      if (model.bytePercent !== null && candidate <= model.bytePercent) return model;
+      return { ...model, bytePercent: candidate };
+    }
+    case "complete":
+      return { ...model, bytePercent: 100 };
+    case "files":
+      return { ...model, loaded: step.loaded, total: step.total };
+    case "ready":
+      return { ...model, sceneReady: true };
+  }
+}
+
+interface ShownDisplay {
+  /** aria-valuenow, or null when the bar is indeterminate. */
+  valueNow: number | null;
+  line: string;
+}
+
+function expectedFileStatus(loaded: number, total: number): { status: string; detail: string | null } {
   if (total > 0 && loaded < total) return { status: LOADING_TEXT.menuStartup.loadingFiles, detail: formatFileCount(loaded, total) };
   if (total > 0) return { status: LOADING_TEXT.menuStartup.preparingScene, detail: null };
   return { status: LOADING_TEXT.menuStartup.startingEngine, detail: null };
 }
 
-function checkStartupBar(loaded: number, total: number): string | null {
-  const bar = screen.getByRole("progressbar");
-  if (bar.hasAttribute("aria-valuenow")) return `bar has aria-valuenow="${bar.getAttribute("aria-valuenow")}", expected none`;
-  if (bar.getAttribute("data-state") !== "indeterminate") return `bar data-state is "${bar.getAttribute("data-state")}", expected "indeterminate"`;
-  const { status, detail } = expectedStartupStatus(loaded, total);
-  const line = bar.parentElement?.querySelector('[aria-live="polite"]')?.textContent ?? "";
-  const expectedLine = detail ? `${status}· ${detail}` : status;
-  if (line !== expectedLine) return `status line is "${line}", expected "${expectedLine}"`;
-  return null;
+/** The display mapping table from the design (no error shown). */
+function expectedDisplay(model: DisplayModel): ShownDisplay {
+  if (model.sceneReady) return { valueNow: 100, line: LOADING_TEXT.menuStartup.ready };
+  if (model.bytePercent === 100) return { valueNow: 100, line: LOADING_TEXT.menuStartup.preparingScene };
+  if (model.bytePercent !== null) return { valueNow: model.bytePercent, line: LOADING_TEXT.menuStartup.loadingFiles };
+  const { status, detail } = expectedFileStatus(model.loaded, model.total);
+  return { valueNow: null, line: detail ? `${status}· ${detail}` : status };
 }
 
-function runStartupProgress(item: StartupProgressCase): Promise<string | null> {
-  return withStartupClock(item.reducedMotion, async (clock) => {
+/** Reads the bar; returns a description of an inconsistent bar instead of a display. */
+function readDisplay(): ShownDisplay | string {
+  const bar = screen.getByRole("progressbar");
+  const dataState = bar.getAttribute("data-state");
+  const raw = bar.getAttribute("aria-valuenow");
+  const line = bar.parentElement?.querySelector('[aria-live="polite"]')?.textContent ?? "";
+  if (raw === null) {
+    if (dataState !== "indeterminate") return `bar has no aria-valuenow but data-state is "${dataState}"`;
+    return { valueNow: null, line };
+  }
+  if (dataState !== "determinate") return `bar has aria-valuenow="${raw}" but data-state is "${dataState}"`;
+  return { valueNow: Number(raw), line };
+}
+
+interface DisplayObservation {
+  /** Where in the run the screen was read, for counterexample messages. */
+  at: string;
+  /** True for the reading after a wait; the previous reading is the one right after the step. */
+  afterWait: boolean;
+  expected: ShownDisplay;
+  shown: ShownDisplay;
+}
+
+interface DisplayRunResult {
+  observations: DisplayObservation[];
+  /** A broken expectation that is not about the display model, or null. */
+  failure: string | null;
+}
+
+function showDisplay(display: ShownDisplay): string {
+  return `{aria-valuenow: ${display.valueNow ?? "none"}, status: "${display.line}"}`;
+}
+
+async function observeStartupDisplay(item: StartupDisplayCase): Promise<DisplayRunResult> {
+  const observations: DisplayObservation[] = [];
+  const failure = await withStartupClock(item.reducedMotion, async (clock) => {
+    menuAssetProgress.reset();
     setProgress({ active: true, loaded: 0, total: 0, errors: [] });
+    let model: DisplayModel = { bytePercent: null, loaded: 0, total: 0, sceneReady: false };
     const onFinished = vi.fn();
-    const ui = () => <MenuStartupLoading sceneReady={false} sceneError={null} onFinished={onFinished} />;
+    const ui = () => <MenuStartupLoading sceneReady={model.sceneReady} sceneError={null} onFinished={onFinished} />;
     const { rerender, unmount } = render(ui());
+    const observe = (at: string, afterWait: boolean): string | null => {
+      const shown = readDisplay();
+      if (typeof shown === "string") return `${at}: ${shown}`;
+      observations.push({ at, afterWait, expected: expectedDisplay(model), shown });
+      return null;
+    };
     try {
       for (const [index, step] of item.steps.entries()) {
-        setProgress({ loaded: step.loaded, total: step.total });
+        model = applyStep(model, step);
+        if (step.kind === "bytes") reportBytes(step.event);
+        else if (step.kind === "complete") markBytesComplete();
+        else if (step.kind === "files") setProgress({ loaded: step.loaded, total: step.total });
         rerender(ui());
         await clock.advanceTo(clock.now);
-        let failure = checkStartupBar(step.loaded, step.total);
-        if (failure) return `step ${index} (t=${clock.now}): ${failure}`;
-        // Time passing never changes the bar or the file count.
+        let broken = observe(`step ${index} (t=${clock.now})`, false);
+        if (broken) return broken;
         await clock.advanceTo(clock.now + step.waitMs);
-        failure = checkStartupBar(step.loaded, step.total);
-        if (failure) return `step ${index}, after waiting ${step.waitMs} ms (t=${clock.now}): ${failure}`;
+        broken = observe(`step ${index}, after waiting ${step.waitMs} ms (t=${clock.now})`, true);
+        if (broken) return broken;
       }
-      if (onFinished.mock.calls.length !== 0) return `onFinished called while the scene is not ready`;
+      if (!model.sceneReady && onFinished.mock.calls.length !== 0) return `onFinished called while the scene is not ready`;
       return null;
     } finally {
       unmount();
     }
+  });
+  return { observations, failure };
+}
+
+/** First reading that differs from the display mapping, or null. */
+function firstModelMismatch(observations: DisplayObservation[]): string | null {
+  for (const o of observations) {
+    if (o.shown.valueNow !== o.expected.valueNow || o.shown.line !== o.expected.line) {
+      return `${o.at}: shown ${showDisplay(o.shown)}, expected ${showDisplay(o.expected)}`;
+    }
+  }
+  return null;
+}
+
+/** First wait that changed the bar or the status line, or null. */
+function firstChangeOverTime(observations: DisplayObservation[]): string | null {
+  for (let i = 1; i < observations.length; i += 1) {
+    const before = observations[i - 1];
+    const after = observations[i];
+    if (!after.afterWait) continue;
+    if (after.shown.valueNow !== before.shown.valueNow || after.shown.line !== before.shown.line) {
+      return `${after.at}: time changed the display from ${showDisplay(before.shown)} to ${showDisplay(after.shown)}`;
+    }
+  }
+  return null;
+}
+
+/** First determinate value lower than an earlier one, or null. Indeterminate readings are skipped. */
+function firstDecrease(observations: DisplayObservation[]): string | null {
+  let highest: { value: number; at: string } | null = null;
+  for (const o of observations) {
+    if (o.shown.valueNow === null) continue;
+    if (highest && o.shown.valueNow < highest.value) {
+      return `${o.at}: aria-valuenow ${o.shown.valueNow} is below ${highest.value} shown at ${highest.at}`;
+    }
+    if (!highest || o.shown.valueNow > highest.value) highest = { value: o.shown.valueNow, at: o.at };
+  }
+  return null;
+}
+
+async function collectDisplayFailures(
+  cases: StartupDisplayCase[],
+  check: (observations: DisplayObservation[]) => string | null,
+): Promise<string[]> {
+  return collectPropertyFailures(cases, describeDisplayCase, async (item) => {
+    const { observations, failure } = await observeStartupDisplay(item);
+    return failure ?? check(observations);
   });
 }
 
@@ -341,17 +571,15 @@ function runContinue(item: ContinueCase): Promise<string | null> {
  * Property 2: Preservation (task 2 of the loading-screen-not-visible bugfix spec).
  * Baseline observed on the unfixed code (seed 0x5ca33a2e); these tests pass before the fix and
  * must keep passing after it. They never assert the first frame or the hold (Property 1).
+ * The progress honesty run was reworked by the startup-loading-percentage spec: its steps now
+ * include byte progress and Scene_Ready, and the bar follows the display mapping table.
  */
 describe("Property 2: Preservation - startup loading behavior outside the bug condition", () => {
-  it("progress honesty: indeterminate bar with the real file count, unchanged by time (seeded runs)", async () => {
-    const cases = generateStartupProgressCases();
-    const failures = await collectPropertyFailures(
-      cases,
-      (c) => `case ${c.id} {reducedMotion: ${c.reducedMotion}, steps: [${c.steps.map((s) => `${s.loaded}/${s.total} wait ${s.waitMs}`).join(", ")}]}`,
-      runStartupProgress,
-    );
+  it("progress honesty: the bar follows the display mapping and is unchanged by time (seeded runs)", async () => {
+    const cases = generateStartupDisplayCases(PROPERTY_SEED ^ 0x70);
+    const failures = await collectDisplayFailures(cases, (o) => firstModelMismatch(o) ?? firstChangeOverTime(o));
     expect(failures, `Counterexamples (${failures.length} of ${cases.length} runs):\n${failures.join("\n")}`).toEqual([]);
-  }, 60_000);
+  }, 120_000);
 
   it("Continue to menu: hidden at once, onFinished once after the fade (seeded runs)", async () => {
     const cases = generateContinueCases();
@@ -362,4 +590,22 @@ describe("Property 2: Preservation - startup loading behavior outside the bug co
     );
     expect(failures, `Counterexamples (${failures.length} of ${cases.length} runs):\n${failures.join("\n")}`).toEqual([]);
   }, 60_000);
+});
+
+describe("Feature: startup-loading-percentage, Property 3: Startup screen matches the display model", () => {
+  /** **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.6, 3.7** */
+  it("bar state, aria-valuenow and status line equal the display mapping after each step and wait (seeded runs)", async () => {
+    const cases = generateStartupDisplayCases(PROPERTY_SEED ^ 0x93);
+    const failures = await collectDisplayFailures(cases, firstModelMismatch);
+    expect(failures, `Counterexamples (${failures.length} of ${cases.length} runs):\n${failures.join("\n")}`).toEqual([]);
+  }, 120_000);
+});
+
+describe("Feature: startup-loading-percentage, Property 4: The shown percentage never decreases", () => {
+  /** **Validates: Requirements 3.5** */
+  it("aria-valuenow is non-decreasing across a run, ignoring indeterminate readings (seeded runs)", async () => {
+    const cases = generateStartupDisplayCases(PROPERTY_SEED ^ 0xa4);
+    const failures = await collectDisplayFailures(cases, firstDecrease);
+    expect(failures, `Counterexamples (${failures.length} of ${cases.length} runs):\n${failures.join("\n")}`).toEqual([]);
+  }, 120_000);
 });

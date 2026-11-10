@@ -266,11 +266,23 @@ Errors (`game/loading/loadingErrors.ts`): invalid chapter, missing file, invalid
 stalled download (no bytes for 30 s), unsupported device, WebGL start failure, invalid save. Each
 has a message, "Return to menu", and "Try again" when retrying can help.
 
-The startup screen (`features/loading/MenuStartupLoading.tsx`) reads Drei `useProgress`, which
-follows `THREE.DefaultLoadingManager` for the whole page. That is valid only at startup, when the
-menu scene is the only thing loading. Its file total grows while the GLB is parsed, so it shows an
-indeterminate bar with the file count, finishes when the scene reports ready after
-`compileAsync`, and offers "Continue to menu" after 30 s without change or on error.
+The startup screen (`features/loading/MenuStartupLoading.tsx`) shows a percentage measured from
+the downloaded bytes of the street GLB (`STREET_ENVIRONMENT_GLB`). The street file loads through a
+dedicated class, `StreetGLTFLoader` (`game/scenes/MainMenuScene/streetGltfLoader.ts`, a subclass
+of three's `GLTFLoader` with the Meshopt decoder). R3F caches loader results by
+`[loader class, url]`, so the module-level `useLoader.preload` and the component's `useLoader` in
+`StreetEnvironment.tsx` share one cache entry and the file downloads once. The loader forwards
+three's `FileLoader` progress events to a framework-free store (`game/loading/menuAssetProgress.ts`),
+which keeps the highest percent seen (capped at 99 until the load finishes, then 100). The screen
+reads the store with `useSyncExternalStore`; no timer changes the value. When the file size is
+unknown, the bar stays indeterminate and shows the file count from Drei `useProgress`. When all
+bytes are in but the scene is still compiling shaders (`compileAsync`), the bar is full and the
+status reads "Preparing the street scene". During the minimum display hold after the scene
+reports ready, the bar is full and the status reads "Ready". The sky texture is not measured,
+because its image loader reports no byte progress. Drei `useProgress`, which follows
+`THREE.DefaultLoadingManager` for the whole page (valid only at startup, when the menu scene is
+the only thing loading), is still the source of load errors. The screen offers "Continue to
+menu" after 30 s without progress or on error.
 
 Status of items from the 7 Nov brief: main menu and loading screens `IMPLEMENTED` (chapter
 gameplay `PLANNED`); level selection replaced by chapter progression in one world `PLANNED`; character
