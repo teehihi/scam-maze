@@ -2,9 +2,10 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { STREET_ENVIRONMENT_GLB } from "../../../config/assetPaths";
 
-// Production optimized 3D environment (20.5 MB, Meshopt compressed, WebP textures)
-const CITY_MODEL_PATH = "/assets/3d/optimized/MenuBG.optimized.glb";
+// Production optimized 3D environment (Meshopt compressed, WebP textures)
+const CITY_MODEL_PATH = STREET_ENVIRONMENT_GLB;
 
 // Preload production-ready optimized street scene
 useGLTF.preload(CITY_MODEL_PATH);

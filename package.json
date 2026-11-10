@@ -19,7 +19,8 @@
     "build:landing": "pnpm --filter @scammaze/landing build",
     "build:game": "pnpm --filter @scammaze/game build",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test"
   },
   "devDependencies": {
     "@gltf-transform/cli": "^4.5.1",

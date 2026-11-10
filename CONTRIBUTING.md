@@ -29,6 +29,7 @@ Requirements: Node.js **22.12+** (CI uses Node 24) and **pnpm** (version pinned 
 pnpm install
 pnpm dev          # http://localhost:5173
 pnpm typecheck    # TypeScript only
+pnpm test         # Vitest tests (game app)
 pnpm build        # typecheck + production build into dist/
 pnpm preview      # serve dist/
 ```

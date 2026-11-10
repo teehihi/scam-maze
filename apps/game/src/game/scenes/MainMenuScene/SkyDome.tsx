@@ -3,8 +3,9 @@ import { useFrame } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { STREET_CONFIG } from "./StreetComposition";
+import { SKY_TEXTURE } from "../../../config/assetPaths";
 
-const SKY_TEXTURE_PATH = "/assets/3d/textures/sky.png";
+const SKY_TEXTURE_PATH = SKY_TEXTURE;
 useTexture.preload(SKY_TEXTURE_PATH);
 
 export const SkyDome: React.FC = () => {

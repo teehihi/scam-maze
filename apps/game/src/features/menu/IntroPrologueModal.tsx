@@ -5,11 +5,14 @@ import { Play, ArrowLeft, Smartphone, MapPin, AlertCircle } from "lucide-react";
 interface IntroPrologueModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Starts loading Chapter 1. */
+  onBegin: () => void;
 }
 
 export const IntroPrologueModal: React.FC<IntroPrologueModalProps> = ({
   isOpen,
   onClose,
+  onBegin,
 }) => {
   return (
     <ModalDialog
@@ -76,10 +79,10 @@ export const IntroPrologueModal: React.FC<IntroPrologueModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={onBegin}
             className="py-2.5 px-5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#7654d6] to-[#5b3eb3] hover:from-[#8b6be8] hover:to-[#6a4ac4] shadow-lg shadow-[#7654d6]/40 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <Play className="w-4 h-4" /> Acknowledge & Continue Preview
+            <Play className="w-4 h-4" aria-hidden="true" /> Begin Chapter 1
           </button>
         </div>
       </div>

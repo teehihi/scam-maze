@@ -2,10 +2,39 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { HCMPage } from "../features/hochiminh";
-import { LoadingScreen } from "../components/ui/LoadingScreen";
+import { MenuStartupLoading } from "../features/loading/MenuStartupLoading";
+import { ChapterLoadingFlow } from "../features/loading/ChapterLoadingFlow";
+import { ChapterPlaceholder } from "../features/chapter/ChapterPlaceholder";
+import type { ContinueAvailability } from "../features/menu/MainMenuOverlay";
+import { DEFAULT_CHAPTER_ID, getChapter } from "../game/chapters/chapterRegistry";
+import type { ChapterSession } from "../game/chapters/chapterSession";
+import type { ChapterLoadRequest } from "../game/loading/chapterLoader";
+import { checkBasicWebGLSupport } from "../game/loading/deviceCapabilities";
+import { createLocalStorageSaveSource } from "../game/saves/saveGame";
 import type { GameSettings } from "@scammaze/shared-types";
 
 const SETTINGS_STORAGE_KEY = "scammaze_settings_v1";
+
+type Screen =
+  | { kind: "menu" }
+  | { kind: "chapter-loading"; request: ChapterLoadRequest }
+  | { kind: "chapter"; session: ChapterSession };
+
+const saveSource = createLocalStorageSaveSource();
+
+function readContinueAvailability(): ContinueAvailability {
+  const result = saveSource.read();
+  if (result.status === "none") {
+    return {
+      available: false,
+      reason: "No saved game found. Saving starts once Chapter 1 is playable.",
+    };
+  }
+  if (result.status === "invalid" || !getChapter(result.save.chapterId)) {
+    return { available: false, reason: "Your saved game could not be read. Start a new game instead." };
+  }
+  return { available: true };
+}
 
 const DEFAULT_SETTINGS: GameSettings = {
   graphicsQuality: "medium",
@@ -32,7 +61,11 @@ export const App: React.FC = () => {
     getIsHCMRoute() ? "hochiminh" : "menu"
   );
   const [sceneReady, setSceneReady] = useState(false);
-  const [showLoading, setShowLoading] = useState(true);
+  // Without WebGL the canvas shows its own fallback, so the startup screen would never finish.
+  const [showLoading, setShowLoading] = useState(() => checkBasicWebGLSupport());
+  const [sceneError, setSceneError] = useState<string | null>(null);
+  const [screen, setScreen] = useState<Screen>({ kind: "menu" });
+  const [continueAvailability, setContinueAvailability] = useState(readContinueAvailability);
 
   const [settings, setSettings] = useState<GameSettings>(() => {
     try {
@@ -83,6 +116,32 @@ export const App: React.FC = () => {
 
   const handleLoadingFinished = useCallback(() => {
     setShowLoading(false);
+  }, []);
+
+  const handleSceneError = useCallback((message: string) => {
+    setSceneError(message);
+  }, []);
+
+  // Functional updates make repeated clicks harmless: only the first transition applies.
+  const startChapterLoading = useCallback((request: ChapterLoadRequest) => {
+    setScreen((prev) => (prev.kind === "menu" ? { kind: "chapter-loading", request } : prev));
+  }, []);
+
+  const handleStartNewGame = useCallback(() => {
+    startChapterLoading({ kind: "new-game", chapterId: DEFAULT_CHAPTER_ID });
+  }, [startChapterLoading]);
+
+  const handleContinue = useCallback(() => {
+    startChapterLoading({ kind: "continue" });
+  }, [startChapterLoading]);
+
+  const handleEnterChapter = useCallback((session: ChapterSession) => {
+    setScreen((prev) => (prev.kind === "chapter-loading" ? { kind: "chapter", session } : prev));
+  }, []);
+
+  const handleReturnToMenu = useCallback(() => {
+    setScreen({ kind: "menu" });
+    setContinueAvailability(readContinueAvailability());
   }, []);
 
   // Gapless Seamless Dual-Layer Web Audio Engine (BGM + Street Ambient + SFX)
@@ -386,21 +445,45 @@ export const App: React.FC = () => {
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none bg-[#13111f]">
       {/* 3D WebGL Canvas Layer */}
-      <GameCanvas settings={settings} onSceneReady={handleSceneReady} />
-
-      {/* HTML / React Menu Overlay */}
-      <MainMenuOverlay
+      <GameCanvas
         settings={settings}
-        onUpdateSettings={handleUpdateSettings}
-        onToggleSound={handleToggleSound}
-        onHoverSound={playHoverSound}
-        onOpenHCM={() => navigateTo("hochiminh")}
+        onSceneReady={handleSceneReady}
+        onSceneError={handleSceneError}
+        paused={screen.kind !== "menu"}
       />
 
-      {/* Atmospheric Game Loading Screen overlay */}
+      {/* HTML / React Menu Overlay */}
+      {screen.kind === "menu" && (
+        <MainMenuOverlay
+          settings={settings}
+          onUpdateSettings={handleUpdateSettings}
+          onToggleSound={handleToggleSound}
+          onHoverSound={playHoverSound}
+          onOpenHCM={() => navigateTo("hochiminh")}
+          onStartNewGame={handleStartNewGame}
+          onContinue={handleContinue}
+          continueAvailability={continueAvailability}
+        />
+      )}
+
+      {screen.kind === "chapter-loading" && (
+        <ChapterLoadingFlow
+          request={screen.request}
+          onEnterChapter={handleEnterChapter}
+          onBackToMenu={handleReturnToMenu}
+        />
+      )}
+
+      {/* No chapter scene exists yet (gameplayAvailable is false), so loading ends here. */}
+      {screen.kind === "chapter" && (
+        <ChapterPlaceholder session={screen.session} onBackToMenu={handleReturnToMenu} />
+      )}
+
+      {/* Startup screen for the menu's own 3D scene */}
       {showLoading && (
-        <LoadingScreen
+        <MenuStartupLoading
           sceneReady={sceneReady}
+          sceneError={sceneError}
           onFinished={handleLoadingFinished}
         />
       )}

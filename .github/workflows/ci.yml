@@ -20,6 +20,7 @@ jobs:
           node-version: 24
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm test
       - run: pnpm build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
