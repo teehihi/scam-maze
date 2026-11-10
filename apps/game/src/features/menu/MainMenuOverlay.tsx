@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { BrandLogo } from "../../components/ui/BrandLogo";
 import { MenuButton } from "../../components/ui/MenuButton";
 import { SettingsModal } from "./SettingsModal";
 import { CreditsModal } from "./CreditsModal";
@@ -10,19 +9,23 @@ import {
   RotateCcw,
   Sliders,
   Award,
-  MapPin,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 interface MainMenuOverlayProps {
   settings: GameSettings;
   onUpdateSettings: (settings: Partial<GameSettings>) => void;
+  onToggleSound?: () => void;
+  onHoverSound?: () => void;
   onOpenHCM?: () => void;
 }
 
 export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
   settings,
   onUpdateSettings,
-  onOpenHCM,
+  onToggleSound,
+  onHoverSound,
 }) => {
   const [introOpen, setIntroOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -31,42 +34,62 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
   return (
     <div className="absolute inset-0 z-20 flex flex-col justify-between p-6 sm:p-10 pointer-events-none select-none">
       {/* Top Header Bar */}
-      <header className="flex items-center justify-between w-full">
-        <BrandLogo size="md" />
+      <header className="flex items-center justify-end w-full">
+        <button
+          type="button"
+          onClick={onToggleSound || (() => onUpdateSettings({ soundEnabled: !settings.soundEnabled }))}
+          className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1b172b]/85 hover:bg-[#252237] border border-[#3b3452] text-xs font-medium text-zinc-300 transition-all shadow-lg hover:border-[#7654d6] cursor-pointer"
+          title={settings.soundEnabled ? "Mute Ambience (M)" : "Enable Ambience (M)"}
+        >
+          {settings.soundEnabled ? (
+            <>
+              <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-mono text-[11px] text-zinc-300">AUDIO ON</span>
+            </>
+          ) : (
+            <>
+              <VolumeX className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="font-mono text-[11px] text-zinc-400">MUTED</span>
+            </>
+          )}
+        </button>
       </header>
 
       {/* Main Content / Menu Column */}
-      <main className="my-auto w-full max-w-md py-4 flex flex-col justify-center">
-        <div className="p-6 sm:p-7 rounded-2xl bg-[#12101e]/85 border border-[#3b3452]/80 backdrop-blur-xl shadow-2xl space-y-6">
-          {/* Atmospheric Header & Story Tagline */}
-          <div className="space-y-2.5">
-            <div className="inline-flex items-center gap-2 text-xs font-mono tracking-widest text-[#b9a5f5] uppercase bg-[#1a1729] border border-[#3b3452] px-2.5 py-0.5 rounded-md w-fit">
-              <span>District 4</span>
-              <span className="text-zinc-500">·</span>
-              <span>Everyday Life Simulation</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-['Bricolage_Grotesque_Variable',sans-serif]">
-              SCAMMAZE
-            </h1>
-
-            <p className="text-sm sm:text-base font-medium text-[#e9e2ff] italic tracking-wide">
-              "Every scam starts on an ordinary day."
-            </p>
-
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Step into an ordinary neighborhood. Explore your surroundings, question digital messages, and uncover deceptive traps through your own decisions.
-            </p>
+      <main className="my-auto w-full max-w-[480px] sm:max-w-[500px] py-4 flex flex-col justify-center">
+        <div
+          className="relative px-10 sm:px-12 pt-7 sm:pt-8 pb-14 sm:pb-16 space-y-2 filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.9)]"
+          style={{
+            backgroundImage: "url('/assets/ui/menu_panel_frame.webp')",
+            backgroundSize: "100% 100%",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        >
+          {/* Custom Hand-Crafted Title Logo (Centered inside panel) */}
+          <div className="pt-0.5 pb-0.5 flex justify-center items-center w-full">
+            <h1 className="sr-only">SCAMMAZE</h1>
+            <picture>
+              <source srcSet="/assets/branding/game-title-logo.webp" type="image/webp" />
+              <img
+                src="/assets/branding/game-title-logo.png"
+                alt="SCAMMAZE"
+                className="w-full max-w-[300px] sm:max-w-[340px] h-auto object-contain filter drop-shadow-[0_4px_20px_rgba(234,179,8,0.22)] select-none pointer-events-none mx-auto"
+                width={340}
+                height={130}
+              />
+            </picture>
           </div>
 
-          {/* Action Button Stack */}
-          <nav aria-label="Game Main Menu" className="space-y-2.5 pointer-events-auto">
+          {/* Action Button Stack (Balanced width matching logo & neatly contained inside panel) */}
+          <nav aria-label="Game Main Menu" className="space-y-2.5 pointer-events-auto w-full max-w-[325px] sm:max-w-[335px] mx-auto flex flex-col items-center">
             <MenuButton
               label="NEW GAME"
               sublabel="Begin Chapter 1: The Urgent Call"
               icon={Play}
               variant="primary"
               onClick={() => setIntroOpen(true)}
+              onHover={onHoverSound}
             />
 
             <MenuButton
@@ -75,6 +98,7 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
               icon={RotateCcw}
               disabled={true}
               disabledReason="No save game found. Save functionality activates after completing Chapter 1."
+              onHover={onHoverSound}
             />
 
             <MenuButton
@@ -83,6 +107,7 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
               icon={Sliders}
               variant="secondary"
               onClick={() => setSettingsOpen(true)}
+              onHover={onHoverSound}
             />
 
             <MenuButton
@@ -91,17 +116,8 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
               icon={Award}
               variant="secondary"
               onClick={() => setCreditsOpen(true)}
+              onHover={onHoverSound}
             />
-
-            {onOpenHCM && (
-              <MenuButton
-                label="BẢN ĐỒ TP. HỒ CHÍ MINH 3D"
-                sublabel="Mô hình 3D trung tâm Sài Gòn có màu sắc"
-                icon={MapPin}
-                variant="secondary"
-                onClick={onOpenHCM}
-              />
-            )}
           </nav>
         </div>
       </main>

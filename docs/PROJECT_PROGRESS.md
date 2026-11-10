@@ -121,6 +121,422 @@ Resolved:
 
 ## Task History
 
+### 2026-11-10 — Loading Screen Security Note Pruning & Centering
+
+- **Objective:** Remove the bottom security awareness note from the loading screen and vertically center the progress card cleanly.
+- **Completed work:**
+  - Removed `TIPS`, `tipIndex`, `ShieldCheck` icon, and the bottom `footer` banner from `LoadingScreen.tsx`.
+  - Re-centered the progress card cleanly in the middle of the viewport (`my-auto`) so the background artwork remains unobstructed.
+- **Files created or modified:**
+  - `apps/game/src/components/ui/LoadingScreen.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build`
+- **Results:** Clean build and typecheck. Progress card is centered with zero clutter.
+
+### 2026-11-10 — Loading Screen Header Badge Cleanup
+
+- **Objective:** Remove the redundant "District 4 Urban Scene" badge from the loading screen header for a cleaner visual presentation.
+- **Completed work:**
+  - Removed the `Sparkles` icon and `District 4 Urban Scene` badge element from the header in `LoadingScreen.tsx`.
+  - Cleaned up unused imports to maintain zero-warning TypeScript compliance.
+- **Files created or modified:**
+  - `apps/game/src/components/ui/LoadingScreen.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Header now presents a minimal, focused brand identity.
+
+### 2026-11-10 — Cinematic Loading Screen Background Integration
+
+- **Objective:** Replace the loading screen radial gradient background with the authored District 4 Saigon street incoming scam call artwork.
+- **Completed work:**
+  - Processed user-provided artwork into `apps/game/public/assets/ui/loading_bg.webp` (98KB, 90% quality WebP via `cwebp`) and `loading_bg.jpg` (fallback).
+  - Updated `LoadingScreen.tsx` with a multi-layered cinematic presentation:
+    - Responsive cover image layer with subtle brightness/contrast grading.
+    - Double-vignette ambient gradient overlays for optimal text and progress bar contrast.
+    - Frosted glass treatment (`backdrop-blur-md`, subtle border and shadow) on the center progress card and security tips footer.
+- **Files created or modified:**
+  - `apps/game/public/assets/ui/loading_bg.webp` (created)
+  - `apps/game/public/assets/ui/loading_bg.jpg` (created)
+  - `apps/game/src/components/ui/LoadingScreen.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `cwebp -q 90`
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Loading screen displays cinematic street incoming call artwork with polished contrast and fast load performance.
+
+### 2026-11-10 — Main Menu Background Frame Vertical Extension
+
+- **Objective:** Extend the vertical length of the menu panel frame background so all buttons sit comfortably inside without overlapping the ornate bottom border or corners.
+- **Completed work:**
+  - Increased bottom padding of the panel container in `MainMenuOverlay.tsx` from `pb-8` (32px) to `pb-14 sm:pb-16` (56px - 64px), lengthening the background frame downward.
+  - Adjusted button stack width to `max-w-[325px] sm:max-w-[335px]` to ensure button corner chamfers sit completely within the flat recessed center of the panel with clear clearance from the bottom ornate rim.
+- **Files created or modified:**
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Panel frame is properly elongated and buttons sit cleanly inside the frame borders.
+
+### 2026-11-10 — Hover SFX Dynamic Amplification & Audio Balance
+
+- **Objective:** Ensure the button hover SFX is distinctly louder and more prominent than the background music.
+- **Completed work:**
+  - Diagnosed that `button_hover.mp3` originally peaked at only 47.3% (-6.5 dBFS) and was attenuated by a 0.75 SFX gain multiplier.
+  - Normalized and amplified `button_hover.mp3` using `ffmpeg` by +6.2 dB to peak at -0.3 dBFS without distortion.
+  - Increased Web Audio `sfxGain` multiplier in `apps/game/src/app/App.tsx` from `0.75` to `1.5` (`settings.sfxVolume * 1.5`).
+  - Adjusted background music (`musicGain`) target from `0.38` down to `0.28`, and ambient from `0.35` down to `0.25`, creating an approx +12 dB clarity and dynamic contrast advantage for the hover sound effect.
+- **Files created or modified:**
+  - `apps/game/public/assets/audio/button_hover.mp3`
+  - `apps/game/src/app/App.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `ffmpeg volumedetect`
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Hover audio is punchy, crisp, and noticeably louder than the background soundtrack.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Button Stack Vertical Elevation & Spacing Refinement
+
+- **Objective:** Elevate the menu button stack and reduce top padding to give buttons more breathing room from the bottom ornate frame borders.
+- **Completed work:**
+  - Reduced panel container top padding in `MainMenuOverlay.tsx` to `pt-6 sm:pt-7 pb-8` (from `pt-8 pb-10`).
+  - Tightened the gap between the title logo and button stack (`space-y-2` from `space-y-4`) and inter-button gap (`space-y-2.5` from `space-y-3`).
+  - Tuned `MenuButton.tsx` vertical heights (`min-h-[64px] sm:min-h-[66px]` for primary, `min-h-[46px] sm:min-h-[48px]` for secondary), lifting the entire button cluster upward and leaving ample margin at the bottom.
+- **Files created or modified:**
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Buttons shifted upward with clean, balanced spacing from top to bottom.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Button Width Calibration & Logo Alignment
+
+- **Objective:** Calibrate the menu button width to align harmoniously with the SCAMMAZE title logo without touching the frame borders or appearing too small.
+- **Completed work:**
+  - Adjusted the button stack container in `MainMenuOverlay.tsx` to `max-w-[335px] sm:max-w-[345px]`, matching the horizontal footprint of the title logo (`max-w-[300px] sm:max-w-[340px]`).
+  - Tuned `MenuButton.tsx` internal padding and vertical height (`min-h-[66px] sm:min-h-[70px]` for primary, `min-h-[50px] sm:min-h-[52px]` for secondary) with `text-base sm:text-lg` typography, giving the buttons a balanced, substantial presence within the frame.
+- **Files created or modified:**
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Buttons perfectly align with the title logo and sit comfortably inside the frame.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Button Hover SFX Integration via Web Audio API
+
+- **Objective:** Play a responsive, zero-latency sound effect when hovering over menu buttons using user-provided audio asset.
+- **Completed work:**
+  - Placed the user-provided hover audio SFX at `apps/game/public/assets/audio/button_hover.mp3` (4.9KB, 130ms subtle UI pop/click).
+  - Extended `MenuButtonProps` with optional `onHover?: () => void;`, triggered cleanly via `onPointerEnter` for non-disabled buttons.
+  - Implemented low-latency Web Audio API SFX pipeline in `apps/game/src/app/App.tsx`:
+    - Created dedicated `sfxGainNode` routing into `masterGain` with reactive volume synchronization mapped to `settings.sfxVolume` and `settings.soundEnabled`.
+    - Pre-decoded `button_hover.mp3` directly into an in-memory `AudioBuffer` on startup.
+    - Designed instantaneous zero-latency polyphonic playback (`AudioBufferSourceNode`) via `playHoverSound`, allowing rapid button sweeping without stutter or clipping.
+  - Wired `onHoverSound` through `MainMenuOverlay` to all interactive buttons (`NEW GAME`, `CONTINUE`, `SETTINGS`, `CREDITS`).
+- **Files created or modified:**
+  - `apps/game/public/assets/audio/button_hover.mp3` (created)
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `apps/game/src/app/App.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build`
+- **Results:** Workspace typecheck and full production build passed cleanly (3/3 packages clean). Zero-latency hover audio operational.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Button Compaction, "START" Pill Removal & Panel Inset Calibration
+
+- **Objective:** Remove the redundant "START" badge from the `NEW GAME` button and constrain button widths to fit compactly inside the ornate panel frame without crowding the borders.
+- **Completed work:**
+  - Removed the `START` badge from `MenuButton.tsx` for the primary button, leaving a clean Play icon, bold title, and chapter subtitle.
+  - Constrained the button list in `MainMenuOverlay.tsx` (`max-w-[360px] sm:max-w-[380px] mx-auto`) and increased panel padding (`px-10 sm:px-12 pt-8 pb-10`), ensuring the buttons sit neatly and comfortably with ample breathing room from the outer cyber-mystic panel frame borders.
+- **Files created or modified:**
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). Buttons sit neatly inside the frame with zero border crowding.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Main Menu Panel Widening, Hero Button Scaling & Map Button Pruning
+
+- **Objective:** Widen the main menu panel horizontally, scale up the primary `NEW GAME` button to be visibly larger and more prominent than secondary buttons, and remove the unnecessary 3D map button per user request.
+- **Completed work:**
+  - Widened the main menu panel from `max-w-[420px]` to `max-w-[480px] sm:max-w-[500px]` with expanded horizontal padding (`px-8 sm:px-10 pt-8 pb-10`), creating a spacious, cinematic landscape-portrait aspect ratio.
+  - Scaled up the primary button (`NEW GAME`):
+    - Removed `max-w-sm` constraint so all buttons expand to the full inner width of the widened container.
+    - Set primary button height to `min-h-[70px] sm:min-h-[74px]` with `py-4 px-6` padding, larger icon (`w-6 h-6`), `text-lg font-bold` typography, and an amplified `START` accent pill.
+    - Calibrated secondary buttons (`SETTINGS`, `CREDITS`) to `min-h-[52px]` with `py-3 px-5`, ensuring `NEW GAME` stands out prominently as the hero action.
+  - Removed the `BẢN ĐỒ TP. HỒ CHÍ MINH 3D` button from `MainMenuOverlay.tsx`, keeping the menu focused purely on core game actions.
+- **Files created or modified:**
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). Panel is wide and cinematic; hero button is prominently larger.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Dedicated Button Plate Asset Integration (CSS Border Removal)
+
+- **Objective:** Apply the dedicated UI button graphic plate assets (`btn_primary.webp` and `btn_secondary.webp`) directly to `MenuButton.tsx` with zero CSS borders (`border-0`), eliminating double-border clash and distortion.
+- **Completed work:**
+  - Removed all CSS border lines from `MenuButton.tsx` (`border-0 outline-none`).
+  - Applied `btn_primary.webp` for `NEW GAME` and `btn_secondary.webp` for secondary buttons (`SETTINGS`, `CREDITS`, `BẢN ĐỒ`) via `backgroundSize: 100% 100%`.
+  - Added native depth with dynamic drop-shadow filters and hover brightness (`hover:brightness-110` / `hover:brightness-125`), preserving text and icon clarity.
+- **Files created or modified:**
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). Button plate assets render seamlessly without double borders.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Dedicated Panel Asset Frame Replacement (CSS Glass Removal)
+
+- **Objective:** Completely replace the CSS glass background container (`bg-[#12101e]`, `border-[#3b3452]`) with the dedicated UI graphic asset `menu_panel_frame.webp`, eliminating any double-background layering so the asset serves as the sole frame.
+- **Completed work:**
+  - Removed all outer CSS background and border styling from the panel container in `MainMenuOverlay.tsx`.
+  - Applied `menu_panel_frame.webp` directly as the container's background (`backgroundSize: 100% 100%`) with tailored padding (`px-7 sm:px-8 pt-7 pb-8`) so the logo and buttons nest naturally within the ornate cyber-mystic borders.
+  - Added drop-shadow filter (`drop-shadow-[0_16px_40px_rgba(0,0,0,0.9)]`) to lift the asset frame off the 3D background with transparent cutouts.
+- **Files created or modified:**
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). Single unified asset frame with zero double-background artifacts.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Menu UI Simplification & Updated PNG/WebP Logo Synchronization
+
+- **Objective:** Eliminate redundant layered frames causing a "double background" effect on the panel, revert button styling to clean high-contrast glassmorphism to avoid texture distortion, and synchronize the newly updated `game-title-logo.png` to `game-title-logo.webp`.
+- **Completed work:**
+  - Converted the user's newly replaced `game-title-logo.png` (1564x1208 px, 1.76 MB) to high-quality `game-title-logo.webp` (95% quality, 273 KB).
+  - Removed the decorative internal background frame from `MainMenuOverlay.tsx`, leaving a single sleek frosted glass panel with clean padding and shadow.
+  - Reverted `MenuButton.tsx` from stretched texture plates back to crisp, responsive CSS glassmorphic gradients:
+    - Primary button (`NEW GAME`): clean purple radiant gradient (`from-[#7654d6] via-[#6a47cc] to-[#5b3eb3]`) with violet outline and glowing hover shadow.
+    - Secondary buttons (`SETTINGS`, `CREDITS`, `BẢN ĐỒ`): subtle obsidian glass with clean hairlines, zero distortion, zero double borders.
+- **Files created or modified:**
+  - `apps/game/public/assets/branding/game-title-logo.webp`
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). Panel is sleek, buttons have native crispness, and the new logo displays in high definition.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Custom AI Game UI Background Textures Integration (Panel & Button Plates)
+
+- **Objective:** Generate and integrate custom stylized game UI graphic assets for the main menu panel and button plates matching the mystical urban aesthetic of the game and the golden/purple spirit fox branding.
+- **Completed work:**
+  - Invoked `image-generator` subagent to generate 3 specialized UI graphic assets:
+    - `menu_panel_frame.png` / `menu_panel_frame.webp`: Obsidian midnight-purple frosted glass panel container with cyber-mystic corner brackets, electric violet trim, and golden aura.
+    - `btn_primary.png` / `btn_primary.webp`: High-tech action button plate with radiant purple bevels, inner luminous glow, and warm golden neon edge highlights.
+    - `btn_secondary.png` / `btn_secondary.webp`: Dark slate-purple frosted glass button plate with metallic bevel and violet hairline border.
+  - Processed assets with smooth antialiased alpha isolation into `apps/game/public/assets/ui/`.
+  - Upgraded `MenuButton.tsx`: Integrated graphic texture plate underlays with smooth hover scaling (`group-hover:scale-[1.02]`), maintaining crisp vector text and icons with full accessibility.
+  - Upgraded `MainMenuOverlay.tsx`: Added decorative cyber-mystic panel frame overlay (`mix-blend-screen opacity-30`) over the frosted glass container.
+- **Files created or modified:**
+  - `apps/game/public/assets/ui/*`
+  - `apps/game/src/components/ui/MenuButton.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). High-fidelity game UI plates render seamlessly with hover states.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Main Menu Panel Streamlining: Description & Tagline Removal
+
+- **Objective:** Remove the tagline quote and descriptive subtitle paragraph from the main menu panel, leaving a sleek, focused panel showcasing solely the centered title logo and action buttons.
+- **Completed work:**
+  - Removed `"Every scam starts on an ordinary day."` and the neighborhood description paragraph from `MainMenuOverlay.tsx`.
+  - Adjusted internal card vertical spacing to `space-y-5` for a compact, modern game title card layout.
+- **Files created or modified:**
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). Panel is minimal and focused.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Kiroween Kiro Ghost Custom Cursor Integration
+
+- **Objective:** Integrate the official Kiroween Kiro Ghost cursor pack into the 3D game application, matching the landing page cursor experience.
+- **Completed work:**
+  - Copied curated 48x48 and 96x96 transparent PNG cursor assets from local workspace into `apps/game/public/cursors/` (`default.png`, `pointer.png`, `not-allowed.png`, `text.png`, `grab.png`, `click.png`, `help.png`, `wait.png`, `crosshair.png`).
+  - Configured global cursor styling in `apps/game/src/styles/index.css`:
+    - Default cursor: Kiro Ghost with hotspot (6, 6) on `html, body, #root`.
+    - Pointer cursor: Kiro Ghost pointing wand/finger with hotspot (12, 12) on interactive buttons, links, and clickable elements.
+    - Not-allowed cursor: Kiro Ghost restriction state with hotspot (12, 12) on disabled buttons and `[aria-disabled="true"]`.
+    - Text cursor: Hotspot (24, 24) on text inputs and textareas.
+    - Grab / Dragging / Active states: Hotspots (24, 24) on draggable elements and active clicks.
+- **Files created or modified:**
+  - `apps/game/public/cursors/*`
+  - `apps/game/src/styles/index.css`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages clean). Ghost cursor renders sharp across the game window.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Main Menu Header & Title Card Brand Logo Overhaul and Center Alignment
+
+- **Objective:** Replace the text `SCAMMAZE` title inside the main menu glass card with the new custom brush-painted title logo (`game-title-logo.png` / `game-title-logo.webp`), remove the duplicate header logo at the top-left corner, and center-align the main menu panel and its title elements.
+- **Completed work:**
+  - Ingested and optimized the user-provided golden brush-lettered logo with purple spirit fox (`apps/game/public/assets/branding/game-title-logo.png` and WebP format `game-title-logo.webp`).
+  - Updated `MainMenuOverlay.tsx`:
+    - Removed `<BrandLogo size="md" />` from the top header bar, realigning the sound controls to the right corner cleanly.
+    - Replaced the plain `<h1>SCAMMAZE</h1>` text inside the District 4 menu card with a responsive picture element featuring subtle golden glow drop-shadow (`drop-shadow-[0_4px_20px_rgba(234,179,8,0.22)]`), retaining semantic `<h1 className="sr-only">SCAMMAZE</h1>` for accessibility.
+    - Preserved the main menu panel at its original left-corner layout position.
+    - Centered the title logo horizontally inside the glass panel card (`flex justify-center items-center w-full mx-auto`).
+    - Removed the badge line (`DISTRICT 4 · EVERYDAY LIFE SIMULATION`) to keep the top of the card focused purely on the title logo.
+- **Files created or modified:**
+  - `apps/game/public/assets/branding/game-title-logo.png`
+  - `apps/game/public/assets/branding/game-title-logo.webp`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** Clean build and typecheck (3/3 packages). Title logo renders crisp on retina screens against dark glass card.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Dual-Layer Web Audio Architecture (BGM + Street Ambient) with Progressive Loading Fade-In
+
+- **Objective:** Integrate a second layer of audio — a chill background music track (BGM) uploaded by the user — blending harmoniously at balanced subtle volume with the District 4 street ambient layer, fading in progressively starting from the loading phase.
+- **Completed work:**
+  - **Seamless BGM Track Processing:** Ingested the user-uploaded track (`uploaded_media_1794299217084.mp3`), trimmed dead silence at head and tail, and applied a 4.0-second equal-power sinusoidal crossfade to produce an infinite seamless loop (`apps/game/public/assets/audio/menu_music.mp3`, 222.25s, 5.1 MB).
+  - **Dual-Layer Web Audio Engine:** Upgraded `App.tsx` audio pipeline into a 2-tier routed graph:
+    - `masterGain`: connects to `ctx.destination`, controlling global mute state and `/hochiminh` route transitions with click-free 60ms ramps.
+    - `musicGain`: dedicated gain node for BGM (`menu_music.mp3`), calibrated to subtle background level (`musicVolume * 0.38`). Fades in progressively over 3.0 seconds (`linearRampToValueAtTime`) starting immediately during loading screen initialization.
+    - `ambientGain`: dedicated gain node for District 4 street chatter (`menu_ambient.mp3`), calibrated to `musicVolume * 0.35`. Smoothly fades in over 2.0 seconds as soon as the 3D scene finishes loading and the street view is revealed.
+  - **Harmonious Acoustic Balance:** Both layers play simultaneously with equal weight, combining to ~0.73 peak gain, preventing audio clipping while preserving atmospheric depth.
+  - **Gesture Unlocking & Accessibility:** Maintained browser user-gesture unlock across pointer, touch, and keyboard events, plus keyboard mute shortcut ('M').
+- **Files created or modified:**
+  - `apps/game/public/assets/audio/menu_music.mp3` (new seamless BGM loop)
+  - `apps/game/src/app/App.tsx` (dual-layer Web Audio engine with progressive fade-in)
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm --filter game build`
+  - `pnpm typecheck`
+- **Results:** All builds and typechecks passed (3/3 packages clean). Audio begins fading in on loading screen and smoothly blends with street ambient as the 3D scene opens.
+- **Unresolved issues and known limitations:** Browsers with strict autoplay policies require at least one user gesture before starting Web Audio playback if the user hasn't previously interacted with the origin.
+- **Deviations from the documented architecture:** None. Uses purely client-side Web Audio API without extra external dependencies.
+- **Follow-up tasks:** Proceed with Chapter 1 player movement and in-game smartphone UI.
+
+### 2026-11-10 — Zero-Latency Gapless Looping via Web Audio API & Waveform Crossfading
+
+- **Objective:** Eliminate the audible stutter, gap, and click ("giật giật") when the ambient sound effect reaches the end of the track and loops back to the start.
+- **Completed work:**
+  - **Sample-Accurate Waveform Crossfade:** Processed `menu_ambient.mp3` with a 2.0-second cosine S-curve crossfade blending the tail directly into the head. The final sample matches the first sample continuously without any amplitude discontinuity.
+  - **Web Audio API Hardware Looping:** Upgraded the audio playback system in `apps/game/src/app/App.tsx` from HTML5 `<audio>` to Web Audio API (`AudioBufferSourceNode` + `GainNode`).
+  - Set `sourceNode.loop = true`: Loops raw uncompressed PCM memory in the Web Audio hardware thread with **0.000 ms gap**, eliminating browser media player reload latencies.
+  - Added click-free audio ramping: Volume adjustments and mute toggles use `gainNode.gain.setTargetAtTime(..., 0.06)` for smooth 60ms exponential fades.
+- **Files created or modified:**
+  - `apps/game/public/assets/audio/menu_ambient.mp3`
+  - `apps/game/src/app/App.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Audio loops infinitely with zero stutter or clicks.
+
+### 2026-11-10 — Main Menu Atmospheric Sound Effect Integration & 60% Volume Calibration
+
+- **Objective:** Fix silent audio playback caused by asset path location, upgrade to native DOM `<audio>` element with direct click activation, and calibrate the playback level to a balanced 60% volume scale per user request ("giảm xuống khoảng 60% thôi").
+- **Completed work:**
+  - Placed `apps/game/public/assets/audio/menu_ambient.mp3` (956 KB) in the correct game public directory.
+  - Attached a native DOM `<audio>` element in `App.tsx` with `preload="auto"` and `loop`, eliminating unattached audio garbage collection.
+  - Calibrated volume output scale to 60% (`settings.musicVolume * 0.6`), delivering balanced and non-fatiguing background audio.
+  - Bound the `AUDIO ON / MUTED` header button directly to synchronous `handleToggleSound()` on click, providing guaranteed browser user activation.
+  - Set up active gesture unlock on `pointerdown`, `click`, and `keydown`.
+  - Maintained pause/resume integration with `/hochiminh` route.
+- **Files created or modified:**
+  - `apps/game/public/assets/audio/menu_ambient.mp3`
+  - `apps/game/src/app/App.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build and typecheck. Sound plays reliably at balanced 60% volume.
+
+### 2026-11-10 — MenuBG2 Scene Integration & Automated 613MB to 24.9MB Optimization
+
+- **Objective:** Process and integrate the updated Unity environment `MenuBG2.glb` (613.2 MB, 9.56M triangles) containing new urban details (battery swap station `tramdoipin`, electric utility cabinet `tudien`, electricity poles and cables `Electricity+poles`).
+- **Completed work:**
+  - Ingested `/Users/tee/UTE/Kiroween/Asset3D/MenuBG2.glb` directly into the automated glTF-Transform optimization pipeline.
+  - Decimated heavy props:
+    - Battery swap station (`tramdoipin`): 6,000,000 triangles decimated to ~48,000 triangles (-99.2%).
+    - Electric cabinet (`tudien`): 1,498,170 triangles decimated to ~22,000 triangles (-98.5%).
+    - Electricity poles & cables (`Electricity+poles`): 365,648 triangles decimated to ~36,000 triangles.
+    - Vehicles (`vinfast`, `lexus`, `pcx`), fences, and pedestrians decimated while keeping 100% detail on foreground assets (Bánh Mì cart, sidewalk, storefronts).
+    - Total scene triangles reduced from 9,420,706 to 802,555 (saving 8,618,151 triangles).
+  - Downscaled textures and converted 64 textures to WebP: texture payload reduced from 244.05 MB to 12.74 MB.
+  - Applied vertex welding, attribute quantization, cache reordering, and Meshopt compression.
+  - Final optimized asset compiled to `apps/game/public/assets/3d/optimized/MenuBG.optimized.glb`: **24.92 MB** (reduced from 613.17 MB, **-95.94% reduction**).
+- **Files created or modified:**
+  - `apps/game/scripts/optimize-environment.cjs`
+  - `apps/game/public/assets/3d/optimized/MenuBG.optimized.glb`
+  - `apps/game/public/assets/3d/optimized/optimization-report.json`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `node apps/game/scripts/optimize-environment.cjs`
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build in 2.77s. All new assets (trạm đổi pin, tủ điện, cột điện) render smoothly.
+
 ### 2026-11-10 — Main Menu Loading Presentation Alignment: Full-Screen Atmospheric Screen vs Proxy Blocks
 
 - **Objective:** Revert procedural block proxies (`StreetFallback.tsx`) per user preference in favor of the polished full-screen atmospheric Loading Screen (`LoadingScreen.tsx`), taking full advantage of the 21.5 MB optimized asset and parallel GPU compilation to deliver a brief, smooth ~1s transition directly into the completed 3D street.

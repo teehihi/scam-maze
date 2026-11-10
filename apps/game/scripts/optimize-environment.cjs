@@ -1,9 +1,10 @@
 /**
  * SCAMMAZE Main Menu 3D Asset Optimization Pipeline
  *
- * Implements Phase Two:
+ * Implements:
  * - Dead/hidden geometry removal
  * - Selective decimation of over-tesselated background meshes (preserving foreground detail)
+ * - Decimation of heavy props: tramdoipin (6M tris), tudien (1.5M tris), bin (1.5M tris), vehicles (2.1M tris), electricity poles
  * - Texture downscaling and EXT_texture_webp encoding
  * - Vertex welding, attribute quantization, cache reordering, and EXT_meshopt_compression
  */
@@ -11,7 +12,7 @@
 const fs = require("fs");
 const path = require("path");
 const { NodeIO } = require("@gltf-transform/core");
-const { ALL_EXTENSIONS, EXTTextureWebP, EXTMeshoptCompression } = require("@gltf-transform/extensions");
+const { ALL_EXTENSIONS, EXTTextureWebP } = require("@gltf-transform/extensions");
 const {
   simplifyPrimitive,
   prune,
@@ -19,13 +20,20 @@ const {
   weld,
   reorder,
   quantize,
-  meshopt
+  meshopt,
 } = require("@gltf-transform/functions");
 const { MeshoptSimplifier, MeshoptEncoder, MeshoptDecoder } = require("meshoptimizer");
 const sharp = require("sharp");
 
 async function optimizeMenuBG() {
-  const inputPath = path.resolve(__dirname, "../public/assets/3d/environments/MenuBG.glb");
+  let inputPath = "/Users/tee/UTE/Kiroween/Asset3D/MenuBG2.glb";
+  if (!fs.existsSync(inputPath)) {
+    inputPath = path.resolve(__dirname, "../public/assets/3d/environments/MenuBG2.glb");
+  }
+  if (!fs.existsSync(inputPath)) {
+    inputPath = path.resolve(__dirname, "../public/assets/3d/environments/MenuBG.glb");
+  }
+
   const outputDir = path.resolve(__dirname, "../public/assets/3d/optimized");
   const outputPath = path.resolve(outputDir, "MenuBG.optimized.glb");
 
@@ -51,8 +59,8 @@ async function optimizeMenuBG() {
   console.log("Loaded in", ((Date.now() - t0) / 1000).toFixed(2), "s");
   const root = doc.getRoot();
 
-  // Create WebP extension
-  const webpExt = doc.createExtension(EXTTextureWebP).setRequired(true);
+  // Ensure WebP extension is active
+  doc.createExtension(EXTTextureWebP).setRequired(true);
 
   // [2/6] Remove dead / hidden nodes
   console.log("\n[2/6] Removing dead and hidden nodes...");
@@ -66,73 +74,11 @@ async function optimizeMenuBG() {
   });
   console.log(`Disposed ${deadNodes} dead node(s)`);
 
-  // [3/6] Selective simplification of background over-tessellated meshes
-  console.log("\n[3/6] Selectively simplifying over-tessellated background meshes...");
+  // [3/6] Selective simplification of background and heavy props
+  console.log("\n[3/6] Selectively simplifying heavy background meshes & props...");
   let simplifiedCount = 0;
   let beforeTris = 0;
   let afterTris = 0;
-
-  root.listNodes().forEach((node) => {
-    const name = node.getName() || "";
-    const mesh = node.getMesh();
-    if (!mesh) return;
-
-    // 1. Penguin trash bin on sidewalk (1.5M tris -> ~18k)
-    if (name.includes("bin")) {
-      mesh.listPrimitives().forEach((prim) => {
-        const count = prim.getIndices().getCount() / 3;
-        beforeTris += count;
-        simplifyPrimitive(prim, { simplifier: MeshoptSimplifier, ratio: 0.012, error: 0.005 });
-        afterTris += prim.getIndices().getCount() / 3;
-        simplifiedCount++;
-      });
-    }
-    // 2. Male background pedestrian (1.5M tris -> ~30k)
-    else if (name.includes("20261110000447_177df9df")) {
-      mesh.listPrimitives().forEach((prim) => {
-        const count = prim.getIndices().getCount() / 3;
-        beforeTris += count;
-        simplifyPrimitive(prim, { simplifier: MeshoptSimplifier, ratio: 0.02, error: 0.005 });
-        afterTris += prim.getIndices().getCount() / 3;
-        simplifiedCount++;
-      });
-    }
-    // 3. Bitexco building base cube (496k tris -> ~7k)
-    else if (name === "Cube" && mesh.getName() === "Cube.001") {
-      mesh.listPrimitives().forEach((prim) => {
-        const count = prim.getIndices().getCount() / 3;
-        beforeTris += count;
-        simplifyPrimitive(prim, { simplifier: MeshoptSimplifier, ratio: 0.015, error: 0.005 });
-        afterTris += prim.getIndices().getCount() / 3;
-        simplifiedCount++;
-      });
-    }
-    // 4. Distant street hedge (152k tris -> ~25k)
-    else if (name.includes("Hedge") && mesh.getName().includes("LONG skinny")) {
-      mesh.listPrimitives().forEach((prim) => {
-        const count = prim.getIndices().getCount() / 3;
-        beforeTris += count;
-        simplifyPrimitive(prim, { simplifier: MeshoptSimplifier, ratio: 0.18, error: 0.005 });
-        afterTris += prim.getIndices().getCount() / 3;
-        simplifiedCount++;
-      });
-    }
-    // 5. Secondary cube prop (147k tris -> ~10k)
-    else if (name.includes("Cube.007") && mesh.getName() === "Cube.011") {
-      mesh.listPrimitives().forEach((prim) => {
-        const count = prim.getIndices().getCount() / 3;
-        beforeTris += count;
-        simplifyPrimitive(prim, { simplifier: MeshoptSimplifier, ratio: 0.07, error: 0.005 });
-        afterTris += prim.getIndices().getCount() / 3;
-        simplifiedCount++;
-      });
-    }
-  });
-
-  // [3.5/6] Round 2 Deep Vehicle & Background Prop Decimation
-  console.log("\n[3.5/6] Round 2: Decimating heavy vehicle hierarchies (VF3, Lexus, PCX, Fence, Pedestrians)...");
-  const targetParentNames = ["vinfast", "PCX", "lexus", "Fence", "rp_mei"];
-  const targetMeshes = new Set();
 
   function collectMeshes(node) {
     let list = [];
@@ -144,20 +90,56 @@ async function optimizeMenuBG() {
     return list;
   }
 
-  root.listNodes().forEach((n) => {
-    if (targetParentNames.some((t) => n.getName().includes(t))) {
-      collectMeshes(n).forEach((m) => targetMeshes.add(m));
-    }
-  });
+  // Rules: [pattern, ratio, error]
+  const decimationRules = [
+    { pattern: "tramdoipin", ratio: 0.008, error: 0.005 }, // 6M -> ~48k
+    { pattern: "tudien", ratio: 0.015, error: 0.005 },     // 1.5M -> ~22k
+    { pattern: "bin", ratio: 0.012, error: 0.005 },        // 1.5M -> ~18k
+    { pattern: "people", ratio: 0.02, error: 0.005 },      // 1.6M -> ~32k
+    { pattern: "rp_mei", ratio: 0.02, error: 0.005 },
+    { pattern: "20261110", ratio: 0.02, error: 0.005 },
+    { pattern: "vehicles", ratio: 0.18, error: 0.005 },    // 2.1M -> ~380k
+    { pattern: "vinfast", ratio: 0.15, error: 0.005 },
+    { pattern: "lexus", ratio: 0.15, error: 0.005 },
+    { pattern: "pcx", ratio: 0.15, error: 0.005 },
+    { pattern: "fence", ratio: 0.04, error: 0.005 },       // 1.2M -> ~48k
+    { pattern: "bitexco", ratio: 0.03, error: 0.005 },     // 692k -> ~20k
+    { pattern: "electricity", ratio: 0.10, error: 0.005 }, // 365k -> ~36k
+  ];
 
-  targetMeshes.forEach((m) => {
-    m.listPrimitives().forEach((prim) => {
-      const count = prim.getIndices().getCount() / 3;
-      beforeTris += count;
-      simplifyPrimitive(prim, { simplifier: MeshoptSimplifier, ratio: 0.22, error: 0.005 });
-      afterTris += prim.getIndices().getCount() / 3;
-      simplifiedCount++;
-    });
+  const processedMeshes = new Set();
+
+  root.listNodes().forEach((node) => {
+    const nodeName = (node.getName() || "").toLowerCase();
+    for (const rule of decimationRules) {
+      if (nodeName.includes(rule.pattern)) {
+        const meshes = collectMeshes(node);
+        meshes.forEach((m) => {
+          if (!processedMeshes.has(m)) {
+            processedMeshes.add(m);
+            m.listPrimitives().forEach((prim) => {
+              const idx = prim.getIndices();
+              if (idx) {
+                const count = idx.getCount() / 3;
+                beforeTris += count;
+                try {
+                  simplifyPrimitive(prim, {
+                    simplifier: MeshoptSimplifier,
+                    ratio: rule.ratio,
+                    error: rule.error,
+                  });
+                } catch (err) {
+                  // Silently keep primitive if simplifier cannot reduce further
+                }
+                afterTris += prim.getIndices().getCount() / 3;
+                simplifiedCount++;
+              }
+            });
+          }
+        });
+        break;
+      }
+    }
   });
 
   console.log(`Simplified ${simplifiedCount} primitives: ${beforeTris.toLocaleString()} tris -> ${afterTris.toLocaleString()} tris (saved ${(beforeTris - afterTris).toLocaleString()} triangles)`);
@@ -198,13 +180,10 @@ async function optimizeMenuBG() {
 
     let webpBuffer;
     if (isNormal) {
-      // High-quality WebP for normal maps (near-lossless 90 to prevent 4MB bloat while preserving smooth normals)
       webpBuffer = await pipeline.webp({ quality: 90, effort: 4 }).toBuffer();
     } else if (isOcclusionOrMetalRough) {
-      // Lossless WebP for metal/rough/ao channel accuracy
       webpBuffer = await pipeline.webp({ lossless: true, effort: 4 }).toBuffer();
     } else {
-      // High-quality lossy WebP for baseColor and emissive
       webpBuffer = await pipeline.webp({ quality: 84, effort: 4 }).toBuffer();
     }
 
@@ -244,7 +223,6 @@ async function optimizeMenuBG() {
   console.log("Storage Saved:       " + (reductionBytes / 1048576).toFixed(2) + " MB (-" + reductionPct + "%)");
   console.log("=========================================\n");
 
-  // Output stats JSON
   const summary = {
     originalPath: inputPath,
     optimizedPath: outputPath,

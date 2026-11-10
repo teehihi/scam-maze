@@ -36,10 +36,45 @@ html, body {
   background-color: #0d0c15;
   color: #f7f5ff;
   font-family: var(--font-sans);
+  cursor: url('/cursors/default.png') 6 6, auto;
 }
 
 #root {
   width: 100%;
   height: 100%;
   position: relative;
+  cursor: url('/cursors/default.png') 6 6, auto;
+}
+
+/* Kiroween — Kiro Ghost Cursor Pack */
+a, button, [role="button"], select, summary, .cursor-pointer {
+  cursor: url('/cursors/pointer.png') 12 12, pointer !important;
+}
+
+button:disabled, [disabled], [aria-disabled="true"], .cursor-not-allowed {
+  cursor: url('/cursors/not-allowed.png') 12 12, not-allowed !important;
+}
+
+input, textarea, [contenteditable="true"] {
+  cursor: url('/cursors/text.png') 24 24, text;
+}
+
+[draggable="true"] {
+  cursor: url('/cursors/grab.png') 24 24, grab;
+}
+
+.is-dragging {
+  cursor: url('/cursors/click.png') 24 24, grabbing;
+}
+
+.cursor-help, [title] {
+  cursor: url('/cursors/help.png') 12 12, help;
+}
+
+.cursor-wait {
+  cursor: url('/cursors/wait.png') 24 24, wait;
+}
+
+.cursor-crosshair {
+  cursor: url('/cursors/crosshair.png') 24 24, crosshair;
 }
