@@ -56,27 +56,29 @@ definition)** · [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
 ## 2. Engineering rules
 
 - Inspect the existing code and docs before changing anything; reuse existing conventions.
-- Current stack (verified): React 19, TypeScript, Vite 8, Tailwind CSS v4, pnpm (lockfile
-  committed), `lucide-react` for icons. Single app at the repository root: the landing page only.
-  No game code, no 3D library, no backend, no database, no tests yet.
-- **Planned game stack** (owner decision, 8 Nov 2026; not installed; details in
+- Current stack (verified): pnpm monorepo with `apps/landing`, `apps/game`, and `packages/shared-types`.
+  - Landing app (`apps/landing`): React 19, TypeScript, Vite 8, Tailwind CSS v4, `lucide-react`. Deploys to GitHub Pages.
+  - Game app (`apps/game`): React 19, TypeScript, Vite 8, Three.js r174, React Three Fiber v9, Drei v10, Tailwind CSS v4, `lucide-react`. Implements the 3D first-person Main Menu street environment with verified Sketchfab assets.
+  - Shared contracts (`packages/shared-types`): Pure TypeScript definitions without React or Three.js dependencies.
+- **Game stack details** (owner decision, 8 Nov 2026; details in
   [OVERVIEW.md, section 3.1](docs/architecture/OVERVIEW.md#31-game-application-stack)):
   React 19 + TypeScript + Vite; **Three.js** is the primary 3D engine, used through **React Three
-  Fiber** and **Drei**; **Rapier** is the *proposed* physics engine; **Zustand** for gameplay
-  state; a pure **TypeScript** deterministic scenario engine; **Zod** for runtime validation;
-  **IndexedDB via Dexie** for local saves.
+  Fiber** and **Drei**; **Rapier** is the *proposed* physics engine (not needed for menu);
+  Zustand for complex gameplay state when needed; pure TypeScript deterministic scenario engine;
+  Zod for runtime validation; IndexedDB via Dexie for local saves.
   - Do not use PixiJS (a 2D renderer) as the 3D engine, and do not substitute other 3D engines.
-  - ECS is **not** approved; do not introduce it without a documented evaluation and owner
-    approval.
+  - ECS is **not** approved; do not introduce it without a documented evaluation and owner approval.
   - The scenario engine must not import React, Three.js, Rapier, Zustand or Dexie.
-  - Do not install any of these libraries outside an approved game implementation task.
 - Commands:
 
   ```bash
   pnpm install
-  pnpm dev         # local dev server
-  pnpm typecheck   # TypeScript only
-  pnpm build       # typecheck + production build (the current quality gate)
+  pnpm dev:landing       # local dev server for landing page (port 5173)
+  pnpm dev:game          # local dev server for 3D game (port 5174)
+  pnpm build:landing     # build landing page to apps/landing/dist
+  pnpm build:game        # build 3D game to apps/game/dist
+  pnpm typecheck         # workspace-wide TypeScript verification
+  pnpm build             # workspace-wide production build (current quality gate)
   ```
 
 - Avoid unnecessary dependencies; justify each new one in the pull request.

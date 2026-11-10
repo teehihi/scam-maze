@@ -1,0 +1,17 @@
+{
+  "name": "@scammaze/shared-types",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared contracts and domain types for SCAMMAZE",
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.0"
+  }
+}

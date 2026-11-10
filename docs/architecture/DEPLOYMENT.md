@@ -10,54 +10,40 @@
 
 | Component | URL / endpoint | How it is deployed | Status |
 |---|---|---|---|
-| Landing page | <https://teehihi.github.io/scam-maze/> | GitHub Actions `.github/workflows/deploy.yml` on every push to `main`; build with `VITE_BASE=/scam-maze/`; GitHub Pages "GitHub Actions" source | `IMPLEMENTED`; last deployment `8c66005` reported `success` (8 Nov 2026) |
-| Pull request builds | Artifact `dist` on each CI run | `.github/workflows/ci.yml` on every pull request | `IMPLEMENTED` |
-| Game client | `TBD` | — | `PLANNED` |
+| Landing page | <https://teehihi.github.io/scam-maze/> | GitHub Actions `.github/workflows/deploy.yml` on every push to `main`; build target `apps/landing/dist` with `VITE_BASE=/scam-maze/` | `IMPLEMENTED` |
+| Pull request builds | Artifact `landing-dist` on each CI run | `.github/workflows/ci.yml` validates workspace `pnpm typecheck` and `pnpm build` | `IMPLEMENTED` |
+| Game client (`apps/game`) | Independent client build in `apps/game/dist` (port 5174 in dev) | Ready for Vercel deployment project | `IMPLEMENTED` (local & build ready) |
 | Backend API | `TBD` | — | `PLANNED` |
 | Static asset CDN | `TBD` | — | `PLANNED` |
 
-Current CI notes:
-
-- Install uses `pnpm install --no-frozen-lockfile`. `pnpm-lock.yaml` has been committed since
-  PR #7, so both workflows can now switch to `--frozen-lockfile` and enable the pnpm cache
-  (follow-up; not changed in this documentation task).
-- CI runs on Node.js 24. `package.json` requires Node.js `>=22.12.0`.
-
 ## 2. Environments and configuration
 
-| Environment | Frontend URL | API base URL | Status |
+| Environment | Landing URL | Game URL | Status |
 |---|---|---|---|
-| Local development | `http://localhost:5173` (`pnpm dev`) | `TBD` (local or none) | `IMPLEMENTED` for the frontend |
-| Pull request preview | CI artifact today; Vercel preview URL later | `TBD` | Artifact `IMPLEMENTED`; Vercel `PLANNED` |
-| Production | GitHub Pages URL above; Vercel default URL later | AWS-provided API Gateway URL when deployed | `IMPLEMENTED` (GitHub Pages only) |
+| Local development | `http://localhost:5173` (`pnpm dev:landing`) | `http://localhost:5174` (`pnpm dev:game`) | `IMPLEMENTED` |
+| Pull request preview | CI artifact today; Vercel preview URL later | Vercel preview URL later | `IMPLEMENTED` |
+| Production | GitHub Pages URL above; Vercel project later | Vercel project later (e.g. `play.*` subdomain when domain purchased) | Landing `IMPLEMENTED`; Game `DEPLOYMENT READY` |
 
 ### Environment variables
 
 | Variable | Used by | Purpose | Status |
 |---|---|---|---|
-| `VITE_BASE` | `vite.config.ts` (build time) | Base path; `/scam-maze/` on GitHub Pages, `/` elsewhere (default) | `IMPLEMENTED` |
-| `VITE_API_BASE_URL` | Game client | Backend base URL (AWS-provided URL until a custom domain exists) | `PROPOSED`, not read by any code yet |
-| `VITE_GAME_URL` | Landing page (`src/config/site.ts`, template in `.env.example`) | Link target for "Enter the game"; empty shows a coming-soon dialog; only http/https accepted | `IMPLEMENTED` (PR #7); not set in CI, so the dialog is shown |
-| `VITE_ASSET_BASE_URL` | Game client | CloudFront base URL for assets | `PROPOSED` |
-| `ALLOWED_ORIGINS` | Lambda | CORS allow-list of frontend origins | `PROPOSED` |
-| `TABLE_NAME` / `DATABASE_URL` | Lambda | Depends on the database decision | `PENDING` |
+| `VITE_BASE` | `apps/landing/vite.config.ts` | Base path; `/scam-maze/` on GitHub Pages, `/` elsewhere (default) | `IMPLEMENTED` |
+| `VITE_GAME_URL` | Landing page (`apps/landing/src/config/site.ts`) | Link target for "Enter the game"; empty shows coming-soon dialog | `IMPLEMENTED` |
+| `VITE_LANDING_URL` | Game app (`apps/game/src/features/menu/MainMenuOverlay.tsx`) | Link back to marketing & documentation hub (`http://localhost:5173` in dev) | `IMPLEMENTED` |
+| `VITE_API_BASE_URL` | Game client | Backend base URL (AWS-provided URL until custom domain exists) | `PROPOSED` |
+| `VITE_ASSET_BASE_URL` | Game client | CloudFront base URL for heavy assets | `PROPOSED` |
 
-Rules:
+## 3. Frontend on Vercel (`READY FOR DEPLOYMENT`)
 
-- Every URL is configurable. **Never hard-code a proposed domain** (for example `scammaze.com`)
-  as a production URL.
-- `VITE_*` variables are compiled into public JavaScript: **never put secrets in them.**
-- Validate required variables at start-up (frontend build and Lambda cold start) and fail with a
-  clear message instead of falling back to a guessed URL.
-- Commit an `.env.example` with placeholder values once the first real variable is needed
-  (plan section 4.3); never commit `.env` files.
+The repository is structured as a pnpm monorepo ready for independent Vercel projects:
 
-## 3. Frontend on Vercel (`PLANNED`)
+| Project | Root Directory | Build Command | Output Directory | Notes |
+|---|---|---|---|---|
+| **SCAMMAZE Landing** | `apps/landing` | `pnpm build` | `dist` | SPA rewrite configured in `apps/landing/vercel.json` |
+| **SCAMMAZE Game** | `apps/game` | `pnpm build` | `dist` | SPA rewrite configured in `apps/game/vercel.json` |
 
-- **Two Vercel projects**: one for the landing page, one for the game client. This requires
-  splitting the repository into two apps first (plan section 4.3 suggests `apps/` and
-  `packages/`). Status: `PLANNED`.
-- **Build:** `pnpm build`, output `dist`. On Vercel the app is served from `/`, so `VITE_BASE`
+Both projects can link to the same GitHub repository without interfering with each other's build outputs or deployment cycles. Neither application depends on the other's build output. Serving happens from `/` on each respective domain/hostname.
   can stay unset.
 - **Preview deployments** for every pull request; production deploys from `main` only.
 - **Environment variables** are set per environment (Preview / Production) in the Vercel project,

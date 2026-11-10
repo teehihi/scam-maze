@@ -8,54 +8,45 @@
 - **Product definition:** Browser-based, first-person 3D narrative game in a small persistent
   world with chapter-based stories (owner decision, 2026-11-08). Canonical document:
   [product positioning](product/PRODUCT_POSITIONING.md).
-- **Product stage:** Pre-MVP. A public marketing landing page only; **no game code exists yet**
-  (no 3D library, no narrative engine, no phone UI).
-- **Current milestone:** Master plan Phase A — Foundation / rule compliance (plan dates 7–10 Nov
-  2026). Phase B now targets the 3D vertical slice (positioning section 11).
-- **Architecture status:** Target architecture documented; landing page `IMPLEMENTED`; 3D game
-  client, deterministic core, backend and all AWS services `PLANNED`; game stack decided
-  (Three.js + React Three Fiber + Drei, Zustand, TypeScript engine + Zod, Dexie; Rapier
-  `PROPOSED`), not installed;
-  AI layer `PROPOSED`; nothing provisioned.
+- **Product stage:** Pre-Alpha / Game Foundation.
+  - Landing application (`apps/landing`): live on GitHub Pages with 4 cinematic sections and full Knowledge Hub.
+  - Game application (`apps/game`): 3D first-person street scene serving as the game's Main Menu built with Three.js r174, R3F v9, Drei v10, and verified Sketchfab 3D assets.
+  - Shared contracts (`packages/shared-types`): pure TypeScript types.
+- **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
+- **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
 - **Database decision:** `PENDING` ([database strategy](architecture/DATABASE_STRATEGY.md)).
-- **Domain status:** No domain purchased. Domain & DNS cost `TBD`.
-- **Deployment status:** Landing page on GitHub Pages, <https://teehihi.github.io/scam-maze/>
-  (last deployment `8c66005`, reported `success` on 2026-11-08). No game or backend deployment.
+- **Domain status:** No domain purchased.
+- **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
-  ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet. 3D asset and AI costs not
-  yet estimated (cost estimation, section 15).
-- **Last updated:** 2026-11-08
+  ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
+- **Last updated:** 2026-11-09
 
 ## Completed
 
-Verified against merged pull requests on GitHub.
+Verified against merged pull requests on GitHub and local workspace builds.
 
-- [x] Public repository, MIT license, community health files (code of conduct, contributing,
-      security policy, accessibility statement, issue and PR templates) — PR #1, merged 2026-11-07.
-- [x] First landing page with a branching demo scenario and a string-only URL checker — initial
-      commit `b23fe11` (now in `src/legacy/`).
-- [x] Deploy workflow to GitHub Pages and CI build on pull requests — commits `846c93a`,
-      `e9a3880`; `ci.yml` added in PR #2.
-- [x] Flat, minimal redesign; skip link; contrast-checked color tokens — PR #2, merged 2026-11-07
-      (replaced by PR #7).
-- [x] All site copy and documentation in English; steering rules for icons and language;
-      master plan translated — PR #3, merged 2026-11-07.
-- [x] Positioning for Vietnam and worldwide; `audience.md` steering; demo uses fictional brand
-      and reserved domains — PR #5, merged 2026-11-07.
+- [x] **Ho Chi Minh City 2025 3D Map Explorer (`/hochiminh` route):** Integrated 19.6MB 3D model of Ho Chi Minh City (Saigon 3D City, CC-BY 4.0, 493,715 vertices). Developed dynamic procedural coloring engine mapping elevations, surface normals, and architectural styles across Saigon River, city avenues, colonial shophouse facades, terracotta roofs, and high-rise glass towers (Bitexco, Landmark). Provided 4 aesthetic themes (Daylight, Cyberpunk Neon, Golden Sunset, Tech Blueprint), 3D landmark pins, cinematic camera presets, auto-rotation, and full routing isolation from the main game menu.
+- [x] **Monorepo restructure & Game Foundation:** Split repository into pnpm monorepo with `apps/landing`, `apps/game`, and `packages/shared-types`. Root workspace build and typecheck commands (`pnpm build`, `pnpm typecheck`, `pnpm dev:landing`, `pnpm dev:game`).
+- [x] **Verified 3D Assets Integration:** Discovered and integrated `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0) from local `Kiroween/Asset3D/`. Recorded in `THIRD_PARTY_NOTICES.md`.
+- [x] **First-Person 3D Main Menu:** Real Three.js r174 + R3F v9 + Drei v10 scene. Human eye-level camera with subtle breathing motion, mouse parallax, customizable FOV, atmospheric lighting, modular buildings, storefronts, hospital, road, streetlights with warm point lights, low-poly trees, and parked cars along curbs.
+- [x] **Interactive Menu UI & Modals:** Accessible React overlay with `NEW GAME` (prologue introduction), `CONTINUE` (disabled with clear tooltip), `SETTINGS` (real-time graphics quality, FOV, sound toggle, volume with `localStorage` persistence), `CREDITS` (verified attribution), and WebGL context error fallback detector.
+- [x] **Independent Deployment Readiness:** Configured `vercel.json` SPA rewrites for both `apps/landing` and `apps/game`. Preserved GitHub Pages deployment for landing page.
+- [x] Public repository, MIT license, community health files — PR #1, merged 2026-11-07.
+- [x] First landing page with demo scenario — initial commit `b23fe11`.
+- [x] Deploy workflow to GitHub Pages and CI build — PR #2, merged 2026-11-07.
+- [x] Flat, minimal redesign; skip link; contrast-checked color tokens — PR #2.
+- [x] All site copy and documentation in English — PR #3, merged 2026-11-07.
+- [x] Positioning for Vietnam and worldwide; `audience.md` steering — PR #5.
 - [x] Master plan added — commit `0665897`, 2026-11-07.
-- [x] Architecture, deployment, database strategy, cost estimation, agent instructions and this
-      progress tracker documented (documentation only) — PR #6, merged 2026-11-07.
-- [x] Cinematic dark landing page as a game gateway; `VITE_GAME_URL` entry configuration;
-      `pnpm-lock.yaml` and `lucide-react` added; earlier demo moved to `src/legacy/` — PR #7,
-      merged 2026-11-07.
-- [x] Canonical product positioning for the first-person 3D direction; reconciliation of README,
-      AGENTS.md, master plan, architecture and cost documents (documentation only) — see task
-      history, 2026-11-08.
+- [x] Architecture, deployment, database strategy, cost estimation — PR #6.
+- [x] Cinematic dark landing page as a game gateway — PR #7.
+- [x] Full-Page Knowledge Hub with 9 legal & documentation sections and instant tab switching — 2026-11-09.
 
 ## In Progress
 
-- [ ] Phase A foundation items not yet done: `.kiro/specs/` for the first features, Kiro hooks,
-      `THIRD_PARTY_NOTICES.md`, test runner, `--frozen-lockfile` in CI.
+- [ ] First-person player controller and navigation movement (WASD / pointer lock).
+- [ ] In-game smartphone interface and message notifications.
+- [ ] Chapter 1 "The Urgent Call" scenario state machine.
 
 ## Planned
 
@@ -126,6 +117,362 @@ Resolved:
 - No automated tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-09 — Exact Unity Game View Camera Framing & Composition Match
+
+- **Objective:** Match the camera composition of the 3D Main Menu exactly to the Unity 2022.3 Game View screenshot (`MenuBG.glb`), properly displaying the Bánh Mì street food cart in the right foreground, Lexus GX 550 down the street, VinFast VF3 & pedestrians on the left sidewalk, and Landmark 81 / Bitexco on the horizon.
+- **Completed work:**
+  - Aligned camera parameters to exact Unity Camera values: `position: [188.6, -91.3, -88.89]`, `target: [188.6, -91.3, 50.0]` (horizontal forward pitch along +Z), `fov: 60`.
+  - Calibrated mouse parallax in `MenuCamera.tsx` with restrained offsets to preserve the authored framing without camera drift.
+  - Verified framing: Bánh Mì cart with spoke wheels on the right foreground, Lexus GX 550 in center-right, left sidewalk shophouses and pedestrians clearly visible.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/MenuCamera.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+- **Results:** Clean check, 0 errors.
+
+### 2026-11-09 — Main Menu UI Streamlining (Header Badges & Footer Bar Removal)
+
+- **Objective:** Streamline the 3D Main Menu UI by removing top header badges/buttons and the bottom developer footer bar as requested by the user, creating a clean, unobstructed cinematic view.
+- **Completed work:**
+  - Removed top header badges (`FIRST-PERSON NARRATIVE GAME`, `3D PREVIEW`) and top-right auxiliary buttons (`Bản đồ TP.HCM 3D`, sound button, and portal link) from `MainMenuOverlay.tsx`. Clean brand logo is retained.
+  - Removed the entire bottom environmental footer bar (`Cinematic Camera: Mouse Parallax... Three.js r174...`).
+  - Menu navigation buttons and settings modals remain fully functional.
+- **Files modified:**
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+- **Results:** Clean typecheck, 0 errors.
+
+### 2026-11-09 — Vietnamese Street Scene Visual Tuning & Foreground NPC Removal
+
+- **Objective:** Address user feedback by removing the foreground character (`19_6_2025 ai guy`) from the bottom frame, eliminating road surface glare/overexposure, and aligning camera framing and lighting contrast to match the Unity editor scene view.
+- **Completed work:**
+  - Removed/hidden `19_6_2025 ai guy` from the scene (`child.visible = false`).
+  - Fixed asphalt road glaring issue: eliminated accidental full-white emissive factor (`emissiveFactor: [1, 1, 1]`) on `streets` material, restoring natural dark pavement roughness.
+  - Balanced scene lighting: lowered sun intensity from 2.6 to 1.45, ambient from 1.15 to 0.7, hemisphere to 0.55, and lowered ACESFilmic tone mapping exposure from 1.12 to 0.95 to eliminate blown-out highlights while preserving clear, pleasant daytime illumination.
+  - Re-centered camera directly behind the Lexus GX 550 at `[186.4, -92.2, -83.5]` looking towards `[186.4, -93.0, -45.0]`, mirroring the Unity scene view.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/game/core/GameCanvas.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Clean build, zero errors.
+- **Follow-up:** First-person character controller and in-game phone UI.
+
+### 2026-11-09 — Integrate Unity-Authored Vietnamese Urban Street Scene (MenuBG.glb) into Main Menu
+
+- **Objective:** Integrate the actual Unity-authored 3D street scene (`MenuBG.glb`, 420MB) into SCAMMAZE's 3D Main Menu, establishing an authentic, cinematic Vietnamese neighborhood environment featuring local shophouses ("nhà phố"), Saigon skyline (Landmark 81, Bitexco), Bánh Mì carts, parked vehicles, and pedestrians.
+- **Completed work:**
+  - Audited `MenuBG.glb`: identified 1,366 nodes, 669 meshes, 150 materials, 57 embedded textures, and confirmed static meshes for NPCs (no skeletal rigs/clips embedded).
+  - Copied and wired `MenuBG.glb` into `apps/game/public/assets/3d/environments/MenuBG.glb`.
+  - Calibrated PBR materials in `StreetEnvironment.tsx`: normalized high metallic factors, clamped unmapped reflections, enforced sRGB color space, and added emissive warmth for shophouse exterior lights.
+  - Implemented procedural subtle idle breathing and micro-turning for Vietnamese NPC pedestrians (`19_6_2025 ai guy`, `rp_mei_posed_001_100k`, `20261110000447_177df9df`) without artificial deformation.
+  - Added subtle tropical breeze animation to banana trees and street greenery.
+  - Realigned camera viewpoint at `[188.6, -91.3, -88.89]` looking along +Z towards `[188.6, -92.2, -50.0]`, precisely preserving the Unity scene authoring perspective with responsive mouse parallax and gentle breathing motion.
+  - Aligned tropical directional sunlight and street fixture point lights.
+  - Extended sky dome radius to 900m to seamlessly envelope the expanded scene.
+  - Updated `GAME_CREDITS` with proper documentation and attribution.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/SkyDome.tsx`
+  - `apps/game/src/config/credits.ts`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** TypeScript verification and Vite production build passed cleanly.
+- **Unresolved issues / Limitations:** Characters are static posed meshes without skeletal animation clips in the GLB; animated with subtle procedural micro-motions. If skeletal walk cycles are desired in future phases, rigged humanoid GLBs can be swapped in.
+- **Follow-up:** First-person character navigation and smartphone interface.
+
+### 2026-11-09 — Integrate Complete "Low Poly City" 3D Environment for Main Menu
+
+- **Objective:** Upgrade the 3D Main Menu scene in `apps/game` with `low_poly_city.glb` (from local `Kiroween/Asset3D/`), reproducing the exact neighborhood intersection scene composed in Unity 2022.3 with orange corner building, blue and yellow shops, mosque, horizon windmills, vehicles, and clear daylight atmosphere.
+- **Completed work:**
+  - Integrated `low_poly_city.glb` (70MB, metric 1:1 scale, 1930 meshes) as the primary 3D environment for `apps/game`.
+  - Calibrated PBR materials in `StreetEnvironment.tsx`: normalized `Color` and `Material` to non-metallic (`metalness: 0.05`, `roughness: 0.65`) and enforced `sRGB` color space to prevent Three.js dark reflection void.
+  - Activated bloom emissive materials on `Color_Bloom.001` with warm glow (`#ffe888`) for streetlights, vehicle lamps, and neon highlights.
+  - Created animated wind turbine rotation in `useFrame` for all `Windmil Fan` objects on the background horizon hill.
+  - Composed camera viewpoint at `[-48.0, 7.5, 36.0]` looking towards `[-55.0, 3.8, 86.0]` with mouse parallax and gentle breathing motion, framing the orange curved building, blue/yellow storefronts, mosque, and windmills seamlessly.
+  - Extended sky dome radius to 500m with continuous atmospheric drift.
+  - Updated `GAME_CREDITS` and documentation.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/SkyDome.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/config/credits.ts`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck`
+  - `pnpm build:game`
+- **Results:** Builds clean with zero errors. All assets served locally via Vite.
+- **Unresolved issues / Limitations:** None.
+- **Deviations:** Used the complete `low_poly_city.glb` as requested to provide a richer, complete neighborhood without manual tile composition.
+- **Follow-up:** First-person character controller (WASD) and in-game phone UI.
+
+### 2026-11-09 — User-Provided Cloud Sky Texture & 360-Degree Panoramic Dome Integration for HCM Map
+
+- **Objective:** Replace the procedural sky with the user-provided realistic cloud sky photo (`saigon_sky.png`), integrating a 360-degree panoramic sky dome with gentle atmospheric cloud drift to eliminate synthetic visual artifacts.
+- **Completed work:**
+  1. Processed user-uploaded sky photograph (1024x768) and saved as `apps/game/public/assets/3d/textures/saigon_sky.png`.
+  2. Created `<HCMSky />` component (`HCMSky.tsx`):
+     - Constructed a 260m-radius inverted upper dome geometry (`sphereGeometry args={[260, 48, 32, 0, Math.PI * 2, 0, Math.PI * 0.55]}`).
+     - Applied `THREE.MirroredRepeatWrapping` with `repeat.set(2.5, 1)` for a seamless 360-degree panoramic wrap without visible seams.
+     - Added smooth atmospheric cloud drift animation (`rotation.y += delta * 0.003`).
+     - Added dynamic theme color tinting (pure white for daylight, warm rose gold for sunset, deep midnight indigo for cyberpunk).
+  3. Integrated `<HCMSky />` into `HCMCanvas.tsx` inside `<Suspense fallback={null}>`.
+  4. Calibrated horizon fog (`#adc3e9`) to seamlessly blend distant city edges with the bottom gradient of the sky texture.
+- **Files created:**
+  - `apps/game/public/assets/3d/textures/saigon_sky.png`
+  - `apps/game/src/features/hochiminh/HCMSky.tsx`
+- **Files modified:**
+  - `apps/game/src/features/hochiminh/HCMCanvas.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - TypeScript type check (`tsc --noEmit`): 0 errors.
+  - Production build (`vite build`): passed in 30.8s.
+  - Live HMR refreshed at `http://localhost:5174/hochiminh`.
+
+### 2026-11-09 — Color Calibration & Photorealistic Shading Overhaul for HCM City 3D Map
+
+- **Objective:** Overhaul the coloring of the Ho Chi Minh City 3D map based on user-provided reference aerial photos (Bến Bạch Đằng, Cột cờ Thủ Ngữ, Tháp Bitexco, Sông Sài Gòn, Quận 1). Eliminate unnatural color smearing, replace cartoonish primary tones with authentic sediment river water, neutral architectural curtain-wall glass, manicured park lawns, and realistic roofing.
+- **Completed work:**
+  1. **Photometric Color Sampling & Analysis:**
+     - Sampled real RGB values directly from 4 user-uploaded aerial reference photographs:
+       - Sông Sài Gòn alluvial silt water: `#606756` (warm olive-khaki sediment water, not neon blue).
+       - Bến Bạch Đằng park lawns: `#4d753b` (manicured crescent grass curves) and stone promenade pavers `#bab6ad`.
+       - High-rise curtain glass: `#566878` (neutral slate), `#788c9e` (sky reflective), `#3f4f5d` (deep smoke solar glass).
+       - Rooftops: predominantly light concrete slabs `#abb4bd` and metal decking `#959fa9` with subtle weathered clay red accents `#7c3e30` (15%), eliminating giant orange-red smears.
+  2. **Grid-Cell Quantization & Anti-Smearing Engine (`colorEngine.ts`):**
+     - Replaced continuous vertex random hashing with a 4.0m spatial quantization grid (`gridHash(cellX, cellZ)`), ensuring that all vertices of a building or roof share uniform architectural material parameters without gradient streaks.
+     - Implemented landmark-specific material mapping:
+       - **Bitexco Financial Tower:** Lotus silver-slate curtain glass with cantilevered helipad plate and metallic crown.
+       - **Northern Tower Cluster (Vietcombank):** Refined vertical louvers and reflective slate glass.
+       - **Bến Bạch Đằng Waterfront:** Defined manicured park curves and pedestrian walkways along Tôn Đức Thắng avenue.
+  3. **Atmospheric Lighting & Sky Enhancement (`HCMCanvas.tsx`):**
+     - Replaced dull grayish sky with authentic radiant tropical blue (`#629ad6` to `#8cbbe8`).
+     - Added midday sun directional light (`#fffbf0`, intensity 2.1) casting natural architectural shadows.
+     - Pushed atmospheric fog far back (`[55m, 200m]`) to maintain crystal-clear visibility across the 3km x 3km city.
+- **Files modified:**
+  - `apps/game/src/features/hochiminh/colorEngine.ts`
+  - `apps/game/src/features/hochiminh/HCMModel.tsx`
+  - `apps/game/src/features/hochiminh/HCMCanvas.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `tsc --noEmit` passed with 0 errors.
+  - Live HMR refreshed at `http://localhost:5174/hochiminh`.
+- **Follow-up:**
+  - Additional landmark camera angles if requested.
+
+### 2026-11-09 — Atmospheric 3D Sky Dome Integration with Dynamic Cloud Motion
+
+- **Objective:** Replace the flat background sky with the owner-downloaded `sky.glb` asset, providing a realistic 360-degree atmospheric dome with hand-painted low-poly clouds and subtle dynamic cloud drift across the city skyline.
+- **Completed work:**
+  1. Inspected and integrated `sky.glb` (2.4 MB) from `Kiroween/Asset3D/sky.glb` to `apps/game/public/assets/3d/environments/sky.glb`.
+  2. Extracted the `Sphere_8` hemisphere skydome geometry with custom UV mapping and self-illuminating painted cloud texture map (`material` with emissive texture).
+  3. Created `<SkyDome />` component with `THREE.BackSide` rendering, calibrated at 6.8x scale (spanning ~450m radius) centered over the city avenue at `[0, -10, -85]`.
+  4. Added gentle atmospheric cloud drift animation (`rotation.y += delta * 0.004`), breathing living motion into the Main Menu scene.
+  5. Updated `THIRD_PARTY_NOTICES.md` with attribution for `sky.glb`.
+- **Files created:**
+  - `apps/game/src/game/scenes/MainMenuScene/SkyDome.tsx`
+  - `apps/game/public/assets/3d/environments/sky.glb`
+  - `apps/game/public/assets/3d/textures/sky.png`
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/MainMenuScene.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/index.ts`
+  - `THIRD_PARTY_NOTICES.md`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `pnpm typecheck` passed (3/3 workspaces).
+  - `pnpm --filter @scammaze/game build` passed (34.7s).
+- **Unresolved issues / limitations:** None.
+- **Follow-up tasks:** WASD player movement controller, in-game phone UI.
+
+### 2026-11-09 — Ho Chi Minh City 2025 3D Map Explorer with Procedural Coloring Engine & Route Isolation
+
+- **Objective:** Integrate the user-uploaded "Ho Chi Minh City 2025" 3D model into the game app, solve the monochromatic gray appearance by engineering a rich procedural coloring engine (Saigon River, terracotta roofs, French colonial facades, glass curtain-wall skyscrapers), and mount it on an isolated route (`/hochiminh`) distinct from the main game menu (`/`).
+- **Completed work:**
+  1. **Asset Integration & Geometry Analysis:**
+     - Copied `ho_chi_minh_city_2025_-_thanh_pho_ho_chi_minh.glb` (19.6 MB, 53 meshes, 493,715 vertices) to `apps/game/public/assets/3d/environments/hochiminh.glb`.
+     - Inspected model bounds (3.38 km x 2.96 km, height up to 312m).
+     - Centered the scene origin at `[-27.756, 0, 24.365]` so all district coordinates align neatly around `[0, 0, 0]`.
+  2. **Procedural Architecture & Surface Coloring Engine (`colorEngine.ts`):**
+     - Developed real-time vertex color computation based on world elevation (`Y`), surface normal tilt (`Ny`), and spatial pseudo-random distributions.
+     - Classified features:
+       - **Saigon River (Sông Sài Gòn & Bến Bạch Đằng):** Elevation `Y < 0.45`, deep sapphire to emerald river gradient, plus physical water specular plane.
+       - **Ground & Infrastructure:** Elevation `0.45 <= Y < 0.88`, dark asphalt avenues, light pedestrian sidewalks, and lush park green belts.
+       - **Low-Rise Saigon Shophouses & Heritage:** Warm ochre yellow, French cream, terracotta, and soft pastel mint facades paired with clay terracotta roofs.
+       - **Mid-Rise Commercial & Residential:** Modern white concrete, architectural slate, and sandstone.
+       - **High-Rise Skyscrapers (Bitexco, Landmark, Vietcombank):** Elevation `Y >= 2.6`, reflective azure-cyan curtain wall glass gradients and rooftop crowns.
+  3. **Multi-Theme Aesthetic Suite:**
+     - ☀️ **Daylight ("Sài Gòn Rực Rỡ"):** Vibrant realistic daylight with crisp sunlight, soft sky bounce, and natural architectural colors.
+     - 🌃 **Cyberpunk ("Sài Gòn Đêm Neon"):** Deep midnight obsidian base, glowing cyan/magenta/amber neon window bands, and pulsing red aviation warning beacons on tower pinnacles.
+     - 🌇 **Sunset ("Hoàng Hôn Sài Gòn"):** Rich golden hour copper and rose gold reflections across the Saigon river and glazed towers.
+     - 📐 **Tech Blueprint ("Bản Đồ Quy Hoạch Công Nghệ"):** Minimalist architectural zoning with cyan waterways, slate infrastructure, and royal blue landmarks.
+  4. **Isolated Client-Side Routing:**
+     - Added route detection supporting both path (`/hochiminh`) and hash (`#/hochiminh`), preserving the existing Main Menu on `/`.
+     - Added smooth transitions via `window.history.pushState` with back/forward browser history support.
+     - Placed discrete entry points in the Main Menu header and navigation stack.
+  5. **Interactive Controls & 3D Landmark Markers:**
+     - Smooth OrbitControls with height-clamping to prevent clipping under ground.
+     - 3D floating landmark markers for Bitexco Financial Tower, Chợ Bến Thành & Ga Metro, Bến Bạch Đằng & Sông Sài Gòn, Cầu Ba Son, and Bán đảo Thủ Thiêm.
+     - 5 cinematic camera presets (Toàn Cảnh, Bitexco, Sông Sài Gòn, Bến Thành, Thủ Thiêm) with smooth animated camera transitions.
+     - Auto-rotate toggle, fullscreen toggle, and architectural info drawer.
+- **Files created:**
+  - `apps/game/public/assets/3d/environments/hochiminh.glb`
+  - `apps/game/src/features/hochiminh/types.ts`
+  - `apps/game/src/features/hochiminh/colorEngine.ts`
+  - `apps/game/src/features/hochiminh/HCMModel.tsx`
+  - `apps/game/src/features/hochiminh/HCMCanvas.tsx`
+  - `apps/game/src/features/hochiminh/HCMOverlay.tsx`
+  - `apps/game/src/features/hochiminh/HCMPage.tsx`
+  - `apps/game/src/features/hochiminh/index.ts`
+- **Files modified:**
+  - `apps/game/src/app/App.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`
+  - `THIRD_PARTY_NOTICES.md`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - TypeScript type check (`tsc --noEmit`): 0 errors.
+  - Production build (`vite build`): passed in 32s with optimized bundles.
+- **Unresolved issues / limitations:**
+  - The raw Sketchfab asset merged all meshes into a single material slot; our procedural coloring engine resolves this cleanly via vertex colors without requiring external 3D modeling re-export.
+- **Follow-up:**
+  - Optional mini-map / compass HUD when exploring the city.
+
+### 2026-11-09 — Integration of Game-Ready City Asset, Sharpness Boost & Atmosphere Overhaul
+
+- **Objective:** Replace the basic city strip with the rich "Low Poly City Game-Ready" environment downloaded by the owner, eliminate canvas blurriness on Retina displays, remove heavy distance fog, and overhaul lighting and composition for a cinematic, razor-sharp first-person street view.
+- **Completed work:**
+  1. Identified root causes of blurriness ("cứ mờ mờ"):
+     - DPR was clamped to 1.5/1.0 on 2x Retina screens, causing browser bilinear upscaling blur.
+     - Distance fog started at only 55m, cloaking half the avenue in dense grayish-blue haze.
+     - Tone mapping was default linear, yielding low dynamic range and washed-out contrast.
+  2. Integrated `low_poly_city_game-ready.glb` (costoWRLD, CC-BY 4.0, 44.2 MB) into `apps/game/public/assets/3d/environments/`:
+     - Built at true 1:1 metric scale: high-rise apartment towers, glowing neon motel sign, retro diner, post office, commercial storefronts, pedestrian crosswalks, sidewalks, and avenue trees.
+     - Materials tuned with sRGB textures, zero metalness (no black bugs), clean matte roughness (0.65), and emissive cyan neon for the "Motel" sign.
+  3. Composed cinematic first-person avenue camera at `[-1.2, 1.85, -38.0]` looking down `-Z` toward `[-1.0, 2.5, -135.0]` past the Motel and Diner towards city towers.
+  4. Repositioned extracted low-poly parked cars (Yellow Taxi, White Van, Red Sedan, Silver Pickup, Blue Hatchback) along avenue curbs (`X = ±4.75m`) aligned with traffic directions.
+  5. Enhanced `GameCanvas.tsx` with native Retina DPR (`Math.min(window.devicePixelRatio, 2.0)`), `ACESFilmicToneMapping` with exposure 1.12, and pushed distance fog far back (`[220, 520]`) for crystal-clear clarity.
+  6. Updated `THIRD_PARTY_NOTICES.md` and `credits.ts` with CC-BY 4.0 attribution for costoWRLD.
+- **Files created/copied:**
+  - `apps/game/public/assets/3d/environments/low_poly_city_game-ready.glb`
+- **Files modified:**
+  - `apps/game/src/config/credits.ts`
+  - `apps/game/src/game/core/GameCanvas.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/EnvironmentLighting.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `THIRD_PARTY_NOTICES.md`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `pnpm typecheck` passed (3/3 workspaces).
+  - `pnpm --filter @scammaze/game build` passed (1m 2s).
+- **Unresolved issues / limitations:** None.
+- **Follow-up tasks:** WASD player movement controller, in-game phone UI.
+
+### 2026-11-09 — Parked Vehicles Extraction, Alignment & Visual Polish
+
+- **Objective:** Fix vehicle rendering in the 3D Main Menu scene: resolve pitch-black material artifact, orient car models upright on the asphalt, extract complete vehicles (bodies + wheels + glass) from `low_poly_cars_pack.glb`, and adjust parking positions so the camera view is unobstructed and cinematic.
+- **Completed work:**
+  1. Diagnosed root causes:
+     - GLTF spec default metallic factor caused Three.js PBR materials without envMap to attenuate diffuse colors to 0, producing pitch-black car bodies.
+     - Asset geometry had Z as the up-axis instead of Y, causing vehicles to lie on their side.
+     - The nearest car was positioned at `X = 18m, Z = -2m`, only 6m ahead of the camera, dominating the foreground.
+     - Vehicle pack merged all wheels into `Object_58` and glass into `Object_57` across all cars.
+  2. Implemented `extractBoxSubGeometry` in `StreetEnvironment.tsx` to extract matching wheels and glass sub-geometries for 6 distinct vehicle types (Red Sedan, Yellow Taxi, Blue Hatchback, White Delivery Van, Yellow Cab Van, Silver Pickup).
+  3. Rotated geometries by `-Math.PI / 2` around X so that Z becomes Y (Three.js up-axis).
+  4. Normalized geometry bounding boxes so horizontal center is `(0, 0)` and lowest tire vertices sit precisely at `Y = 0.0`.
+  5. Tuned materials to low metalness (`0.05`), roughness `0.45`, flat shading, and sRGB color space, revealing vibrant low-poly liveries.
+  6. Recomposed parking slots in `StreetComposition.ts`: moved nearest cars to `X = 8m` (North curb) and `X = 12m` (South curb), oriented them naturally with traffic direction, leaving the camera foreground open and cinematic.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetComposition.ts`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation:**
+  - `pnpm typecheck` passed (3/3 workspaces).
+  - `pnpm --filter @scammaze/game build` passed (519ms).
+  - `pnpm build` passed (full workspace).
+- **Unresolved issues / limitations:** None for the main menu vehicles.
+- **Follow-up tasks:** Player movement controller (WASD / pointer lock), interactive smartphone UI.
+
+### 2026-11-09 — Monorepo restructure, 3D asset integration & First-Person 3D Main Menu implementation
+
+- **Objective:** Reorganize the repository into a pnpm monorepo, prepare independent deployment for future subdomains, inspect and integrate the owner's downloaded 3D assets from `Kiroween/Asset3D/`, and implement the game application's first-person 3D Main Menu street scene.
+- **Completed work:**
+  1. Restructured repository into pnpm monorepo: `apps/landing` (marketing site & Knowledge Hub), `apps/game` (3D narrative game client), and `packages/shared-types` (pure TypeScript contracts).
+  2. Preserved the existing landing page with zero regressions; updated GitHub Actions workflows (`ci.yml` and `deploy.yml`) to typecheck and build across the monorepo while deploying `apps/landing/dist` to GitHub Pages.
+  3. Inspected local assets in `Kiroween/Asset3D/`: discovered self-contained glTF binary models `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0). Integrated production copies into `apps/game/public/assets/3d/` and documented full attribution in `THIRD_PARTY_NOTICES.md`.
+  4. Implemented `apps/game` using Three.js r174, React Three Fiber v9, and Drei v10:
+     - First-person cinematic camera at human eye height (`y ≈ 2.05m`) looking down the avenue toward an atmospheric vanishing point.
+     - Subtle breathing idle movement and pointer-based parallax motion for immersion.
+     - Rich street composition: road asphalt with dashed lane markings, modular residential buildings (B1–B5, corner building, neighborhood storefront, hospital with helipad), benches, streetlights, low-poly trees, and parked cars along curbs.
+     - Calibrated true architectural scale (x100 factor on city pack to compensate for FBX cm-to-m conversion) so buildings stand 12m–18m tall and road spans 96m.
+     - Extracted vehicle meshes with `matrixWorld` applied and centered geometry so parked cars sit upright and flush on the pavement with true vehicle proportions.
+     - Atmospheric daylight lighting: crisp sunlight (`directionalLight` with soft shadows), ambient skylight (`#dbe7f7`), hemisphere ground bounce, and natural distance fog (`#86a9d2`) seamlessly matching the clear afternoon sky.
+  5. Built accessible, stylized React menu overlay on top of 3D Canvas:
+     - `NEW GAME`: opens Prologue introduction modal describing the morning notification scenario.
+     - `CONTINUE`: disabled state explaining save system unlocks after Chapter 1.
+     - `SETTINGS`: functional modal with Graphics Quality (Low, Medium, High DPR and shadow presets), FOV slider (60°–85°), sound toggle, and master volume with `localStorage` persistence.
+     - `CREDITS`: modal displaying verified Sketchfab authors, licenses (CC-BY 4.0), and open-source packages.
+     - WebGL context detection and fallback banner.
+  6. Prepared independent Vercel deployment: configured `vercel.json` SPA rewrites for both `apps/landing` and `apps/game`.
+- **Files created:**
+  - `pnpm-workspace.yaml`
+  - `THIRD_PARTY_NOTICES.md`
+  - `packages/shared-types/package.json`, `packages/shared-types/tsconfig.json`, `packages/shared-types/src/index.ts`
+  - `apps/landing/package.json`, `apps/landing/vercel.json`, `apps/landing/.env.example`
+  - `apps/game/package.json`, `apps/game/tsconfig.json`, `apps/game/tsconfig.app.json`, `apps/game/tsconfig.node.json`, `apps/game/vite.config.ts`, `apps/game/vercel.json`, `apps/game/index.html`, `apps/game/.env.example`
+  - `apps/game/src/main.tsx`, `apps/game/src/app/App.tsx`, `apps/game/src/styles/index.css`
+  - `apps/game/src/config/credits.ts`
+  - `apps/game/src/components/ui/BrandLogo.tsx`, `MenuButton.tsx`, `ModalDialog.tsx`, `WebGLFallback.tsx`
+  - `apps/game/src/features/menu/MainMenuOverlay.tsx`, `SettingsModal.tsx`, `CreditsModal.tsx`, `IntroPrologueModal.tsx`
+  - `apps/game/src/game/core/GameCanvas.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/MainMenuScene.tsx`, `StreetEnvironment.tsx`, `EnvironmentLighting.tsx`, `MenuCamera.tsx`, `StreetComposition.ts`, `index.ts`
+  - `apps/game/public/assets/3d/environments/low_poly_city_asset_pack.glb`, `apps/game/public/assets/3d/vehicles/low_poly_cars_pack.glb`
+- **Files moved:**
+  - `src/` -> `apps/landing/src/`
+  - `public/` -> `apps/landing/public/`
+  - `index.html` -> `apps/landing/index.html`
+  - `vite.config.ts` -> `apps/landing/vite.config.ts`
+  - `tsconfig.*` -> `apps/landing/tsconfig.*`
+- **Files modified:**
+  - `package.json` (root workspace scripts: `dev:landing`, `dev:game`, `build:landing`, `build:game`, `build`, `typecheck`)
+  - `.github/workflows/ci.yml` (validates workspace typecheck and build; uploads landing artifact)
+  - `.github/workflows/deploy.yml` (builds `apps/landing` and deploys `apps/landing/dist`)
+  - `README.md` (updated structure, commands, status table, 3D credits)
+  - `AGENTS.md` (updated current stack and root workspace scripts)
+  - `docs/architecture/OVERVIEW.md` (updated architecture diagram, stack table, implemented status)
+  - `docs/architecture/DEPLOYMENT.md` (documented independent Vercel project configurations)
+  - `docs/PROJECT_PROGRESS.md` (status, completed items, and this entry)
+- **Validation commands executed:**
+  - `pnpm install` (monorepo resolution succeeded with pnpm v10.26.0)
+  - `pnpm --filter @scammaze/landing build` (build succeeded in 334ms)
+  - `pnpm --filter @scammaze/game build` (build succeeded in 665ms)
+  - `pnpm typecheck` (all 3 workspace projects passed TS typechecking with zero errors)
+  - `pnpm build` (workspace-wide production build passed in 3.0s)
+- **Build and test results:**
+  - All workspace packages compile cleanly.
+  - Zero TypeScript errors (`tsc -b --noEmit`).
+  - Production bundles generated cleanly in `apps/landing/dist` and `apps/game/dist`.
+- **Known limitations:**
+  - First-person walking controller (WASD / pointer lock) is intentionally deferred to Chapter 1 exploration milestone; the Main Menu camera is purely cinematic with breathing motion and mouse parallax.
+  - Save game functionality is disabled in the menu until Chapter 1 persistence is implemented.
+  - Audio files are not yet included in the repository; the sound toggle and volume controls persist state in `localStorage` in preparation for ambient audio.
+- **Architecture deviations:** None. Followed the approved game stack (Three.js r174 + R3F v9 + Drei v10) and pnpm monorepo structure.
+- **Follow-up tasks:**
+  - Implement first-person walking and collision controller for scene exploration.
+  - Build the in-game smartphone overlay and Chapter 1 "The Urgent Call" scenario state machine.
 
 ### 2026-11-08 — Game application stack alignment
 
