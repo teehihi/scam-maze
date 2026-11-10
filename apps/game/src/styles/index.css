@@ -25,6 +25,27 @@
   --color-amber: #f2b24b;
   --color-teal: #4fd1b5;
   --color-danger: #ff7a85;
+
+  --animate-loading-sweep: loading-sweep 1.6s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.5s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes loading-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
 }
 
 html, body {

@@ -40,9 +40,10 @@ Verified on `feat/game-foundation-monorepo-main-menu` (9 Nov 2026):
 | Game Application | Located in `apps/game`: React 19, TypeScript, Vite 8, **Three.js r174**, **React Three Fiber v9**, **Drei v10**, Tailwind CSS v4. Implements the cinematic first-person 3D street scene serving as the game's Main Menu. |
 | 3D Environment & Assets | Binary glTF models verified from `Kiroween/Asset3D/`: `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0). Renders modular buildings (B1–B5, corner, shopfront, hospital), road asphalt with dashed lines, streetlights with warm point lights, low-poly trees, and parked cars along curbs. |
 | Camera & Controls | First-person eye-level camera (`y ≈ 2.05m`) facing down the street towards an atmospheric vanishing point. Smooth breathing idle motion and pointer parallax lerping. Configurable FOV (60°–85°). |
-| Menu UI & Modals | Interactive UI overlay over 3D Canvas: `NEW GAME` (opens Prologue introduction modal), `CONTINUE` (disabled with clear notice), `SETTINGS` (real-time graphics quality, FOV, sound toggle, master volume with `localStorage` persistence), `CREDITS` (verified third-party asset licenses), and WebGL fallback detector. |
+| Menu UI & Modals | Interactive UI overlay over 3D Canvas: `NEW GAME` (opens the Prologue modal, whose "Begin Chapter 1" action starts chapter loading), `CONTINUE` (enabled only when a valid local save exists; nothing writes saves yet, so it stays disabled), `SETTINGS` (real-time graphics quality, FOV, sound toggle, master volume with `localStorage` persistence), `CREDITS` (verified third-party asset licenses), and WebGL fallback detector. |
+| Loading screens | Startup screen for the menu scene and a chapter loading pipeline with byte-measured progress, asset verification, error recovery and fade transitions. Chapter 1 gameplay does not exist, so loading ends on an "in development" screen. See [section 4.2.1](#421-chapter-loading-implemented). |
 | Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings, and scenario metadata. |
-| Quality Gates | Root `pnpm typecheck` and `pnpm build` validate all workspace packages cleanly. |
+| Quality Gates | Root `pnpm typecheck`, `pnpm test` (Vitest + Testing Library in `apps/game`) and `pnpm build`. No lint script exists. |
 
 ```mermaid
 flowchart TD
@@ -235,8 +236,44 @@ Performance principles (WebGL 2 baseline, integrated GPUs first, baked lighting,
 instancing, quality tiers, budgets set from prototype benchmarks) are in
 [product positioning, section 10.1](../product/PRODUCT_POSITIONING.md#101-performance-first-browser-3d).
 
-Status of items from the 7 Nov brief: loading scene and main menu `PLANNED` (as part of the
-slice); level selection replaced by chapter progression in one world `PLANNED`; character
+#### 4.2.1 Chapter loading (`IMPLEMENTED`)
+
+Rendering is separate from orchestration:
+
+| Layer | Files (`apps/game/src/`) | Role |
+|---|---|---|
+| Chapter manifest | `game/chapters/chapterRegistry.ts` | Chapter id, number, title, subtitle, scenes, required files, `gameplayAvailable` |
+| Orchestrator (no React) | `game/loading/chapterLoader.ts` | State machine, downloads, verification, stall watchdog, cancellation |
+| Helpers | `game/loading/assetFetcher.ts`, `assetVerification.ts`, `deviceCapabilities.ts`, `game/saves/saveGame.ts`, `game/chapters/chapterSession.ts` | Byte-streamed fetch, GLB/image header checks, WebGL 2 probe, save parsing, session creation |
+| React binding | `game/loading/useChapterLoader.ts`, `features/loading/ChapterLoadingFlow.tsx` | One loader per attempt; cancelled on retry, back or unmount |
+| Presentation | `components/ui/LoadingScreen.tsx`, `LoadingProgress.tsx`, `LoadingTip.tsx`, `LoadingErrorState.tsx`, `SceneTransition.tsx` | Props only, no loading logic |
+
+Flow. New game: `checking-device → loading-assets → initializing-state → ready`. Continue:
+`restoring-save → checking-device → loading-assets → validating-save → ready`. After `ready`, the
+screen fades out and `App` switches to the chapter (today `features/chapter/ChapterPlaceholder.tsx`).
+The menu canvas keeps its scene but stops rendering (`frameloop="never"`) while covered.
+
+Progress. Each manifest file is fetched with `fetch` and read as a stream. Progress is
+`loaded bytes / total bytes` only when every file reports `Content-Length` without
+`Content-Encoding`; otherwise it is `null` and the bar is indeterminate with a file count. No timer
+changes progress. Files go through the normal HTTP cache, so a later `useGLTF` for the same URL can
+reuse them; cached files finish without any delay. Each file is then checked (GLB header, version,
+length, required extensions; image signature), which also catches the SPA fallback page that
+`vercel.json` returns for missing files. Geometry decoding and shader compilation are not part of
+this step; they belong to the future chapter scene.
+
+Errors (`game/loading/loadingErrors.ts`): invalid chapter, missing file, invalid file, network,
+stalled download (no bytes for 30 s), unsupported device, WebGL start failure, invalid save. Each
+has a message, "Return to menu", and "Try again" when retrying can help.
+
+The startup screen (`features/loading/MenuStartupLoading.tsx`) reads Drei `useProgress`, which
+follows `THREE.DefaultLoadingManager` for the whole page. That is valid only at startup, when the
+menu scene is the only thing loading. Its file total grows while the GLB is parsed, so it shows an
+indeterminate bar with the file count, finishes when the scene reports ready after
+`compileAsync`, and offers "Continue to menu" after 30 s without change or on error.
+
+Status of items from the 7 Nov brief: main menu and loading screens `IMPLEMENTED` (chapter
+gameplay `PLANNED`); level selection replaced by chapter progression in one world `PLANNED`; character
 customization `PROPOSED`, future scope, not in the MVP. A *full* or open 3D world and
 multiplayer remain out of scope.
 
@@ -390,7 +427,7 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 | 3D and physics libraries | Not specified (3D out of scope) | Three.js + React Three Fiber + Drei; Rapier proposed | Three.js stack `PLANNED`; Rapier `PROPOSED`; nothing installed |
 | Schema validation and local persistence | Zod/JSON Schema; IndexedDB/Dexie | Zod; IndexedDB/Dexie | `PLANNED`; consistent with the plan |
 | Visual system | "Cyber-noir detective lab", dark and light modes (section 3.5) | Game: stylized realism / stylized low-poly, not Halloween | Landing page: dark cinematic theme `IMPLEMENTED` (PR #7, replaced the flat theme of PR #2); game art `PLANNED`; plan 3.5 amended |
-| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | None yet |
+| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | Vitest + Testing Library (jsdom) for the loading pipeline `IMPLEMENTED`; Playwright, fast-check and coverage target not added |
 
 ## 10. Known inaccuracies on the live landing page
 

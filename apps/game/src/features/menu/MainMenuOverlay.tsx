@@ -13,12 +13,20 @@ import {
   VolumeX,
 } from "lucide-react";
 
+export type ContinueAvailability =
+  | { available: true }
+  | { available: false; reason: string };
+
 interface MainMenuOverlayProps {
   settings: GameSettings;
   onUpdateSettings: (settings: Partial<GameSettings>) => void;
   onToggleSound?: () => void;
   onHoverSound?: () => void;
   onOpenHCM?: () => void;
+  /** Starts loading the first chapter (after the prologue is confirmed). */
+  onStartNewGame: () => void;
+  onContinue: () => void;
+  continueAvailability: ContinueAvailability;
 }
 
 export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
@@ -26,6 +34,9 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
   onUpdateSettings,
   onToggleSound,
   onHoverSound,
+  onStartNewGame,
+  onContinue,
+  continueAvailability,
 }) => {
   const [introOpen, setIntroOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -96,8 +107,9 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
               label="CONTINUE"
               sublabel="Resume saved progress"
               icon={RotateCcw}
-              disabled={true}
-              disabledReason="No save game found. Save functionality activates after completing Chapter 1."
+              disabled={!continueAvailability.available}
+              disabledReason={continueAvailability.available ? undefined : continueAvailability.reason}
+              onClick={continueAvailability.available ? onContinue : undefined}
               onHover={onHoverSound}
             />
 
@@ -123,7 +135,14 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
       </main>
 
       {/* Modals */}
-      <IntroPrologueModal isOpen={introOpen} onClose={() => setIntroOpen(false)} />
+      <IntroPrologueModal
+        isOpen={introOpen}
+        onClose={() => setIntroOpen(false)}
+        onBegin={() => {
+          setIntroOpen(false);
+          onStartNewGame();
+        }}
+      />
       <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}

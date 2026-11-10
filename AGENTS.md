@@ -78,6 +78,7 @@ definition)** · [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
   pnpm build:landing     # build landing page to apps/landing/dist
   pnpm build:game        # build 3D game to apps/game/dist
   pnpm typecheck         # workspace-wide TypeScript verification
+  pnpm test              # Vitest unit and component tests (apps/game)
   pnpm build             # workspace-wide production build (current quality gate)
   ```
 

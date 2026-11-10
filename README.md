@@ -28,7 +28,7 @@ It is not a phishing quiz, a chatbot or a URL scanner. Full product definition: 
 | Backend & AI Layer | `PROPOSED` | AWS API Gateway + Lambda in `ap-southeast-1` (no AI provider selected) |
 | Database | `PENDING` | Decision pending ([database strategy](docs/architecture/DATABASE_STRATEGY.md)) |
 | Custom Domain | `PENDING` | **Not purchased** (subdomains like `play.scammaze.com` are illustrative) |
-| Quality Gates | `IMPLEMENTED` | Root & per-app `pnpm typecheck` and `pnpm build` validate cleanly |
+| Quality Gates | `IMPLEMENTED` | Root & per-app `pnpm typecheck`, `pnpm test` (Vitest, game app) and `pnpm build` |
 
 Details and progress: [project progress](docs/PROJECT_PROGRESS.md) and [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md).
 
@@ -69,6 +69,7 @@ pnpm build:game        # Builds apps/game into apps/game/dist
 
 # Workspace-wide validation
 pnpm typecheck         # Typechecks all packages and apps
+pnpm test              # Runs Vitest tests (game loading pipeline)
 pnpm build             # Full workspace build (shared-types, landing, game)
 ```
 

@@ -5,15 +5,21 @@ import type { GameSettings } from "@scammaze/shared-types";
 import { MainMenuScene } from "../scenes/MainMenuScene";
 import { STREET_CONFIG } from "../scenes/MainMenuScene/StreetComposition";
 import { WebGLFallback } from "../../components/ui/WebGLFallback";
+import { checkBasicWebGLSupport } from "../loading/deviceCapabilities";
 
 interface GameCanvasProps {
   settings: GameSettings;
   onSceneReady?: () => void;
+  /** Reports errors caught by the canvas error boundary (asset or WebGL failures). */
+  onSceneError?: (message: string) => void;
+  /** Stops the render loop while the canvas is fully covered (loading or chapter screens). */
+  paused?: boolean;
 }
 
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback: (error?: string) => ReactNode;
+  onError?: (message: string) => void;
 }
 
 interface ErrorBoundaryState {
@@ -33,6 +39,7 @@ class CanvasErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("GameCanvas WebGL runtime error:", error, info);
+    this.props.onError?.(error.message);
   }
 
   render() {
@@ -43,12 +50,12 @@ class CanvasErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-function checkBasicWebGLSupport(): boolean {
-  if (typeof window === "undefined") return false;
-  return Boolean(window.WebGLRenderingContext || window.WebGL2RenderingContext);
-}
-
-export const GameCanvas: React.FC<GameCanvasProps> = ({ settings, onSceneReady }) => {
+export const GameCanvas: React.FC<GameCanvasProps> = ({
+  settings,
+  onSceneReady,
+  onSceneError,
+  paused = false,
+}) => {
   // Lightweight check that does not allocate or leak active GPU contexts
   if (!checkBasicWebGLSupport()) {
     return (
@@ -70,12 +77,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ settings, onSceneReady }
   return (
     <div className="absolute inset-0 w-full h-full bg-[#13111f]">
       <CanvasErrorBoundary
+        onError={onSceneError}
         fallback={(err) => (
           <WebGLFallback error={err || "WebGL 3D Context could not be initialized by the graphics driver."} />
         )}
       >
         <Canvas
           shadows={shadows}
+          frameloop={paused ? "never" : "always"}
           dpr={dpr}
           performance={{ min: 0.5 }}
           camera={{

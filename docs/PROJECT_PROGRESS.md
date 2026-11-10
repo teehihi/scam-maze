@@ -25,6 +25,7 @@
 
 Verified against merged pull requests on GitHub and local workspace builds.
 
+- [x] **Cinematic chapter loading screen (branch `feat/game-cinematic-loading-screen`, not merged):** Real loading pipeline for New Game / Continue with byte-measured progress, asset verification, stall watchdog, error recovery, fade transitions and reduced-motion support. Startup menu loading rewritten without fabricated progress. First automated tests (Vitest, 84 tests after the 2026-11-10 bugfix). Loading screens are opaque from the first frame and stay up for a minimum display time (1.5 s chapter, 1.2 s startup). Chapter 1 gameplay itself is not implemented; loading ends on an honest "in development" screen.
 - [x] **Main Menu Performance Optimization (Round 2 — Progressive Loading & Deep GLB Reduction):** Implemented instantaneous menu UI interaction on Frame 1 with non-blocking progressive loading. Decoupled Suspense boundaries so the sky dome and procedural street fallback (`StreetFallback.tsx`) render immediately without waiting for the 3D model. Conducted deep decimation across heavy vehicle CAD hierarchies (VinFast VF3, Lexus GX 550, PCX, fence, pedestrian scan), dropping triangles from 2.68M down to 542k (-91.6% from original) and file size to 21.50 MB (-95.1% from original). Resized normal maps with high-quality WebP, and added parallel asynchronous GPU shader pre-compilation via `gl.compileAsync` to eliminate first-render freeze spikes.
 - [x] **Deep Performance Optimization of Main Menu 3D Scene (Phases 1–7):** Conducted complete asset forensics on the 440.5MB `MenuBG.glb` asset. Engineered an automated Node.js optimization pipeline (`apps/game/scripts/optimize-environment.cjs`) utilizing `@gltf-transform`, Meshopt, and Sharp. Reduced GLB file size from 440.53MB to 43.00MB (-89.76%) and polygon count from 6.48M to 2.68M triangles (-58.6%) without degrading visual fidelity from the authored camera viewpoint. Replaced 8K/4K scan textures with WebP (172.8MB -> 24.1MB), eliminated hidden dead meshes, froze static matrices, eliminated frame-loop memory allocations in `MenuCamera`, optimized SkyDome geometry, capped Retina DPR, and resolved WebGL context exhaustion.
 - [x] **Main Menu Initialization & Render Performance Optimization:** Eliminated initial camera rotation swing and blue-screen flash on menu entry. Added an atmospheric cyber-safety Loading Screen (`LoadingScreen.tsx`) covering 3D asset downloads. Optimized Three.js rendering pipeline by removing 420MB scene cloning, freezing static mesh matrices (`matrixAutoUpdate = false`), capping device pixel ratio, and limiting dynamic foliage animation to ensure smooth 60 FPS performance.
@@ -117,9 +118,64 @@ Resolved:
   still exists (the checker is now legacy code, not shown on the site).
 - PR #7 did not update this file or the architecture documents; reconciled on 2026-11-08.
 - `ACCESSIBILITY.md` still describes the flat light theme of PR #2; not re-audited after PR #7.
-- No automated tests; no accessibility audit yet.
+- Automated tests cover only the game loading pipeline (Vitest, jsdom); no browser or end-to-end
+  tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-10 — Loading Screen Full-Width Progress Bar
+
+- **Objective:** Remove the awareness tip card from the chapter and startup loading screens and make the progress area span the full page width between the left and right page padding. Loading logic, timings and progress behavior unchanged.
+- **Completed work:**
+  - `ChapterLoadingFlow.tsx` and `MenuStartupLoading.tsx` no longer import `LOADING_TIPS`, no longer hold an `initialTipIndex` state and no longer pass `tips` / `initialTipIndex` to `LoadingScreen`.
+  - `LoadingScreen.tsx`: the two-column bottom grid is now a single full-width flex column. Only the eyebrow/title/subtitle block and the error box are capped at `max-w-2xl`. The progress area (bar, status, percentage, notice, Cancel) is full width. The optional tip card renders below the progress area in a `max-w-md` wrapper. `LoadingScreenProps` is unchanged.
+  - `LoadingTip.tsx` and `config/loadingTips.ts` are kept for other callers.
+  - `ChapterLoadingFlow.test.tsx` now asserts that no element labelled "Awareness tip" is present.
+- **Files created:** `.kiro/specs/loading-screen-full-width-progress/{requirements.md,design.md,tasks.md}`.
+- **Files modified:** `apps/game/src/components/ui/LoadingScreen.tsx`, `apps/game/src/features/loading/{ChapterLoadingFlow,MenuStartupLoading}.tsx`, `apps/game/src/features/loading/ChapterLoadingFlow.test.tsx`, this file.
+- **Validation commands executed:** `pnpm test`, `pnpm typecheck`, `pnpm build` (workspace root).
+- **Results:** 9 test files, 84 tests passed. Typecheck clean (3 packages). Build succeeded (landing and game).
+- **Unresolved issues and known limitations:** Not checked visually in a browser. The slow-load notice box is now full width as part of the progress area.
+- **Deviations from the documented architecture:** None from the design.
+- **Follow-up tasks:** Manual browser check of both loading screens at mobile and desktop widths.
+
+### 2026-11-10 — Loading Screens Flash Too Fast (Bugfix)
+
+- **Objective:** Fix the startup and chapter loading screens, which a player reported flashed too fast to see. Causes: `SceneTransition` started at opacity 0 and faded in, and visibility followed the loading source directly. Chapter 1 files are the same cached files as the menu, so the chapter loader reached "ready" within a few frames.
+- **Completed work:**
+  - `SceneTransition` gained a `fadeIn` prop (default `true`). Both loading screens pass `false`, so they are opaque on the first frame. Other users keep the fade-in.
+  - New `features/loading/useMinimumDisplayTime.ts` (hook plus `shouldShowLoadingScreen` helper) and `features/loading/loadingHold.ts` (`CHAPTER_LOADING_MIN_DISPLAY_MS = 1500`, `STARTUP_LOADING_MIN_DISPLAY_MS = 1200`, re-exported by the components).
+  - The hold is presentation-only: progress still comes only from real sources. During the hold the startup screen shows "Ready" (`LOADING_TEXT.menuStartup.ready`); the chapter screen already shows "Ready" with a full bar.
+  - Cancel, Escape, "Return to menu" and "Continue to menu" skip the hold. Retry restarts it. Reduced motion keeps the hold; transitions stay instant.
+  - `chapterLoader.ts`, `useChapterLoader.ts` and `App.tsx` are unchanged.
+  - Tests: Property 1 (bug condition) seeded property tests failed on the unfixed code (50 of 50 runs) and pass after the fix. Property 2 (preservation) tests for slow load, progress honesty, stall, retry, bypass, unmount, "Continue to menu" and the default `SceneTransition` fade-in passed before and after the fix. Existing real-time tests now use fake timers; `createClock` in `src/test/loadingRuns.ts` advances in 50 ms steps.
+- **Files created:** `apps/game/src/features/loading/{useMinimumDisplayTime.ts,useMinimumDisplayTime.test.ts,loadingHold.ts}`, `apps/game/src/components/ui/SceneTransition.test.tsx`, `apps/game/src/test/loadingRuns.ts`, `.kiro/specs/loading-screen-not-visible/{bugfix.md,design.md,tasks.md}`.
+- **Files modified:** `apps/game/src/components/ui/SceneTransition.tsx`, `apps/game/src/features/loading/{ChapterLoadingFlow,MenuStartupLoading}.tsx`, `apps/game/src/features/loading/{ChapterLoadingFlow,MenuStartupLoading}.test.tsx`, `apps/game/src/game/loading/loadingStrings.ts`, this file.
+- **Validation commands executed:** `pnpm test`, `pnpm typecheck`, `pnpm build` (workspace root).
+- **Results:** 9 test files, 84 tests passed. Typecheck clean (3 packages). Build succeeded (landing and game).
+- **Unresolved issues and known limitations:** Not checked visually in a browser. On fast loads the hold adds up to 1.5 s (chapter) or 1.2 s (startup). The ambient audio fade-in at startup now starts up to 1.2 s later.
+- **Deviations from the documented architecture:** None from the design.
+- **Follow-up tasks:** Manual browser check after restarting `pnpm dev:game`: NEW GAME → prologue → "Begin Chapter 1" should show the chapter screen for about 1.5 s, and a page reload should show the startup screen for at least about 1.2 s.
+
+### 2026-11-10 — Cinematic Chapter Loading Screen
+
+- **Objective:** Replace the startup loading screen's fabricated progress and add a real, reusable chapter loading flow (Main Menu → New Game / Continue → Loading → Chapter) that matches the menu branding.
+- **Completed work:**
+  - Framework-free chapter loader (`game/loading/chapterLoader.ts`): stages, parallel byte-streamed downloads, GLB/image verification, 30 s stall watchdog, cancellation with `AbortController`, classified errors. Progress is a number only when every file reports its size; otherwise indeterminate.
+  - Chapter manifest (`game/chapters/chapterRegistry.ts`) for Chapter 1 "The Urgent Call" (street GLB + sky texture, `gameplayAvailable: false`), session creation and save restoration rules, validated local save reader (`game/saves/saveGame.ts`, read-only).
+  - Presentational components: `LoadingScreen` (rewritten), `LoadingProgress`, `LoadingTip`, `LoadingErrorState`, `SceneTransition`, `usePrefersReducedMotion`. Static background art, no 3D rendering while loading.
+  - `MenuStartupLoading` replaces the old timer-driven startup screen: indeterminate bar with real file count from Drei `useProgress`, finishes on scene ready, error state, and "Continue to menu" after 30 s without change. Startup screen is skipped when WebGL is unavailable (the canvas fallback is shown instead of an endless loader).
+  - `App` screen state (`menu` / `chapter-loading` / `chapter`) with duplicate-navigation guards; prologue modal button "Begin Chapter 1" starts loading; Continue enabled only for a valid save; menu canvas paused (`frameloop="never"`) while covered; canvas error boundary now reports errors upward.
+  - `ChapterPlaceholder` states plainly that Chapter 1 gameplay is still in development.
+  - Shared asset path constants (`config/assetPaths.ts`) used by the menu scene and the manifest; awareness tips in `config/loadingTips.ts`.
+  - Vitest + Testing Library + jsdom; `pnpm test` at root and in CI.
+- **Files created:** `apps/game/src/config/{assetPaths,loadingTips}.ts`; `apps/game/src/game/chapters/{chapterRegistry,chapterSession}.ts`; `apps/game/src/game/saves/saveGame.ts`; `apps/game/src/game/loading/{chapterLoader,assetFetcher,assetVerification,deviceCapabilities,loadingErrors,loadingStrings,useChapterLoader}.ts`; `apps/game/src/components/ui/{LoadingProgress,LoadingTip,LoadingErrorState,SceneTransition}.tsx`, `usePrefersReducedMotion.ts`; `apps/game/src/features/loading/{ChapterLoadingFlow,MenuStartupLoading}.tsx`; `apps/game/src/features/chapter/ChapterPlaceholder.tsx`; tests (`*.test.ts(x)`, `src/test/{setup,fakeAssets}.ts`); `apps/game/vitest.config.ts`, `apps/game/tsconfig.test.json`.
+- **Files modified:** `apps/game/src/app/App.tsx`, `components/ui/LoadingScreen.tsx`, `game/core/GameCanvas.tsx`, `game/scenes/MainMenuScene/{StreetEnvironment,SkyDome}.tsx` (asset path import only), `features/menu/{MainMenuOverlay,IntroPrologueModal}.tsx`, `styles/index.css`, `apps/game/package.json`, `apps/game/tsconfig.{json,app.json,node.json}`, root `package.json`, `pnpm-lock.yaml`, `.github/workflows/ci.yml`, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `docs/architecture/OVERVIEW.md`, this file.
+- **Validation commands executed:** `pnpm test`, `pnpm typecheck`, `pnpm build`; `pnpm dev:game` with HTTP checks of asset headers.
+- **Results:** 7 test files, 58 tests passed. Typecheck clean (3 packages). Build succeeded. Dev server sends `Content-Length` without compression for both Chapter 1 files (byte progress is determinate locally) and answers a missing `.glb` with `200 text/html`, which verification rejects. The UI was not checked visually in a browser during this task.
+- **Unresolved issues and known limitations:** Chapter 1 gameplay does not exist. Verification checks file headers only; geometry decoding and shader compilation belong to the future chapter scene, which should report its own readiness. Nothing writes saves, so Continue stays disabled. Startup progress uses the page-wide Drei loading manager (valid only at startup). Byte progress becomes indeterminate if a host compresses responses. HTTP `no-cache` on the dev server means "cached" files are revalidated (304), not served without a request. A failed menu GLB still shows the existing "WebGL unavailable" fallback after "Continue to menu".
+- **Deviations from the documented architecture:** Local saves are read through a `localStorage` adapter behind the `SaveGameSource` interface instead of IndexedDB/Dexie, and save validation is hand-written instead of Zod, to avoid new dependencies before saving exists. New dev dependencies: `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/dom`.
+- **Follow-up tasks:** Build the Chapter 1 scene and route `gameplayAvailable` chapters to it, with a "preparing scene" stage fed by the scene's `compileAsync`; write saves (Dexie) so Continue can be enabled; browser test of the flow on target devices; give missing-menu-asset failures their own fallback message.
 
 ### 2026-11-10 — Loading Screen Security Note Pruning & Centering
 
