@@ -1,8 +1,10 @@
 // Module boundary test for the Chapter_Core (Requirement 5.7).
 // Reads every `.ts` file under `game/narrative/` and fails on imports of React, Three.js,
-// R3F/Drei, Rapier, Zustand or Dexie. Relative imports that leave `game/narrative/` must point
-// to an allowlisted file, and that file is checked one level deep for the same packages.
-// See .kiro/specs/chapter-01-the-urgent-call/design.md, "Module boundaries".
+// R3F/Drei, Rapier, Zustand, Dexie, i18next or react-i18next, and on any import of the
+// `src/i18n/` locale module. Relative imports that leave `game/narrative/` must point to an
+// allowlisted file, and that file is checked one level deep for the same packages.
+// See .kiro/specs/chapter-01-the-urgent-call/design.md, "Module boundaries", and
+// .kiro/specs/game-i18n-en-vi/requirements.md, Requirement 10.2.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,8 +13,20 @@ const NARRATIVE_DIR = import.meta.dirname;
 const SRC_DIR = resolve(NARRATIVE_DIR, "../..");
 
 /** Package names (exact or with a subpath) and prefixes the core must never import. */
-const FORBIDDEN_EXACT = ["react", "react-dom", "three", "zustand", "dexie"] as const;
+const FORBIDDEN_EXACT = [
+  "react",
+  "react-dom",
+  "three",
+  "zustand",
+  "dexie",
+  // The I18n_Module stays outside the core (game-i18n-en-vi, Requirement 10.2).
+  "i18next",
+  "react-i18next",
+] as const;
 const FORBIDDEN_PREFIXES = ["@react-three/", "@dimforge/rapier"] as const;
+
+/** The app's locale module, relative to `src/`. Narrative files must never import it. */
+const I18N_DIR = "i18n";
 
 /** Bare specifiers allowed in non-test narrative files (design: "imports only TypeScript and shared-types"). */
 const NON_TEST_BARE_ALLOWLIST = ["@scammaze/shared-types"] as const;
@@ -68,6 +82,17 @@ function resolveRelative(fromFile: string, specifier: string): string {
 }
 
 const toSrcPath = (file: string) => relative(SRC_DIR, file).split(sep).join("/");
+const isInI18nDir = (srcPath: string) => srcPath === I18N_DIR || srcPath.startsWith(`${I18N_DIR}/`);
+
+/**
+ * True when `specifier`, imported from `fromFile`, points into `src/i18n/`, either through a
+ * relative path or through the `@/` alias that Vite maps to `src/`.
+ */
+function isI18nModuleSpecifier(fromFile: string, specifier: string): boolean {
+  if (specifier.startsWith("@/")) return isInI18nDir(specifier.slice(2));
+  if (!specifier.startsWith(".")) return false;
+  return isInI18nDir(toSrcPath(resolve(dirname(fromFile), specifier)));
+}
 const isInsideNarrative = (file: string) => !relative(NARRATIVE_DIR, file).startsWith("..");
 const isTestFile = (file: string) => file.endsWith(".test.ts");
 
@@ -81,6 +106,10 @@ function checkFile(file: string): string[] {
   for (const specifier of extractSpecifiers(readFileSync(file, "utf8"))) {
     if (isForbiddenSpecifier(specifier)) {
       violations.push(`${label}: forbidden import "${specifier}"`);
+      continue;
+    }
+    if (isI18nModuleSpecifier(file, specifier)) {
+      violations.push(`${label}: imports the locale module "${specifier}" (src/${I18N_DIR}/)`);
       continue;
     }
     if (!specifier.startsWith(".")) {
@@ -118,6 +147,10 @@ describe("Chapter_Core module boundaries", () => {
       'IMPORT "react-dom/client";',
       'IMPORT { ok } from "./types";',
       'IMPORT { reactive } from "reactive-lib";',
+      'IMPORT i18n from "i18next";',
+      'IMPORT { useTranslation } from "react-i18next";',
+      'IMPORT { initReactI18next } from "react-i18next/initReactI18next";',
+      'IMPORT { lookalike } from "i18next-like";',
     ]
       .join("\n")
       // Upper-case keywords keep this fixture invisible to the scan of this file itself.
@@ -130,12 +163,28 @@ describe("Chapter_Core module boundaries", () => {
         "@dimforge/rapier3d-compat",
         "@react-three/fiber",
         "dexie",
+        "i18next",
         "react",
         "react-dom/client",
+        "react-i18next",
+        "react-i18next/initReactI18next",
         "three",
         "zustand/vanilla",
       ].sort(),
     );
+  });
+
+  it("detects imports of the src/i18n/ locale module (self-check)", () => {
+    const from = join(NARRATIVE_DIR, "example.ts");
+    expect(isI18nModuleSpecifier(from, "../../i18n")).toBe(true);
+    expect(isI18nModuleSpecifier(from, "../../i18n/init")).toBe(true);
+    expect(isI18nModuleSpecifier(from, "../../i18n/narrative/chapter1.vi")).toBe(true);
+    expect(isI18nModuleSpecifier(from, "@/i18n")).toBe(true);
+    expect(isI18nModuleSpecifier(from, "@/i18n/format")).toBe(true);
+    expect(isI18nModuleSpecifier(from, "./i18nKeys")).toBe(false);
+    expect(isI18nModuleSpecifier(from, "../../i18nHelpers")).toBe(false);
+    expect(isI18nModuleSpecifier(from, "@/i18nHelpers")).toBe(false);
+    expect(isI18nModuleSpecifier(from, "i18next")).toBe(false);
   });
 
   const files = listTsFiles(NARRATIVE_DIR);
@@ -145,7 +194,7 @@ describe("Chapter_Core module boundaries", () => {
     expect(files.some((file) => file.endsWith(`${sep}reducer.ts`))).toBe(true);
   });
 
-  it("no narrative file imports React, Three.js, R3F, Rapier, Zustand or Dexie", () => {
+  it("no narrative file imports React, Three.js, R3F, Rapier, Zustand, Dexie, i18next or src/i18n/", () => {
     expect(files.flatMap(checkFile)).toEqual([]);
   });
 });

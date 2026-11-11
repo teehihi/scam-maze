@@ -37,6 +37,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   musicVolume: 1.0,
   sfxVolume: 1.0,
   fov: 72,
+  language: "en",
 };
 
 type AppRoute = "menu" | "hochiminh" | "testmove" | "ueh" | "hue";

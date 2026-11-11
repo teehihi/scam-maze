@@ -42,6 +42,7 @@ const SETTINGS: GameSettings = {
   musicVolume: 0,
   sfxVolume: 0,
   fov: 75,
+  language: "en",
 };
 
 const WALLET = CHAPTER_1_INTERACTABLES["obj.wallet"];

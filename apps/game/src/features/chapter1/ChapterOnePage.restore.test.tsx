@@ -39,6 +39,7 @@ const SETTINGS: GameSettings = {
   musicVolume: 0,
   sfxVolume: 0,
   fov: 75,
+  language: "en",
 };
 
 const option = (optionId: string): CoreAction => ({ type: "SELECT_DIALOGUE_OPTION", optionId });
