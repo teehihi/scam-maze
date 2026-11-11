@@ -1,0 +1,684 @@
+/**
+ * Chapter_Page for Chapter 1 "The Urgent Call" (Requirements 1.4 to 1.6, 2.6, 3.4 to 3.6, 4.1,
+ * 4.4 to 4.9). See design.md, "Rendering layer" and "Overlay and input rules".
+ *
+ * The page owns the Chapter_Store, the overlay stack and the input flag. It reads state through
+ * `useChapterState` and writes only through `store.dispatch`. Punches stay inside the player
+ * runtime and never reach the store (Requirement 2.6).
+ *
+ * The phone overlay and the face-to-face dialogue overlay are wired here (task 9.3,
+ * Requirements 4.8, 7.1, 8.3, 10.7, 10.8). The evidence journal and the decision panel are wired
+ * here (task 10.3, Requirements 4.9, 11.6, 13.1): the decision panel opens from the journal and
+ * from the phone home screen while it is offered. The ending transition and the debrief are wired
+ * here (task 11.2, Requirements 1.7, 14.1, 14.2). The pause overlay still renders a temporary
+ * panel until task 12.2.
+ */
+
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { GameSettings } from "@scammaze/shared-types";
+import { getChapter } from "../../game/chapters/chapterRegistry";
+import type { ChapterSession } from "../../game/chapters/chapterSession";
+import { CHAPTER_1_SCENARIO } from "../../game/narrative/chapter1/scenario";
+import type { DecisionId, EvidenceId, InteractableId } from "../../game/narrative/chapter1/ids";
+import { buildDebrief } from "../../game/narrative/debrief";
+import { createInitialState } from "../../game/narrative/reducer";
+import {
+  selectActiveObjectives,
+  selectCallLog,
+  selectClaimStatuses,
+  selectDecisionPanel,
+  selectDialogueView,
+  selectJournalEntries,
+  selectPhoneMessages,
+} from "../../game/narrative/selectors";
+import { createChapterStore, type ChapterStore } from "../../game/narrative/store";
+import type { ChapterState } from "../../game/narrative/types";
+import { usePlayerControls } from "../player";
+import { ChapterOneCanvas, type ChapterOnePlayerPose } from "./ChapterOneCanvas";
+import { EvidenceNotice } from "./hud/EvidenceNotice";
+import { HudButtons } from "./hud/HudButtons";
+import { InteractionPrompt } from "./hud/InteractionPrompt";
+import { ObjectiveToast, type ObjectiveChangeKind } from "./hud/ObjectiveToast";
+import { ObjectiveTracker } from "./hud/ObjectiveTracker";
+import { ResumePrompt } from "./hud/ResumePrompt";
+import { interactionToAction } from "./interaction/interactionToAction";
+import { ChapterTitleCard } from "./intro/ChapterTitleCard";
+import { DebriefScreen } from "./debrief/DebriefScreen";
+import { DecisionPanel } from "./decision/DecisionPanel";
+import { DialoguePanel } from "./dialogue/DialoguePanel";
+import { EndingTransition } from "./ending/EndingTransition";
+import { EvidenceJournal } from "./journal/EvidenceJournal";
+import { EMPTY_OVERLAYS, isOpen, pop, push, top, type Overlay, type OverlayKind, type OverlayStack } from "./overlays";
+import { InspectionPanel } from "./panels/InspectionPanel";
+import { PausePlaceholder } from "./panels/PlaceholderOverlays";
+import { CallScreen } from "./phone/CallScreen";
+import { IncomingCallScreen } from "./phone/IncomingCallScreen";
+import { PhoneOverlay } from "./phone/PhoneOverlay";
+import { UI } from "./theme";
+import { useCallTriggers } from "./useCallTriggers";
+import { useChapterState } from "./useChapterState";
+
+export interface ChapterOnePageProps {
+  session: ChapterSession;
+  settings: GameSettings;
+  onReturnToMenu: () => void;
+}
+
+/** Overlays that Escape never closes (Requirement 4.6). */
+const ESCAPE_LOCKED: ReadonlySet<OverlayKind> = new Set(["ending", "debrief"]);
+
+interface ToastItem {
+  key: number;
+  kind: ObjectiveChangeKind;
+  text: string;
+}
+
+interface NoticeItem {
+  key: number;
+  title: string;
+}
+
+/** Screen-reader text for a completed objective. One function so the phrase can be translated later. */
+export function objectiveCompletedAnnouncement(objectiveText: string): string {
+  return `Objective complete: ${objectiveText}`;
+}
+
+/** Text for the face-to-face dialogue overlay. */
+export const DIALOGUE_OVERLAY_TEXT = {
+  caption: "Conversation",
+} as const;
+
+/**
+ * True while a Call rings or is active and the chapter has no outcome yet. Once an outcome is
+ * set the core rejects END_CALL, so the phone must not stay locked on a call screen.
+ */
+function callInProgress(state: ChapterState): boolean {
+  if (state.outcome !== null) return false;
+  return state.call.status === "ringing" || state.call.current !== null;
+}
+
+/**
+ * The overlay the chapter end requires, or `null` while the chapter has no Outcome: the ending
+ * transition while `ended`, the debrief once `finished` (Requirements 14.1, 14.2).
+ */
+function endOverlayFor(state: ChapterState): Overlay | null {
+  if (state.outcome === null) return null;
+  return state.status === "finished" ? { kind: "debrief" } : { kind: "ending" };
+}
+
+/** True while a face-to-face conversation (no linked Call) is running. */
+function faceToFaceInProgress(state: ChapterState): boolean {
+  return state.conversation !== null && state.conversation.callId === null;
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
+}
+
+/**
+ * Collects objective changes and new evidence since the last seen event, so the HUD can show a
+ * toast or notice for each. Starts at the current log length, so restored history is not replayed.
+ */
+function useHudNotices(store: ChapterStore) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [announcement, setAnnouncement] = useState<string | null>(null);
+
+  useEffect(() => {
+    let seenEvents = store.getState().events.length;
+    let seenEvidence = store.getState().discovered.length;
+    let nextKey = 0;
+
+    return store.subscribe(() => {
+      const state = store.getState();
+      // `replace` (restore or restart) can shorten the log; start counting again from there.
+      if (state.events.length < seenEvents) seenEvents = state.events.length;
+      if (state.discovered.length < seenEvidence) seenEvidence = state.discovered.length;
+
+      const newToasts: ToastItem[] = [];
+      for (const event of state.events.slice(seenEvents)) {
+        for (const id of event.derived.objectivesCompleted) {
+          newToasts.push({ key: nextKey++, kind: "completed", text: CHAPTER_1_SCENARIO.objectives[id].text });
+        }
+        for (const id of event.derived.objectivesActivated) {
+          newToasts.push({ key: nextKey++, kind: "activated", text: CHAPTER_1_SCENARIO.objectives[id].text });
+        }
+      }
+      seenEvents = state.events.length;
+
+      const newNotices: NoticeItem[] = state.discovered
+        .slice(seenEvidence)
+        .map((id) => ({ key: nextKey++, title: CHAPTER_1_SCENARIO.evidence[id].title }));
+      seenEvidence = state.discovered.length;
+
+      if (newToasts.length > 0) {
+        setToasts((queue) => [...queue, ...newToasts]);
+        const lastCompleted = [...newToasts].reverse().find((toast) => toast.kind === "completed");
+        if (lastCompleted) setAnnouncement(objectiveCompletedAnnouncement(lastCompleted.text));
+      }
+      if (newNotices.length > 0) setNotices((queue) => [...queue, ...newNotices]);
+    });
+  }, [store]);
+
+  const dismissToast = useCallback(() => setToasts((queue) => queue.slice(1)), []);
+  const dismissNotice = useCallback(() => setNotices((queue) => queue.slice(1)), []);
+
+  return { toast: toasts[0] ?? null, notice: notices[0] ?? null, announcement, dismissToast, dismissNotice };
+}
+
+export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, settings, onReturnToMenu }) => {
+  const chapter = getChapter(session.chapterId);
+
+  // Created once per mount: a fresh chapter or the state replayed by the loader.
+  const [store] = useState(() => createChapterStore(session.restored?.state ?? createInitialState()));
+  // Begin for a fresh chapter, Continue for a restored one in progress. Replay resets it to Begin.
+  const [titleMode, setTitleMode] = useState<"begin" | "continue">(() =>
+    store.getState().status === "not-started" ? "begin" : "continue",
+  );
+
+  // Read once at mount and kept stable: a new array would re-create the player runtime.
+  // Undefined means the canvas uses the chapter spawn point.
+  const [spawnPosition] = useState<[number, number, number] | undefined>(() => {
+    const pose = session.restored?.pose;
+    return pose ? [pose.position[0], pose.position[1], pose.position[2]] : undefined;
+  });
+  const [spawnYaw] = useState(() => session.restored?.pose?.yaw);
+
+  const status = useChapterState(store, (state) => state.status);
+  const activeObjectives = useChapterState(store, selectActiveObjectives);
+  const discovered = useChapterState(store, (state) => state.discovered);
+  const phoneUnread = useChapterState(store, (state) => state.phone.unread.length);
+  const call = useChapterState(store, (state) => state.call);
+  const callBusy = useChapterState(store, callInProgress);
+  const faceToFaceActive = useChapterState(store, faceToFaceInProgress);
+  const dialogueView = useChapterState(store, selectDialogueView);
+  const phoneMessages = useChapterState(store, selectPhoneMessages);
+  const callLog = useChapterState(store, selectCallLog);
+  const journalEntries = useChapterState(store, selectJournalEntries);
+  const claimStatuses = useChapterState(store, selectClaimStatuses);
+  const decisionPanel = useChapterState(store, selectDecisionPanel);
+  const outcome = useChapterState(store, (state) => state.outcome);
+  // Rebuilt only when the state changes; `null` until an Outcome is set.
+  const chapterState = useChapterState(store);
+  const debriefView = useMemo(() => buildDebrief(chapterState), [chapterState]);
+
+  const [sceneReady, setSceneReady] = useState(false);
+  // A restored session that has already ended goes straight to the ending or the debrief.
+  const [titleCardOpen, setTitleCardOpen] = useState(() => endOverlayFor(store.getState()) === null);
+  const [overlays, setOverlays] = useState<OverlayStack>(() => {
+    const end = endOverlayFor(store.getState());
+    return end ? Object.freeze([end]) : EMPTY_OVERLAYS;
+  });
+  const [focusedId, setFocusedId] = useState<InteractableId | null>(null);
+  const [journalSeen, setJournalSeen] = useState(() => store.getState().discovered.length);
+
+  const overlayOpen = titleCardOpen || overlays.length > 0;
+  const inputEnabled = status === "playing" && !overlayOpen;
+
+  const gameViewRef = useRef<HTMLDivElement>(null);
+  const { keysRef, isLocked, lockPointer, consumeMovement, consumePunchTrigger, consumeInspectTrigger, consumeInteractTrigger } =
+    usePlayerControls(gameViewRef, { enabled: inputEnabled });
+
+  const poseGetterRef = useRef<(() => ChapterOnePlayerPose) | null>(null);
+
+  // Latest values for event handlers registered once.
+  const focusedRef = useRef<InteractableId | null>(null);
+  const inputEnabledRef = useRef(inputEnabled);
+  const overlaysRef = useRef(overlays);
+  const titleCardOpenRef = useRef(titleCardOpen);
+  useEffect(() => {
+    inputEnabledRef.current = inputEnabled;
+    overlaysRef.current = overlays;
+    titleCardOpenRef.current = titleCardOpen;
+  }, [inputEnabled, overlays, titleCardOpen]);
+
+  useCallTriggers(store, overlayOpen);
+  const { toast, notice, announcement, dismissToast, dismissNotice } = useHudNotices(store);
+
+  // --- Overlay stack -------------------------------------------------------------------------
+
+  /** Computes the next stack from the latest one and keeps the ref in step with the state. */
+  const updateOverlays = useCallback((change: (stack: OverlayStack) => OverlayStack) => {
+    const next = change(overlaysRef.current);
+    if (next === overlaysRef.current) return;
+    overlaysRef.current = next;
+    setOverlays(next);
+  }, []);
+
+  /**
+   * Pushes an overlay. Opening the phone dispatches OPEN_PHONE; the core rejects it harmlessly
+   * when the phone is already open or the chapter is not playing.
+   */
+  const openOverlay = useCallback(
+    (overlay: Overlay) => {
+      if (overlay.kind === "journal") setJournalSeen(store.getState().discovered.length);
+      if (overlay.kind === "phone" && !isOpen(overlaysRef.current, "phone")) {
+        store.dispatch({ type: "OPEN_PHONE" });
+      }
+      updateOverlays((stack) => push(stack, overlay));
+    },
+    [store, updateOverlays],
+  );
+
+  /** Removes the overlay of `kind` wherever it is. Closing the phone dispatches CLOSE_PHONE. */
+  const removeOverlay = useCallback(
+    (kind: OverlayKind) => {
+      if (!isOpen(overlaysRef.current, kind)) return;
+      if (kind === "phone") store.dispatch({ type: "CLOSE_PHONE" });
+      updateOverlays((stack) => Object.freeze(stack.filter((entry) => entry.kind !== kind)));
+    },
+    [store, updateOverlays],
+  );
+
+  const closeTop = useCallback(() => {
+    const current = top(overlaysRef.current);
+    if (current?.kind === "phone") store.dispatch({ type: "CLOSE_PHONE" });
+    updateOverlays((stack) => pop(stack));
+  }, [store, updateOverlays]);
+
+  /**
+   * The phone cannot close while a call rings or is active, and the face-to-face dialogue cannot
+   * close while the conversation runs: the player answers with the options, which always include
+   * a fallback (design, "Overlay and input rules").
+   */
+  const canClose = useCallback(
+    (overlay: Overlay) => {
+      if (ESCAPE_LOCKED.has(overlay.kind)) return false;
+      const state = store.getState();
+      if (overlay.kind === "phone" && callInProgress(state)) return false;
+      if (overlay.kind === "dialogue" && faceToFaceInProgress(state)) return false;
+      return true;
+    },
+    [store],
+  );
+
+  /**
+   * P and J (and the HUD buttons): open when nothing else is open, close when that overlay is the
+   * top-most one and may close (Requirements 4.8, 4.9).
+   */
+  const toggleOverlay = useCallback(
+    (kind: "phone" | "journal") => {
+      if (titleCardOpenRef.current || store.getState().status !== "playing") return;
+      const stack = overlaysRef.current;
+      const current = top(stack);
+      if (stack.length === 0) {
+        openOverlay({ kind });
+      } else if (current?.kind === kind && canClose(current)) {
+        closeTop();
+      }
+    },
+    [canClose, closeTop, openOverlay, store],
+  );
+
+  /** The phone's own close button. Ignored while a call rings or is active. */
+  const handleClosePhone = useCallback(() => {
+    if (!canClose({ kind: "phone" })) return;
+    removeOverlay("phone");
+  }, [canClose, removeOverlay]);
+
+  // A ringing call, or an active call such as the official line started from the decision
+  // panel, brings the phone to the top (Requirements 8.3, 10.8).
+  useEffect(() => {
+    if (titleCardOpen || status !== "playing" || !callBusy) return;
+    if (top(overlays)?.kind !== "phone") openOverlay({ kind: "phone" });
+  }, [callBusy, openOverlay, overlays, status, titleCardOpen]);
+
+  // The face-to-face dialogue overlay follows the conversation: it closes when the conversation
+  // ends and reopens if one is running (for example after a restore).
+  useEffect(() => {
+    const dialogueOpen = isOpen(overlays, "dialogue");
+    if (!faceToFaceActive) {
+      if (dialogueOpen) removeOverlay("dialogue");
+      return;
+    }
+    if (!dialogueOpen && !titleCardOpen && status === "playing") openOverlay({ kind: "dialogue" });
+  }, [faceToFaceActive, openOverlay, overlays, removeOverlay, status, titleCardOpen]);
+
+  // Chapter end (Requirements 1.7, 14.1, 14.2): once an Outcome is set, every other overlay
+  // closes, including a phone locked on a call (the money-moved path sets the Outcome during an
+  // active call; `callInProgress` is false from then on). The ending shows while `ended`, the
+  // debrief once `finished`. No CLOSE_PHONE is dispatched: the core accepts only FINISH_CHAPTER now.
+  useEffect(() => {
+    const end = endOverlayFor(store.getState());
+    if (!end) return;
+    setTitleCardOpen(false);
+    updateOverlays((stack) => (stack.length === 1 && stack[0].kind === end.kind ? stack : Object.freeze([end])));
+  }, [outcome, status, store, updateOverlays]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || isTypingTarget(event.target)) return;
+      if (titleCardOpenRef.current) return;
+
+      if (event.key === "Escape") {
+        const current = top(overlaysRef.current);
+        if (current) {
+          // Requirement 4.6: close the top-most overlay, except locked ones.
+          if (canClose(current)) {
+            event.preventDefault();
+            closeTop();
+          }
+        } else if (store.getState().status === "playing") {
+          // Requirement 4.7: open the pause menu.
+          event.preventDefault();
+          openOverlay({ kind: "pause" });
+        }
+        return;
+      }
+
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.code === "KeyP") {
+        event.preventDefault();
+        toggleOverlay("phone");
+      } else if (event.code === "KeyJ") {
+        event.preventDefault();
+        toggleOverlay("journal");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canClose, closeTop, openOverlay, store, toggleOverlay]);
+
+  // --- Title card ----------------------------------------------------------------------------
+
+  const handleBegin = useCallback(() => {
+    if (!sceneReady) return;
+    if (store.getState().status === "not-started") {
+      const result = store.dispatch({ type: "START_CHAPTER" });
+      if (!result.accepted) return;
+    }
+    setTitleCardOpen(false);
+  }, [sceneReady, store]);
+
+  const handleSceneReady = useCallback(() => setSceneReady(true), []);
+
+  // --- Interaction ---------------------------------------------------------------------------
+
+  const handleFocusChange = useCallback((id: InteractableId | null) => {
+    focusedRef.current = id;
+    setFocusedId(id);
+  }, []);
+
+  /** One E press gives one call here; the action comes from scenario data (Requirements 3.4, 3.5). */
+  const handleInteract = useCallback(() => {
+    if (!inputEnabledRef.current) return;
+    const action = interactionToAction(focusedRef.current);
+    if (!action) return;
+    const result = store.dispatch(action);
+    if (!result.accepted) return;
+    if (action.type === "INTERACT_OBJECT") {
+      // Requirement 3.6: show the authored inspection text.
+      openOverlay({ kind: "inspection", objectId: action.objectId });
+    } else if (action.type === "TALK_TO_NPC") {
+      // Requirement 10.7: talking to Sam opens the face-to-face dialogue.
+      openOverlay({ kind: "dialogue" });
+    }
+  }, [openOverlay, store]);
+
+  // --- Phone and dialogue --------------------------------------------------------------------
+
+  const handleInspectEvidence = useCallback(
+    (evidenceId: EvidenceId) => store.dispatch({ type: "INSPECT_EVIDENCE", evidenceId }),
+    [store],
+  );
+
+  // The bank app checks the "account suspended" claim (the selectors' VERIFY_METHOD_CLAIM).
+  const handleVerifyBankApp = useCallback(
+    () => store.dispatch({ type: "VERIFY_CLAIM", claimId: "claim.account-suspended", method: "bank-app" }),
+    [store],
+  );
+
+  const handleAnswerCall = useCallback(() => store.dispatch({ type: "ANSWER_CALL" }), [store]);
+
+  /** Declines a ringing call or hangs up an active one. */
+  const handleEndCall = useCallback(() => store.dispatch({ type: "END_CALL" }), [store]);
+
+  const handleSelectOption = useCallback(
+    (optionId: string) => store.dispatch({ type: "SELECT_DIALOGUE_OPTION", optionId }),
+    [store],
+  );
+
+  // --- Journal and decision ------------------------------------------------------------------
+
+  /** Opens the decision panel on top of the journal or the phone (Requirement 13.1). */
+  const handleOpenDecision = useCallback(() => {
+    if (!selectDecisionPanel(store.getState()).offered) return;
+    openOverlay({ kind: "decision" });
+  }, [openOverlay, store]);
+
+  /**
+   * Step 1 of the official route: call Northgate on the official number. The accepted action
+   * starts the official-line call, and the call effect above brings the phone to the top. The
+   * decision panel stays below it, so step 2 is shown when the player closes the phone.
+   */
+  const handleStartOfficialCall = useCallback(
+    () => store.dispatch({ type: "VERIFY_CLAIM", claimId: "claim.caller-identity", method: "official-line" }),
+    [store],
+  );
+
+  /** Records the Decision. Once accepted, the decision, journal and phone overlays close. */
+  const handleDecide = useCallback(
+    (decision: DecisionId) => {
+      const result = store.dispatch({ type: "MAKE_DECISION", decision });
+      if (!result.accepted) return;
+      removeOverlay("decision");
+      removeOverlay("journal");
+      removeOverlay("phone");
+    },
+    [removeOverlay, store],
+  );
+
+  // --- Ending and debrief --------------------------------------------------------------------
+
+  /** Continue on the ending transition: FINISH_CHAPTER; the chapter-end effect shows the debrief. */
+  const handleContinueToDebrief = useCallback(() => store.dispatch({ type: "FINISH_CHAPTER" }), [store]);
+
+  /**
+   * Replay from the debrief: a fresh chapter state, no overlays, and the title card in Begin mode.
+   * TODO(task 12.2): clear the saved checkpoint and confirm before replaying.
+   */
+  const handleReplay = useCallback(() => {
+    store.replace(createInitialState());
+    updateOverlays(() => EMPTY_OVERLAYS);
+    setJournalSeen(0);
+    setTitleMode("begin");
+    setTitleCardOpen(true);
+  }, [store, updateOverlays]);
+
+  // Requirement 4.5: a click on the game view while the resume prompt shows locks the pointer.
+  const showResume = inputEnabled && !isLocked;
+  const handleGameViewClick = useCallback(() => {
+    if (inputEnabledRef.current && !document.pointerLockElement) lockPointer();
+  }, [lockPointer]);
+
+  // Keeps HUD button clicks from reaching the controls' window mousedown (which locks the pointer).
+  const stopMouseDown = useCallback((event: React.MouseEvent) => event.stopPropagation(), []);
+
+  // --- Render --------------------------------------------------------------------------------
+
+  // Caller name and number come from the Call definition in Scenario_Data (plain text).
+  let callSlot: ReactNode = null;
+  if (callBusy && call.current !== null) {
+    const callDef = CHAPTER_1_SCENARIO.calls[call.current];
+    callSlot =
+      call.status === "ringing" ? (
+        <IncomingCallScreen
+          callerName={callDef.displayName}
+          number={callDef.number}
+          onAccept={handleAnswerCall}
+          onDecline={handleEndCall}
+        />
+      ) : (
+        <CallScreen
+          callerName={callDef.displayName}
+          number={callDef.number}
+          dialogue={dialogueView !== null && dialogueView.callId === call.current ? dialogueView : null}
+          onSelectOption={handleSelectOption}
+          onHangUp={handleEndCall}
+        />
+      );
+  }
+
+  const renderOverlay = (overlay: Overlay) => {
+    switch (overlay.kind) {
+      case "inspection": {
+        const def = CHAPTER_1_SCENARIO.interactables[overlay.objectId];
+        const evidence = def.reveals
+          .filter((id) => discovered.includes(id))
+          .map((id) => ({ id, title: CHAPTER_1_SCENARIO.evidence[id].title }));
+        return (
+          <InspectionPanel
+            key="inspection"
+            label={def.label}
+            inspectionText={def.inspectionText}
+            evidence={evidence}
+            onClose={closeTop}
+          />
+        );
+      }
+      case "pause":
+        return <PausePlaceholder key="pause" onResume={closeTop} onReturnToMenu={onReturnToMenu} />;
+      case "phone":
+        return (
+          <PhoneOverlay
+            key="phone"
+            messages={phoneMessages}
+            callLog={callLog}
+            bankApp={CHAPTER_1_SCENARIO.phone.bankApp}
+            onInspectEvidence={handleInspectEvidence}
+            onVerifyBankApp={handleVerifyBankApp}
+            onClose={handleClosePhone}
+            callSlot={callSlot}
+            onDecide={decisionPanel.offered ? handleOpenDecision : undefined}
+          />
+        );
+      case "dialogue": {
+        if (!dialogueView || dialogueView.channel !== "face-to-face") return null;
+        const persona = CHAPTER_1_SCENARIO.dialogues[dialogueView.graphId].persona;
+        return (
+          <div key="dialogue" className={UI.backdrop}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="dialogue-overlay-heading"
+              className={`${UI.panel} max-w-lg space-y-4`}
+              data-testid="dialogue-overlay"
+            >
+              <div>
+                <p className={UI.label}>{DIALOGUE_OVERLAY_TEXT.caption}</p>
+                <h2 id="dialogue-overlay-heading" className={UI.heading}>
+                  {persona.name}
+                </h2>
+              </div>
+              <DialoguePanel view={dialogueView} onSelectOption={handleSelectOption} />
+            </div>
+          </div>
+        );
+      }
+      case "journal":
+        return (
+          <EvidenceJournal
+            key="journal"
+            entries={journalEntries}
+            claims={claimStatuses}
+            decisionOffered={decisionPanel.offered}
+            onDecide={handleOpenDecision}
+            onClose={() => removeOverlay("journal")}
+          />
+        );
+      case "decision":
+        return (
+          <DecisionPanel
+            key="decision"
+            panel={decisionPanel}
+            onStartOfficialCall={handleStartOfficialCall}
+            onDecide={handleDecide}
+            onClose={() => removeOverlay("decision")}
+          />
+        );
+      case "ending":
+        if (!debriefView) return null;
+        return <EndingTransition key="ending" outcome={debriefView.outcome} onContinue={handleContinueToDebrief} />;
+      case "debrief":
+        if (!debriefView) return null;
+        return (
+          <DebriefScreen key="debrief" view={debriefView} onReplay={handleReplay} onReturnToMenu={onReturnToMenu} />
+        );
+    }
+  };
+
+  const hudVisible = !titleCardOpen && status === "playing";
+  const journalUnread = Math.max(0, discovered.length - journalSeen);
+
+  return (
+    <div className="relative w-screen h-screen overflow-hidden bg-[#171521] select-none">
+      <div ref={gameViewRef} className="absolute inset-0" onClick={handleGameViewClick}>
+        <ChapterOneCanvas
+          settings={settings}
+          enabled={inputEnabled}
+          focusedId={inputEnabled ? focusedId : null}
+          onFocusChange={handleFocusChange}
+          onInteract={handleInteract}
+          onSceneReady={handleSceneReady}
+          spawnPosition={spawnPosition}
+          spawnYaw={spawnYaw}
+          consumeMovement={consumeMovement}
+          consumePunchTrigger={consumePunchTrigger}
+          consumeInspectTrigger={consumeInspectTrigger}
+          consumeInteractTrigger={consumeInteractTrigger}
+          keysRef={keysRef}
+          poseGetterRef={poseGetterRef}
+        />
+      </div>
+
+      {hudVisible && (
+        <>
+          <div className="pointer-events-none absolute left-4 top-4 z-10">
+            <ObjectiveTracker objectives={activeObjectives} announcement={announcement} />
+          </div>
+
+          <div className="pointer-events-none absolute left-1/2 top-4 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
+            {toast && (
+              <ObjectiveToast key={toast.key} kind={toast.kind} text={toast.text} onDismiss={dismissToast} />
+            )}
+            {notice && <EvidenceNotice key={notice.key} title={notice.title} onDismiss={dismissNotice} />}
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-10 flex flex-col items-center gap-2 px-4">
+            <ResumePrompt visible={showResume} />
+            {inputEnabled && <InteractionPrompt objectId={focusedId} />}
+          </div>
+
+          <div className="absolute bottom-4 right-4 z-10" onMouseDown={stopMouseDown}>
+            <HudButtons
+              onPhone={() => toggleOverlay("phone")}
+              onJournal={() => toggleOverlay("journal")}
+              phoneOpen={overlays.some((overlay) => overlay.kind === "phone")}
+              journalOpen={overlays.some((overlay) => overlay.kind === "journal")}
+              phoneUnread={phoneUnread}
+              journalUnread={journalUnread}
+            />
+          </div>
+        </>
+      )}
+
+      {overlays.length > 0 && <div onMouseDown={stopMouseDown}>{overlays.map(renderOverlay)}</div>}
+
+      {titleCardOpen && (
+        <ChapterTitleCard
+          chapterNumber={chapter?.number ?? session.chapterNumber}
+          title={chapter?.title ?? CHAPTER_1_SCENARIO.title}
+          subtitle={chapter?.subtitle ?? CHAPTER_1_SCENARIO.subtitle}
+          ready={sceneReady}
+          mode={titleMode}
+          onBegin={handleBegin}
+        />
+      )}
+    </div>
+  );
+};

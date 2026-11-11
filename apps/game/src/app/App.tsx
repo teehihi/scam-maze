@@ -9,7 +9,8 @@ import { MenuStartupLoading } from "../features/loading/MenuStartupLoading";
 import { ChapterLoadingFlow } from "../features/loading/ChapterLoadingFlow";
 import { ChapterPlaceholder } from "../features/chapter/ChapterPlaceholder";
 import type { ContinueAvailability } from "../features/menu/MainMenuOverlay";
-import { DEFAULT_CHAPTER_ID, getChapter } from "../game/chapters/chapterRegistry";
+import { DEFAULT_CHAPTER_ID } from "../game/chapters/chapterRegistry";
+import { readContinueAvailability } from "./continueAvailability";
 import type { ChapterSession } from "../game/chapters/chapterSession";
 import type { ChapterLoadRequest } from "../game/loading/chapterLoader";
 import { checkBasicWebGLSupport } from "../game/loading/deviceCapabilities";
@@ -25,18 +26,8 @@ type Screen =
 
 const saveSource = createLocalStorageSaveSource();
 
-function readContinueAvailability(): ContinueAvailability {
-  const result = saveSource.read();
-  if (result.status === "none") {
-    return {
-      available: false,
-      reason: "No saved game found. Saving starts once Chapter 1 is playable.",
-    };
-  }
-  if (result.status === "invalid" || !getChapter(result.save.chapterId)) {
-    return { available: false, reason: "Your saved game could not be read. Start a new game instead." };
-  }
-  return { available: true };
+function readSavedContinueAvailability(): ContinueAvailability {
+  return readContinueAvailability(saveSource);
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -74,7 +65,7 @@ export const App: React.FC = () => {
   const [showLoading, setShowLoading] = useState(() => checkBasicWebGLSupport());
   const [sceneError, setSceneError] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ kind: "menu" });
-  const [continueAvailability, setContinueAvailability] = useState(readContinueAvailability);
+  const [continueAvailability, setContinueAvailability] = useState(readSavedContinueAvailability);
 
   const [settings, setSettings] = useState<GameSettings>(() => {
     try {
@@ -159,7 +150,7 @@ export const App: React.FC = () => {
 
   const handleReturnToMenu = useCallback(() => {
     setScreen({ kind: "menu" });
-    setContinueAvailability(readContinueAvailability());
+    setContinueAvailability(readSavedContinueAvailability());
   }, []);
 
   // Gapless Seamless Dual-Layer Web Audio Engine (BGM + Street Ambient + SFX)
