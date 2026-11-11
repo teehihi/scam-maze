@@ -3,7 +3,7 @@ import { useProgress } from "@react-three/drei";
 import { useTranslation } from "react-i18next";
 import { TestMoveCanvas } from "./TestMoveCanvas";
 import { TestMoveOverlay } from "./TestMoveOverlay";
-import { usePlayerControls } from "../player";
+import { usePlayerControls, type PlayerStats } from "../player";
 import type { GameSettings } from "@scammaze/shared-types";
 
 interface TestMovePageProps {
@@ -33,11 +33,16 @@ export const TestMovePage: React.FC<TestMovePageProps> = ({
   const [sceneReady, setSceneReady] = useState(false);
   const showLoading = !sceneReady;
 
-  const [stats, setStats] = useState({
-    position: [188.6, -92.70, -88.89] as [number, number, number],
+  const [stats, setStats] = useState<PlayerStats>({
+    position: [188.6, -92.70, -88.89],
     speed: 0,
     isSprinting: false,
     isGrounded: true,
+    isBlocking: false,
+    isDriving: false,
+    isNearCar: false,
+    carSpeed: 0,
+    carGear: "P",
   });
 
   const consumePunchTrigger = useCallback(() => {
@@ -51,12 +56,7 @@ export const TestMovePage: React.FC<TestMovePageProps> = ({
     };
   }, []);
 
-  const handleStatsUpdate = useCallback((newStats: {
-    position: [number, number, number];
-    speed: number;
-    isSprinting: boolean;
-    isGrounded: boolean;
-  }) => {
+  const handleStatsUpdate = useCallback((newStats: PlayerStats) => {
     setStats(newStats);
   }, []);
 

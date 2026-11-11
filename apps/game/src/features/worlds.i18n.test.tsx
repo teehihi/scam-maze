@@ -20,6 +20,7 @@ const stats = {
   speed: 4.5,
   isSprinting: true,
   isGrounded: true,
+  isBlocking: false,
 };
 
 /** Renders the element in the given locale and returns the visible text, then unmounts it. */
@@ -104,6 +105,26 @@ describe("teammate world pages follow the locale", () => {
     expect(vi).toContain("Chế độ Thử Nghiệm Di Chuyển 3D");
     expect(vi).toContain("Bắt đầu Điều Khiển");
     expect(vi).not.toContain("Back to Main Menu");
+  });
+
+  it("TestMoveOverlay driving labels change with the locale and keep the car name", () => {
+    const driving = { ...stats, isDriving: true, carGear: "D" as const, isEngineStarting: false };
+    const drivingOverlay = () => <TestMoveOverlay isLocked onToggleLock={noop} onBackToMenu={noop} stats={driving} />;
+    const nearCar = () => <TestMoveOverlay isLocked onToggleLock={noop} onBackToMenu={noop} stats={{ ...stats, isNearCar: true }} />;
+
+    const en = textIn("en", drivingOverlay());
+    const vi = textIn("vi", drivingOverlay());
+    expect(en).toContain("Driving Controls:");
+    expect(en).toContain("Handbrake");
+    expect(en).toContain("Engine: V8 Twin-Turbo running");
+    expect(vi).toContain("Điều khiển Lái Xe:");
+    expect(vi).toContain("Phanh tay");
+    expect(vi).not.toContain("Handbrake");
+    expect(en).toContain("Lexus GX 550 (4WD)");
+    expect(vi).toContain("Lexus GX 550 (4WD)");
+
+    expect(textIn("en", nearCar())).toContain("Get in the Lexus GX 550 (drive)");
+    expect(textIn("vi", nearCar())).toContain("Lên xe Lexus GX 550 (Lái xe)");
   });
 
   it("UEHOverlay labels change with the locale", () => {

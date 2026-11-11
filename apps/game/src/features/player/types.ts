@@ -28,6 +28,12 @@ export interface PlayerStats {
   isSprinting: boolean;
   isGrounded: boolean;
   isBlocking: boolean;
+  isDriving?: boolean;
+  isNearCar?: boolean;
+  carSpeed?: number;
+  carGear?: "P" | "D" | "R";
+  carPosition?: [number, number, number];
+  isEngineStarting?: boolean;
 }
 
 export interface FirstPersonPlayerProps {
@@ -51,4 +57,5 @@ export interface FirstPersonPlayerProps {
    * triggers are drained so the camera does not jump on resume). Defaults to true.
    */
   enabled?: boolean;
+  carPivotRef?: MutableRefObject<any>;
 }

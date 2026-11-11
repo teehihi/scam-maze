@@ -34,6 +34,7 @@
 Verified against merged pull requests on GitHub and local workspace builds.
 
 - [x] **Chapter 1 "The Urgent Call" playable vertical slice (branch `feat/chapter-01-playable`, not merged):** Deterministic narrative core (reducer, selectors, dialogue engine, scenario validator), versioned save v2 with replay validation, Chapter 1 street canvas with interactable props, smartphone (calls, messages, call history, bank app), face-to-face dialogue, evidence journal, decisions, three ending groups (`verified`, `risky`, `uncertain`), debrief, checkpoints and pause menu. Verified by `pnpm test` (48 files, 392 tests); not verified in a browser. See the task history entry of 2026-11-11.
+- [x] **Lexus GX 550 Vehicle Interaction, Solid Collider Box & First-Person Driving System (`/testmove`):** Added an oriented bounding box (OBB) collider for the gold Lexus GX 550 SUV preventing walking through the vehicle. Integrated proximity detection to the driver door with an animated `[E] Lên xe Lexus GX 550 (Lái xe)` interaction badge. Built driver seat cockpit POV camera with lowered sitting height, free head look around the cabin, procedural 3D steering wheel with driver hands and forearms gripping and turning with `A`/`D`, deterministic driving physics (acceleration up to 63 km/h, braking, reverse, handbrake slide, suspension pitch/roll, road curb clamping), zero-latency procedural Web Audio V8 engine rumble synthesis, digital speedometer (km/h) with gear indicator (`[D]`, `[R]`, `[P]`), and `E` key exit when stopped.
 - [x] **Cinematic chapter loading screen (branch `feat/game-cinematic-loading-screen`, not merged):** Real loading pipeline for New Game / Continue with byte-measured progress, asset verification, stall watchdog, error recovery, fade transitions and reduced-motion support. Startup menu loading rewritten without fabricated progress. First automated tests (Vitest, 103 tests after the 2026-11-10 startup loading percentage task). Startup screen shows a byte-measured percentage of the street GLB. Loading screens are opaque from the first frame and stay up for a minimum display time (1.5 s chapter, 1.2 s startup). At the time, loading ended on an honest "in development" screen; on branch `feat/chapter-01-playable` it now opens the Chapter 1 page.
 - [x] **Main Menu Performance Optimization (Round 2 — Progressive Loading & Deep GLB Reduction):** Implemented instantaneous menu UI interaction on Frame 1 with non-blocking progressive loading. Decoupled Suspense boundaries so the sky dome and procedural street fallback (`StreetFallback.tsx`) render immediately without waiting for the 3D model. Conducted deep decimation across heavy vehicle CAD hierarchies (VinFast VF3, Lexus GX 550, PCX, fence, pedestrian scan), dropping triangles from 2.68M down to 542k (-91.6% from original) and file size to 21.50 MB (-95.1% from original). Resized normal maps with high-quality WebP, and added parallel asynchronous GPU shader pre-compilation via `gl.compileAsync` to eliminate first-render freeze spikes.
 - [x] **Deep Performance Optimization of Main Menu 3D Scene (Phases 1–7):** Conducted complete asset forensics on the 440.5MB `MenuBG.glb` asset. Engineered an automated Node.js optimization pipeline (`apps/game/scripts/optimize-environment.cjs`) utilizing `@gltf-transform`, Meshopt, and Sharp. Reduced GLB file size from 440.53MB to 43.00MB (-89.76%) and polygon count from 6.48M to 2.68M triangles (-58.6%) without degrading visual fidelity from the authored camera viewpoint. Replaced 8K/4K scan textures with WebP (172.8MB -> 24.1MB), eliminated hidden dead meshes, froze static matrices, eliminated frame-loop memory allocations in `MenuCamera`, optimized SkyDome geometry, capped Retina DPR, and resolved WebGL context exhaustion.
@@ -167,6 +168,15 @@ Resolved:
   with a screen reader, and its Vietnamese text has not had a native-speaker review.
 
 ## Task History
+
+### 2026-11-12 — Merge `main` (PR #16, Lexus driving) into `feat/game-i18n-en-vi`
+
+- **Objective:** Bring the latest `main` into the localization branch.
+- **Completed work:** Resolved conflicts in `FirstPersonPlayer.tsx` and `player/types.ts` by keeping both the `enabled` input gate (Chapter 1) and the `carPivotRef` driving layer (`main`); driving input is now gated by `enabled` too. Resolved `TestMoveOverlay.tsx` by keeping the driving HUD from `main` and moving its hard-coded Vietnamese text into the `worlds` `testmove` dictionaries (`en` and `vi`); the vehicle name "Lexus GX 550" stays in code and is not translated. The unused `testmove.trackpadTip` key was replaced by `walkingTip` and `drivingTip`. Kept both sides of this file.
+- **Files modified:** `apps/game/src/features/player/FirstPersonPlayer.tsx`, `apps/game/src/features/player/types.ts`, `apps/game/src/features/testmove/TestMoveOverlay.tsx`, `apps/game/src/i18n/locales/{en,vi}/worlds/testmove.ts`, `apps/game/src/features/worlds.i18n.test.tsx` (`isBlocking` in the stats fixture, new driving locale test), `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm typecheck` passed; `pnpm test` passed (63 files, 598 tests); `pnpm build` passed (game JS chunk 1,923.05 kB, gzip 547.15 kB, over the 1,500 kB warning limit).
+- **Limitations:** Driving and the Chapter 1 input gate were not play-tested in a browser after the merge. "Lexus GX 550" is a real brand name in a teammate world; this predates the merge and is left for the owner to decide.
+- **Deviations:** None. **Follow-up:** browser check of `/testmove` driving and Chapter 1.
 
 ### 2026-11-12 — Game localization (English and Vietnamese) (spec `game-i18n-en-vi`, task 12.5)
 
@@ -452,6 +462,416 @@ Resolved:
 - **Limitations:** jsdom does not move focus on Tab, so the trap is tested at the wrap points
   only. The face-to-face dialogue overlay is not opened in these tests.
 - **Deviations:** None. **Follow-up:** task 14.5 (commit).
+
+### 2026-11-12 — Merge `main` into Lexus driving branch (CharacterRuntime port)
+
+- **Objective:** Resolve merge conflicts between `feat/game-lexus-driving` and `main` (PR #16).
+- **Completed work:** `main` replaced the component-based player with the shared `CharacterRuntime`. Kept that architecture and re-implemented the Lexus driving layer on top of it in `FirstPersonPlayer.tsx`: car collider via the adapter `resolveMovement` proxy, `E` to enter via the controls proxy, runtime paused while driving (cockpit camera, physics, audio, HUD stats), `runtime.teleport` on exit. The vehicle layer is only active when `carPivotRef` is passed (`/testmove`), so the Hue and UEH maps no longer get an invisible car collider.
+- **Files modified:** `apps/game/src/features/player/FirstPersonPlayer.tsx`, `docs/PROJECT_PROGRESS.md`.
+- **Validation commands executed:** `pnpm typecheck`, `pnpm test`, `pnpm build`.
+- **Build and test results:** typecheck clean (3 packages); 13 test files, 121/121 tests passed; landing and game production builds succeeded. Driving was not play-tested in a browser.
+- **Unresolved issues and known limitations:** Removed per-component punch audio from the branch in favour of `CharacterRuntime` audio from `main`.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Manually test enter/drive/exit on `/testmove`.
+
+### 2026-11-12 — Hands Removal & Cockpit Freelook Angle Clamping
+
+- **Objective:** Completely remove the procedural driving hands from the Lexus GX 550 cockpit and strictly constrain the cabin mouse freelook to the exact realistic side-mirror angles shown in reference photos.
+- **Completed work:**
+  - **Removed Driving Hands:** Completely removed procedural blocky hands from [`FirstPersonPlayer.tsx`](file:///Users/tee/UTE/Kiroween/scam-maze/apps/game/src/features/player/FirstPersonPlayer.tsx) and driving HUD instruction in [`TestMoveOverlay.tsx`](file:///Users/tee/UTE/Kiroween/scam-maze/apps/game/src/features/testmove/TestMoveOverlay.tsx). The Lexus GX 550 cockpit now operates in ultra-clean sim mode with only the authentic steering wheel rotating smoothly on its own without obstructing the instrument cluster or center infotainment screen.
+  - **Cockpit Angle Clamping:** Constrained horizontal yaw to $[-0.95, +0.95]\text{ rad}$ ($\approx \pm 55^\circ$) so looking right stops precisely at the passenger side mirror and window, and looking left stops precisely at the driver side mirror and window as requested in the reference screenshots. Constrained vertical pitch to $[-0.28, +0.22]\text{ rad}$ between the rearview mirror/windshield top and the dashboard gauges.
+- **Files modified:**
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`: Removed hands rendering, state, and KeyH listener; clamped cockpit yaw to $\pm 0.95\text{ rad}$ and pitch to $[-0.28, 0.22]\text{ rad}$.
+  - `apps/game/src/features/testmove/TestMoveOverlay.tsx`: Removed `[H] Ẩn/Hiện tay lái` from HUD hints.
+  - `docs/PROJECT_PROGRESS.md`: Recorded task history.
+- **Validation commands executed:**
+  - `tsc -b --noEmit` in `apps/game` (clean, 0 errors).
+  - `vitest run` in `apps/game` (12 test suites, 115/115 tests passing).
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** None.
+
+### 2026-11-12 — Lexus Cockpit Freelook, Command Eye Height, Steering Hands Attachment & License Plate Restoration
+
+- **Objective:** Fix inverted license plates (`cX 220µ` / `CX 220P`), restore visible hands gripped onto steering wheel, raise driver eye level to authentic commanding SUV height, and unfreeze cockpit mouse look to allow free cabin glancing.
+- **Completed work:**
+  - **License Plate Restoration:** Removed `plate` material from vertical texture inversion in `StreetEnvironment.tsx` so its authored texture remains right side up (`repeat.y = 1, offset.y = 0`), correctly displaying `GX 550h` on both front grille and rear tailgate plates.
+  - **Cockpit Freelook Unfreezing:** Fixed duplicate `consumeMovement()` invocation in `FirstPersonPlayer.tsx` which was clearing mouse movement to zero before cockpit look could process it. Separated mouse look between locomotion and driving, and expanded cabin glance range to $\pm 125^\circ$ ($\pm 2.2\text{ rad}$) yaw and $[-0.65, 0.65]\text{ rad}$ pitch for natural glancing at left/right side mirrors, center infotainment, rearview mirror, and road.
+  - **Command Eye Height:** Elevated driver seat offset in `FirstPersonPlayer.tsx` from $Y = 1.78\text{m}$ to $Y = 1.86\text{m}$ ($Z = -0.24\text{m}$) with calibrated base downward pitch of $-0.10\text{ rad}$ ($5.7^\circ$) to provide the authentic commanding Lexus GX 550 SUV viewpoint over the dashboard cowl and hood.
+  - **Driving Hands Attachment & Visibility:** Replaced non-rendering `createPortal` with a direct scene-level group dynamically synchronized to `steeringPivot.matrixWorld` in `useFrame`. Tilted hand root by $0.235\text{ rad}$ ($13.5^\circ$) in `DrivingHandsOnWheel.tsx` to align flush with the inclined steering wheel rim plane. The hands turn 1:1 with steering wheel rotation (`A`/`D`), stay glued to the wheel without drifting during mouse look, and hide automatically on exiting vehicle.
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`: Removed `plate` from inverted texture check.
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`: Separated mouse look consumption, elevated seat eye level to $Y = 1.86\text{m}$, replaced `createPortal` with direct world matrix synchronization for steering hands.
+  - `apps/game/src/features/vehicle/DrivingHandsOnWheel.tsx`: Tilted root group by $0.235\text{ rad}$ to match steering column inclination; cleaned up unused parameters.
+  - `docs/PROJECT_PROGRESS.md`: Recorded task history.
+- **Validation commands executed:**
+  - `tsc -b --noEmit` in `apps/game` (clean, 0 errors).
+  - `vitest run` in `apps/game` (12 test suites, 115/115 tests passing).
+  - `vite build` in `apps/game` (production build succeeded in 23.38s).
+- **Unresolved issues and known limitations:** None identified in this task.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Integrate sound effects and scenario triggers for Chapter 1.
+
+### 2026-11-12 — Vertical Texture Correction for Front & Rear License Plates
+
+- **Objective:** Fix inverted license plates on Lexus GX 550 where `GX 550h` was displayed upside down as `cX 220µ`.
+- **Completed work:**
+  - Extended vertical texture orientation inversion in `StreetEnvironment.tsx` to include `plate` material:
+    - Inverted UV Y axis (`repeat.y = -1; offset.y = 1; updateMatrix()`) for the license plate material `plate`.
+    - Corrected the upside-down texture so both front bumper and rear tailgate license plates display `GX 550h` right side up, with the blue `h` badge located on the right.
+  - Verified 115/115 Vitest tests passing (`pnpm test`), typecheck clean (`pnpm typecheck`), and production build passing (`pnpm build`).
+- **Files modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`: Added `plate` to the dynamic texture inversion check.
+  - `docs/PROJECT_PROGRESS.md`: Recorded task history.
+
+### 2026-11-12 — Speed-Sensitive Progressive Steering Calibration (Lexus VGRS Simulation)
+
+- **Objective:** Eliminate abrupt, twitchy steering when driving straight at speed; implement realistic speed-dependent steering sensitivity (Variable Gear Ratio Steering) where quick taps only yield subtle micro-adjustments for stable lane-keeping, while low-speed parking retains full lock angle.
+- **Completed work:**
+  - Implemented speed-dependent steering attenuation in `vehiclePhysics.ts`:
+    - Formulated dynamic `speedFactor = 1 / (1 + (speed / 5.0)^1.4)` and `effectiveMaxSteer = maxSteerAngle * (0.16 + 0.84 * speedFactor)`.
+    - At high straight-line speeds (30–60 km/h), quick taps (<0.15s) now turn the wheels gently by ~0.7°–1.5°, preventing violent jerks and maintaining laser-steady straight-line cruising.
+    - At low speeds / parking (0–15 km/h), full ~30° lock is preserved for nimble alley turning, U-turns, and parallel parking.
+  - Tuned progressive build rate and return-to-center caster damping:
+    - Reduced base `steerSpeed` from 4.0 to 2.0 rad/s with progressive build rate (`buildRate = steerSpeed * (0.28 + 0.42 * speedFactor)`).
+    - Caster self-aligning torque dynamically increases with vehicle speed for natural, damped wheel centering.
+  - Added lateral acceleration stability limit (0.72g) to simulate the authentic road-holding of a 2.5-ton luxury SUV.
+  - Updated unit tests in `vehiclePhysics.test.ts` (115/115 passing).
+- **Files modified:**
+  - `apps/game/src/features/vehicle/types.ts`: Calibrated `steerSpeed` to 2.0 rad/s in `DEFAULT_VEHICLE_CONFIG`.
+  - `apps/game/src/features/vehicle/vehiclePhysics.ts`: Implemented speed-sensitive steering angle attenuation, progressive build rate, and lateral stability clamping.
+  - `apps/game/src/features/vehicle/vehiclePhysics.test.ts`: Added assertions for straight-line high-speed steering attenuation and stationary lock.
+  - `docs/PROJECT_PROGRESS.md`: Recorded task completion.
+- **Validation:**
+  - `pnpm test`: 115 tests passing across 12 test files.
+  - `pnpm typecheck`: 0 errors.
+  - `pnpm build`: Production build verified.
+
+### 2026-11-11 — Restoration of Authentic Lexus GX 550 Chirality, Material Orientation & Vehicle Kinematics
+
+- **Objective:** Fix reversed vehicle orientation, inverted driver cockpit layout (RHD flip), mirrored exterior badges (`S U X E L`, `4099 XG`), upside-down textures, and align forward/reverse vehicle dynamics with real-world steering kinematics.
+- **Completed work:**
+  - Removed artificial horizontal reflection `scale.set(-1, 1, 1)` from `StreetEnvironment.tsx`:
+    - Attached the Lexus GX 550 model (`lexusObj`) directly to `carPivot` with standard positive scale `(1, 1, 1)`.
+    - Restored true vehicle chirality: Left-Hand Drive (LHD) with steering wheel and instrument cluster on the left, center infotainment display on the right, and driver door at $+1.5$m.
+    - Restored clean exterior text: rear tailgate badge reads `LEXUS` (not `S U X E L`), and front/rear license plates read `GX 550h` (not `4099 XG`).
+  - Restored pristine `MenuBG.optimized.glb` and dynamically corrected upside-down texture orientations:
+    - Vertically flipped (`repeat.y = -1; offset.y = 1; updateMatrix()`) only the textures authored upside-down in Maya/FBX: `Llogo` (Lexus emblem on steering wheel, grille, tailgate, wheel hubs), `81481` (speedometer cluster), and `ZK_OBJ007` (center infotainment display).
+    - Preserved license plate texture `plate` which is already correctly oriented.
+  - Aligned driver seat offset and camera:
+    - Positioned driver camera at local offset `(0.493, 1.70, -0.20)` directly facing the steering wheel hub `(0.493, 1.565, 0.363)`.
+    - Calibrated steering column rotation axis `(0, 0.233, -0.972)` so pressing <kbd>A</kbd> rotates the wheel counter-clockwise (to the left) and <kbd>D</kbd> rotates clockwise (to the right).
+  - Aligned vehicle kinematics in `vehiclePhysics.ts`:
+    - Corrected steer target: <kbd>A</kbd> produces positive steering (`targetSteer > 0`), <kbd>D</kbd> produces negative steering (`targetSteer < 0`).
+    - In forward motion (`speed > 0`), steering left produces positive yaw rate, steering front wheels and vehicle nose to the left ($+X$).
+    - In reverse motion (`speed < 0`), steering left produces negative yaw rate, pointing vehicle nose to the right ($-X$) and swinging vehicle tail to the left ($+X$), satisfying the golden rule of reverse driving: "Muốn đuôi xe trôi về phía nào thì đánh vô lăng về phía đó".
+  - Audio and engine startup synchronization:
+    - Verified clean audio separation: `closedoorlx.wav` on enter, start engine wait, driving sound loop only during active gas pedal press, `stopCar.wav` on exit.
+- **Files created, modified or deleted:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`: Removed `scale.set(-1, 1, 1)`, restored direct attachment to `carPivot`, and applied dynamic vertical UV inversion for `Llogo`, `81481`, and `ZK_OBJ007`.
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`: Aligned seat offset to $+0.493$m, calibrated steering column axis to `(0, 0.233, -0.972)`, and set exit position to $+1.5$m.
+  - `apps/game/src/features/vehicle/vehiclePhysics.ts`: Corrected `targetSteer` sign convention for forward and reverse vehicle kinematics.
+  - `apps/game/src/features/vehicle/vehiclePhysics.test.ts`: Updated 2 unit tests for the corrected steering coordinate signs.
+  - `apps/game/public/assets/3d/optimized/MenuBG.optimized.glb`: Restored pristine original binary.
+  - `docs/PROJECT_PROGRESS.md`: Documented task completion.
+- **Validation commands executed:**
+  - `python3`: Verified mesh bounding boxes, node transforms, texture orientations, and coordinate transformations.
+  - `pnpm test`: Ran Vitest unit tests (115/115 passing across 12 test files).
+  - `pnpm typecheck`: Full workspace TypeScript verification passed with 0 errors.
+  - `pnpm build`: Workspace production build.
+- **Build and test results:** 115 tests passing, 0 type errors. Production build verified.
+- **Unresolved issues and known limitations:** None with vehicle driving or camera.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** Continue Chapter 1 scenario integration.
+
+### 2026-11-11 — Realistic Vehicle Steering Physics & Forward/Reverse Direction Alignment
+
+- **Objective:** Fix reversed steering wheel and hands rotation where steering left turned the visual wheel right; implement realistic progressive steering kinematics where holding steer keys gradually increases wheel angle (short tap for broad curves, long hold for sharp turns); ensure forward and reverse kinematics strictly obey vehicle dynamics (in forward, steering left turns front left; in reverse, steering left drifts tail left and swings front right).
+- **Completed work:**
+  - Corrected visual steering rotation in `FirstPersonPlayer.tsx` and `DrivingHandsOnWheel.tsx`:
+    - Adjusted quaternion angle sign (`steeringAxis = (0, 0.27, -0.96)`) so that pressing <kbd>A</kbd> (left) rotates the 3D Lexus wheel and hands smoothly counter-clockwise to the left, and pressing <kbd>D</kbd> (right) rotates clockwise to the right.
+  - Implemented progressive steering kinematics in `vehiclePhysics.ts`:
+    - Replaced instant snap with progressive accumulation (`steerRate * 1.2` build rate, `steerRate * 2.2` return rate).
+    - Tapping <kbd>A</kbd>/<kbd>D</kbd> (~0.15s) applies slight steering (~6°–8°) for wide highway curves (ôm cua rộng).
+    - Holding <kbd>A</kbd>/<kbd>D</kbd> (>0.6s) smoothly ramps up to maximum lock (`maxSteerAngle` = 33°) for sharp street cornering (rẽ gấp).
+    - Releasing keys triggers self-centering torque returning the wheel and heading to neutral.
+  - Validated reverse steering dynamics:
+    - When reversing in gear `[R]` (`speed < 0`), steering left (<kbd>A</kbd>) turns front wheels left, pivoting the vehicle body so the rear drifts left and front swings right, matching real car mechanics.
+  - Added unit test coverage in `vehiclePhysics.test.ts` (12 passing tests) verifying progressive steering accumulation and reverse drift behavior.
+- **Files created / modified:**
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - `apps/game/src/features/vehicle/DrivingHandsOnWheel.tsx`
+  - `apps/game/src/features/vehicle/vehiclePhysics.ts`
+  - `apps/game/src/features/vehicle/vehiclePhysics.test.ts`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm test` (Passed all 12 test suites, 115 unit/component tests)
+  - `pnpm build` (Production build verified across workspace)
+- **Build and test results:** 115 tests passed; build succeeded.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue Chapter 1 narrative scenario integration.
+
+### 2026-11-11 — Vehicle Geometry Un-Mirroring, Authentic Left-Hand Drive Alignment & Audio State Fix
+
+- **Objective:** Fix reversed Lexus logo and mirrored dashboard/speedometer text by correctly un-mirroring the vehicle model hierarchy; align the steering wheel and cockpit camera to the authentic Vietnamese Left-Hand Drive (LHD) side ($X = -0.493\text{m}$); eliminate unnatural body tilting when turning; fix vehicle audio so engine startup (`closedoorlx.wav`) completes before driving sound (`drive.wav`) can play, and vehicle exit plays solely `stopCar.wav` while immediately terminating any active engine audio.
+- **Completed work:**
+  - Resolved vehicle lateral inversion:
+    - Restored original un-flipped WebP textures in `MenuBG.optimized.glb` (license plate `GX 550h`, Lexus "L" emblem, speedometer gauge, infotainment screen).
+    - Introduced `carModelGroup` with `scale.set(-1, 1, 1)` inside `carPivot` in `StreetEnvironment.tsx`, perfectly correcting the FBX-to-GLTF lateral coordinate inversion that previously made the car Right-Hand Drive and mirrored all textures.
+    - Repositioned `LexusSteeringPivot` to authentic LHD driver seat ($X = -0.493\text{m}, Y = 1.565\text{m}, Z = 0.363\text{m}$).
+    - Aligned cockpit camera `seatOffset` in `FirstPersonPlayer.tsx` to $(-0.493\text{m}, 1.70\text{m}, -0.20\text{m})$, directly behind the turning steering wheel.
+    - Updated driver exit spawn position to the left door ($X = -1.5\text{m}$).
+  - Cleaned up cockpit visuals:
+    - Defaulted in-car hands to hidden (`showHandsInCar = false`) with <kbd>H</kbd> toggle, providing a clean, cinematic view of the road, dashboard, and turning 3D Lexus wheel without deformed character meshes blocking the windshield.
+  - Fixed audio synchronization in `useVehicleAudio.ts` and `FirstPersonPlayer.tsx`:
+    - Tracked `doorSourceRef` and `doorGainRef` so that exiting the car immediately stops `closedoorlx.wav` if still playing.
+    - Enforced that player cannot accelerate and `drive.wav` cannot play until engine startup sound has 100% completed (`onEnded`), matching user specification.
+    - Exiting vehicle calls `stopAll()` and plays strictly `stopCar.wav` (door slam, 0.96s) without any ghost playback of `closedoorlx.wav`.
+- **Files created / modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - `apps/game/src/features/vehicle/useVehicleAudio.ts`
+  - `apps/game/public/assets/3d/optimized/MenuBG.optimized.glb`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed across 3 projects: `apps/landing`, `packages/shared-types`, `apps/game`)
+  - `pnpm test` (Passed all 12 test suites, 113 unit/component tests)
+  - `pnpm build` (Production build completed in 14.3s with 0 errors)
+- **Build and test results:** 113 tests passed; build succeeded.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue Chapter 1 narrative scenario integration.
+
+- **Objective:** Replace stylized boxy hands with the authentic human character model (`first_person_animations.glb`) holding the Lexus GX 550 steering wheel with realistic skin, fingers, knuckles, and sleeve; eliminate near-camera bicep clipping using hardware depth plane; fix mirrored textures on dashboard screens, speedometer gauge, and Lexus logo by inverting UV buffer attributes directly across all target meshes on both initial load and HMR.
+- **Completed work:**
+  - Implemented `DrivingHumanHands.tsx` utilizing `first_person_animations.glb` with the authored `rig|Take_Loop` pose:
+    - Extended arms reach forward gripping the rim at 9:30 and 2:30 with authentic human skin texture, fingernails, palm creases, and dark jacket sleeves.
+    - Integrated hardware clipping plane (`gl.localClippingEnabled = true` with `THREE.Plane(new THREE.Vector3(0, 0, -1), 0.18)`), eliminating bicep/shoulder camera clipping.
+    - Anchored character root to `wheelPivotRef` at $[0, -0.135, -0.55]$ with 22° tilt, ensuring hands rotate 1:1 with steering wheel rotation (<kbd>A</kbd>/<kbd>D</kbd>) without flying off or vanishing.
+  - Resolved texture mirroring by performing in-place buffer attribute UV inversion on cloned geometry:
+    - Bounded horizontal flip formula $u' = u_{min} + u_{max} - u$ applied directly to `geometry.attributes.uv` on all meshes using `retopo001_1sg1`, `007sg1`, `logo`, and `plate`.
+    - Operates independently of WebGL uniform caching, shader recompilations, or Vite HMR cached scenes.
+    - Speedometer gauges, infotainment screens, Lexus "L" emblem, and license plate read correctly.
+- **Files created / modified:**
+  - `apps/game/src/features/vehicle/DrivingHumanHands.tsx`
+  - `apps/game/src/features/vehicle/index.ts`
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed across 3 projects: `apps/landing`, `packages/shared-types`, `apps/game`)
+  - `pnpm test` (Passed all 12 test suites, 113 unit/component tests)
+  - `pnpm build` (Production build completed in 15.3s with 0 errors)
+- **Build and test results:** 113 tests passed; build succeeded.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue Chapter 1 narrative scenario integration.
+
+- **Objective:** Fix reversed Lexus emblem, mirrored digital dashboard/infotainment screens, and backwards license plate without inverting vehicle 3D geometry; restore authentic Left-Hand Drive steering wheel placement; correct audio sequence so enter plays only `closedoorlx.wav` and exit plays only `stopCar.wav`; replace deformed skinned arms with stable 9:30 & 2:30 driving hands that never vanish or clip during steering rotation.
+- **Completed work:**
+  - Removed `carFlipGroup` (which scaled X by -1) in `StreetEnvironment.tsx` to maintain authentic 1:1 Left-Hand Drive (LHD) car geometry. Steering wheel returned to the authentic driver's left side ($X \approx +0.493\text{m}$).
+  - Fixed mirrored textures on all 4 textured vehicle materials (`plate`, `Llogo`, `LNS_ZK_OBJ007SG1`, `L_81481_60240_01_XZ_Retopo001_1SG1`) by applying horizontal UV mapping inversion (`wrapS = RepeatWrapping; repeat.x = -1; offset.x = 1;`). License plate reads `GX 550h`, Lexus "L" emblem faces correctly, and digital gauges/dashboard screens display readable text.
+  - Re-anchored `LexusSteeringPivot` to authentic LHD center $(+0.493, 1.565, 0.363)$ with 22° column rake angle and updated camera `seatOffset` to $(+0.49, 1.70, -0.20)$.
+  - Corrected vehicle audio sequencing in `FirstPersonPlayer.tsx` and `useVehicleAudio.ts`:
+    - Entering vehicle (`enterCar`): plays solely `closedoorlx.wav` with completion callback (`onEnded`) to ready the engine (`[D]`) without playing `drive.wav` simultaneously.
+    - Exiting vehicle (`exitCar`): calls `stopAll()` and plays solely `stopCar.wav` without re-triggering `closedoorlx.wav`. Player spawns beside left driver door ($+1.5\text{m}$).
+    - Driving: throttle (<kbd>W</kbd>/<kbd>S</kbd>) plays looping `drive.wav`; releasing throttle plays `stop.wav`.
+  - Replaced skinned `DrivingCharacterArms` with `DrivingHandsOnWheel.tsx` positioned at 9:30 ($X = -0.185\text{m}$) and 2:30 ($X = +0.185\text{m}$) on the rim with natural wrists, sleeve cuffs, and forearms. Hands rotate 1:1 with steering wheel angle and remain permanently attached to the wheel without camera clipping or disappearing.
+- **Files created / modified:**
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `apps/game/src/features/vehicle/DrivingHandsOnWheel.tsx`
+  - `apps/game/src/features/vehicle/useVehicleAudio.ts`
+  - `apps/game/src/features/vehicle/index.ts`
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed across 3 projects: `apps/landing`, `packages/shared-types`, `apps/game`)
+  - `pnpm test` (Passed all 12 test suites, 113 unit/component tests)
+  - `pnpm build` (Production build completed in 16s with 0 errors)
+- **Build and test results:** 113 tests passed; build succeeded.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Continue chapter 1 narrative scenario integration.
+
+- **Objective:** Fix unnatural fist posture where both hands were squeezed together into boxing guard fists at the 6 o'clock bottom spoke; replace with an authentic, wide 9:30 & 2:30 steering wheel grip pose using the player character's rigged model (`first_person_animations.glb`).
+- **Completed work:**
+  - Diagnosed that `DrivingCharacterArms.tsx` was running `rig|Block_Loop` (a defensive boxing block clip) which glued both fists 10cm apart at chin level, and placed the arms 1.36m below camera space, making two tiny fists awkwardly poke up at the bottom spoke of the steering wheel.
+  - Removed boxing block animation in favor of skeletal bone manipulation on `clonedScene`'s arm and wrist joints (`DEF-upper_armL`/`R`, `DEF-forearmL`/`R`, `DEF-handL`/`R`).
+  - Spread the upper arms outward by $\pm 0.72\text{rad}$, reaching a natural horizontal grip span of $0.337\text{m}$ (matching the authentic Lexus steering wheel rim diameter).
+  - Positioned left hand at $X = -0.19\text{m}$ (9:30 rim position) and right hand at $X = +0.15\text{m}$ (2:30 rim position), reaching forward ($Z \approx -0.50\text{m}$) at steering wheel height ($Y \approx -0.05\text{m}$).
+  - Hands now dynamically roll, sway, and tilt with steering wheel rotation (<kbd>A</kbd>/<kbd>D</kbd>) and engine/road vibrations.
+- **Files created / modified:**
+  - `apps/game/src/features/vehicle/DrivingCharacterArms.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed with 0 errors).
+  - `pnpm test` (all 12 test suites, 113 tests passed).
+  - `pnpm build` (production build completed cleanly).
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** Continue with phone UI and scenario triggers.
+
+### 2026-11-11 — Lexus GX 550 Model Un-Mirroring, Ignition Lock & Exit Sound Integration
+
+- **Objective:** Fix inverted/mirrored textures and geometry on the Lexus GX 550 (license plate `eX 220μ` -> `GX 550h`, logo, dashboard screens); prevent driving until engine start audio completes; integrate user-uploaded `stopCar.wav` for vehicle exit.
+- **Completed work:**
+  - Diagnosed root cause of model mirroring: Unity FBX export had inverted the X width axis, resulting in reversed license plate text, mirrored Lexus emblem, backwards dashboard instrumentation, and inverted driver cockpit seating.
+  - Implemented `LexusFlipGroup` with `scale.set(-1, 1, 1)` inside `carPivot` in `StreetEnvironment.tsx`, restoring authentic left-hand-drive layout, upright digital instrumentation, correct license plate text, and properly oriented Lexus logo.
+  - Set `material.side = THREE.DoubleSide` across all vehicle materials to eliminate backface culling artifacts.
+  - Reflected steering wheel pivot in `carFlipGroup` to local coordinate `(0.493, 1.565, 0.363)` (mapping to `X = -0.493` on the driver side in world space).
+  - Aligned cockpit driver seat camera offset to `(-0.49, 1.70, -0.20)` and exit spawn offset to `(-1.5, groundY, -0.2)` on the left driver side.
+  - Integrated `stopCar.wav` (`apps/game/public/assets/audio/stopCar.wav`) and added `playStopCarSound` in `useVehicleAudio.ts`.
+  - Implemented vehicle ignition lock in `FirstPersonPlayer.tsx`: when entering the car, throttle inputs are suppressed and gear is locked to `[P]` until `drive.wav` startup finishes; telemetry displays `[P - NỔ MÁY...]` and `Động cơ: Đang khởi động (Chờ nổ máy)...`.
+  - Replaced decorative emoji icons with accessible SVG icons (`Info`) in `TestMoveOverlay.tsx` in strict adherence to `.kiro/steering/icons.md`.
+- **Files created / modified:**
+  - `apps/game/public/assets/audio/stopCar.wav`
+  - `apps/game/src/features/vehicle/useVehicleAudio.ts`
+  - `apps/game/src/features/vehicle/vehiclePhysics.ts`
+  - `apps/game/src/features/player/types.ts`
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - `apps/game/src/features/testmove/TestMoveOverlay.tsx`
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (workspace-wide verification across `landing`, `game`, and `shared-types` passed with 0 errors).
+  - `pnpm test` (all 12 test suites, 113 tests passed).
+  - `pnpm build` (production build completed cleanly for all packages).
+- **Unresolved issues and known limitations:** None identified in this task.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** Continue with in-game smartphone UI and Chapter 1 story triggers.
+
+### 2026-11-11 — Authentic Character Arms on Steering Wheel & Dynamic Model Steering Wheel Rotation
+
+- **Objective:** Fulfill user request on `/testmove`:
+  1. Render authentic character hands/arms from the player's human model (`first_person_animations.glb`) gripping the steering wheel.
+  2. Make the Lexus GX 550 3D model's original steering wheel rotate dynamically when turning with <kbd>A</kbd> and <kbd>D</kbd>.
+- **Completed work:**
+  - **Dynamic Original Steering Wheel Pivot & Kinematic Rotation:** Traversed the Lexus hierarchy in `StreetEnvironment.tsx` to identify the 3 parts of the authentic steering wheel (rim, metal spokes, Lexus center logo: `NS_ZK_OBJ031`). Grouped them into `LexusSteeringPivot` centered at $(X=+0.493\text{m}, Y=+1.565\text{m}, Z=+0.363\text{m})$. In `FirstPersonPlayer.tsx`, updated the pivot's quaternion each frame around the steering column axis $(0, 0.27, -0.96)$ using `setFromAxisAngle` driven by `steeringWheelRotation`. The authentic 3D model steering wheel now smoothly turns up to $\pm 85^\circ$ with automatic self-centering.
+  - **Player Character Driver Arms Integration (`DrivingCharacterArms.tsx`):** Created a dedicated driving arms component using the game's authentic rigged character model (`first_person_animations.glb`), isolated via `SkeletonUtils.clone`. Plays the gripping pose (`rig|Block_Loop`) with arms reaching forward to hold the steering wheel rim. Arms tilt and translate in sync with the steering wheel angle during turns, complete with subtle engine vibration and road feedback.
+- **Files created, modified or deleted:**
+  - `apps/game/src/features/vehicle/DrivingCharacterArms.tsx` (created)
+  - `apps/game/src/features/vehicle/index.ts` (modified)
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx` (modified)
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx` (modified)
+  - `docs/PROJECT_PROGRESS.md` (modified)
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed: 3/3 packages clean)
+  - `pnpm test` (Passed: 12/12 files, 113/113 tests passed)
+  - `pnpm build` (Passed: workspace production build clean)
+- **Build and test results:** All automated checks passed with zero errors.
+
+### 2026-11-11 — Vehicle Cockpit Realistic POV Tuning, Authentic Model Steering Wheel & Audio Mapping Correction
+
+- **Objective:** Fix user-reported issues on `/testmove`:
+  1. Audio files swapped: Pressing <kbd>E</kbd> was playing `drive.wav` and driving was playing door close; swap files so `closedoorlx.wav` is door slam and `drive.wav` is engine acceleration.
+  2. Duplicate/clipping steering wheel: Stop rendering the procedural `VehicleSteeringHands` and use the 3D model's authentic built-in Lexus steering wheel and instrument cluster.
+  3. Broken cockpit viewpoint: Camera was only 20cm from the steering wheel hub (face smashed into airbag). Reposition camera to natural driver eye position looking over the wheel and through the windshield.
+- **Completed work:**
+  - **Audio File Mapping Resolution:** Fixed the file mapping: `uploaded_media_1` (which contains the distinct door slam transient) is now `closedoorlx.wav`, and `uploaded_media_0` (which contains the engine roar) is now `drive.wav`. Pressing <kbd>E</kbd> to enter/exit now correctly plays the door closing sound; pressing <kbd>W</kbd>/<kbd>S</kbd> plays the engine driving sound; releasing gas plays `stop.wav`.
+  - **Model Steering Wheel Direct View:** Removed `<VehicleSteeringHands />` rendering in driving mode. The player now views the authentic Lexus GX 550 steering wheel from the 3D model (`NS_ZK_OBJ031`) along with the digital dashboard display without any overlapping block hands or duplicate rims.
+  - **Realistic Driver Eye Perspective:** Calibrated driver seat camera offset to local coordinates $(X=+0.49\text{m}, Y=+1.70\text{m}, Z=-0.20\text{m})$, placing the camera $56\text{cm}$ behind the steering wheel hub and $13.5\text{cm}$ above it with a subtle downward pitch of $-3.5^\circ$. All driver seat meshes (`016_`) are cleanly hidden on entry and restored on exit to guarantee zero mesh clipping.
+- **Files created, modified or deleted:**
+  - `apps/game/public/assets/audio/closedoorlx.wav` (overwritten with correct audio)
+  - `apps/game/public/assets/audio/drive.wav` (overwritten with correct audio)
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx` (modified)
+  - `docs/PROJECT_PROGRESS.md` (modified)
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed: 3/3 packages clean)
+  - `pnpm test` (Passed: 12/12 files, 113/113 tests passed)
+  - `pnpm build` (Passed: workspace production build clean)
+- **Build and test results:** All automated checks passed with zero errors.
+
+### 2026-11-11 — Vehicle Cockpit Forward Camera Alignment & Custom Audio Integration (closedoorlx, drive, stop)
+
+- **Objective:** Fix inverted cockpit camera looking backwards at rear seats, and integrate authentic user-provided vehicle audio files with state machine triggers:
+  1. Fix camera yaw orientation: Add $\pi$ ($180^\circ$) yaw offset and apply Euler rotation matrix to seat offset so the camera looks directly forward through the front windshield over the hood and steering wheel onto the street.
+  2. Implement authentic user audio playback (`closedoorlx.wav`, `drive.wav`, `stop.wav`):
+     - Entering car: play `closedoorlx.wav` (door slam).
+     - Exiting car: play `closedoorlx.wav` and silence engine.
+     - Accelerating (pressing gas <kbd>W</kbd> or <kbd>S</kbd>): start `drive.wav` audio loop with speed-dependent pitch modulation.
+     - Releasing gas: immediately fade out `drive.wav` and trigger `stop.wav` (deceleration/engine wind-down).
+- **Completed work:**
+  - **Camera Forward Viewpoint Correction:** Identified that the Lexus 3D model in `MenuBG.optimized.glb` has its front bumper towards $+Z$ and rear bumper towards $-Z$. Default camera rotation $(0,0,0)$ faced $-Z$ (back seats and trunk). Added $\pi$ radians ($180^\circ$) to camera yaw and transformed driver seat offset $(+0.42\text{m}, +1.45\text{m}, +0.15\text{m})$ dynamically with vehicle pitch, yaw and roll. Calibrated mouse horizontal look so panning left/right naturally turns the driver's head left/right inside the cabin.
+  - **Web Audio API Engine & Door Audio Player:** Integrated `useVehicleAudio.ts` using memory-decoded audio buffers for zero latency. Connected `playDoorSound` to `enterCar` and `exitCar`. Connected `playDriveSound` to acceleration input, and `playStopSound` to gas release transition via `wasAcceleratingRef`.
+  - **Asset Integration:** Placed `closedoorlx.wav`, `drive.wav`, and `stop.wav` in `apps/game/public/assets/audio/`.
+- **Files created, modified or deleted:**
+  - `apps/game/public/assets/audio/closedoorlx.wav` (created)
+  - `apps/game/public/assets/audio/drive.wav` (created)
+  - `apps/game/public/assets/audio/stop.wav` (created)
+  - `apps/game/src/features/vehicle/useVehicleAudio.ts` (modified)
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx` (modified)
+  - `docs/PROJECT_PROGRESS.md` (modified)
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed: 3/3 packages clean)
+  - `pnpm test` (Passed: 12/12 files, 113/113 tests passed)
+  - `pnpm build` (Passed: workspace production build clean)
+- **Build and test results:** All automated checks passed with zero errors.
+- **Unresolved issues and known limitations:** None. Driver cockpit view is forward-facing through the windshield with working steering wheel and authentic sound effects.
+- **Follow-up tasks:** Enhance traffic/street elements or proceed with in-game smartphone UI for Chapter 1.
+
+### 2026-11-11 — Vehicle Cockpit Camera Headrest Clipping Fix & Engine Buzz Audio Redesign
+
+- **Objective:** Fix user-reported cockpit view and audio issues when entering the Lexus GX 550 on `/testmove`:
+  1. Fix the view being blocked by a large black headrest/backrest mesh (camera spawned inside the seat cushion).
+  2. Fix the harsh buzzing audio ("è è" sound) generated by raw sawtooth wave synthesis.
+- **Completed work:**
+  - **Cockpit Camera Positioning:** Shifted the eye level position from local $[+0.48\text{m}, +1.48\text{m}, -0.15\text{m}]$ to $[+0.48\text{m}, +1.74\text{m}, +0.28\text{m}]$. This places the camera in front of the driver seat backrest/headrest, directly aligned with the driver's eyes at natural height, providing a clear unobstructed view looking through the windshield over the steering wheel and hood at the road ahead.
+  - **Seat Mesh Obstruction Prevention:** Added automatic visibility toggling on entry (`child.visible = false` for driver seat nodes `016_5` and `016_1`), fully restoring visibility on exit.
+  - **Audio Buzzing ("è è") Elimination:** Completely eliminated the harsh 45Hz sawtooth wave. Replaced with soft, warm triangle and sub-bass sine waves ($36\text{Hz}$ and $24\text{Hz}$), lowered resonance Q from $3.0$ to $0.7$ (flat, non-resonant Butterworth low-pass filter), lowered cutoff from $220\text{Hz}$ to $100\text{Hz}$, and calibrated gentle, realistic luxury cabin sound levels.
+- **Files created, modified or deleted:**
+  - `apps/game/src/features/vehicle/useVehicleAudio.ts` (modified)
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx` (modified)
+  - `docs/PROJECT_PROGRESS.md` (modified)
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed: 3/3 packages clean)
+  - `pnpm test` (Passed: 12/12 files, 113/113 tests passed)
+  - `pnpm build` (Passed: workspace production build clean)
+- **Build and test results:** All tests and builds passed with zero errors.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** In-game smartphone interface and Chapter 1 narrative integration.
+
+### 2026-11-11 — Vehicle Interaction, Solid Collider Box & First-Person Lexus GX 550 Driving System
+
+- **Objective:** Address user request for `/testmove`:
+  1. Add an oriented bounding box (OBB) collider for the gold Lexus GX 550 SUV so the walking player cannot walk through the vehicle.
+  2. Implement an interaction prompt when walking close to the car: press `E` to enter the car.
+  3. Lower the camera view height into the driver's seat cockpit POV upon entering the car.
+  4. Render 3D driver arms and hands gripping the steering wheel, dynamically turning with steering input (`A`/`D`).
+  5. Implement vehicle driving physics: accelerate (`W`), brake/reverse (`S`), steer (`A`/`D`), handbrake (`Space`), and procedural Web Audio API engine sound synthesis (idle rumble, rev, roar, door thud), with `E` to exit when stopped.
+- **Completed work:**
+  - **Lexus Collider Box & Obstacle Collision:** Implemented 2D oriented box collision resolution (`resolveBoxCollision` in `vehiclePhysics.ts`). When on foot, the player's locomotion checks against the Lexus bounding box ($2.56\text{m} \times 5.70\text{m}$, with $0.45\text{m}$ player radius padding). Penetration is projected out along the shallowest axis so the player smoothly slides along car panels without walking through the vehicle.
+  - **Dynamic Vehicle Pivot Architecture:** In `StreetEnvironment.tsx`, located the `Lexus ` 3D hierarchy (node 881), enabled dynamic matrix updates on all its 346 child objects, reparented it into a dedicated `LexusCarPivot` group in world coordinates, and exposed it to the player controller.
+  - **Vehicle Proximity & Entering/Exiting:** In `vehiclePhysics.ts` and `FirstPersonPlayer.tsx`, added `checkProximityToCar` calculating distance to the driver's door ($X = +1.35\text{m}, Z = -0.2\text{m}$ relative to car center). When within $3.0\text{m}$, HUD displays a glowing `[E] Lên xe Lexus GX 550 (Lái xe)` badge. Pressing `E` transitions into driving mode (`isDriving = true`). Pressing `E` while stopped ($< 2.5\text{m/s}$) exits the car, safely spawning the player standing on the road beside the driver door.
+  - **Cockpit Camera & Lowered Viewpoint:** Sitting eye height is realistically placed at $[+0.48\text{m}, +1.48\text{m}, -0.15\text{m}]$ relative to car center, lowering the view into the leather driver seat. Mouse look allows free head movement across the cabin (looking left out the driver window, looking right at infotainment/passenger seat, or looking down at dash/wheel) while keeping vehicle heading aligned with car yaw.
+  - **Procedural Hands on Steering Wheel (`VehicleSteeringHands.tsx`):** Rendered a 3D sports SUV steering wheel (thick leather outer rim, 12 o'clock gold performance stripe, chrome accents, Lexus-style emblem, 3 spokes with media buttons, steering column) and two stylized player hands and forearms gripping the wheel at 9:30 and 2:30 positions. Hands and wheel rotate dynamically up to $\pm 85^\circ$ with steering input (`A`/`D`), with procedural engine idle vibration and high-speed road rumble.
+  - **Vehicle Driving Kinematics & Road Bounds:** Implemented `stepVehiclePhysics` with Ackermann bicycle steering, forward acceleration up to $63\text{ km/h}$, braking/reversing down to $-17\text{ km/h}$, handbrake slide, dynamic suspension pitch (squat on accel, dive on brake) and centrifugal roll on sharp turns. Clamped car within Saigon street asphalt boundaries ($X \in [184.2, 194.0], Z \in [-87.0, 47.0]$).
+  - **Zero-Latency Procedural Audio (`useVehicleAudio.ts`):** Engineered Web Audio API synthesizers using dual sawtooth/triangle oscillators and low-pass biquad filters to produce deep V8 engine idle purr ($\sim 45\text{Hz}$), pitch modulation up to $195\text{Hz}$ under acceleration, filter opening, and door latch thuds on enter/exit.
+  - **Driving HUD & Telemetry (`TestMoveOverlay.tsx`):** Real-time digital speedometer ($\text{km/h}$), gear display ($[\text{D}]$, $[\text{R}]$, $[\text{P}]$), driving controls guide, and street position $Z$.
+  - **Automated Verification:** Added 10 unit tests in `apps/game/src/features/vehicle/vehiclePhysics.test.ts` covering collision penetration resolution, driver door proximity, forward/reverse acceleration, steering yaw, and road boundary clamping.
+- **Files created, modified or deleted:**
+  - `apps/game/src/features/vehicle/types.ts` (created)
+  - `apps/game/src/features/vehicle/vehiclePhysics.ts` (created)
+  - `apps/game/src/features/vehicle/vehiclePhysics.test.ts` (created)
+  - `apps/game/src/features/vehicle/useVehicleAudio.ts` (created)
+  - `apps/game/src/features/vehicle/VehicleSteeringHands.tsx` (created)
+  - `apps/game/src/features/vehicle/index.ts` (created)
+  - `apps/game/src/game/scenes/MainMenuScene/StreetEnvironment.tsx` (modified)
+  - `apps/game/src/features/player/types.ts` (modified)
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx` (modified)
+  - `apps/game/src/features/testmove/TestMoveCanvas.tsx` (modified)
+  - `apps/game/src/features/testmove/TestMovePage.tsx` (modified)
+  - `apps/game/src/features/testmove/TestMoveOverlay.tsx` (modified)
+  - `docs/PROJECT_PROGRESS.md` (modified)
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed: 3/3 packages clean)
+  - `pnpm test` (Passed: 12/12 files, 113/113 tests passed)
+  - `pnpm build` (Passed: workspace production build clean)
+- **Build and test results:** All 12 test suites (113 tests) passed. Typecheck clean. Production builds for `apps/landing` and `apps/game` completed with 0 errors.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** In-game smartphone interface and Chapter 1 narrative integration.
 
 ### 2026-11-11 — Deep Resource Disposal & Background Tab Freeze Optimization
 
