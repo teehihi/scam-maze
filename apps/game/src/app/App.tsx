@@ -3,6 +3,7 @@ import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { HCMPage } from "../features/hochiminh";
 import { TestMovePage } from "../features/testmove";
+import { UEHPage } from "../features/ueh";
 import { MenuStartupLoading } from "../features/loading/MenuStartupLoading";
 import { ChapterLoadingFlow } from "../features/loading/ChapterLoadingFlow";
 import { ChapterPlaceholder } from "../features/chapter/ChapterPlaceholder";
@@ -45,13 +46,14 @@ const DEFAULT_SETTINGS: GameSettings = {
   fov: 72,
 };
 
-type AppRoute = "menu" | "hochiminh" | "testmove";
+type AppRoute = "menu" | "hochiminh" | "testmove" | "ueh";
 
 function getAppRoute(): AppRoute {
   if (typeof window === "undefined") return "menu";
   const path = window.location.pathname.toLowerCase();
   const hash = window.location.hash.toLowerCase();
   if (path.startsWith("/testmove") || hash.includes("testmove")) return "testmove";
+  if (path.startsWith("/ueh") || hash.includes("ueh")) return "ueh";
   if (
     path.startsWith("/hochiminh") ||
     path.startsWith("/hcm") ||
@@ -99,7 +101,13 @@ export const App: React.FC = () => {
 
   const navigateTo = (newRoute: AppRoute) => {
     const targetPath =
-      newRoute === "hochiminh" ? "/hochiminh" : newRoute === "testmove" ? "/testmove" : "/";
+      newRoute === "hochiminh"
+        ? "/hochiminh"
+        : newRoute === "testmove"
+          ? "/testmove"
+          : newRoute === "ueh"
+            ? "/UEH"
+            : "/";
     window.history.pushState(null, "", targetPath);
     setRoute(newRoute);
   };
@@ -451,6 +459,16 @@ export const App: React.FC = () => {
   if (route === "testmove") {
     return (
       <TestMovePage
+        settings={settings}
+        onBackToMenu={() => navigateTo("menu")}
+      />
+    );
+  }
+
+  // Route: /UEH or /ueh -> Procedural 3D UEH Campus with First-Person Arms Viewmodel
+  if (route === "ueh") {
+    return (
+      <UEHPage
         settings={settings}
         onBackToMenu={() => navigateTo("menu")}
       />

@@ -88,14 +88,16 @@ export const TestMoveOverlay: React.FC<TestMoveOverlayProps> = ({
             <div><span className="text-amber-300 font-bold">W A S D</span> : Di chuyển</div>
             <div><span className="text-amber-300 font-bold">Shift</span> : Chạy nhanh</div>
             <div><span className="text-amber-300 font-bold">Space</span> : Nhảy</div>
-            <div><span className="text-amber-300 font-bold">Chuột Trái / F / E</span> : Đấm</div>
-            <div><span className="text-amber-300 font-bold">Ctrl</span> : Ẩn/Hiện chuột</div>
+            <div><span className="text-amber-300 font-bold">Chuột Trái / F</span> : Đấm</div>
+            <div><span className="text-amber-300 font-bold">Chuột Phải</span> : Đỡ đòn (Block)</div>
+            <div><span className="text-amber-300 font-bold">E</span> : Tương tác</div>
             <div><span className="text-amber-300 font-bold">T / I</span> : Xem tay (Inspect)</div>
+            <div><span className="text-amber-300 font-bold">Ctrl</span> : Ẩn/Hiện chuột</div>
           </div>
 
           {/* Mac Trackpad Tip */}
           <div className="pt-1.5 border-t border-[#2d2742] text-[10px] text-zinc-400 leading-tight">
-            💡 <strong className="text-zinc-300">Mac Trackpad tip:</strong> Vuốt 1 ngón để lia camera mượt mà, dùng phím <strong className="text-amber-300">F</strong> hoặc <strong className="text-amber-300">E</strong> để đấm mà không cần gõ mạnh trackpad!
+            💡 <strong className="text-zinc-300">Mac Trackpad tip:</strong> Vuốt 1 ngón để lia camera mượt mà, dùng phím <strong className="text-amber-300">F</strong> để đấm mà không cần gõ mạnh trackpad!
           </div>
         </div>
 

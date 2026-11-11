@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { EnvironmentLighting } from "../../game/scenes/MainMenuScene/EnvironmentLighting";
 import { SkyDome } from "../../game/scenes/MainMenuScene/SkyDome";
 import { StreetEnvironment } from "../../game/scenes/MainMenuScene/StreetEnvironment";
-import { TestMovePlayer } from "./TestMovePlayer";
+import { FirstPersonPlayer, type PlayerControlsState, type PlayerStats } from "../player";
 import type { GameSettings } from "@scammaze/shared-types";
 
 interface TestMoveCanvasProps {
@@ -12,30 +12,28 @@ interface TestMoveCanvasProps {
   consumeMovement: () => { x: number; y: number };
   consumePunchTrigger: () => boolean;
   consumeInspectTrigger: () => boolean;
-  keysRef: React.MutableRefObject<{
-    forward: boolean;
-    backward: boolean;
-    left: boolean;
-    right: boolean;
-    sprint: boolean;
-    jump: boolean;
-    punch: boolean;
-    inspect: boolean;
-  }>;
-  onStatsUpdate: (stats: {
-    position: [number, number, number];
-    speed: number;
-    isSprinting: boolean;
-    isGrounded: boolean;
-  }) => void;
+  consumeInteractTrigger: () => boolean;
+  keysRef: React.MutableRefObject<PlayerControlsState>;
+  onStatsUpdate: (stats: PlayerStats) => void;
   onSceneReady?: () => void;
 }
+
+const STREET_SPAWN: [number, number, number] = [188.6, -92.70, -88.89];
+
+const STREET_BOUNDS = {
+  minX: 180.0,
+  maxX: 198.5,
+  minZ: -92.0,
+  maxZ: 52.0,
+  groundY: -92.70,
+};
 
 export const TestMoveCanvas: React.FC<TestMoveCanvasProps> = ({
   settings,
   consumeMovement,
   consumePunchTrigger,
   consumeInspectTrigger,
+  consumeInteractTrigger,
   keysRef,
   onStatsUpdate,
   onSceneReady,
@@ -51,12 +49,12 @@ export const TestMoveCanvas: React.FC<TestMoveCanvasProps> = ({
       }}
       camera={{
         fov: 70,
-        near: 0.05, // Critical: low near clipping plane so first-person arms don't clip
+        near: 0.05,
         far: 1200,
       }}
       className="w-full h-full"
     >
-      {/* Sky Dome with drifting clouds (renders immediately) */}
+      {/* Sky Dome with drifting clouds */}
       <Suspense fallback={null}>
         <SkyDome />
       </Suspense>
@@ -72,12 +70,16 @@ export const TestMoveCanvas: React.FC<TestMoveCanvasProps> = ({
         />
       </Suspense>
 
-      {/* First Person Player with Animated Arms and WASD + Mouse Look */}
+      {/* Shared Unified First Person Player with Animated Arms and Locomotion */}
       <Suspense fallback={null}>
-        <TestMovePlayer
+        <FirstPersonPlayer
+          spawnPosition={STREET_SPAWN}
+          spawnYaw={Math.PI}
+          bounds={STREET_BOUNDS}
           consumeMovement={consumeMovement}
           consumePunchTrigger={consumePunchTrigger}
           consumeInspectTrigger={consumeInspectTrigger}
+          consumeInteractTrigger={consumeInteractTrigger}
           keysRef={keysRef}
           onStatsUpdate={onStatsUpdate}
           soundEnabled={settings.soundEnabled}

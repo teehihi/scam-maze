@@ -44,12 +44,12 @@ Verified against merged pull requests on GitHub and local workspace builds.
 - [x] Master plan added — commit `0665897`, 2026-11-07.
 - [x] Architecture, deployment, database strategy, cost estimation — PR #6.
 - [x] Cinematic dark landing page as a game gateway — PR #7.
+- [x] **Unified First-Person Player Controller Architecture (`features/player/`):** Built a shared cross-map player controller module serving both Street Map (`/testmove`) and UEH Campus (`/UEH`). Implements the complete 16-animation suite: scene entry `rig|Equip` arm lift, natural walk locomotion cadence (`timeScale = 2.1`), athletic sprint stride (`rig|Sprint_Type_1`), defensive block/guard on Right-Click hold (`rig|Block_Start` -> `rig|Block_Loop` -> `rig|Block_Stop`), physical interaction reach on `E` (`rig|Take_Start` -> `rig|Take_Stop`), instant boxing punch combos on Left Click / `F`, inspect on `T`/`I`, and idle breathing with occasional `rig|Idle_Fidget`.
+- [x] **UEH Campus 3D World with First-Person Arms Viewmodel (`/UEH` & `/ueh` route):** Procedural 3D campus featuring Cơ sở B (15-storey B1, B2, connector bridge), Cơ sở A (French colonial yellow architecture with terracotta tile roofs), smart library, acoustic stage, student corner with motorcycles and wooden tables, school gate, flamboyant trees with 3D petals, summer rain and wind effects. Embedded with first-person animated arms viewmodel (`FirstPersonArms`), raycast melee punch sound effects (`hit_punch` & `miss_punch`), continuous 1-2 boxing combo, and WASD + mouse look locomotion.
 - [x] Full-Page Knowledge Hub with 9 legal & documentation sections and instant tab switching — 2026-11-09.
 
 ## In Progress
 
-- [ ] First-person player controller and navigation movement (WASD / pointer lock).
-- [ ] Map Entry Arm Intro: Play `rig|Equip` animation on map entry (noted for tomorrow / "lưu lại mai sửa").
 - [ ] In-game smartphone interface and message notifications.
 - [ ] Chapter 1 "The Urgent Call" scenario state machine.
 
@@ -123,6 +123,83 @@ Resolved:
   tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-11 — Multi-Map Locomotion Jitter Fix & First-Person Arms Viewmodel Calibration
+
+- **Objective:** Eliminate movement stutter/jitter and velocity stalling (player stuck at 0.3 m/s), fix the unnatural "zombie arms" posture during normal walking, support Vietnamese Telex keyboard input, and calibrate the full 16-animation viewmodel suite across multiple maps (`/ueh` and `/testmove`).
+- **Completed work:**
+  - **Identified & Resolved Movement Jitter Root Cause:** In `FirstPersonPlayer.tsx`, `useEffect` was listening to `[camera, spawnPosition, spawnYaw]`. Because parent canvases (`UEHCanvas` and `TestMoveCanvas`) passed inline array literals `spawnPosition={[0, 1.7, 28]}`, every HUD telemetry update (throttled at 120ms) created a new array reference, triggering `useEffect` to reset the player's position and camera yaw back to spawn every 120ms. Fixed by enforcing one-time initialization via `isInitializedRef` and declaring static constant spawn vectors (`UEH_SPAWN` and `STREET_SPAWN`).
+  - **Eliminated Viewmodel Matrix Stutter:** Removed procedural `useFrame` transform mutations on `groupRef.current.position.y` inside `FirstPersonArms.tsx` that interfered with Three.js scene graph matrix recalculations.
+  - **Calibrated Natural Arm Viewmodel Height (Fix "Zombie Arms"):** Lowered arms rest position from `[0, -1.10, 0.05]` to `[0, -1.25, 0.08]` with rotation `[-0.06, Math.PI, 0]`. Arms now rest comfortably at natural chest/waist level in the lower foreground without obstructing the view or reaching out stiffly horizontally like a zombie.
+  - **Calibrated Locomotion & Animation Cadence:**
+    - Natural Stowed Posture (Idle & Normal Walk): Hands smoothly play `rig|Unequip` and tuck away off-screen ($Y \le -1.55\text{m}$) when standing idle or walking normally, preventing awkward zombie arms hovering in front of the screen.
+    - Sprinting: Speed set to 8.2 m/s; hands dynamically raise up ($Y = -1.10\text{m}$) and play athletic forward-pumping arm stride (`rig|Sprint_Type_1`).
+    - Combat & Interactions: Left Click / `F` executes responsive 1-2 boxing combo (`rig|Punch_R` $\leftrightarrow$ `rig|Punch_L`); Right Click hold executes defensive guard (`rig|Block_Start` -> `rig|Block_Loop` -> `rig|Block_Stop`); Key `E` executes reach interaction (`rig|Take_Start` -> `rig|Take_Stop`); Key `T`/`I` inspects hands. When disengaged, hands automatically execute `rig|Unequip` and tuck away out of sight.
+  - **Vietnamese Telex Keyboard IME Support:** In `usePlayerControls.ts`, keydown/keyup matching handles both standard key codes and Vietnamese input composition (`w`, `ư`, `Ư`, `s`, `a`, `d`, `shift`). Keys are preserved across pointer lock transitions and only cleared on window blur.
+  - **Unified Architecture:** Both `apps/game/src/features/ueh/` and `apps/game/src/features/testmove/` cleanly share the common controller in `apps/game/src/features/player/`.
+- **Files created, modified or deleted:**
+  - `apps/game/src/features/player/FirstPersonPlayer.tsx` (modified)
+  - `apps/game/src/features/player/FirstPersonArms.tsx` (modified)
+  - `apps/game/src/features/player/usePlayerControls.ts` (modified)
+  - `apps/game/src/features/ueh/UEHCanvas.tsx` (modified)
+  - `apps/game/src/features/testmove/TestMoveCanvas.tsx` (modified)
+  - `docs/gameplay/FIRST_PERSON_ARMS_ANIMATIONS.md` (modified)
+  - `docs/PROJECT_PROGRESS.md` (modified)
+- **Validation commands executed:**
+  - `pnpm typecheck` (Passed: 3/3 packages clean)
+  - `pnpm test` (Passed: 11/11 files, 103/103 tests passed)
+  - `pnpm build` (Passed: 3/3 packages built cleanly)
+- **Build and test results:** All workspace packages built and passed all quality gates with zero errors.
+- **Unresolved issues and known limitations:** None for player locomotion and viewmodel arms.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** In-game smartphone interface and Chapter 1 narrative integration.
+
+### 2026-11-11 — UEH Campus Procedural 3D World Integration with First-Person Arms Viewmodel
+
+- **Objective:** Integrate the procedural 3D UEH Campus environment into `apps/game` accessible at `/UEH` and case-insensitive `/ueh`, embedded with the animated first-person arms viewmodel (`FirstPersonArms`), raycast melee punch audio, continuous 1-2 boxing combo, and free WASD + mouse look navigation.
+- **Completed work:**
+  - Ported procedural 3D UEH Campus environment from local `Asset3D/ueh/` into `apps/game/src/features/ueh/` comprising:
+    - Cơ sở B: Tòa B1 15 tầng, hệ lam đứng kim loại, nhận diện thương hiệu UEH xanh Mallard (`#005f69`) và cam (`#f26f33`), cầu nối trên cao B1–B2 và tòa nhà B2.
+    - Cơ sở A 59C Nguyễn Đình Chiểu: phong cách kiến trúc Pháp cổ, tường vàng kem, hành lang lô-gia vòm cung, mái ngói đất nung terracotta.
+    - Không gian chức năng: Thư viện thông minh kính gỗ, sân khấu acoustic ngoài trời, góc sinh viên với xe máy và bàn ghế gỗ kỷ niệm, cổng trường và cột cờ đại học.
+    - Môi trường & thời tiết: Cây phượng vĩ cổ thụ tâm sân trường với tán lá lông chim và chùm hoa phượng 3D thật (`UEHFoliage`), cánh hoa phượng bay theo gió chiều (`FlamboyantWind`), và cơn mưa mùa hạ rào nhẹ (`SummerRain`).
+  - Implemented standalone state management in `features/ueh/state.ts` using React's standard `useSyncExternalStore` (avoiding any Zustand dependency per architectural guidelines).
+  - Integrated `FirstPersonArms` viewmodel directly attached as child of Three.js camera in `UEHPlayer.tsx`, providing zero-latency viewmodel tracking with all animations (`rig|Equip`, `rig|Idle`, `rig|Walk`, `rig|Sprint_Type_1`, `rig|Punch_R`/`rig|Punch_L`, `rig|Inspect`).
+  - Embedded zero-latency pre-decoded audio (`hit_punch.mp3` & `miss_punch.mp3`) with forward raycast collision detection against campus architecture and props.
+  - Added HUD overlay (`UEHOverlay.tsx`) with campus identification banner, crosshair reticle, click-to-lock mouse capture, controls guide, and live speed/coordinate telemetry.
+  - Integrated `/UEH` and `/ueh` routing into `apps/game/src/app/App.tsx` with seamless return to main menu.
+- **Files created/modified:**
+  - `apps/game/src/features/ueh/foliage.tsx`
+  - `apps/game/src/features/ueh/gfx.ts`
+  - `apps/game/src/features/ueh/index.ts`
+  - `apps/game/src/features/ueh/kit.tsx`
+  - `apps/game/src/features/ueh/layout.ts`
+  - `apps/game/src/features/ueh/mask.ts`
+  - `apps/game/src/features/ueh/music.ts`
+  - `apps/game/src/features/ueh/pbr.ts`
+  - `apps/game/src/features/ueh/site.ts`
+  - `apps/game/src/features/ueh/state.ts`
+  - `apps/game/src/features/ueh/store.ts`
+  - `apps/game/src/features/ueh/tracks.ts`
+  - `apps/game/src/features/ueh/UEHCanvas.tsx`
+  - `apps/game/src/features/ueh/UEHOverlay.tsx`
+  - `apps/game/src/features/ueh/UEHPage.tsx`
+  - `apps/game/src/features/ueh/UEHPlayer.tsx`
+  - `apps/game/src/features/ueh/weather/FlamboyantWind.tsx`
+  - `apps/game/src/features/ueh/weather/SummerRain.tsx`
+  - `apps/game/src/features/ueh/worlds/UEH.tsx`
+  - `apps/game/src/app/App.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (workspace-wide: passed with 0 errors)
+  - `pnpm test` (apps/game: 11 test suites, 103 tests passed)
+  - `pnpm build` (workspace-wide: landing + shared-types + game all built successfully)
+- **Unresolved issues and known limitations:**
+  - `rig|Equip` intro sequence queued for formal state-machine transition refinement ("lưu lại mai sửa").
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:**
+  - Implement full equip-on-spawn state transition into FirstPersonArms.
+  - Continue Chapter 1 scenario development.
 
 ### 2026-11-11 — First-Person Arms Complete 16-Animation Catalog Documentation & Equip Plan
 
