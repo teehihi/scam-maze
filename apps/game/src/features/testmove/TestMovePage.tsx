@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useProgress } from "@react-three/drei";
+import { useTranslation } from "react-i18next";
 import { TestMoveCanvas } from "./TestMoveCanvas";
 import { TestMoveOverlay } from "./TestMoveOverlay";
 import { usePlayerControls } from "../player";
@@ -14,6 +15,7 @@ export const TestMovePage: React.FC<TestMovePageProps> = ({
   settings,
   onBackToMenu,
 }) => {
+  const { t } = useTranslation("worlds");
   const containerRef = useRef<HTMLDivElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -79,7 +81,7 @@ export const TestMovePage: React.FC<TestMovePageProps> = ({
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
             <div className="text-center font-mono">
-              <p className="text-sm font-semibold text-zinc-300">Đang tải bản đồ đường phố 3D...</p>
+              <p className="text-sm font-semibold text-zinc-300">{t("testmove.loadingMap")}</p>
               <p className="text-xs text-zinc-500 mt-1">{Math.round(progress)}%</p>
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
   type ViewPreset,
 } from "./types";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface HCMPageProps {
   onBackToMenu: () => void;
@@ -62,16 +63,17 @@ export const HCMPage: React.FC<HCMPageProps> = ({ onBackToMenu }) => {
 };
 
 const HCMLoadingFallback: React.FC = () => {
+  const { t } = useTranslation("worlds");
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0f1a] text-white z-10">
       <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-[#141224]/90 border border-[#3b3454] shadow-2xl backdrop-blur-xl">
         <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
         <div className="text-center space-y-1">
           <p className="text-sm font-bold tracking-wide uppercase text-zinc-100">
-            Đang tải bản đồ 3D TP. Hồ Chí Minh
+            {t("hcm.loading.title")}
           </p>
           <p className="text-xs text-zinc-400 font-mono">
-            Đang tính toán màu sắc kiến trúc & mặt nước (493K đỉnh)...
+            {t("hcm.loading.detail")}
           </p>
         </div>
       </div>
