@@ -93,8 +93,9 @@ export class CharacterArmsViewmodel {
     if (this.actions['rig|Unequip']?.isRunning()) {
       this.actions['rig|Unequip'].stop();
     }
-    if (this.currentLocomotion?.isRunning()) {
+    if (this.currentLocomotion) {
       this.currentLocomotion.fadeOut(0.04);
+      this.currentLocomotion = null;
     }
     if (this.currentPunch && this.currentPunch !== punchAction) {
       this.currentPunch.fadeOut(0.06);
@@ -118,6 +119,10 @@ export class CharacterArmsViewmodel {
     this.punchTimer = window.setTimeout(() => {
       this.isPunching = false;
       this.punchTimer = null;
+      if (this.currentPunch) {
+        this.currentPunch.fadeOut(0.12);
+        this.currentPunch = null;
+      }
     }, durationMs);
   }
 
@@ -135,7 +140,10 @@ export class CharacterArmsViewmodel {
       this.combatReadyUntil = performance.now() + 800;
 
       if (this.actions['rig|Unequip']?.isRunning()) this.actions['rig|Unequip'].stop();
-      if (this.currentLocomotion?.isRunning()) this.currentLocomotion.fadeOut(0.08);
+      if (this.currentLocomotion) {
+        this.currentLocomotion.fadeOut(0.08);
+        this.currentLocomotion = null;
+      }
 
       blockStart.reset();
       blockStart.timeScale = 1.8;
@@ -169,7 +177,10 @@ export class CharacterArmsViewmodel {
     this.combatReadyUntil = performance.now() + 2000;
 
     if (this.actions['rig|Unequip']?.isRunning()) this.actions['rig|Unequip'].stop();
-    if (this.currentLocomotion?.isRunning()) this.currentLocomotion.fadeOut(0.12);
+    if (this.currentLocomotion) {
+      this.currentLocomotion.fadeOut(0.12);
+      this.currentLocomotion = null;
+    }
 
     inspect.reset();
     inspect.timeScale = 1.35;
@@ -196,7 +207,10 @@ export class CharacterArmsViewmodel {
     this.combatReadyUntil = performance.now() + 800;
 
     if (this.actions['rig|Unequip']?.isRunning()) this.actions['rig|Unequip'].stop();
-    if (this.currentLocomotion?.isRunning()) this.currentLocomotion.fadeOut(0.08);
+    if (this.currentLocomotion) {
+      this.currentLocomotion.fadeOut(0.08);
+      this.currentLocomotion = null;
+    }
 
     takeStart.reset();
     takeStart.timeScale = 1.7;
@@ -285,17 +299,23 @@ export class CharacterArmsViewmodel {
       // Dynamic sprint arm pumping
       this.targetY = -1.10;
       const sprintAction = this.actions['rig|Sprint_Type_1'];
-      if (sprintAction && this.currentLocomotion !== sprintAction) {
-        if (this.currentLocomotion) this.currentLocomotion.fadeOut(0.12);
+      if (sprintAction && (!sprintAction.isRunning() || this.currentLocomotion !== sprintAction)) {
+        if (this.currentLocomotion && this.currentLocomotion !== sprintAction) {
+          this.currentLocomotion.fadeOut(0.12);
+        }
         this.currentLocomotion = sprintAction;
         sprintAction.reset().fadeIn(0.12).play();
       }
     } else {
       // Idle & Normal Walk: Stow hands naturally off-screen (unequipped)
       this.targetY = -1.55;
-      if (this.currentLocomotion?.isRunning()) {
+      if (this.currentLocomotion) {
         this.currentLocomotion.fadeOut(0.15);
         this.currentLocomotion = null;
+      }
+      if (this.currentPunch && !this.isPunching) {
+        this.currentPunch.fadeOut(0.15);
+        this.currentPunch = null;
       }
     }
 
@@ -319,5 +339,6 @@ export class CharacterArmsViewmodel {
     if (this.inspectTimer) window.clearTimeout(this.inspectTimer);
     this.mixer?.stopAllAction();
     this.group.clear();
+    this.group.removeFromParent();
   }
 }

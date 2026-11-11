@@ -125,6 +125,31 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — Fix Character Viewmodel Sprint-Punch Transition & R3F Scene Graph Parenting
+
+- **Objective:** Fix regressions across character viewmodel animations and R3F maps (`/hue`, `/ueh`, `/testmove`):
+  1. Fix sprint-punch animation lockup in Huế: clearing `currentLocomotion = null` on punch, blocking, inspecting, or interacting; fading out finished punches; and auto-resuming sprint locomotion when holding Shift + Move.
+  2. Fix camera scene parenting in `<FirstPersonPlayer>` by returning `<primitive object={camera} />` so Three.js renders first-person arms in R3F scenes.
+  3. Stabilize `<FirstPersonPlayer>` lifecycle via dynamic props ref forwarding, preventing rapid 120ms destroy-and-recreate cycles that locked player movement in UEH.
+  4. Correct standing eye level elevation in `SimpleBoundsAdapter` (`eyeHeight = 0` for `groundY` eye-level bounds), eliminating the ~1.85m floating camera offset in `/testmove` and `/ueh`.
+- **Completed work:**
+  - `CharacterArmsViewmodel.ts`: Cleared `currentLocomotion` upon punch execution, block start, inspect and interact. Added fade-out to `currentPunch` when punch timer expires. Updated sprint transition check to detect when `sprintAction` is not running, ensuring smooth resumption when running after strikes.
+  - `FirstPersonPlayer.tsx`: Replaced destructive prop dependency re-creation with dynamic `propsRef` and adapter proxy. Rendered `<primitive object={camera} />` to attach the camera and its child arms viewmodel into the R3F scene graph.
+  - `GameWorldAdapter.ts`: Set default `eyeHeight = 0` in `SimpleBoundsAdapter` to correctly treat `bounds.groundY` as the target camera standing elevation.
+  - `CharacterRuntime.ts`: Set camera quaternion from `spawnYaw` immediately during construction.
+- **Files created, modified or deleted:**
+  - Modified: `apps/game/src/features/player/runtime/CharacterArmsViewmodel.ts`
+  - Modified: `apps/game/src/features/player/runtime/CharacterRuntime.ts`
+  - Modified: `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - Modified: `apps/game/src/features/player/adapters/GameWorldAdapter.ts`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (0 errors across 3/3 packages)
+  - `pnpm test` (12 test suites, 109 tests passed)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** None.
+
 ### 2026-11-11 — Shared Character Runtime Architecture & Map Environment Adapters Refactor
 
 - **Objective:** Refactor character rendering, animation, movement, and camera systems into an authoritative, reusable shared runtime across all game maps (`/hue`, `/ueh`, `/hochiminh`, `/testmove`, and future maps) adhering to the core architectural principle: "A character is a game-level entity, NOT a map-level implementation." Decouple map-specific geometry, walk heights, and collision queries through a clean `GameWorldAdapter` interface. Fix grass bleed in Thiên Mụ courtyard and verify all tests and builds.

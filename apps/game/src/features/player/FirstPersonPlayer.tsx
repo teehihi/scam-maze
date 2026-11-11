@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CharacterRuntime } from "./runtime/CharacterRuntime";
-import { SimpleBoundsAdapter, type GameWorldAdapter } from "./adapters/GameWorldAdapter";
+import type { GameWorldAdapter } from "./adapters/GameWorldAdapter";
 import type { FirstPersonPlayerProps } from "./types";
 
 export interface UnifiedPlayerProps extends Omit<FirstPersonPlayerProps, "bounds"> {
@@ -27,39 +27,119 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
   const { camera } = useThree();
   const runtimeRef = useRef<CharacterRuntime | null>(null);
 
-  // Initialize unified CharacterRuntime once on mount
+  // Keep a stable ref to latest props to prevent recreating runtime on parent re-renders
+  const propsRef = useRef({
+    adapter,
+    bounds,
+    keysRef,
+    consumeMovement,
+    consumePunchTrigger,
+    consumeInspectTrigger,
+    consumeInteractTrigger,
+    onStatsUpdate,
+    onInteract,
+    soundEnabled,
+    sfxVolume,
+  });
+
+  propsRef.current = {
+    adapter,
+    bounds,
+    keysRef,
+    consumeMovement,
+    consumePunchTrigger,
+    consumeInspectTrigger,
+    consumeInteractTrigger,
+    onStatsUpdate,
+    onInteract,
+    soundEnabled,
+    sfxVolume,
+  };
+
+  // Initialize unified CharacterRuntime ONCE on mount
   useEffect(() => {
-    // Resolve adapter: use provided GameWorldAdapter or construct SimpleBoundsAdapter from bounds
-    const effectiveAdapter =
-      adapter ??
-      new SimpleBoundsAdapter({
-        minX: bounds?.minX,
-        maxX: bounds?.maxX,
-        minZ: bounds?.minZ,
-        maxZ: bounds?.maxZ,
-        maxRadius: bounds?.maxRadius,
-        groundY: bounds?.groundY ?? 0,
-        eyeHeight: 1.85,
-      });
+    // Dynamic adapter proxy forwarding calls to current props without tearing down runtime
+    const adapterProxy: GameWorldAdapter = {
+      get eyeHeight() {
+        return propsRef.current.adapter?.eyeHeight ?? 0;
+      },
+      get gravity() {
+        return propsRef.current.adapter?.gravity ?? -22.0;
+      },
+      get jumpForce() {
+        return propsRef.current.adapter?.jumpForce ?? 7.0;
+      },
+      getGroundHeight(x, z) {
+        if (propsRef.current.adapter) {
+          return propsRef.current.adapter.getGroundHeight(x, z);
+        }
+        return propsRef.current.bounds?.groundY ?? 0;
+      },
+      resolveMovement(currX, currZ, targetX, targetZ, footY, radius, height) {
+        if (propsRef.current.adapter?.resolveMovement) {
+          return propsRef.current.adapter.resolveMovement(
+            currX,
+            currZ,
+            targetX,
+            targetZ,
+            footY,
+            radius,
+            height
+          );
+        }
+        return {
+          newX: targetX,
+          newZ: targetZ,
+          collided: false,
+          hitNormalX: 0,
+          hitNormalZ: 0,
+        };
+      },
+      clampPosition(pos) {
+        if (propsRef.current.adapter?.clampPosition) {
+          propsRef.current.adapter.clampPosition(pos);
+          return;
+        }
+        const b = propsRef.current.bounds;
+        if (!b) return;
+        if (b.minX !== undefined && pos.x < b.minX) pos.x = b.minX;
+        if (b.maxX !== undefined && pos.x > b.maxX) pos.x = b.maxX;
+        if (b.minZ !== undefined && pos.z < b.minZ) pos.z = b.minZ;
+        if (b.maxZ !== undefined && pos.z > b.maxZ) pos.z = b.maxZ;
+        if (b.maxRadius !== undefined) {
+          const dist = Math.hypot(pos.x, pos.z);
+          if (dist > b.maxRadius) {
+            const angle = Math.atan2(pos.z, pos.x);
+            pos.x = Math.cos(angle) * b.maxRadius;
+            pos.z = Math.sin(angle) * b.maxRadius;
+          }
+        }
+      },
+      getInteractionTargets() {
+        return propsRef.current.adapter?.getInteractionTargets?.() ?? [];
+      },
+    };
 
     const controls = {
-      keysRef,
-      consumeMovement,
-      consumePunchTrigger,
-      consumeInspectTrigger,
-      consumeInteractTrigger,
+      get keysRef() {
+        return propsRef.current.keysRef;
+      },
+      consumeMovement: () => propsRef.current.consumeMovement(),
+      consumePunchTrigger: () => propsRef.current.consumePunchTrigger(),
+      consumeInspectTrigger: () => propsRef.current.consumeInspectTrigger(),
+      consumeInteractTrigger: () => propsRef.current.consumeInteractTrigger(),
     };
 
     const runtime = new CharacterRuntime({
       camera,
-      adapter: effectiveAdapter,
+      adapter: adapterProxy,
       controls,
       spawnPosition,
       spawnYaw,
       soundEnabled,
       sfxVolume,
-      onStatsUpdate,
-      onInteract,
+      onStatsUpdate: (stats) => propsRef.current.onStatsUpdate?.(stats),
+      onInteract: (pos) => propsRef.current.onInteract?.(pos),
     });
 
     runtimeRef.current = runtime;
@@ -68,7 +148,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
       runtime.dispose();
       runtimeRef.current = null;
     };
-  }, [camera, adapter, bounds, keysRef, consumeMovement, consumePunchTrigger, consumeInspectTrigger, consumeInteractTrigger, spawnPosition, spawnYaw, soundEnabled, sfxVolume, onStatsUpdate, onInteract]);
+  }, [camera, spawnPosition, spawnYaw, soundEnabled, sfxVolume]);
 
   // Drive unified physics & animation loop in R3F frame cycle
   useFrame((_state, delta) => {
@@ -76,5 +156,6 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     runtimeRef.current?.update(dt);
   });
 
-  return null;
+  // Adding camera to R3F scene graph is essential for Three.js to render camera children (arms viewmodel)
+  return <primitive object={camera} />;
 };

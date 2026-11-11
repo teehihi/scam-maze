@@ -79,6 +79,8 @@ export class CharacterRuntime {
     if (options.spawnYaw !== undefined) {
       this.yaw = options.spawnYaw;
       this.targetYaw = options.spawnYaw;
+      this._camEuler.set(this.pitch, this.yaw, 0);
+      this.camera.quaternion.setFromEuler(this._camEuler);
     }
   }
 

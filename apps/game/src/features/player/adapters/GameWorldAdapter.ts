@@ -78,9 +78,9 @@ export class SimpleBoundsAdapter implements GameWorldAdapter {
 
   constructor(options: SimpleBoundsOptions) {
     this.options = options;
-    this.eyeHeight = options.eyeHeight ?? 1.85;
-    this.gravity = options.gravity ?? -24.0;
-    this.jumpForce = options.jumpForce ?? 7.2;
+    this.eyeHeight = options.eyeHeight ?? 0;
+    this.gravity = options.gravity ?? -22.0;
+    this.jumpForce = options.jumpForce ?? 7.0;
   }
 
   public getGroundHeight(_x: number, _z: number): number {
