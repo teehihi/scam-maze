@@ -125,6 +125,43 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — Shared Character Runtime Architecture & Map Environment Adapters Refactor
+
+- **Objective:** Refactor character rendering, animation, movement, and camera systems into an authoritative, reusable shared runtime across all game maps (`/hue`, `/ueh`, `/hochiminh`, `/testmove`, and future maps) adhering to the core architectural principle: "A character is a game-level entity, NOT a map-level implementation." Decouple map-specific geometry, walk heights, and collision queries through a clean `GameWorldAdapter` interface. Fix grass bleed in Thiên Mụ courtyard and verify all tests and builds.
+- **Completed work:**
+  1. **Duplication Audit & Architectural Plan:** Audited `/hue`, `/ueh`, `/testmove`, and `/hochiminh` identifying complete duplication of model loading, PBR material clones, AnimationMixer lifecycles, kinematics equations, mouse look, combat grace windows, and audio playback. Authored comprehensive duplication report in `character_runtime_audit.md`.
+  2. **Decoupled Architecture (`GameWorldAdapter.ts`):** Defined `GameWorldAdapter` and `MovementResolution` interfaces abstracting ground height queries, spatial collision resolution, boundary clamping, and interaction target queries. Implemented universal `SimpleBoundsAdapter` for flat, bounding-box, or radial environments.
+  3. **Shared Asset Cache & High-Performance Audio (`CharacterAssetCache.ts`, `CharacterAudio.ts`):** Extracted singleton asset cache preventing duplicate GLTF parsing and pre-decoding Web Audio buffers for punch impact and whiff sounds with zero playback latency.
+  4. **Authoritative First-Person Viewmodel (`CharacterArmsViewmodel.ts`):** Extracted shared 16-clip arms viewmodel with snappy raise, brisk natural tuck away, rapid 1-2 combo alternating punches with 120ms combat grace window, edge-triggered unequip transitions, and automatic bone matrix suspension when stowed.
+  5. **Unified Locomotion Kinematics (`CharacterRuntime.ts`):** Centralized mouse look with exponential smoothing, walk/sprint/block locomotion kinematics, slope tracking, step elevation, and collision delegation.
+  6. **Map Migration (`HueWorldAdapter.ts`, `HueWorldEngine.ts`, `FirstPersonPlayer.tsx`):**
+     - Implemented `HueWorldAdapter` bridging `HueWorldEngine` terrain queries and spatial collision system to `CharacterRuntime`.
+     - Replaced 172+ lines of duplicated locomotion equations in `HueWorldEngine.ts` with `CharacterRuntime`.
+     - Preserved backwards compatibility in `<FirstPersonPlayer>` for existing maps (`/ueh`, `/testmove`).
+     - Refined Chùa Thiên Mụ courtyard clearing boundary in `HueTerrainAndFlora.ts` to permanently prevent grass tufts from poking through stone pavers.
+- **Files created, modified or deleted:**
+  - Created: `apps/game/src/features/player/adapters/GameWorldAdapter.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterAssetCache.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterAudio.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterArmsViewmodel.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterRuntime.ts`
+  - Created: `apps/game/src/features/hue/engine/HueWorldAdapter.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueFirstPersonArms.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueWorldEngine.ts`
+  - Modified: `apps/game/src/features/hue/engine/terrain/HueTerrainAndFlora.ts`
+  - Modified: `apps/game/src/features/player/FirstPersonArms.tsx`
+  - Modified: `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - Modified: `apps/game/src/features/player/index.ts`
+  - Modified: `apps/game/src/features/hochiminh/types.ts`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed 3/3 packages)
+  - `pnpm test` (12 test suites, 109 tests passed)
+  - `pnpm build` (production bundles built cleanly)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None; conforms to `PLAYER_CONTROLLER_SPEC.md` and `OVERVIEW.md`.
+- **Follow-up tasks:** Integrate first-person street walk toggle in Ho Chi Minh map UI (`/hochiminh`).
+
 ### 2026-11-11 — Huế World Visual Restoration & Zero-Hitch Landmark Streaming
 
 - **Objective:** Fix visual regressions from aggressive previous optimization pass (restore original 5-layer height-blended anti-tiling terrain shader, 256 ground texture maps, 512 architectural PBR textures, lush 280-pine forest density, 28,000 grass tufts with 5 blades/tuft) while strictly eliminating grass sprouting through stone courtyards, and resolve the one-time chunk entry stutter via WebGL2 asynchronous parallel shader compilation (`compileAsync`) and distance hysteresis.

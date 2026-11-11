@@ -48,7 +48,7 @@ function isClearedForArchitecture(x: number, z: number): boolean {
   if (Math.abs(z - getRiverCenterZ(x)) < getRiverHalfWidth(x) + 4.0) return true;
   if (z > getRiverCenterZ(x) + 10 && Math.abs(x - getCanalCenterX(z)) < getCanalHalfWidth() + 3.8) return true;
   if (getPathFactor(x, z) > 0.22) return true;
-  if (x > -245 && x < -175 && z > -162 && z < -40) return true;
+  if (x > -250 && x < -165 && z > -168 && z < -35) return true;
   if (x > -66 && x < -24 && z > -126 && z < -90) return true;
   if (Math.abs(x - 195) < 17 && Math.abs(z) < 92) return true;
   if (x > 228 && x < 294 && z > 188 && z < 240) return true;

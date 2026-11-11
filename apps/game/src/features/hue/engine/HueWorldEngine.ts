@@ -23,8 +23,8 @@ import { buildKimLongGardenAndBoats } from '../world/monuments/buildKimLongGarde
 import type { LanternHandle } from '../world/monuments/hueArchitecturalHelpers';
 import { createHueParticles } from './HueParticles';
 import { HueAmbientAudio } from './audio/HueAmbientAudio';
-import { HueFirstPersonArms } from './HueFirstPersonArms';
-import type { PlayerControlsState } from '../../player';
+import { CharacterRuntime, type PlayerControlsState } from '../../player';
+import { HueWorldAdapter } from './HueWorldAdapter';
 import { HueCollisionSystem } from './collision/HueCollisionSystem';
 import { populateHueWorldColliders } from './collision/HueWorldColliders';
 
@@ -81,7 +81,7 @@ export class HueWorldEngine {
 
   private mats: HueMaterialSet;
   private audio = new HueAmbientAudio();
-  private arms: HueFirstPersonArms;
+  private character!: CharacterRuntime;
   private callbacks: EngineCallbacks;
 
   private landmarkChunks: LandmarkChunk[] = [];
@@ -123,25 +123,8 @@ export class HueWorldEngine {
   private frameCount = 0;
   private qualityTimer = 0;
 
-  // Player / Camera state
-  private yaw = 0;
-  private pitch = 0.08;
-  private targetYaw = 0;
-  private targetPitch = 0.08;
-  private velocity = new THREE.Vector3();
-  private onGround = true;
-  private lastStatsTime = 0;
-
   // Physical collision system with spatial hash grid
   private collision = new HueCollisionSystem();
-
-  // Zero-allocation reusable math scratch objects for the 60fps animation loop
-  private readonly _upAxis = new THREE.Vector3(0, 1, 0);
-  private readonly _forward = new THREE.Vector3();
-  private readonly _right = new THREE.Vector3();
-  private readonly _wishDir = new THREE.Vector3();
-  private readonly _moveVec = new THREE.Vector3();
-  private readonly _camEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 
   // Melee combat aim direction
   private aimDir = new THREE.Vector3();
@@ -210,7 +193,6 @@ export class HueWorldEngine {
 
     // 3. Materials, Sky, Water, Terrain & All Huế Heritage Landmarks
     this.mats = createHueMaterialFoundry();
-    this.arms = new HueFirstPersonArms(this.camera);
 
     const atmos = createHueAtmosphereAndWater(this.scene);
     this.updateAtmos = atmos.update;
@@ -352,6 +334,31 @@ export class HueWorldEngine {
 
     // 4. Initial Atmosphere & Scenic Opening Position at Chùa Thiên Mụ Courtyard looking at Tháp Phước Duyên
     populateHueWorldColliders(this.collision);
+    const adapter = new HueWorldAdapter(this.collision);
+    this.character = new CharacterRuntime({
+      camera: this.camera,
+      adapter,
+      controls: {
+        keysRef: this.controls.keysRef as unknown as { current: PlayerControlsState },
+        consumeMovement: this.controls.consumeMovement,
+        consumePunchTrigger: this.controls.consumePunchTrigger,
+        consumeInspectTrigger: this.controls.consumeInspectTrigger,
+        consumeInteractTrigger: this.controls.consumeInteractTrigger,
+      },
+      onPunchStrike: () => {
+        this.camera.getWorldDirection(this.aimDir);
+        this.collision.raycast(this.camera.position, this.aimDir, 2.5);
+      },
+      onInteract: () => {
+        if (this.wasNearBell) {
+          this.ringTempleBell();
+        }
+      },
+      onStatsUpdate: (stats) => {
+        this.callbacks.onStatsUpdate?.(stats);
+      },
+    });
+
     this.setAtmosphere('morning');
     this.setCameraPose(
       new THREE.Vector3(-210, 6.05, -52),
@@ -365,14 +372,7 @@ export class HueWorldEngine {
   }
 
   private setCameraPose(pos: THREE.Vector3, lookTarget: THREE.Vector3) {
-    this.camera.position.copy(pos);
-    this.camera.lookAt(lookTarget);
-    const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');
-    this.yaw = euler.y;
-    this.pitch = euler.x;
-    this.targetYaw = euler.y;
-    this.targetPitch = euler.x;
-    this.velocity.set(0, 0, 0);
+    this.character.setCameraPose(pos, lookTarget);
     this.updateStreamingChunks();
   }
 
@@ -412,7 +412,8 @@ export class HueWorldEngine {
     this.mode = nextMode;
     this.introActive = false;
     this.tween.active = false;
-    this.velocity.set(0, 0, 0);
+    this.character.setFlyMode(nextMode === 'fly');
+    this.character.velocity.set(0, 0, 0);
     this.updateStreamingChunks();
     if (nextMode === 'walk') {
       const groundY = getWalkableHeight(this.camera.position.x, this.camera.position.z);
@@ -450,7 +451,7 @@ export class HueWorldEngine {
     this.tween.toPos.copy(toPos);
     this.tween.fromQuat.copy(this.camera.quaternion);
     this.tween.toQuat.copy(dummyCam.quaternion);
-    this.velocity.set(0, 0, 0);
+    this.character.velocity.set(0, 0, 0);
     this.updateStreamingChunks();
   }
 
@@ -470,10 +471,7 @@ export class HueWorldEngine {
   }
 
   public triggerPunch() {
-    this.camera.getWorldDirection(this.aimDir);
-    // Instant zero-overhead raycast against spatial hash grid colliders
-    const hit = this.collision.raycast(this.camera.position, this.aimDir, 2.5);
-    this.arms.triggerPunch(hit.hit);
+    this.character.triggerPunch();
   }
 
   public toggleCollisionDebug(): boolean {
@@ -588,6 +586,7 @@ export class HueWorldEngine {
       const cy = 11.4 + Math.sin(this.elapsed * 0.25) * 0.9;
       this.camera.position.set(cx, cy, cz);
       this.camera.lookAt(-210, 17.2, -104);
+      this.character.setStowed(true);
       return;
     }
 
@@ -605,184 +604,24 @@ export class HueWorldEngine {
       if (t >= 1) {
         this.tween.active = false;
         const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');
-        this.yaw = euler.y;
-        this.pitch = euler.x;
+        this.character.yaw = euler.y;
+        this.character.pitch = euler.x;
       }
       return;
     }
-
-    // 1. Mouse look with silky exponential interpolation (exact match to FirstPersonPlayer)
-    const mouseDelta = this.controls.consumeMovement();
-    const MOUSE_SENSITIVITY = 0.0022;
-    this.targetYaw -= mouseDelta.x * MOUSE_SENSITIVITY;
-    this.targetPitch -= mouseDelta.y * MOUSE_SENSITIVITY;
-
-    const PITCH_LIMIT = (85 * Math.PI) / 180;
-    this.targetPitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, this.targetPitch));
-
-    const ROT_SMOOTH = 1 - Math.exp(-25 * dt);
-    this.yaw += (this.targetYaw - this.yaw) * ROT_SMOOTH;
-    this.pitch += (this.targetPitch - this.pitch) * ROT_SMOOTH;
-    this._camEuler.set(this.pitch, this.yaw, 0);
-    this.camera.quaternion.setFromEuler(this._camEuler);
 
     if (this.mode === 'boat') {
       // Ride smoothly on the bow deck of the lead Thuyền Rồng!
       const bowLocal = new THREE.Vector3(4.5, 2.35, 0);
       bowLocal.applyMatrix4(this.leadBoatGroup.matrixWorld);
       this.camera.position.copy(bowLocal);
+      this.character.setStowed(true);
       return;
     }
 
-    const keys = this.controls.keysRef.current;
-    this._forward.set(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    this._right.set(1, 0, 0).applyQuaternion(this.camera.quaternion);
-
-    if (this.mode === 'fly') {
-      const speed = keys.sprint ? 42 : 17;
-      this._moveVec.set(0, 0, 0);
-      if (keys.forward) this._moveVec.add(this._forward);
-      if (keys.backward) this._moveVec.sub(this._forward);
-      if (keys.right) this._moveVec.add(this._right);
-      if (keys.left) this._moveVec.sub(this._right);
-      if (keys.jump) this._moveVec.y += 1;
-
-      if (this._moveVec.lengthSq() > 0) this._moveVec.normalize();
-      this.velocity.lerp(this._moveVec.multiplyScalar(speed), Math.min(1, dt * 8));
-      this.camera.position.addScaledVector(this.velocity, dt);
-
-      const minH = getWalkableHeight(this.camera.position.x, this.camera.position.z) + 0.8;
-      if (this.camera.position.y < minH) this.camera.position.y = minH;
-    } else {
-      // 2. Action Triggers (Exact match to FirstPersonPlayer)
-      const blocking = Boolean(keys.block);
-      if (blocking !== this.arms.isBlockingActive()) {
-        this.arms.setBlocking(blocking);
-      }
-
-      const punchTriggered = this.controls.consumePunchTrigger();
-      const isHoldingPunch = keys.punch;
-      if ((punchTriggered || isHoldingPunch) && !this.arms.isPunchingActive() && !blocking) {
-        this.triggerPunch();
-      }
-
-      const interactTriggered = this.controls.consumeInteractTrigger();
-      if (interactTriggered && !this.arms.isPunchingActive()) {
-        this.arms.triggerInteract();
-        if (this.wasNearBell) {
-          this.ringTempleBell();
-        }
-      }
-
-      const inspectTriggered = this.controls.consumeInspectTrigger();
-      if (inspectTriggered && !this.arms.isPunchingActive() && !blocking) {
-        this.arms.triggerInspect();
-      }
-
-      // 3. Locomotion Movement Direction (relative to camera yaw)
-      const moveX = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-      const moveZ = (keys.forward ? 1 : 0) - (keys.backward ? 1 : 0);
-      const hasInput = moveX !== 0 || moveZ !== 0;
-
-      const sprinting = hasInput && keys.sprint && this.onGround && !blocking && moveZ > 0;
-
-      // Locomotion Speeds: Walk = 4.2 m/s, Sprint = 8.2 m/s, Block = 2.0 m/s
-      const targetSpeed = blocking ? 2.0 : (sprinting ? 8.2 : 4.2);
-      const currentSpeedTarget = hasInput ? targetSpeed : 0;
-
-      this._forward.set(0, 0, -1).applyAxisAngle(this._upAxis, this.yaw);
-      this._right.set(1, 0, 0).applyAxisAngle(this._upAxis, this.yaw);
-
-      this._wishDir.set(0, 0, 0);
-      if (hasInput) {
-        this._wishDir.addScaledVector(this._forward, moveZ);
-        this._wishDir.addScaledVector(this._right, moveX);
-        this._wishDir.normalize();
-      }
-
-      // Acceleration: 18.0 m/s² with input, 12.0 m/s² friction deceleration
-      const accel = this.onGround ? (hasInput ? 18.0 : 12.0) : 4.0;
-      const targetVelX = this._wishDir.x * currentSpeedTarget;
-      const targetVelZ = this._wishDir.z * currentSpeedTarget;
-
-      this.velocity.x += (targetVelX - this.velocity.x) * Math.min(1, accel * dt);
-      this.velocity.z += (targetVelZ - this.velocity.z) * Math.min(1, accel * dt);
-
-      // Jump & Gravity: Gravity = -24.0, Jump force = 7.2
-      const GRAVITY = -24.0;
-      const JUMP_FORCE = 7.2;
-
-      if (keys.jump && this.onGround && !blocking) {
-        this.velocity.y = JUMP_FORCE;
-        this.onGround = false;
-      }
-
-      // Horizontal displacement with physical collision & continuous wall sliding
-      const currX = this.camera.position.x;
-      const currZ = this.camera.position.z;
-      const targetX = currX + this.velocity.x * dt;
-      const targetZ = currZ + this.velocity.z * dt;
-
-      const footY = this.camera.position.y - 1.85;
-      const colRes = this.collision.resolveMovement(
-        currX,
-        currZ,
-        targetX,
-        targetZ,
-        footY,
-        0.35,
-        1.85,
-      );
-
-      this.camera.position.x = colRes.newX;
-      this.camera.position.z = colRes.newZ;
-
-      if (colRes.collided) {
-        // Project velocity onto wall tangent for silky wall sliding
-        const nx = colRes.hitNormalX;
-        const nz = colRes.hitNormalZ;
-        const vDotN = this.velocity.x * nx + this.velocity.z * nz;
-        if (vDotN < 0) {
-          this.velocity.x -= vDotN * nx;
-          this.velocity.z -= vDotN * nz;
-        }
-      }
-
-      // Ground height at current (X, Z) with adult eye height (1.85m)
-      const groundFloor = getWalkableHeight(this.camera.position.x, this.camera.position.z);
-      const targetFloorY = Math.max(0.65, groundFloor + 1.85);
-
-      if (this.onGround) {
-        // Player is grounded: follow slopes and stairs smoothly without floating
-        const delta = targetFloorY - this.camera.position.y;
-        if (delta >= -1.25 && delta <= 0.85) {
-          // Walked up or down a natural slope/stairs: stick firmly to the ground
-          this.camera.position.y = targetFloorY;
-          this.velocity.y = 0;
-        } else if (delta < -1.25) {
-          // Stepped off a high cliff/terrace drop: leave ground and fall
-          this.onGround = false;
-          this.velocity.y = 0;
-        } else {
-          // Upward step within step height
-          this.camera.position.y = targetFloorY;
-          this.velocity.y = 0;
-        }
-      }
-
-      if (!this.onGround) {
-        // Apply gravitational acceleration
-        this.velocity.y += GRAVITY * dt;
-        this.camera.position.y += this.velocity.y * dt;
-
-        // Ground landing check
-        if (this.camera.position.y <= targetFloorY) {
-          this.camera.position.y = targetFloorY;
-          this.velocity.y = 0;
-          this.onGround = true;
-        }
-      }
-    }
+    this.character.setFlyMode(this.mode === 'fly');
+    this.character.setStowed(false);
+    this.character.update(dt);
 
     // Clamp to playable Hue valley bounds
     const bound = WORLD_SIZE * 0.45;
@@ -918,24 +757,6 @@ export class HueWorldEngine {
     });
 
     this.checkLandmarksAndProximity();
-    const keys = this.controls.keysRef.current;
-    const isMoving = Boolean(keys.forward || keys.backward || keys.left || keys.right);
-    const isSprinting = isMoving && Boolean(keys.sprint) && !this.arms.isBlockingActive();
-    this.arms.update(dt, isMoving, isSprinting, this.mode, this.introActive);
-
-    // Live HUD stats telemetry callback throttled to 120ms
-    const now = performance.now();
-    if (now - this.lastStatsTime > 120) {
-      this.lastStatsTime = now;
-      const horizontalSpeed = Math.hypot(this.velocity.x, this.velocity.z);
-      this.callbacks.onStatsUpdate?.({
-        position: [this.camera.position.x, this.camera.position.y, this.camera.position.z],
-        speed: horizontalSpeed,
-        isSprinting: isSprinting,
-        isGrounded: this.onGround,
-        isBlocking: this.arms.isBlockingActive(),
-      });
-    }
 
     this.adaptQuality(dt);
     this.renderer.render(this.scene, this.camera);
@@ -966,7 +787,7 @@ export class HueWorldEngine {
     this.cleanupListeners();
     this.collision.clear();
     this.audio.dispose();
-    this.arms.dispose();
+    this.character.dispose();
 
     // Deeply traverse and release all geometries, materials, and textures from GPU VRAM
     this.scene.traverse((obj) => {
