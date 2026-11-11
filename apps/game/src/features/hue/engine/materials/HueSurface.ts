@@ -492,6 +492,27 @@ export function ensureSharedBakes() {
   if (!HUE_SHARED.hTerrainH.value) HUE_SHARED.hTerrainH.value = bakeTerrainHeightTexture();
 }
 
+/** Explicitly purges all cached procedural PBR DataTextures and shared terrain bakes from memory. */
+export function disposeHueSurfaces() {
+  photoCache.forEach((set) => {
+    set.color.dispose();
+    set.normal.dispose();
+    set.arm.dispose();
+  });
+  photoCache.clear();
+
+  groundCache.forEach((set) => {
+    set.color.dispose();
+    set.normal.dispose();
+  });
+  groundCache.clear();
+
+  if (HUE_SHARED.hTerrainH.value) {
+    HUE_SHARED.hTerrainH.value.dispose();
+    HUE_SHARED.hTerrainH.value = null;
+  }
+}
+
 /** True where architecture/platforms sit above natural ground (used to keep grass out of buildings). */
 export function isBuiltUp(x: number, z: number): boolean {
   return getWalkableHeight(x, z) > getTerrainHeight(x, z) + 0.25;

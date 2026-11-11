@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { setMaxAnisotropy } from './materials/HueSurface';
+import { setMaxAnisotropy, disposeHueSurfaces } from './materials/HueSurface';
 import {
   ATMOSPHERE_PRESETS,
   getWalkableHeight,
@@ -13,7 +13,9 @@ import type {
 import { createHueMaterialFoundry } from './materials/HueMaterialFoundry';
 import type { HueMaterialSet } from './materials/HueMaterialFoundry';
 import { buildHueTerrainAndFlora } from './terrain/HueTerrainAndFlora';
+import type { TerrainAndFloraResult } from './terrain/HueTerrainAndFlora';
 import { createHueAtmosphereAndWater } from './shaders/HueAtmosphereAndWater';
+import type { AtmosphereAndWaterSystem } from './shaders/HueAtmosphereAndWater';
 import { buildThienMuComplex } from '../world/monuments/buildThienMuComplex';
 import { buildKhaiDinhTomb } from '../world/monuments/buildKhaiDinhTomb';
 import { buildTuDucLakeComplex } from '../world/monuments/buildTuDucLakeComplex';
@@ -22,6 +24,7 @@ import { buildThanhToanAndVillage } from '../world/monuments/buildThanhToanAndVi
 import { buildKimLongGardenAndBoats } from '../world/monuments/buildKimLongGardenAndBoats';
 import type { LanternHandle } from '../world/monuments/hueArchitecturalHelpers';
 import { createHueParticles } from './HueParticles';
+import type { HueParticleSystem } from './HueParticles';
 import { HueAmbientAudio } from './audio/HueAmbientAudio';
 import { CharacterRuntime, type PlayerControlsState } from '../../player';
 import { HueWorldAdapter } from './HueWorldAdapter';
@@ -109,6 +112,12 @@ export class HueWorldEngine {
   private setRainIntensity!: (r: number) => void;
   private leadBoatGroup!: THREE.Group;
 
+  // Subsystems tracked for explicit zero-leak disposal
+  private atmos!: AtmosphereAndWaterSystem;
+  private terrain!: TerrainAndFloraResult;
+  private particles!: HueParticleSystem;
+  private prewarmTimerIds: number[] = [];
+
   private currentAtmos: AtmosphereId = 'morning';
   private mode: MovementMode = 'walk';
   private introActive = false;
@@ -194,15 +203,15 @@ export class HueWorldEngine {
     // 3. Materials, Sky, Water, Terrain & All Huế Heritage Landmarks
     this.mats = createHueMaterialFoundry();
 
-    const atmos = createHueAtmosphereAndWater(this.scene);
-    this.updateAtmos = atmos.update;
-    this.applyAtmosPreset = atmos.applyAtmosphere;
+    this.atmos = createHueAtmosphereAndWater(this.scene);
+    this.updateAtmos = this.atmos.update;
+    this.applyAtmosPreset = this.atmos.applyAtmosphere;
 
-    const terrain = buildHueTerrainAndFlora();
-    this.scene.add(terrain.group);
-    this.updateWind = terrain.updateWind;
-    this.setTerrainWetness = terrain.setRainWetness;
-    this.updateTerrainCamera = terrain.updateCamera;
+    this.terrain = buildHueTerrainAndFlora();
+    this.scene.add(this.terrain.group);
+    this.updateWind = this.terrain.updateWind;
+    this.setTerrainWetness = this.terrain.setRainWetness;
+    this.updateTerrainCamera = this.terrain.updateCamera;
 
     const thienMu = buildThienMuComplex(this.mats);
     this.scene.add(thienMu.group);
@@ -313,24 +322,25 @@ export class HueWorldEngine {
     ];
     this.updateStreamingChunks();
 
-    // Staggered zero-hitch background shader pre-warming across all chunks
+    // Staggered zero-hitch background shader pre-warming across all chunks (tracked for clean disposal)
     this.landmarkChunks.forEach((chunk, index) => {
-      window.setTimeout(() => {
+      const id = window.setTimeout(() => {
         if (!this.disposed) {
           this.prewarmChunk(chunk);
         }
       }, 300 + index * 250);
+      this.prewarmTimerIds.push(id);
     });
 
     // Atmospheric Particles (incense smoke + sunbeam dust motes + Mưa Bụi)
-    const particles = createHueParticles([
+    this.particles = createHueParticles([
       khaiDinh.incenseOrigin,
       new THREE.Vector3(-210, 11.4, -145), // Điện Đại Hùng incense
       new THREE.Vector3(260, 4.6, 213.5), // Cầu Ngói altar incense
     ]);
-    this.scene.add(particles.group);
-    this.updateParticles = particles.update;
-    this.setRainIntensity = particles.setRainIntensity;
+    this.scene.add(this.particles.group);
+    this.updateParticles = this.particles.update;
+    this.setRainIntensity = this.particles.setRainIntensity;
 
     // 4. Initial Atmosphere & Scenic Opening Position at Chùa Thiên Mụ Courtyard looking at Tháp Phước Duyên
     populateHueWorldColliders(this.collision);
@@ -533,10 +543,31 @@ export class HueWorldEngine {
     };
     dom.addEventListener('contextmenu', onContextMenu);
 
+    // Zero-overhead tab-out / background pause: completely freeze animation loop and audio
+    // when switching tabs or minimizing browser, eliminating background GPU & CPU lag
+    const onVisibilityChange = () => {
+      if (this.disposed) return;
+      if (document.hidden) {
+        if (this.rafId) {
+          cancelAnimationFrame(this.rafId);
+          this.rafId = 0;
+        }
+        this.audio.pause();
+      } else {
+        this.clock.getDelta();
+        this.audio.resume();
+        if (!this.loopPaused && !this.rafId) {
+          this.animate();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     // Store cleanup on instance
     this.cleanupListeners = () => {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       dom.removeEventListener('wheel', onWheel);
       dom.removeEventListener('contextmenu', onContextMenu);
     };
@@ -783,11 +814,50 @@ export class HueWorldEngine {
 
   public dispose() {
     this.disposed = true;
-    cancelAnimationFrame(this.rafId);
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = 0;
+    }
+    this.prewarmTimerIds.forEach((id) => window.clearTimeout(id));
+    this.prewarmTimerIds = [];
+
     this.cleanupListeners();
     this.collision.clear();
     this.audio.dispose();
     this.character.dispose();
+
+    // Release global debug handle so engine instance can be reclaimed by GC
+    delete (window as unknown as Record<string, unknown>).__HUE_DEBUG__;
+
+    // Traverse and dispose all landmark chunks (both active and streaming-culled)
+    this.landmarkChunks.forEach((chunk) => {
+      chunk.group.traverse((obj) => {
+        if ((obj as THREE.Mesh).isMesh) {
+          const m = obj as THREE.Mesh;
+          m.geometry?.dispose();
+          if (Array.isArray(m.material)) {
+            m.material.forEach((mat) => mat.dispose());
+          } else {
+            m.material?.dispose();
+          }
+        }
+      });
+      chunk.group.clear();
+    });
+    this.landmarkChunks = [];
+
+    // Dispose atmosphere, sky dome, water shaders, PMREM generator, and sun shadow map
+    this.atmos?.dispose(this.scene);
+
+    // Dispose atmospheric particles and textures
+    this.particles?.dispose();
+
+    // Dispose terrain, instanced grass geometry and density texture
+    this.terrain?.dispose();
+
+    // Dispose procedural PBR materials and textures
+    this.mats?.dispose();
+    disposeHueSurfaces();
 
     // Deeply traverse and release all geometries, materials, and textures from GPU VRAM
     this.scene.traverse((obj) => {
@@ -819,9 +889,14 @@ export class HueWorldEngine {
     });
     this.scene.clear();
 
-    // Crucial: Force WebGL context loss to ensure Chrome/Metal immediately purges GPU memory
-    this.renderer.forceContextLoss();
+    // Dispose WebGLRenderer first (cleans internal GL objects),
+    // then force context loss to immediately free GPU driver VRAM
     this.renderer.dispose();
+    try {
+      this.renderer.forceContextLoss();
+    } catch {
+      // Guard
+    }
     if (this.renderer.domElement.parentNode === this.container) {
       this.container.removeChild(this.renderer.domElement);
     }

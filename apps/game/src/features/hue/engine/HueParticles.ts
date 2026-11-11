@@ -4,6 +4,7 @@ export interface HueParticleSystem {
   group: THREE.Group;
   update: (dt: number, elapsed: number, cameraPos: THREE.Vector3) => void;
   setRainIntensity: (intensity: number) => void;
+  dispose: () => void;
 }
 
 function createSoftRadialSprite(): THREE.DataTexture {
@@ -176,5 +177,16 @@ export function createHueParticles(
     }
   };
 
-  return { group, update, setRainIntensity };
+  const dispose = () => {
+    softSprite.dispose();
+    smokeGeo.dispose();
+    smokeMat.dispose();
+    moteGeo.dispose();
+    moteMat.dispose();
+    rainGeo.dispose();
+    rainMat.dispose();
+    group.clear();
+  };
+
+  return { group, update, setRainIntensity, dispose };
 }

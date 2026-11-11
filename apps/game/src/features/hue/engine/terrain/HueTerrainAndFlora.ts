@@ -27,6 +27,7 @@ export interface TerrainAndFloraResult {
   updateWind: (elapsed: number) => void;
   setRainWetness: (wetness: number) => void;
   updateCamera: (camPos: THREE.Vector3) => void;
+  dispose: () => void;
 }
 
 function fract(v: number) {
@@ -816,5 +817,23 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
     grass.visible = camPos.y - getTerrainHeight(camPos.x, camPos.z) < 40;
   };
 
-  return { group: root, updateWind, setRainWetness, updateCamera };
+  const dispose = () => {
+    densTex.dispose();
+    grassGeo.dispose();
+    grassMat.dispose();
+    root.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const m = obj as THREE.Mesh;
+        m.geometry?.dispose();
+        if (Array.isArray(m.material)) {
+          m.material.forEach((mat) => mat.dispose());
+        } else {
+          m.material?.dispose();
+        }
+      }
+    });
+    root.clear();
+  };
+
+  return { group: root, updateWind, setRainWetness, updateCamera, dispose };
 }

@@ -2,6 +2,7 @@ export class HueAmbientAudio {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private windGain: GainNode | null = null;
+  private windSource: AudioBufferSourceNode | null = null;
   private muted = true;
   private initialized = false;
 
@@ -31,6 +32,7 @@ export class HueAmbientAudio {
     const src = this.ctx.createBufferSource();
     src.buffer = noiseBuf;
     src.loop = true;
+    this.windSource = src;
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
@@ -127,7 +129,28 @@ export class HueAmbientAudio {
     });
   }
 
+  public pause() {
+    if (this.ctx && this.ctx.state === 'running') {
+      void this.ctx.suspend();
+    }
+  }
+
+  public resume() {
+    if (this.ctx && this.ctx.state === 'suspended' && !this.muted) {
+      void this.ctx.resume();
+    }
+  }
+
   public dispose() {
+    if (this.windSource) {
+      try {
+        this.windSource.stop();
+        this.windSource.disconnect();
+      } catch {
+        // Source disconnect guard
+      }
+      this.windSource = null;
+    }
     try {
       if (this.ctx && this.ctx.state !== 'closed') {
         void this.ctx.close();

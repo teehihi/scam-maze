@@ -125,6 +125,51 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — Deep Resource Disposal & Background Tab Freeze Optimization
+
+- **Objective:** Deeply optimize memory and GPU VRAM disposal when exiting the 3D map (`/hue`, returning to main menu, or closing page) and freeze animation loops when tabbed out ("out web") to eliminate lingering browser/system lag:
+  1. Audit and resolve all memory leaks, unreleased WebGL render targets, and retained object graphs in `HueWorldEngine`.
+  2. Implement explicit `dispose()` methods across all Hue subsystems (`AtmosphereAndWaterSystem`, `HueParticleSystem`, `TerrainAndFloraResult`, `HueMaterialSet`, `disposeHueSurfaces`, `HueAmbientAudio`).
+  3. Purge the global `window.__HUE_DEBUG__` reference on disposal to break circular closure retention and enable JavaScript garbage collection.
+  4. Cancel all asynchronous landmark pre-warming timeouts on engine exit.
+  5. Add `visibilitychange` background detection to pause rendering and suspend audio when tabbed out or minimized, reducing background GPU/CPU utilization to zero.
+  6. Add `pagehide` and `beforeunload` cleanup guards in `HuePage.tsx` and release pointer lock in `usePlayerControls`.
+- **Completed work:**
+  - `HueSurface.ts`: Implemented `disposeHueSurfaces()` to release all procedural `PhotoSet` and ground DataTextures, clear caching Maps (`photoCache`, `groundCache`), and dispose the 64x64 HalfFloat `HUE_SHARED.hTerrainH` bake.
+  - `HueMaterialFoundry.ts`: Implemented `dispose()` in `createHueMaterialFoundry` to explicitly dispose all generated PBR textures in `disposableTextures` and all 28 allocated materials.
+  - `HueAtmosphereAndWater.ts`: Implemented `dispose()` in `createHueAtmosphereAndWater` to dispose `currentEnvRT` cubemap render target, `pmrem` PMREMGenerator, the dedicated `envScene` meshes, sky and water geometries/materials, and directional light shadow map.
+  - `HueParticles.ts`: Implemented `dispose()` to release `softSprite` DataTexture, point cloud geometries, and particle line materials.
+  - `HueTerrainAndFlora.ts`: Implemented `dispose()` in `buildHueTerrainAndFlora` to dispose `densTex` grass density DataTexture, instanced grass buffer geometry and material, and clear terrain groups.
+  - `HueAmbientAudio.ts`: Added `pause()` and `resume()` methods; retained and cleanly stopped `windSource` before closing the Web Audio context in `dispose()`.
+  - `CharacterArmsViewmodel.ts`: Implemented deep mesh traversal in `dispose()` to dispose cloned arm geometries and materials, stop all active animation actions, and uncache mixer roots.
+  - `usePlayerControls.ts`: Added pointer lock release safeguard on component unmount (`document.exitPointerLock?.()`).
+  - `HueWorldEngine.ts`:
+    - Tracked prewarm timer IDs in `prewarmTimerIds` and cancelled them all on disposal.
+    - Added `visibilitychange` event listener to stop `requestAnimationFrame` and suspend audio when hidden, and smoothly resume on visible without time jumps.
+    - Disposed all `landmarkChunks` (both visible and distance-culled groups) and cleared references.
+    - Deleted `window.__HUE_DEBUG__` to allow V8 GC to reclaim the engine instance.
+    - Called `renderer.dispose()` followed by `renderer.forceContextLoss()`.
+  - `HuePage.tsx`: Added `pagehide` and `beforeunload` event listeners to guarantee disposal on browser tab closure or navigation.
+- **Files created, modified or deleted:**
+  - Modified: `apps/game/src/features/hue/engine/materials/HueSurface.ts`
+  - Modified: `apps/game/src/features/hue/engine/materials/HueMaterialFoundry.ts`
+  - Modified: `apps/game/src/features/hue/engine/shaders/HueAtmosphereAndWater.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueParticles.ts`
+  - Modified: `apps/game/src/features/hue/engine/terrain/HueTerrainAndFlora.ts`
+  - Modified: `apps/game/src/features/hue/engine/audio/HueAmbientAudio.ts`
+  - Modified: `apps/game/src/features/player/runtime/CharacterArmsViewmodel.ts`
+  - Modified: `apps/game/src/features/player/usePlayerControls.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueWorldEngine.ts`
+  - Modified: `apps/game/src/features/hue/HuePage.tsx`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed, 0 errors across 3/3 workspace packages)
+  - `pnpm test` (passed, 12/12 test files, 109/109 tests passed)
+  - `pnpm build` (passed, production builds for landing, shared-types, and game completed cleanly)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** None.
+
 ### 2026-11-11 — Restore Spatial Hash Raycast & Distinct Hit vs Miss Punch Audio
 
 - **Objective:** Restore the distinct punch audio logic (`hit_punch.mp3` with heavy impact gain on solid collision vs `miss_punch.mp3` whiff on air):

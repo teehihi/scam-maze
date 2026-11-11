@@ -337,7 +337,29 @@ export class CharacterArmsViewmodel {
     if (this.unequipTimer) window.clearTimeout(this.unequipTimer);
     if (this.interactTimer) window.clearTimeout(this.interactTimer);
     if (this.inspectTimer) window.clearTimeout(this.inspectTimer);
-    this.mixer?.stopAllAction();
+    this.punchTimer = null;
+    this.unequipTimer = null;
+    this.interactTimer = null;
+    this.inspectTimer = null;
+
+    if (this.mixer) {
+      this.mixer.stopAllAction();
+      this.mixer.uncacheRoot(this.group);
+      this.mixer = null;
+    }
+
+    this.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.geometry?.dispose();
+        if (Array.isArray(m.material)) {
+          m.material.forEach((mat) => mat.dispose());
+        } else {
+          m.material?.dispose();
+        }
+      }
+    });
+
     this.group.clear();
     this.group.removeFromParent();
   }

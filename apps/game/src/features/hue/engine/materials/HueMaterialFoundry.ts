@@ -225,6 +225,9 @@ export interface HueMaterialSet {
 
   // Utility dynamic weather hook
   setRainWetness: (wetness: number) => void;
+
+  /** Release all procedural PBR textures and allocated materials from GPU memory */
+  dispose: () => void;
 }
 
 export function createHueMaterialFoundry(): HueMaterialSet {
@@ -608,5 +611,41 @@ export function createHueMaterialFoundry(): HueMaterialSet {
     ochreVillagePlaster,
     bambooWoven,
     setRainWetness,
+    dispose: () => {
+      disposableTextures.forEach((tex) => tex.dispose());
+      disposableTextures.length = 0;
+
+      const allMats: (THREE.Material | undefined)[] = [
+        hueBrick,
+        hueLimeRose,
+        hueLimeWall,
+        phapLamJade,
+        phapLamCobalt,
+        ngoiTerracotta,
+        ngoiLuuLyGold,
+        ngoiLuuLyGreen,
+        goLimAged,
+        goLimLacquered,
+        sonSonThepVang,
+        daThanh,
+        daThanhStairs,
+        daHocMortar,
+        khaiDinhConcrete,
+        khaiDinhRelief,
+        khaiDinhDarkTrim,
+        porcelainMosaicWall,
+        porcelainMosaicWallWide,
+        porcelainMosaicBuuTan,
+        porcelainMosaicCeiling,
+        marbleTileFloor,
+        giltBronze,
+        antiqueBronzeBell,
+        eiffelSilverSteel,
+        eiffelWroughtIron,
+        ochreVillagePlaster,
+        bambooWoven,
+      ];
+      allMats.forEach((m) => m?.dispose());
+    },
   };
 }
