@@ -125,6 +125,168 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — Deep Resource Disposal & Background Tab Freeze Optimization
+
+- **Objective:** Deeply optimize memory and GPU VRAM disposal when exiting the 3D map (`/hue`, returning to main menu, or closing page) and freeze animation loops when tabbed out ("out web") to eliminate lingering browser/system lag:
+  1. Audit and resolve all memory leaks, unreleased WebGL render targets, and retained object graphs in `HueWorldEngine`.
+  2. Implement explicit `dispose()` methods across all Hue subsystems (`AtmosphereAndWaterSystem`, `HueParticleSystem`, `TerrainAndFloraResult`, `HueMaterialSet`, `disposeHueSurfaces`, `HueAmbientAudio`).
+  3. Purge the global `window.__HUE_DEBUG__` reference on disposal to break circular closure retention and enable JavaScript garbage collection.
+  4. Cancel all asynchronous landmark pre-warming timeouts on engine exit.
+  5. Add `visibilitychange` background detection to pause rendering and suspend audio when tabbed out or minimized, reducing background GPU/CPU utilization to zero.
+  6. Add `pagehide` and `beforeunload` cleanup guards in `HuePage.tsx` and release pointer lock in `usePlayerControls`.
+- **Completed work:**
+  - `HueSurface.ts`: Implemented `disposeHueSurfaces()` to release all procedural `PhotoSet` and ground DataTextures, clear caching Maps (`photoCache`, `groundCache`), and dispose the 64x64 HalfFloat `HUE_SHARED.hTerrainH` bake.
+  - `HueMaterialFoundry.ts`: Implemented `dispose()` in `createHueMaterialFoundry` to explicitly dispose all generated PBR textures in `disposableTextures` and all 28 allocated materials.
+  - `HueAtmosphereAndWater.ts`: Implemented `dispose()` in `createHueAtmosphereAndWater` to dispose `currentEnvRT` cubemap render target, `pmrem` PMREMGenerator, the dedicated `envScene` meshes, sky and water geometries/materials, and directional light shadow map.
+  - `HueParticles.ts`: Implemented `dispose()` to release `softSprite` DataTexture, point cloud geometries, and particle line materials.
+  - `HueTerrainAndFlora.ts`: Implemented `dispose()` in `buildHueTerrainAndFlora` to dispose `densTex` grass density DataTexture, instanced grass buffer geometry and material, and clear terrain groups.
+  - `HueAmbientAudio.ts`: Added `pause()` and `resume()` methods; retained and cleanly stopped `windSource` before closing the Web Audio context in `dispose()`.
+  - `CharacterArmsViewmodel.ts`: Implemented deep mesh traversal in `dispose()` to dispose cloned arm geometries and materials, stop all active animation actions, and uncache mixer roots.
+  - `usePlayerControls.ts`: Added pointer lock release safeguard on component unmount (`document.exitPointerLock?.()`).
+  - `HueWorldEngine.ts`:
+    - Tracked prewarm timer IDs in `prewarmTimerIds` and cancelled them all on disposal.
+    - Added `visibilitychange` event listener to stop `requestAnimationFrame` and suspend audio when hidden, and smoothly resume on visible without time jumps.
+    - Disposed all `landmarkChunks` (both visible and distance-culled groups) and cleared references.
+    - Deleted `window.__HUE_DEBUG__` to allow V8 GC to reclaim the engine instance.
+    - Called `renderer.dispose()` followed by `renderer.forceContextLoss()`.
+  - `HuePage.tsx`: Added `pagehide` and `beforeunload` event listeners to guarantee disposal on browser tab closure or navigation.
+- **Files created, modified or deleted:**
+  - Modified: `apps/game/src/features/hue/engine/materials/HueSurface.ts`
+  - Modified: `apps/game/src/features/hue/engine/materials/HueMaterialFoundry.ts`
+  - Modified: `apps/game/src/features/hue/engine/shaders/HueAtmosphereAndWater.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueParticles.ts`
+  - Modified: `apps/game/src/features/hue/engine/terrain/HueTerrainAndFlora.ts`
+  - Modified: `apps/game/src/features/hue/engine/audio/HueAmbientAudio.ts`
+  - Modified: `apps/game/src/features/player/runtime/CharacterArmsViewmodel.ts`
+  - Modified: `apps/game/src/features/player/usePlayerControls.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueWorldEngine.ts`
+  - Modified: `apps/game/src/features/hue/HuePage.tsx`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed, 0 errors across 3/3 workspace packages)
+  - `pnpm test` (passed, 12/12 test files, 109/109 tests passed)
+  - `pnpm build` (passed, production builds for landing, shared-types, and game completed cleanly)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** None.
+
+### 2026-11-11 — Restore Spatial Hash Raycast & Distinct Hit vs Miss Punch Audio
+
+- **Objective:** Restore the distinct punch audio logic (`hit_punch.mp3` with heavy impact gain on solid collision vs `miss_punch.mp3` whiff on air):
+  1. Bridge `HueCollisionSystem.raycast` into `HueWorldAdapter.raycastPunch` so punches in Huế immediately check against spatial hash colliders (pillars, walls, monuments, pavilions, trees).
+  2. Implement `raycastPunch` interface on `GameWorldAdapter` and fall back to scene root geometry raycasting in `<FirstPersonPlayer>` for UEH campus and TestMove street environments.
+  3. Ensure `CharacterRuntime` properly differentiates hit vs miss and triggers the respective Web Audio pre-decoded buffers and fallback HTML audio elements.
+- **Completed work:**
+  - `GameWorldAdapter.ts`: Added optional `raycastPunch(origin, direction, maxDistance): boolean` method to interface contract.
+  - `HueWorldAdapter.ts`: Implemented `raycastPunch` utilizing `this.collision.raycast(origin, direction, 2.5)` for instant zero-overhead spatial collider queries.
+  - `CharacterRuntime.ts`: Updated `performPunchRaycastAndAudio` to query `adapter.raycastPunch` first, falling back to scene root mesh raycasting when not provided, correctly resolving `hit` vs `miss`.
+  - `FirstPersonPlayer.tsx`: Wired `raycastPunch` and dynamic scene root `getInteractionTargets` fallback in `adapterProxy`.
+- **Files created, modified or deleted:**
+  - Modified: `apps/game/src/features/player/adapters/GameWorldAdapter.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueWorldAdapter.ts`
+  - Modified: `apps/game/src/features/player/runtime/CharacterRuntime.ts`
+  - Modified: `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (0 errors across 3/3 packages)
+  - `pnpm test` (109/109 tests passed)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** None.
+
+### 2026-11-11 — Fix Character Viewmodel Sprint-Punch Transition & R3F Scene Graph Parenting
+
+- **Objective:** Fix regressions across character viewmodel animations and R3F maps (`/hue`, `/ueh`, `/testmove`):
+  1. Fix sprint-punch animation lockup in Huế: clearing `currentLocomotion = null` on punch, blocking, inspecting, or interacting; fading out finished punches; and auto-resuming sprint locomotion when holding Shift + Move.
+  2. Fix camera scene parenting in `<FirstPersonPlayer>` by returning `<primitive object={camera} />` so Three.js renders first-person arms in R3F scenes.
+  3. Stabilize `<FirstPersonPlayer>` lifecycle via dynamic props ref forwarding, preventing rapid 120ms destroy-and-recreate cycles that locked player movement in UEH.
+  4. Correct standing eye level elevation in `SimpleBoundsAdapter` (`eyeHeight = 0` for `groundY` eye-level bounds), eliminating the ~1.85m floating camera offset in `/testmove` and `/ueh`.
+- **Completed work:**
+  - `CharacterArmsViewmodel.ts`: Cleared `currentLocomotion` upon punch execution, block start, inspect and interact. Added fade-out to `currentPunch` when punch timer expires. Updated sprint transition check to detect when `sprintAction` is not running, ensuring smooth resumption when running after strikes.
+  - `FirstPersonPlayer.tsx`: Replaced destructive prop dependency re-creation with dynamic `propsRef` and adapter proxy. Rendered `<primitive object={camera} />` to attach the camera and its child arms viewmodel into the R3F scene graph.
+  - `GameWorldAdapter.ts`: Set default `eyeHeight = 0` in `SimpleBoundsAdapter` to correctly treat `bounds.groundY` as the target camera standing elevation.
+  - `CharacterRuntime.ts`: Set camera quaternion from `spawnYaw` immediately during construction.
+- **Files created, modified or deleted:**
+  - Modified: `apps/game/src/features/player/runtime/CharacterArmsViewmodel.ts`
+  - Modified: `apps/game/src/features/player/runtime/CharacterRuntime.ts`
+  - Modified: `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - Modified: `apps/game/src/features/player/adapters/GameWorldAdapter.ts`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (0 errors across 3/3 packages)
+  - `pnpm test` (12 test suites, 109 tests passed)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** None.
+
+### 2026-11-11 — Shared Character Runtime Architecture & Map Environment Adapters Refactor
+
+- **Objective:** Refactor character rendering, animation, movement, and camera systems into an authoritative, reusable shared runtime across all game maps (`/hue`, `/ueh`, `/hochiminh`, `/testmove`, and future maps) adhering to the core architectural principle: "A character is a game-level entity, NOT a map-level implementation." Decouple map-specific geometry, walk heights, and collision queries through a clean `GameWorldAdapter` interface. Fix grass bleed in Thiên Mụ courtyard and verify all tests and builds.
+- **Completed work:**
+  1. **Duplication Audit & Architectural Plan:** Audited `/hue`, `/ueh`, `/testmove`, and `/hochiminh` identifying complete duplication of model loading, PBR material clones, AnimationMixer lifecycles, kinematics equations, mouse look, combat grace windows, and audio playback. Authored comprehensive duplication report in `character_runtime_audit.md`.
+  2. **Decoupled Architecture (`GameWorldAdapter.ts`):** Defined `GameWorldAdapter` and `MovementResolution` interfaces abstracting ground height queries, spatial collision resolution, boundary clamping, and interaction target queries. Implemented universal `SimpleBoundsAdapter` for flat, bounding-box, or radial environments.
+  3. **Shared Asset Cache & High-Performance Audio (`CharacterAssetCache.ts`, `CharacterAudio.ts`):** Extracted singleton asset cache preventing duplicate GLTF parsing and pre-decoding Web Audio buffers for punch impact and whiff sounds with zero playback latency.
+  4. **Authoritative First-Person Viewmodel (`CharacterArmsViewmodel.ts`):** Extracted shared 16-clip arms viewmodel with snappy raise, brisk natural tuck away, rapid 1-2 combo alternating punches with 120ms combat grace window, edge-triggered unequip transitions, and automatic bone matrix suspension when stowed.
+  5. **Unified Locomotion Kinematics (`CharacterRuntime.ts`):** Centralized mouse look with exponential smoothing, walk/sprint/block locomotion kinematics, slope tracking, step elevation, and collision delegation.
+  6. **Map Migration (`HueWorldAdapter.ts`, `HueWorldEngine.ts`, `FirstPersonPlayer.tsx`):**
+     - Implemented `HueWorldAdapter` bridging `HueWorldEngine` terrain queries and spatial collision system to `CharacterRuntime`.
+     - Replaced 172+ lines of duplicated locomotion equations in `HueWorldEngine.ts` with `CharacterRuntime`.
+     - Preserved backwards compatibility in `<FirstPersonPlayer>` for existing maps (`/ueh`, `/testmove`).
+     - Refined Chùa Thiên Mụ courtyard clearing boundary in `HueTerrainAndFlora.ts` to permanently prevent grass tufts from poking through stone pavers.
+- **Files created, modified or deleted:**
+  - Created: `apps/game/src/features/player/adapters/GameWorldAdapter.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterAssetCache.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterAudio.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterArmsViewmodel.ts`
+  - Created: `apps/game/src/features/player/runtime/CharacterRuntime.ts`
+  - Created: `apps/game/src/features/hue/engine/HueWorldAdapter.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueFirstPersonArms.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueWorldEngine.ts`
+  - Modified: `apps/game/src/features/hue/engine/terrain/HueTerrainAndFlora.ts`
+  - Modified: `apps/game/src/features/player/FirstPersonArms.tsx`
+  - Modified: `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - Modified: `apps/game/src/features/player/index.ts`
+  - Modified: `apps/game/src/features/hochiminh/types.ts`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (passed 3/3 packages)
+  - `pnpm test` (12 test suites, 109 tests passed)
+  - `pnpm build` (production bundles built cleanly)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None; conforms to `PLAYER_CONTROLLER_SPEC.md` and `OVERVIEW.md`.
+- **Follow-up tasks:** Integrate first-person street walk toggle in Ho Chi Minh map UI (`/hochiminh`).
+
+### 2026-11-11 — Huế World Visual Restoration & Zero-Hitch Landmark Streaming
+
+- **Objective:** Fix visual regressions from aggressive previous optimization pass (restore original 5-layer height-blended anti-tiling terrain shader, 256 ground texture maps, 512 architectural PBR textures, lush 280-pine forest density, 28,000 grass tufts with 5 blades/tuft) while strictly eliminating grass sprouting through stone courtyards, and resolve the one-time chunk entry stutter via WebGL2 asynchronous parallel shader compilation (`compileAsync`) and distance hysteresis.
+- **Completed work:**
+  1. **High-Definition Procedural Material Restoration (`HueSurface.ts` & `HueMaterialFoundry.ts`):** Restored procedural photographic synthesis resolution from 64 to 256 for `photoSet` (brick, stone, plaster, tile, wood, gravel, pinebark) and 128 to 256 for `groundSet` (grass, laterite, path, mud, forest). Restored procedural PBR maps to 512 for Khải Định limestone dragon relief, porcelain mosaic shards, and colonial-imperial checkered marble floors, restoring rich jewel tones and architectural relief.
+  2. **Height-Blended Anti-Tile Terrain Splatting (`HueTerrainAndFlora.ts`):** Restored high-density $256 \times 256$ terrain plane geometry. Restored dual-tap `antiTile` sampling to eliminate visible texture repetition across distant fields, multi-octave noise blend boundary deformation (`hFbm`), luminance-weighted height-blending (`s0-ma`), and macro hue drift (`dry` straw vs damp lush green grass) with rain wetness darkening.
+  3. **Lush Vegetation & Strict Courtyard Grass Suppression (`HueTerrainAndFlora.ts`):**
+     - Restored pine forest density up to 280 trees across Ngự Bình and hill slopes.
+     - Restored riverside broadleaf and phượng trees to 75.
+     - Restored 1,000 wild riverbank reeds and cogon-grass tufts.
+     - Upgraded traveling GPU grass field to 28,000 tufts with 5 curved blades per tuft (cross-star structure) and a $256 \times 256$ density map.
+     - Fixed grass leaking into courtyards: strictly suppressed grass generation in architectural zones (`isBuiltUp` and `isClearedForArchitecture`), completely stopping blades from poking through stone-tiled terraces of Chùa Thiên Mụ and monuments.
+  4. **Zero-Hitch Staged Landmark Streaming (`HueWorldEngine.ts`):**
+     - Solved the synchronous shader compilation freeze when crossing landmark chunk boundaries. Added `preloadDist` ($140\text{m}$ beyond stream radius) and asynchronous background shader pre-warming using `renderer.compileAsync(chunk.group, camera, scene)` via WebGL2 `KHR_parallel_shader_compile`.
+     - Added distance hysteresis ($50\text{m}$ gap between appear and disappear radii) to eliminate visual stutter and boundary thrashing.
+     - Implemented staggered startup pre-warming queue across all 6 landmark complexes during initial idle frames, priming GPU driver caches before the player begins walking.
+     - Locked minimum adaptive pixel ratio to $1.0$ to prevent canvas blurriness.
+- **Files created/modified:**
+  - `apps/game/src/features/hue/engine/materials/HueSurface.ts` (Restored 256x256 photoSet and groundSet resolution)
+  - `apps/game/src/features/hue/engine/materials/HueMaterialFoundry.ts` (Restored 512x512 mosaic, relief, and marble maps)
+  - `apps/game/src/features/hue/engine/terrain/HueTerrainAndFlora.ts` (256 terrain segments, antiTile height-blend shader, 28k grass tufts, courtyard suppression, 280 pines, 75 trees)
+  - `apps/game/src/features/hue/engine/HueWorldEngine.ts` (Predictive compileAsync pre-warming, distance hysteresis, staggered startup pre-compilation, min 1.0 pixel ratio)
+  - `docs/PROJECT_PROGRESS.md` (Updated task history)
+- **Validation commands executed:**
+  - `pnpm typecheck` passed (3/3 packages clean).
+  - `pnpm test` passed (12 test files, 109/109 tests passed).
+  - `pnpm build` passed (apps/landing, packages/shared-types, apps/game production build clean).
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None. Rapier was not installed.
+- **Follow-up tasks:** None.
+
 ### 2026-11-11 — Brisk Punch Recovery & Viewmodel Stow Speed Optimization
 
 - **Objective:** Fix punch animation keeping arms raised on screen for too long ("Đấm xong phải thả tay xuống sau khoảng ngắn thôi, giờ thả lâu quá"), shortening the combat readiness grace window and accelerating arm stow-down speed.
@@ -214,6 +376,52 @@ Resolved:
 - **Unresolved issues and known limitations:** None.
 - **Deviations from documented architecture:** None.
 - **Follow-up tasks:** Connect in-game smartphone triggers.
+
+### 2026-11-11 — Huế World Performance Engineering & Complete Physical Collision System
+
+- **Objective:** Deeply optimize runtime performance of the procedural 3D Huế world without visual degradation (preserving rich architectural silhouettes, high-res procedural textures, 3,800 grass instances, atmospheric water/sky) and implement a complete, zero-overhead physical collision system (Rapier-free) preventing the player from passing through solid environmental objects while keeping doors, gates, stairs, and bridges traversable.
+- **Completed work:**
+  1. **Analytical 2D/3D Spatial Hash Grid Collision Engine (`HueCollisionSystem.ts`):**
+     - Developed a lightweight, zero-dependency spatial grid with $16\text{m} \times 16\text{m}$ cell buckets for $O(1)$ collision lookups.
+     - Implemented analytical cylinder, axis-aligned bounding box (AABB), and oriented bounding box (OBB) primitives.
+     - Implemented continuous velocity tangent projection for silky-smooth wall sliding along complex architectural surfaces.
+     - Added step-up logic: obstacles with height $\le 0.45\text{m}$ (stairs, stone curbs, thresholds) allow horizontal passage, while taller obstacles firmly block movement.
+     - Added direction-aware entry side resolution to completely prevent tunneling through thin balustrades or pushing the player to the wrong side of walls.
+  2. **Comprehensive Environmental Architectural Colliders (`HueWorldColliders.ts`):**
+     - **Chùa Thiên Mụ:** Solid octagonal core of Tháp Phước Duyên ($r = 4.8\text{m}, h = 22.3\text{m}$), 4 Trụ Biểu pillars, Tam Quan wing walls (central stair portal OPEN), Đồi Hà Khê cliff balustrades (central staircase OPEN), Đình Hương Nguyện 8 timber columns, 2 Stele Pavilions, Đại Hồng Chung bell pavilion columns & 2-ton bell, Rùa Đá pavilion columns & imperial stele, inner sanctuary perimeter walls (central gateway OPEN), and Điện Đại Hùng main sanctuary hall & front portico columns.
+     - **Lăng Khải Định:** Forecourt gate 4 pillars, Court of Honor stone mandarins, elephants, horses, octagonal stele pavilion & imperial stele, flanking Trụ Biểu obelisks, Cung Thiên Định exterior walls with open entrance portal for interior exploration, side walls, rear wall, royal altar platform & bronze statue enclosure.
+     - **Lăng Tự Đức:** Xung Khiêm Tạ overwater pavilion perimeter balustrades (preserving shore entrance & boat stairway openings), 15 timber colonnade columns.
+     - **Cầu Trường Tiền:** Lateral steel truss balustrades along $x = 195 \pm 4.35\text{m}$ preventing falling into the river while allowing free passage along the 132m deck.
+     - **Cầu Ngói Thanh Toàn:** North & South wooden railings, central altar alcove.
+     - **Nhà Vườn Kim Long & Đồi Vọng Cảnh:** Nhà Rường house body & porch columns, dragon screen wall, stone well, scenic lookout stone benches.
+     - **Major Tree Trunks:** Solid cylinder colliders for procedural pine, frangipani, and broadleaf tree trunks throughout the world.
+  3. **Animation Loop GC Allocation Elimination (`HueWorldEngine.ts`):**
+     - Pre-allocated reusable static math objects (`_upAxis`, `_forward`, `_right`, `_wishDir`, `_moveVec`, `_camEuler`), eliminating hundreds of per-frame object allocations in mouse look, flight, and locomotion loops.
+  4. **Zero-Overhead Melee Raycasting (`HueWorldEngine.ts`):**
+     - Replaced recursive `this.raycaster.intersectObjects(this.scene.children, true)` traversal across thousands of scene nodes with an instant analytical raycast against nearby spatial grid colliders.
+  5. **Distance-Throttled Incense Smoke Particle Simulation (`HueParticles.ts`):**
+     - Added distance gating to skip CPU position updates and GPU buffer uploads (`sAttr.needsUpdate = true`) when the player is $> 65\text{m}$ away from all incense burners.
+  6. **Developer Collision Wireframe Visualizer (`HueCollisionSystem.ts`, `HueHUD.tsx`):**
+     - Added dynamic wireframe generator for active colliders, toggled with the `F3` key or via the HUD controls guide.
+  7. **Automated Unit Tests (`HueCollisionSystem.test.ts`):**
+     - Added 6 Vitest tests verifying spatial cell hashing, cylinder-cylinder penetration, AABB wall sliding, step-up height allowance, melee raycasting accuracy, and open doorway traversability across landmarks.
+- **Files created:**
+  - `apps/game/src/features/hue/engine/collision/HueCollisionSystem.ts`
+  - `apps/game/src/features/hue/engine/collision/HueWorldColliders.ts`
+  - `apps/game/src/features/hue/engine/collision/HueCollisionSystem.test.ts`
+- **Files modified:**
+  - `apps/game/src/features/hue/engine/HueWorldEngine.ts`
+  - `apps/game/src/features/hue/engine/HueParticles.ts`
+  - `apps/game/src/features/hue/components/HueHUD.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (All 3 workspace packages clean, 0 errors)
+  - `pnpm test` (12 test files passed, 109/109 tests passed)
+  - `pnpm build` (Production build succeeded across landing, shared-types, and game)
+- **Build and test results:** 109/109 unit tests passed; typecheck and production build succeeded.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None. Rapier was kept uninstalled as PROPOSED; custom lightweight spatial hash grid provided superior CPU/GPU efficiency.
+- **Follow-up tasks:** Continue integrating narrative scenario clues and interactive inspection points.
 
 ### 2026-11-11 — Huế Loading & Runtime Performance Overhaul (Infinite Re-render Fix, Procedural Shader Decimation & Ground Collision)
 

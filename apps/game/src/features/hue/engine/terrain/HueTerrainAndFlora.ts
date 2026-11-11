@@ -27,6 +27,7 @@ export interface TerrainAndFloraResult {
   updateWind: (elapsed: number) => void;
   setRainWetness: (wetness: number) => void;
   updateCamera: (camPos: THREE.Vector3) => void;
+  dispose: () => void;
 }
 
 function fract(v: number) {
@@ -48,7 +49,7 @@ function isClearedForArchitecture(x: number, z: number): boolean {
   if (Math.abs(z - getRiverCenterZ(x)) < getRiverHalfWidth(x) + 4.0) return true;
   if (z > getRiverCenterZ(x) + 10 && Math.abs(x - getCanalCenterX(z)) < getCanalHalfWidth() + 3.8) return true;
   if (getPathFactor(x, z) > 0.22) return true;
-  if (x > -245 && x < -175 && z > -162 && z < -40) return true;
+  if (x > -250 && x < -165 && z > -168 && z < -35) return true;
   if (x > -66 && x < -24 && z > -126 && z < -90) return true;
   if (Math.abs(x - 195) < 17 && Math.abs(z) < 92) return true;
   if (x > 228 && x < 294 && z > 188 && z < 240) return true;
@@ -396,9 +397,9 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   root.name = 'HueTerrainAndFlora';
 
   // -------------------------------------------------------------------------
-  // 1. Terrain with 5-layer photo-scanned splat shader (optimized 96 grid)
+  // 1. Terrain with 5-layer photo-scanned splat shader (high-definition 256 grid)
   // -------------------------------------------------------------------------
-  const segs = 96;
+  const segs = 256;
   const geo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, segs, segs);
   geo.rotateX(-Math.PI * 0.5);
   const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -433,33 +434,45 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
         varying vec4 vSplat; varying vec3 vTW; varying vec3 vTN;
         uniform sampler2D gC0,gC1,gC2,gC3,gC4,gN0,gN1,gN2,gN3,gN4;
         uniform sampler2D hTerrainH; uniform vec4 hTerrainRect; uniform float hWetness; uniform float hTime;
-        ${HUE_NOISE_GLSL}`,
+        ${HUE_NOISE_GLSL}
+        vec4 antiTile(sampler2D t, vec2 uv){
+          vec4 a = texture2D(t, uv);
+          vec4 b = texture2D(t, uv*0.29 + vec2(0.37,0.71));
+          float m = hNoise(uv*0.21);
+          return mix(a, b, smoothstep(0.35,0.65,m)*0.55);
+        }`,
       )
       .replace(
         '#include <map_fragment>',
         `
         vec2 wxz = vTW.xz;
-        vec4 c0 = texture2D(gC0, wxz/2.4);
-        vec4 c1 = texture2D(gC1, wxz/3.2);
+        vec4 c0 = antiTile(gC0, wxz/2.4);
+        vec4 c1 = antiTile(gC1, wxz/3.2);
         vec4 c2 = texture2D(gC2, wxz/2.6);
         vec4 c3 = texture2D(gC3, wxz/3.0);
         vec4 c4 = texture2D(gC4, wxz/2.8);
         float wl = clamp(vSplat.x,0.0,1.0), wp = clamp(vSplat.y,0.0,1.0), wm = clamp(vSplat.z,0.0,1.0), wf = clamp(vSplat.w,0.0,1.0);
         float wg = max(0.0, 1.0 - wl - wp - wm - wf);
-        float total = wg + wl + wp + wm + wf + 1e-4;
-        float b0 = wg / total;
-        float b1 = wl / total;
-        float b2 = wp / total;
-        float b3 = wm / total;
-        float b4 = wf / total;
-
-        vec3 alb = c0.rgb*b0 + c1.rgb*b1 + c2.rgb*b2 + c3.rgb*b3 + c4.rgb*b4;
-        // Crisp micro-detail so close-up ground never looks blurry or muddy
-        float microDetail = hNoise(wxz * 12.0) * 0.12 - 0.06;
-        alb += microDetail * b0;
+        // break blend boundaries with noise, then height-blend (luminance as height proxy)
+        float bn = hFbm(wxz*0.35)-0.5;
+        wl = max(wl + bn*0.35*wl*(1.0-wl)*4.0, 0.0);
+        float h0 = dot(c0.rgb, vec3(0.33)), h1 = dot(c1.rgb, vec3(0.33)), h2 = dot(c2.rgb, vec3(0.33)), h3 = dot(c3.rgb,vec3(0.33)), h4 = dot(c4.rgb,vec3(0.33));
+        float s0 = wg + h0*0.5, s1 = wl + h1*0.5, s2 = wp + h2*0.5, s3 = wm + h3*0.5, s4 = wf + h4*0.5;
+        float ma = max(max(max(s0,s1),max(s2,s3)),s4) - 0.18;
+        float b0 = max(s0-ma,0.0)*step(0.001,wg), b1 = max(s1-ma,0.0)*step(0.001,wl), b2 = max(s2-ma,0.0)*step(0.001,wp), b3 = max(s3-ma,0.0)*step(0.001,wm), b4 = max(s4-ma,0.0)*step(0.001,wf);
+        float bs = max(b0+b1+b2+b3+b4, 1e-4);
+        b0/=bs; b1/=bs; b2/=bs; b3/=bs; b4/=bs;
+        vec3 galb = c0.rgb;
+        // macro hue drift: sun-scorched straw patches vs lush damp grass
+        float dry = smoothstep(0.4, 0.75, hFbm(wxz*0.012 + 3.7));
+        galb *= vec3(0.78, 1.0, 0.55);
+        galb = mix(galb, galb*vec3(1.2,1.08,0.8), dry*0.3);
+        galb *= 0.85 + 0.3*hFbm(wxz*0.05);
+        vec3 alb = galb*b0 + c1.rgb*b1 + c2.rgb*b2 + c3.rgb*b3 + c4.rgb*b4;
+        // waterline darkening & rain
         float wetBank = 1.0 - smoothstep(0.1, 1.2, vTW.y);
         float wet = clamp(max(wetBank*0.9, hWetness*0.8), 0.0, 1.0);
-        alb *= mix(1.0, 0.65, wet);
+        alb *= mix(1.0, 0.58, wet);
         diffuseColor.rgb *= alb;
         float tRough = 0.95*b0 + 0.9*b1 + 0.85*b2 + 0.7*b3 + 0.92*b4;
         `,
@@ -575,9 +588,9 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
     });
   };
 
-  // Thông Huế (optimized density)
+  // Thông Huế (restored lush density across Ngự Bình & hill slopes)
   const pines: { x: number; z: number; s: number; rot: number }[] = [];
-  for (let i = 0; i < 400 && pines.length < 80; i++) {
+  for (let i = 0; i < 800 && pines.length < 280; i++) {
     const x = (rand(i, 1) - 0.5) * 840;
     const z = (rand(i, 2) - 0.5) * 840;
     if (isClearedForArchitecture(x, z)) continue;
@@ -599,8 +612,8 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   // Riverside broadleaf & flamboyant (phượng) trees
   const broad: { x: number; z: number; s: number; rot: number }[] = [];
   const phuong: { x: number; z: number; s: number; rot: number }[] = [];
-  for (let i = 0; i < 120 && broad.length + phuong.length < 40; i++) {
-    const x = -285 + (i / 120) * 590 + (rand(i, 12) - 0.5) * 16;
+  for (let i = 0; i < 200 && broad.length + phuong.length < 75; i++) {
+    const x = -285 + (i / 200) * 590 + (rand(i, 12) - 0.5) * 16;
     const side = i % 2 === 0 ? -1 : 1;
     const z = getRiverCenterZ(x) + side * (getRiverHalfWidth(x) + 8 + rand(i, 13) * 18);
     if (isClearedForArchitecture(x, z)) continue;
@@ -609,8 +622,8 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
     if (Math.abs(x - 195) < 105 && i % 3 === 0) phuong.push(t);
     else broad.push(t);
   }
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
+  for (let i = 0; i < 18; i++) {
+    const a = (i / 18) * Math.PI * 2;
     const lx = -72 + Math.cos(a) * 52;
     const lz = 175 + Math.sin(a) * 34;
     if (!isClearedForArchitecture(lx, lz)) broad.push({ x: lx, z: lz, s: 0.95, rot: a });
@@ -637,7 +650,7 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   const reedM: THREE.Matrix4[] = [];
   const rm = new THREE.Matrix4();
   const rq = new THREE.Quaternion();
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 400; i++) {
     const x = (rand(i, 21) - 0.5) * 680;
     const side = i % 2 === 0 ? 1 : -1;
     const z = getRiverCenterZ(x) + side * (getRiverHalfWidth(x) - 1.5 + rand(i, 22) * 5.2);
@@ -649,7 +662,7 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
     rq.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand(i, 23) * Math.PI * 2);
     reedM.push(rm.compose(new THREE.Vector3(x, y - 0.1, z), rq, new THREE.Vector3(sc, sc, sc)).clone());
   }
-  for (let i = 0; i < 250; i++) {
+  for (let i = 0; i < 600; i++) {
     const x = (rand(i, 41) - 0.5) * 640;
     const z = (rand(i, 42) - 0.5) * 700;
     if (isClearedForArchitecture(x, z) || isBuiltUp(x, z)) continue;
@@ -670,7 +683,7 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   // -------------------------------------------------------------------------
   // 5. GPU grass field that travels with the visitor (real blades underfoot)
   // -------------------------------------------------------------------------
-  const DRES = 64;
+  const DRES = 256;
   const dens = new Uint8Array(DRES * DRES * 4);
   const half = WORLD_SIZE * 0.5;
   for (let j = 0; j < DRES; j++) {
@@ -680,7 +693,8 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
       if (Math.abs(x) > 420 || Math.abs(z) > 420) continue;
       const w = groundWeights(x, z);
       let d = w.grass * 1.0 + w.lat * 0.25 + w.forest * 0.3;
-      if (w.y < 0.5 || isBuiltUp(x, z)) d = 0;
+      // Absolute suppression in courtyards, terraces, architectural zones & paved paths
+      if (w.y < 0.5 || isBuiltUp(x, z) || isClearedForArchitecture(x, z)) d = 0;
       d *= 1 - smoothstep(0.05, 0.3, getPathFactor(x, z));
       dens[(j * DRES + i) * 4] = Math.round(Math.min(1, d) * 255);
       dens[(j * DRES + i) * 4 + 3] = 255;
@@ -691,7 +705,7 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   densTex.minFilter = THREE.LinearFilter;
   densTex.needsUpdate = true;
 
-  const BLADES = 2;
+  const BLADES = 5;
   const bPos: number[] = [];
   const bT: number[] = [];
   const bIdx: number[] = [];
@@ -725,8 +739,8 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   grassGeo.setAttribute('normal', new THREE.Float32BufferAttribute(new Array(bPos.length).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
   grassGeo.setAttribute('aT', new THREE.Float32BufferAttribute(bT, 1));
   grassGeo.setIndex(bIdx);
-  const GR = 28;
-  const COUNT = 3800;
+  const GR = 26;
+  const COUNT = 28000;
   const offs = new Float32Array(COUNT * 3);
   for (let i = 0; i < COUNT; i++) {
     offs[i * 3] = (br() - 0.5) * GR * 2;
@@ -803,5 +817,23 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
     grass.visible = camPos.y - getTerrainHeight(camPos.x, camPos.z) < 40;
   };
 
-  return { group: root, updateWind, setRainWetness, updateCamera };
+  const dispose = () => {
+    densTex.dispose();
+    grassGeo.dispose();
+    grassMat.dispose();
+    root.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const m = obj as THREE.Mesh;
+        m.geometry?.dispose();
+        if (Array.isArray(m.material)) {
+          m.material.forEach((mat) => mat.dispose());
+        } else {
+          m.material?.dispose();
+        }
+      }
+    });
+    root.clear();
+  };
+
+  return { group: root, updateWind, setRainWetness, updateCamera, dispose };
 }

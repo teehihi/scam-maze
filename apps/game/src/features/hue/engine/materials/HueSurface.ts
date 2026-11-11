@@ -208,7 +208,7 @@ export function photoSet(key: PhotoKey): PhotoSet {
   if (cached) return cached;
 
   let set: PhotoSet;
-  const size = 64;
+  const size = 256;
 
   switch (key) {
     case 'brick': {
@@ -376,7 +376,7 @@ export function groundSet(key: GroundKey): { color: THREE.Texture; normal: THREE
   if (cached) return cached;
 
   let set: { color: THREE.Texture; normal: THREE.Texture };
-  const size = 128;
+  const size = 256;
 
   switch (key) {
     case 'grass': {
@@ -490,6 +490,27 @@ export const HUE_SHARED = {
 
 export function ensureSharedBakes() {
   if (!HUE_SHARED.hTerrainH.value) HUE_SHARED.hTerrainH.value = bakeTerrainHeightTexture();
+}
+
+/** Explicitly purges all cached procedural PBR DataTextures and shared terrain bakes from memory. */
+export function disposeHueSurfaces() {
+  photoCache.forEach((set) => {
+    set.color.dispose();
+    set.normal.dispose();
+    set.arm.dispose();
+  });
+  photoCache.clear();
+
+  groundCache.forEach((set) => {
+    set.color.dispose();
+    set.normal.dispose();
+  });
+  groundCache.clear();
+
+  if (HUE_SHARED.hTerrainH.value) {
+    HUE_SHARED.hTerrainH.value.dispose();
+    HUE_SHARED.hTerrainH.value = null;
+  }
 }
 
 /** True where architecture/platforms sit above natural ground (used to keep grass out of buildings). */

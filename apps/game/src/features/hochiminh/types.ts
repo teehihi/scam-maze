@@ -114,4 +114,12 @@ export const HCM_VIEW_PRESETS: ViewPreset[] = [
     position: [22.0, 7.5, 2.0],
     target: [8.0, 1.8, 2.0],
   },
+  {
+    id: "street-walk",
+    label: "Đi Bộ Dạo Phố",
+    shortLabel: "Đi Bộ",
+    description: "Góc nhìn thứ nhất (First-Person) đi bộ dạo phố Sài Gòn với nhân vật dùng chung",
+    position: [0, 1.85, 10],
+    target: [0, 1.85, 0],
+  },
 ];

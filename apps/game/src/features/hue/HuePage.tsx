@@ -70,7 +70,15 @@ export const HuePage: React.FC<HuePageProps> = ({
     });
     engineRef.current = engine;
 
+    const handleUnload = () => {
+      engine.dispose();
+    };
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('beforeunload', handleUnload);
+
     return () => {
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('beforeunload', handleUnload);
       if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
       engine.dispose();
       engineRef.current = null;

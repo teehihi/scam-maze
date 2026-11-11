@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { setMaxAnisotropy } from './materials/HueSurface';
+import { setMaxAnisotropy, disposeHueSurfaces } from './materials/HueSurface';
 import {
   ATMOSPHERE_PRESETS,
   getWalkableHeight,
@@ -13,7 +13,9 @@ import type {
 import { createHueMaterialFoundry } from './materials/HueMaterialFoundry';
 import type { HueMaterialSet } from './materials/HueMaterialFoundry';
 import { buildHueTerrainAndFlora } from './terrain/HueTerrainAndFlora';
+import type { TerrainAndFloraResult } from './terrain/HueTerrainAndFlora';
 import { createHueAtmosphereAndWater } from './shaders/HueAtmosphereAndWater';
+import type { AtmosphereAndWaterSystem } from './shaders/HueAtmosphereAndWater';
 import { buildThienMuComplex } from '../world/monuments/buildThienMuComplex';
 import { buildKhaiDinhTomb } from '../world/monuments/buildKhaiDinhTomb';
 import { buildTuDucLakeComplex } from '../world/monuments/buildTuDucLakeComplex';
@@ -22,9 +24,12 @@ import { buildThanhToanAndVillage } from '../world/monuments/buildThanhToanAndVi
 import { buildKimLongGardenAndBoats } from '../world/monuments/buildKimLongGardenAndBoats';
 import type { LanternHandle } from '../world/monuments/hueArchitecturalHelpers';
 import { createHueParticles } from './HueParticles';
+import type { HueParticleSystem } from './HueParticles';
 import { HueAmbientAudio } from './audio/HueAmbientAudio';
-import { HueFirstPersonArms } from './HueFirstPersonArms';
-import type { PlayerControlsState } from '../../player';
+import { CharacterRuntime, type PlayerControlsState } from '../../player';
+import { HueWorldAdapter } from './HueWorldAdapter';
+import { HueCollisionSystem } from './collision/HueCollisionSystem';
+import { populateHueWorldColliders } from './collision/HueWorldColliders';
 
 export type MovementMode = 'walk' | 'fly' | 'boat';
 
@@ -61,6 +66,10 @@ interface LandmarkChunk {
   group: THREE.Group;
   center: THREE.Vector3;
   streamDist: number;
+  preloadDist: number;
+  hysteresisDist: number;
+  isWarmed: boolean;
+  isWarming: boolean;
   lanterns: LanternHandle[];
   interiorLights?: THREE.PointLight[];
 }
@@ -75,7 +84,7 @@ export class HueWorldEngine {
 
   private mats: HueMaterialSet;
   private audio = new HueAmbientAudio();
-  private arms: HueFirstPersonArms;
+  private character!: CharacterRuntime;
   private callbacks: EngineCallbacks;
 
   private landmarkChunks: LandmarkChunk[] = [];
@@ -103,6 +112,12 @@ export class HueWorldEngine {
   private setRainIntensity!: (r: number) => void;
   private leadBoatGroup!: THREE.Group;
 
+  // Subsystems tracked for explicit zero-leak disposal
+  private atmos!: AtmosphereAndWaterSystem;
+  private terrain!: TerrainAndFloraResult;
+  private particles!: HueParticleSystem;
+  private prewarmTimerIds: number[] = [];
+
   private currentAtmos: AtmosphereId = 'morning';
   private mode: MovementMode = 'walk';
   private introActive = false;
@@ -117,17 +132,10 @@ export class HueWorldEngine {
   private frameCount = 0;
   private qualityTimer = 0;
 
-  // Player / Camera state
-  private yaw = 0;
-  private pitch = 0.08;
-  private targetYaw = 0;
-  private targetPitch = 0.08;
-  private velocity = new THREE.Vector3();
-  private onGround = true;
-  private lastStatsTime = 0;
+  // Physical collision system with spatial hash grid
+  private collision = new HueCollisionSystem();
 
-  // Melee combat raycaster
-  private raycaster = new THREE.Raycaster();
+  // Melee combat aim direction
   private aimDir = new THREE.Vector3();
 
   // Smooth camera transition glide
@@ -194,17 +202,16 @@ export class HueWorldEngine {
 
     // 3. Materials, Sky, Water, Terrain & All Huế Heritage Landmarks
     this.mats = createHueMaterialFoundry();
-    this.arms = new HueFirstPersonArms(this.camera);
 
-    const atmos = createHueAtmosphereAndWater(this.scene);
-    this.updateAtmos = atmos.update;
-    this.applyAtmosPreset = atmos.applyAtmosphere;
+    this.atmos = createHueAtmosphereAndWater(this.scene);
+    this.updateAtmos = this.atmos.update;
+    this.applyAtmosPreset = this.atmos.applyAtmosphere;
 
-    const terrain = buildHueTerrainAndFlora();
-    this.scene.add(terrain.group);
-    this.updateWind = terrain.updateWind;
-    this.setTerrainWetness = terrain.setRainWetness;
-    this.updateTerrainCamera = terrain.updateCamera;
+    this.terrain = buildHueTerrainAndFlora();
+    this.scene.add(this.terrain.group);
+    this.updateWind = this.terrain.updateWind;
+    this.setTerrainWetness = this.terrain.setRainWetness;
+    this.updateTerrainCamera = this.terrain.updateCamera;
 
     const thienMu = buildThienMuComplex(this.mats);
     this.scene.add(thienMu.group);
@@ -245,6 +252,10 @@ export class HueWorldEngine {
         group: thienMu.group,
         center: new THREE.Vector3(-210, 9.5, -100),
         streamDist: 340,
+        preloadDist: 480,
+        hysteresisDist: 390,
+        isWarmed: false,
+        isWarming: false,
         lanterns: thienMu.lanterns,
       },
       {
@@ -253,6 +264,10 @@ export class HueWorldEngine {
         group: khaiDinh.group,
         center: new THREE.Vector3(40, 16, 310),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: khaiDinh.lanterns,
         interiorLights: khaiDinh.interiorLights,
       },
@@ -262,6 +277,10 @@ export class HueWorldEngine {
         group: tuDuc.group,
         center: new THREE.Vector3(-68, 5.4, 170),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: tuDuc.lanterns,
       },
       {
@@ -270,6 +289,10 @@ export class HueWorldEngine {
         group: trangTien.group,
         center: new THREE.Vector3(195, 8.2, 0),
         streamDist: 320,
+        preloadDist: 460,
+        hysteresisDist: 370,
+        isWarmed: false,
+        isWarming: false,
         lanterns: trangTien.lanterns,
       },
       {
@@ -278,6 +301,10 @@ export class HueWorldEngine {
         group: thanhToan.group,
         center: new THREE.Vector3(258, 4.5, 215),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: thanhToan.lanterns,
       },
       {
@@ -286,22 +313,62 @@ export class HueWorldEngine {
         group: kimLong.group,
         center: new THREE.Vector3(-120, 3.2, -35),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: kimLong.lanterns,
       },
     ];
     this.updateStreamingChunks();
 
+    // Staggered zero-hitch background shader pre-warming across all chunks (tracked for clean disposal)
+    this.landmarkChunks.forEach((chunk, index) => {
+      const id = window.setTimeout(() => {
+        if (!this.disposed) {
+          this.prewarmChunk(chunk);
+        }
+      }, 300 + index * 250);
+      this.prewarmTimerIds.push(id);
+    });
+
     // Atmospheric Particles (incense smoke + sunbeam dust motes + Mưa Bụi)
-    const particles = createHueParticles([
+    this.particles = createHueParticles([
       khaiDinh.incenseOrigin,
       new THREE.Vector3(-210, 11.4, -145), // Điện Đại Hùng incense
       new THREE.Vector3(260, 4.6, 213.5), // Cầu Ngói altar incense
     ]);
-    this.scene.add(particles.group);
-    this.updateParticles = particles.update;
-    this.setRainIntensity = particles.setRainIntensity;
+    this.scene.add(this.particles.group);
+    this.updateParticles = this.particles.update;
+    this.setRainIntensity = this.particles.setRainIntensity;
 
     // 4. Initial Atmosphere & Scenic Opening Position at Chùa Thiên Mụ Courtyard looking at Tháp Phước Duyên
+    populateHueWorldColliders(this.collision);
+    const adapter = new HueWorldAdapter(this.collision);
+    this.character = new CharacterRuntime({
+      camera: this.camera,
+      adapter,
+      controls: {
+        keysRef: this.controls.keysRef as unknown as { current: PlayerControlsState },
+        consumeMovement: this.controls.consumeMovement,
+        consumePunchTrigger: this.controls.consumePunchTrigger,
+        consumeInspectTrigger: this.controls.consumeInspectTrigger,
+        consumeInteractTrigger: this.controls.consumeInteractTrigger,
+      },
+      onPunchStrike: () => {
+        this.camera.getWorldDirection(this.aimDir);
+        this.collision.raycast(this.camera.position, this.aimDir, 2.5);
+      },
+      onInteract: () => {
+        if (this.wasNearBell) {
+          this.ringTempleBell();
+        }
+      },
+      onStatsUpdate: (stats) => {
+        this.callbacks.onStatsUpdate?.(stats);
+      },
+    });
+
     this.setAtmosphere('morning');
     this.setCameraPose(
       new THREE.Vector3(-210, 6.05, -52),
@@ -315,14 +382,7 @@ export class HueWorldEngine {
   }
 
   private setCameraPose(pos: THREE.Vector3, lookTarget: THREE.Vector3) {
-    this.camera.position.copy(pos);
-    this.camera.lookAt(lookTarget);
-    const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');
-    this.yaw = euler.y;
-    this.pitch = euler.x;
-    this.targetYaw = euler.y;
-    this.targetPitch = euler.x;
-    this.velocity.set(0, 0, 0);
+    this.character.setCameraPose(pos, lookTarget);
     this.updateStreamingChunks();
   }
 
@@ -362,7 +422,8 @@ export class HueWorldEngine {
     this.mode = nextMode;
     this.introActive = false;
     this.tween.active = false;
-    this.velocity.set(0, 0, 0);
+    this.character.setFlyMode(nextMode === 'fly');
+    this.character.velocity.set(0, 0, 0);
     this.updateStreamingChunks();
     if (nextMode === 'walk') {
       const groundY = getWalkableHeight(this.camera.position.x, this.camera.position.z);
@@ -400,7 +461,7 @@ export class HueWorldEngine {
     this.tween.toPos.copy(toPos);
     this.tween.fromQuat.copy(this.camera.quaternion);
     this.tween.toQuat.copy(dummyCam.quaternion);
-    this.velocity.set(0, 0, 0);
+    this.character.velocity.set(0, 0, 0);
     this.updateStreamingChunks();
   }
 
@@ -420,24 +481,15 @@ export class HueWorldEngine {
   }
 
   public triggerPunch() {
-    this.camera.getWorldDirection(this.aimDir);
-    this.raycaster.set(this.camera.position, this.aimDir);
-    this.raycaster.near = 0.1;
-    this.raycaster.far = 2.5;
+    this.character.triggerPunch();
+  }
 
-    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
-    const hit = intersects.find((i) => {
-      let parent: THREE.Object3D | null = i.object;
-      while (parent) {
-        if (parent === this.camera || parent.name === 'HueFirstPersonArms' || !parent.visible) {
-          return false;
-        }
-        parent = parent.parent;
-      }
-      return true;
-    });
+  public toggleCollisionDebug(): boolean {
+    return this.collision.toggleDebug(this.scene);
+  }
 
-    this.arms.triggerPunch(Boolean(hit));
+  public isCollisionDebugActive(): boolean {
+    return this.collision.isDebugActive();
   }
 
   public togglePointerLock() {
@@ -471,6 +523,8 @@ export class HueWorldEngine {
         this.ringTempleBell();
       } else if (e.code === 'KeyV') {
         this.setMode(this.mode === 'fly' ? 'walk' : 'fly');
+      } else if (e.key === 'F3' || (e.ctrlKey && e.code === 'KeyF3')) {
+        this.toggleCollisionDebug();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -489,10 +543,31 @@ export class HueWorldEngine {
     };
     dom.addEventListener('contextmenu', onContextMenu);
 
+    // Zero-overhead tab-out / background pause: completely freeze animation loop and audio
+    // when switching tabs or minimizing browser, eliminating background GPU & CPU lag
+    const onVisibilityChange = () => {
+      if (this.disposed) return;
+      if (document.hidden) {
+        if (this.rafId) {
+          cancelAnimationFrame(this.rafId);
+          this.rafId = 0;
+        }
+        this.audio.pause();
+      } else {
+        this.clock.getDelta();
+        this.audio.resume();
+        if (!this.loopPaused && !this.rafId) {
+          this.animate();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     // Store cleanup on instance
     this.cleanupListeners = () => {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       dom.removeEventListener('wheel', onWheel);
       dom.removeEventListener('contextmenu', onContextMenu);
     };
@@ -515,6 +590,8 @@ export class HueWorldEngine {
         this.setAtmosphere(id);
         this.renderer.render(this.scene, this.camera);
       },
+      toggleCollisionDebug: () => this.toggleCollisionDebug(),
+      getColliderCount: () => this.collision.getColliderCount(),
       setMode: (mode: MovementMode) => this.setMode(mode),
       flyToLandmark: (id: string) => this.flyToLandmark(id),
       setLoopPaused: (paused: boolean) => {
@@ -540,6 +617,7 @@ export class HueWorldEngine {
       const cy = 11.4 + Math.sin(this.elapsed * 0.25) * 0.9;
       this.camera.position.set(cx, cy, cz);
       this.camera.lookAt(-210, 17.2, -104);
+      this.character.setStowed(true);
       return;
     }
 
@@ -557,160 +635,24 @@ export class HueWorldEngine {
       if (t >= 1) {
         this.tween.active = false;
         const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');
-        this.yaw = euler.y;
-        this.pitch = euler.x;
+        this.character.yaw = euler.y;
+        this.character.pitch = euler.x;
       }
       return;
     }
-
-    // 1. Mouse look with silky exponential interpolation (exact match to FirstPersonPlayer)
-    const mouseDelta = this.controls.consumeMovement();
-    const MOUSE_SENSITIVITY = 0.0022;
-    this.targetYaw -= mouseDelta.x * MOUSE_SENSITIVITY;
-    this.targetPitch -= mouseDelta.y * MOUSE_SENSITIVITY;
-
-    const PITCH_LIMIT = (85 * Math.PI) / 180;
-    this.targetPitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, this.targetPitch));
-
-    const ROT_SMOOTH = 1 - Math.exp(-25 * dt);
-    this.yaw += (this.targetYaw - this.yaw) * ROT_SMOOTH;
-    this.pitch += (this.targetPitch - this.pitch) * ROT_SMOOTH;
-    const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
-    this.camera.quaternion.setFromEuler(euler);
 
     if (this.mode === 'boat') {
       // Ride smoothly on the bow deck of the lead Thuyền Rồng!
       const bowLocal = new THREE.Vector3(4.5, 2.35, 0);
       bowLocal.applyMatrix4(this.leadBoatGroup.matrixWorld);
       this.camera.position.copy(bowLocal);
+      this.character.setStowed(true);
       return;
     }
 
-    const keys = this.controls.keysRef.current;
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-
-    if (this.mode === 'fly') {
-      const speed = keys.sprint ? 42 : 17;
-      const move = new THREE.Vector3();
-      if (keys.forward) move.add(forward);
-      if (keys.backward) move.sub(forward);
-      if (keys.right) move.add(right);
-      if (keys.left) move.sub(right);
-      if (keys.jump) move.y += 1;
-
-      if (move.lengthSq() > 0) move.normalize();
-      this.velocity.lerp(move.multiplyScalar(speed), Math.min(1, dt * 8));
-      this.camera.position.addScaledVector(this.velocity, dt);
-
-      const minH = getWalkableHeight(this.camera.position.x, this.camera.position.z) + 0.8;
-      if (this.camera.position.y < minH) this.camera.position.y = minH;
-    } else {
-      // 2. Action Triggers (Exact match to FirstPersonPlayer)
-      const blocking = Boolean(keys.block);
-      if (blocking !== this.arms.isBlockingActive()) {
-        this.arms.setBlocking(blocking);
-      }
-
-      const punchTriggered = this.controls.consumePunchTrigger();
-      const isHoldingPunch = keys.punch;
-      if ((punchTriggered || isHoldingPunch) && !this.arms.isPunchingActive() && !blocking) {
-        this.triggerPunch();
-      }
-
-      const interactTriggered = this.controls.consumeInteractTrigger();
-      if (interactTriggered && !this.arms.isPunchingActive()) {
-        this.arms.triggerInteract();
-        if (this.wasNearBell) {
-          this.ringTempleBell();
-        }
-      }
-
-      const inspectTriggered = this.controls.consumeInspectTrigger();
-      if (inspectTriggered && !this.arms.isPunchingActive() && !blocking) {
-        this.arms.triggerInspect();
-      }
-
-      // 3. Locomotion Movement Direction (relative to camera yaw)
-      const moveX = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-      const moveZ = (keys.forward ? 1 : 0) - (keys.backward ? 1 : 0);
-      const hasInput = moveX !== 0 || moveZ !== 0;
-
-      const sprinting = hasInput && keys.sprint && this.onGround && !blocking && moveZ > 0;
-
-      // Locomotion Speeds: Walk = 4.2 m/s, Sprint = 8.2 m/s, Block = 2.0 m/s
-      const targetSpeed = blocking ? 2.0 : (sprinting ? 8.2 : 4.2);
-      const currentSpeedTarget = hasInput ? targetSpeed : 0;
-
-      const upAxis = new THREE.Vector3(0, 1, 0);
-      const forwardVec = new THREE.Vector3(0, 0, -1).applyAxisAngle(upAxis, this.yaw);
-      const rightVec = new THREE.Vector3(1, 0, 0).applyAxisAngle(upAxis, this.yaw);
-
-      const wishDir = new THREE.Vector3();
-      if (hasInput) {
-        wishDir.addScaledVector(forwardVec, moveZ);
-        wishDir.addScaledVector(rightVec, moveX);
-        wishDir.normalize();
-      }
-
-      // Acceleration: 18.0 m/s² with input, 12.0 m/s² friction deceleration
-      const accel = this.onGround ? (hasInput ? 18.0 : 12.0) : 4.0;
-      const targetVelX = wishDir.x * currentSpeedTarget;
-      const targetVelZ = wishDir.z * currentSpeedTarget;
-
-      this.velocity.x += (targetVelX - this.velocity.x) * Math.min(1, accel * dt);
-      this.velocity.z += (targetVelZ - this.velocity.z) * Math.min(1, accel * dt);
-
-      // Jump & Gravity: Gravity = -24.0, Jump force = 7.2
-      const GRAVITY = -24.0;
-      const JUMP_FORCE = 7.2;
-
-      if (keys.jump && this.onGround && !blocking) {
-        this.velocity.y = JUMP_FORCE;
-        this.onGround = false;
-      }
-
-      // Horizontal displacement
-      const nextX = this.camera.position.x + this.velocity.x * dt;
-      const nextZ = this.camera.position.z + this.velocity.z * dt;
-      this.camera.position.x = nextX;
-      this.camera.position.z = nextZ;
-
-      // Ground height at current (X, Z) with adult eye height (1.85m)
-      const groundFloor = getWalkableHeight(this.camera.position.x, this.camera.position.z);
-      const targetFloorY = Math.max(0.65, groundFloor + 1.85);
-
-      if (this.onGround) {
-        // Player is grounded: follow slopes and stairs smoothly without floating
-        const delta = targetFloorY - this.camera.position.y;
-        if (delta >= -1.25 && delta <= 0.85) {
-          // Walked up or down a natural slope/stairs: stick firmly to the ground
-          this.camera.position.y = targetFloorY;
-          this.velocity.y = 0;
-        } else if (delta < -1.25) {
-          // Stepped off a high cliff/terrace drop: leave ground and fall
-          this.onGround = false;
-          this.velocity.y = 0;
-        } else {
-          // Upward step within step height
-          this.camera.position.y = targetFloorY;
-          this.velocity.y = 0;
-        }
-      }
-
-      if (!this.onGround) {
-        // Apply gravitational acceleration
-        this.velocity.y += GRAVITY * dt;
-        this.camera.position.y += this.velocity.y * dt;
-
-        // Ground landing check
-        if (this.camera.position.y <= targetFloorY) {
-          this.camera.position.y = targetFloorY;
-          this.velocity.y = 0;
-          this.onGround = true;
-        }
-      }
-    }
+    this.character.setFlyMode(this.mode === 'fly');
+    this.character.setStowed(false);
+    this.character.update(dt);
 
     // Clamp to playable Hue valley bounds
     const bound = WORLD_SIZE * 0.45;
@@ -749,7 +691,26 @@ export class HueWorldEngine {
   }
 
   /**
-   * Distance Streaming & Dynamic LOD:
+   * Asynchronous Zero-Hitch Shader & Buffer Pre-warming:
+   * Uses WebGL2 parallel shader compilation (compileAsync) to compile GLSL programs
+   * and prime GPU state before a landmark crosses the visibility boundary.
+   */
+  private prewarmChunk(chunk: LandmarkChunk) {
+    if (chunk.isWarmed || chunk.isWarming) return;
+    chunk.isWarming = true;
+    this.renderer
+      .compileAsync(chunk.group, this.camera, this.scene)
+      .then(() => {
+        chunk.isWarmed = true;
+        chunk.isWarming = false;
+      })
+      .catch(() => {
+        chunk.isWarming = false;
+      });
+  }
+
+  /**
+   * Distance Streaming & Dynamic LOD with Hysteresis & Predictive Pre-warming:
    * Only renders monuments within active zone distance. Points lights beyond 75m
    * are hidden to eliminate rasterization fill rate overhead.
    */
@@ -757,12 +718,24 @@ export class HueWorldEngine {
     const cp = this.camera.position;
     for (const chunk of this.landmarkChunks) {
       const dist = Math.hypot(cp.x - chunk.center.x, cp.z - chunk.center.z);
-      const maxDist = this.mode === 'fly' ? chunk.streamDist * 1.5 : chunk.streamDist;
-      const isVisible = dist <= maxDist;
-      chunk.group.visible = isVisible;
+      const streamThreshold = this.mode === 'fly' ? chunk.streamDist * 1.5 : chunk.streamDist;
+      const hysteresisThreshold = this.mode === 'fly' ? chunk.hysteresisDist * 1.4 : chunk.hysteresisDist;
+
+      // Predictive pre-warming: asynchronously compile shaders before entering view radius
+      if (dist <= chunk.preloadDist && !chunk.isWarmed && !chunk.isWarming) {
+        this.prewarmChunk(chunk);
+      }
+
+      // Hysteresis prevents visual stutter & rapid boundary toggling
+      const currentlyVisible = chunk.group.visible;
+      const shouldBeVisible = currentlyVisible
+        ? dist <= hysteresisThreshold
+        : dist <= streamThreshold;
+
+      chunk.group.visible = shouldBeVisible;
 
       // Distance culling for point lights: only active within 75m to save GPU fill rate
-      const lightsActive = isVisible && dist <= 75;
+      const lightsActive = shouldBeVisible && dist <= 75;
       chunk.lanterns.forEach((l) => {
         if (l.light) l.light.visible = lightsActive;
       });
@@ -815,24 +788,6 @@ export class HueWorldEngine {
     });
 
     this.checkLandmarksAndProximity();
-    const keys = this.controls.keysRef.current;
-    const isMoving = Boolean(keys.forward || keys.backward || keys.left || keys.right);
-    const isSprinting = isMoving && Boolean(keys.sprint) && !this.arms.isBlockingActive();
-    this.arms.update(dt, isMoving, isSprinting, this.mode, this.introActive);
-
-    // Live HUD stats telemetry callback throttled to 120ms
-    const now = performance.now();
-    if (now - this.lastStatsTime > 120) {
-      this.lastStatsTime = now;
-      const horizontalSpeed = Math.hypot(this.velocity.x, this.velocity.z);
-      this.callbacks.onStatsUpdate?.({
-        position: [this.camera.position.x, this.camera.position.y, this.camera.position.z],
-        speed: horizontalSpeed,
-        isSprinting: isSprinting,
-        isGrounded: this.onGround,
-        isBlocking: this.arms.isBlockingActive(),
-      });
-    }
 
     this.adaptQuality(dt);
     this.renderer.render(this.scene, this.camera);
@@ -849,7 +804,8 @@ export class HueWorldEngine {
     this.qualityTimer = 0;
     const cur = this.renderer.getPixelRatio();
     let next = cur;
-    if (avg > 1 / 38) next = Math.max(0.6, cur - 0.15);
+    // Maintain minimum pixel ratio of 1.0 so close-up heritage textures remain crisp
+    if (avg > 1 / 38) next = Math.max(1.0, cur - 0.1);
     else if (avg < 1 / 57) next = Math.min(this.maxPixelRatio, cur + 0.1);
     if (Math.abs(next - cur) > 0.01) {
       this.renderer.setPixelRatio(next);
@@ -858,10 +814,50 @@ export class HueWorldEngine {
 
   public dispose() {
     this.disposed = true;
-    cancelAnimationFrame(this.rafId);
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = 0;
+    }
+    this.prewarmTimerIds.forEach((id) => window.clearTimeout(id));
+    this.prewarmTimerIds = [];
+
     this.cleanupListeners();
+    this.collision.clear();
     this.audio.dispose();
-    this.arms.dispose();
+    this.character.dispose();
+
+    // Release global debug handle so engine instance can be reclaimed by GC
+    delete (window as unknown as Record<string, unknown>).__HUE_DEBUG__;
+
+    // Traverse and dispose all landmark chunks (both active and streaming-culled)
+    this.landmarkChunks.forEach((chunk) => {
+      chunk.group.traverse((obj) => {
+        if ((obj as THREE.Mesh).isMesh) {
+          const m = obj as THREE.Mesh;
+          m.geometry?.dispose();
+          if (Array.isArray(m.material)) {
+            m.material.forEach((mat) => mat.dispose());
+          } else {
+            m.material?.dispose();
+          }
+        }
+      });
+      chunk.group.clear();
+    });
+    this.landmarkChunks = [];
+
+    // Dispose atmosphere, sky dome, water shaders, PMREM generator, and sun shadow map
+    this.atmos?.dispose(this.scene);
+
+    // Dispose atmospheric particles and textures
+    this.particles?.dispose();
+
+    // Dispose terrain, instanced grass geometry and density texture
+    this.terrain?.dispose();
+
+    // Dispose procedural PBR materials and textures
+    this.mats?.dispose();
+    disposeHueSurfaces();
 
     // Deeply traverse and release all geometries, materials, and textures from GPU VRAM
     this.scene.traverse((obj) => {
@@ -893,9 +889,14 @@ export class HueWorldEngine {
     });
     this.scene.clear();
 
-    // Crucial: Force WebGL context loss to ensure Chrome/Metal immediately purges GPU memory
-    this.renderer.forceContextLoss();
+    // Dispose WebGLRenderer first (cleans internal GL objects),
+    // then force context loss to immediately free GPU driver VRAM
     this.renderer.dispose();
+    try {
+      this.renderer.forceContextLoss();
+    } catch {
+      // Guard
+    }
     if (this.renderer.domElement.parentNode === this.container) {
       this.container.removeChild(this.renderer.domElement);
     }

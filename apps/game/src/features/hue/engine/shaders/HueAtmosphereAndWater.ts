@@ -19,6 +19,7 @@ export interface AtmosphereAndWaterSystem {
     scene: THREE.Scene,
   ) => void;
   update: (elapsed: number, cameraPos: THREE.Vector3) => void;
+  dispose: (targetScene?: THREE.Scene) => void;
 }
 
 const SKY_VERTEX_SHADER = /* glsl */ `
@@ -403,6 +404,46 @@ export function createHueAtmosphereAndWater(
     sunLight.target.updateMatrixWorld();
   };
 
+  const dispose = (targetScene?: THREE.Scene) => {
+    if (targetScene) {
+      targetScene.environment = null;
+      targetScene.fog = null;
+    }
+    if (currentEnvRT) {
+      currentEnvRT.dispose();
+      currentEnvRT = null;
+    }
+    if (pmrem) {
+      pmrem.dispose();
+      pmrem = null;
+    }
+
+    envScene.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const m = obj as THREE.Mesh;
+        m.geometry?.dispose();
+        if (Array.isArray(m.material)) {
+          m.material.forEach((mat) => mat.dispose());
+        } else {
+          m.material?.dispose();
+        }
+      }
+    });
+    envScene.clear();
+
+    skyGeo.dispose();
+    skyMat.dispose();
+    riverGeo.dispose();
+    riverMat.dispose();
+    lakeGeo.dispose();
+    lakeMat.dispose();
+
+    if (sunLight.shadow.map) {
+      sunLight.shadow.map.dispose();
+      sunLight.shadow.map = null as unknown as THREE.WebGLRenderTarget;
+    }
+  };
+
   return {
     skyMesh,
     riverWater,
@@ -411,5 +452,6 @@ export function createHueAtmosphereAndWater(
     hemiLight,
     applyAtmosphere,
     update,
+    dispose,
   };
 }
