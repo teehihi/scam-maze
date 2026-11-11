@@ -25,6 +25,8 @@ import { createHueParticles } from './HueParticles';
 import { HueAmbientAudio } from './audio/HueAmbientAudio';
 import { HueFirstPersonArms } from './HueFirstPersonArms';
 import type { PlayerControlsState } from '../../player';
+import { HueCollisionSystem } from './collision/HueCollisionSystem';
+import { populateHueWorldColliders } from './collision/HueWorldColliders';
 
 export type MovementMode = 'walk' | 'fly' | 'boat';
 
@@ -126,8 +128,18 @@ export class HueWorldEngine {
   private onGround = true;
   private lastStatsTime = 0;
 
-  // Melee combat raycaster
-  private raycaster = new THREE.Raycaster();
+  // Physical collision system with spatial hash grid
+  private collision = new HueCollisionSystem();
+
+  // Zero-allocation reusable math scratch objects for the 60fps animation loop
+  private readonly _upAxis = new THREE.Vector3(0, 1, 0);
+  private readonly _forward = new THREE.Vector3();
+  private readonly _right = new THREE.Vector3();
+  private readonly _wishDir = new THREE.Vector3();
+  private readonly _moveVec = new THREE.Vector3();
+  private readonly _camEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+  // Melee combat aim direction
   private aimDir = new THREE.Vector3();
 
   // Smooth camera transition glide
@@ -302,6 +314,7 @@ export class HueWorldEngine {
     this.setRainIntensity = particles.setRainIntensity;
 
     // 4. Initial Atmosphere & Scenic Opening Position at Chùa Thiên Mụ Courtyard looking at Tháp Phước Duyên
+    populateHueWorldColliders(this.collision);
     this.setAtmosphere('morning');
     this.setCameraPose(
       new THREE.Vector3(-210, 6.05, -52),
@@ -421,23 +434,17 @@ export class HueWorldEngine {
 
   public triggerPunch() {
     this.camera.getWorldDirection(this.aimDir);
-    this.raycaster.set(this.camera.position, this.aimDir);
-    this.raycaster.near = 0.1;
-    this.raycaster.far = 2.5;
+    // Instant zero-overhead raycast against spatial hash grid colliders
+    const hit = this.collision.raycast(this.camera.position, this.aimDir, 2.5);
+    this.arms.triggerPunch(hit.hit);
+  }
 
-    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
-    const hit = intersects.find((i) => {
-      let parent: THREE.Object3D | null = i.object;
-      while (parent) {
-        if (parent === this.camera || parent.name === 'HueFirstPersonArms' || !parent.visible) {
-          return false;
-        }
-        parent = parent.parent;
-      }
-      return true;
-    });
+  public toggleCollisionDebug(): boolean {
+    return this.collision.toggleDebug(this.scene);
+  }
 
-    this.arms.triggerPunch(Boolean(hit));
+  public isCollisionDebugActive(): boolean {
+    return this.collision.isDebugActive();
   }
 
   public togglePointerLock() {
@@ -471,6 +478,8 @@ export class HueWorldEngine {
         this.ringTempleBell();
       } else if (e.code === 'KeyV') {
         this.setMode(this.mode === 'fly' ? 'walk' : 'fly');
+      } else if (e.key === 'F3' || (e.ctrlKey && e.code === 'KeyF3')) {
+        this.toggleCollisionDebug();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -515,6 +524,8 @@ export class HueWorldEngine {
         this.setAtmosphere(id);
         this.renderer.render(this.scene, this.camera);
       },
+      toggleCollisionDebug: () => this.toggleCollisionDebug(),
+      getColliderCount: () => this.collision.getColliderCount(),
       setMode: (mode: MovementMode) => this.setMode(mode),
       flyToLandmark: (id: string) => this.flyToLandmark(id),
       setLoopPaused: (paused: boolean) => {
@@ -575,8 +586,8 @@ export class HueWorldEngine {
     const ROT_SMOOTH = 1 - Math.exp(-25 * dt);
     this.yaw += (this.targetYaw - this.yaw) * ROT_SMOOTH;
     this.pitch += (this.targetPitch - this.pitch) * ROT_SMOOTH;
-    const euler = new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ');
-    this.camera.quaternion.setFromEuler(euler);
+    this._camEuler.set(this.pitch, this.yaw, 0);
+    this.camera.quaternion.setFromEuler(this._camEuler);
 
     if (this.mode === 'boat') {
       // Ride smoothly on the bow deck of the lead Thuyền Rồng!
@@ -587,20 +598,20 @@ export class HueWorldEngine {
     }
 
     const keys = this.controls.keysRef.current;
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+    this._forward.set(0, 0, -1).applyQuaternion(this.camera.quaternion);
+    this._right.set(1, 0, 0).applyQuaternion(this.camera.quaternion);
 
     if (this.mode === 'fly') {
       const speed = keys.sprint ? 42 : 17;
-      const move = new THREE.Vector3();
-      if (keys.forward) move.add(forward);
-      if (keys.backward) move.sub(forward);
-      if (keys.right) move.add(right);
-      if (keys.left) move.sub(right);
-      if (keys.jump) move.y += 1;
+      this._moveVec.set(0, 0, 0);
+      if (keys.forward) this._moveVec.add(this._forward);
+      if (keys.backward) this._moveVec.sub(this._forward);
+      if (keys.right) this._moveVec.add(this._right);
+      if (keys.left) this._moveVec.sub(this._right);
+      if (keys.jump) this._moveVec.y += 1;
 
-      if (move.lengthSq() > 0) move.normalize();
-      this.velocity.lerp(move.multiplyScalar(speed), Math.min(1, dt * 8));
+      if (this._moveVec.lengthSq() > 0) this._moveVec.normalize();
+      this.velocity.lerp(this._moveVec.multiplyScalar(speed), Math.min(1, dt * 8));
       this.camera.position.addScaledVector(this.velocity, dt);
 
       const minH = getWalkableHeight(this.camera.position.x, this.camera.position.z) + 0.8;
@@ -642,21 +653,20 @@ export class HueWorldEngine {
       const targetSpeed = blocking ? 2.0 : (sprinting ? 8.2 : 4.2);
       const currentSpeedTarget = hasInput ? targetSpeed : 0;
 
-      const upAxis = new THREE.Vector3(0, 1, 0);
-      const forwardVec = new THREE.Vector3(0, 0, -1).applyAxisAngle(upAxis, this.yaw);
-      const rightVec = new THREE.Vector3(1, 0, 0).applyAxisAngle(upAxis, this.yaw);
+      this._forward.set(0, 0, -1).applyAxisAngle(this._upAxis, this.yaw);
+      this._right.set(1, 0, 0).applyAxisAngle(this._upAxis, this.yaw);
 
-      const wishDir = new THREE.Vector3();
+      this._wishDir.set(0, 0, 0);
       if (hasInput) {
-        wishDir.addScaledVector(forwardVec, moveZ);
-        wishDir.addScaledVector(rightVec, moveX);
-        wishDir.normalize();
+        this._wishDir.addScaledVector(this._forward, moveZ);
+        this._wishDir.addScaledVector(this._right, moveX);
+        this._wishDir.normalize();
       }
 
       // Acceleration: 18.0 m/s² with input, 12.0 m/s² friction deceleration
       const accel = this.onGround ? (hasInput ? 18.0 : 12.0) : 4.0;
-      const targetVelX = wishDir.x * currentSpeedTarget;
-      const targetVelZ = wishDir.z * currentSpeedTarget;
+      const targetVelX = this._wishDir.x * currentSpeedTarget;
+      const targetVelZ = this._wishDir.z * currentSpeedTarget;
 
       this.velocity.x += (targetVelX - this.velocity.x) * Math.min(1, accel * dt);
       this.velocity.z += (targetVelZ - this.velocity.z) * Math.min(1, accel * dt);
@@ -670,11 +680,36 @@ export class HueWorldEngine {
         this.onGround = false;
       }
 
-      // Horizontal displacement
-      const nextX = this.camera.position.x + this.velocity.x * dt;
-      const nextZ = this.camera.position.z + this.velocity.z * dt;
-      this.camera.position.x = nextX;
-      this.camera.position.z = nextZ;
+      // Horizontal displacement with physical collision & continuous wall sliding
+      const currX = this.camera.position.x;
+      const currZ = this.camera.position.z;
+      const targetX = currX + this.velocity.x * dt;
+      const targetZ = currZ + this.velocity.z * dt;
+
+      const footY = this.camera.position.y - 1.85;
+      const colRes = this.collision.resolveMovement(
+        currX,
+        currZ,
+        targetX,
+        targetZ,
+        footY,
+        0.35,
+        1.85,
+      );
+
+      this.camera.position.x = colRes.newX;
+      this.camera.position.z = colRes.newZ;
+
+      if (colRes.collided) {
+        // Project velocity onto wall tangent for silky wall sliding
+        const nx = colRes.hitNormalX;
+        const nz = colRes.hitNormalZ;
+        const vDotN = this.velocity.x * nx + this.velocity.z * nz;
+        if (vDotN < 0) {
+          this.velocity.x -= vDotN * nx;
+          this.velocity.z -= vDotN * nz;
+        }
+      }
 
       // Ground height at current (X, Z) with adult eye height (1.85m)
       const groundFloor = getWalkableHeight(this.camera.position.x, this.camera.position.z);
@@ -860,6 +895,7 @@ export class HueWorldEngine {
     this.disposed = true;
     cancelAnimationFrame(this.rafId);
     this.cleanupListeners();
+    this.collision.clear();
     this.audio.dispose();
     this.arms.dispose();
 

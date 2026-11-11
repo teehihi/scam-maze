@@ -122,16 +122,31 @@ export function createHueParticles(
   };
 
   const update = (dt: number, elapsed: number, cameraPos: THREE.Vector3) => {
-    const sAttr = smokeGeo.attributes.position as THREE.BufferAttribute;
-    smokeMeta.forEach((s, idx) => {
-      s.age = (s.age + dt * s.speed) % 4.5;
-      const t = s.age / 4.5;
-      const x = s.origin.x + Math.sin(elapsed * 1.2 + s.phase + t * 4) * 0.32 * t;
-      const y = s.origin.y + t * 3.4;
-      const z = s.origin.z + Math.cos(elapsed * 0.9 + s.phase + t * 3) * 0.25 * t;
-      sAttr.setXYZ(idx, x, y, z);
-    });
-    sAttr.needsUpdate = true;
+    // Distance-aware incense smoke update: skip CPU work and GPU buffer uploads when far (> 65m)
+    let nearIncense = false;
+    for (let o = 0; o < incenseSources.length; o++) {
+      const orig = incenseSources[o];
+      const dx = cameraPos.x - orig.x;
+      const dz = cameraPos.z - orig.z;
+      if (dx * dx + dz * dz < 65 * 65) {
+        nearIncense = true;
+        break;
+      }
+    }
+    smokePoints.visible = nearIncense;
+
+    if (nearIncense) {
+      const sAttr = smokeGeo.attributes.position as THREE.BufferAttribute;
+      smokeMeta.forEach((s, idx) => {
+        s.age = (s.age + dt * s.speed) % 4.5;
+        const t = s.age / 4.5;
+        const x = s.origin.x + Math.sin(elapsed * 1.2 + s.phase + t * 4) * 0.32 * t;
+        const y = s.origin.y + t * 3.4;
+        const z = s.origin.z + Math.cos(elapsed * 0.9 + s.phase + t * 3) * 0.25 * t;
+        sAttr.setXYZ(idx, x, y, z);
+      });
+      sAttr.needsUpdate = true;
+    }
 
     motePoints.position.set(
       Math.floor(cameraPos.x / 30) * 30,

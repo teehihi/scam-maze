@@ -215,6 +215,52 @@ Resolved:
 - **Deviations from documented architecture:** None.
 - **Follow-up tasks:** Connect in-game smartphone triggers.
 
+### 2026-11-11 — Huế World Performance Engineering & Complete Physical Collision System
+
+- **Objective:** Deeply optimize runtime performance of the procedural 3D Huế world without visual degradation (preserving rich architectural silhouettes, high-res procedural textures, 3,800 grass instances, atmospheric water/sky) and implement a complete, zero-overhead physical collision system (Rapier-free) preventing the player from passing through solid environmental objects while keeping doors, gates, stairs, and bridges traversable.
+- **Completed work:**
+  1. **Analytical 2D/3D Spatial Hash Grid Collision Engine (`HueCollisionSystem.ts`):**
+     - Developed a lightweight, zero-dependency spatial grid with $16\text{m} \times 16\text{m}$ cell buckets for $O(1)$ collision lookups.
+     - Implemented analytical cylinder, axis-aligned bounding box (AABB), and oriented bounding box (OBB) primitives.
+     - Implemented continuous velocity tangent projection for silky-smooth wall sliding along complex architectural surfaces.
+     - Added step-up logic: obstacles with height $\le 0.45\text{m}$ (stairs, stone curbs, thresholds) allow horizontal passage, while taller obstacles firmly block movement.
+     - Added direction-aware entry side resolution to completely prevent tunneling through thin balustrades or pushing the player to the wrong side of walls.
+  2. **Comprehensive Environmental Architectural Colliders (`HueWorldColliders.ts`):**
+     - **Chùa Thiên Mụ:** Solid octagonal core of Tháp Phước Duyên ($r = 4.8\text{m}, h = 22.3\text{m}$), 4 Trụ Biểu pillars, Tam Quan wing walls (central stair portal OPEN), Đồi Hà Khê cliff balustrades (central staircase OPEN), Đình Hương Nguyện 8 timber columns, 2 Stele Pavilions, Đại Hồng Chung bell pavilion columns & 2-ton bell, Rùa Đá pavilion columns & imperial stele, inner sanctuary perimeter walls (central gateway OPEN), and Điện Đại Hùng main sanctuary hall & front portico columns.
+     - **Lăng Khải Định:** Forecourt gate 4 pillars, Court of Honor stone mandarins, elephants, horses, octagonal stele pavilion & imperial stele, flanking Trụ Biểu obelisks, Cung Thiên Định exterior walls with open entrance portal for interior exploration, side walls, rear wall, royal altar platform & bronze statue enclosure.
+     - **Lăng Tự Đức:** Xung Khiêm Tạ overwater pavilion perimeter balustrades (preserving shore entrance & boat stairway openings), 15 timber colonnade columns.
+     - **Cầu Trường Tiền:** Lateral steel truss balustrades along $x = 195 \pm 4.35\text{m}$ preventing falling into the river while allowing free passage along the 132m deck.
+     - **Cầu Ngói Thanh Toàn:** North & South wooden railings, central altar alcove.
+     - **Nhà Vườn Kim Long & Đồi Vọng Cảnh:** Nhà Rường house body & porch columns, dragon screen wall, stone well, scenic lookout stone benches.
+     - **Major Tree Trunks:** Solid cylinder colliders for procedural pine, frangipani, and broadleaf tree trunks throughout the world.
+  3. **Animation Loop GC Allocation Elimination (`HueWorldEngine.ts`):**
+     - Pre-allocated reusable static math objects (`_upAxis`, `_forward`, `_right`, `_wishDir`, `_moveVec`, `_camEuler`), eliminating hundreds of per-frame object allocations in mouse look, flight, and locomotion loops.
+  4. **Zero-Overhead Melee Raycasting (`HueWorldEngine.ts`):**
+     - Replaced recursive `this.raycaster.intersectObjects(this.scene.children, true)` traversal across thousands of scene nodes with an instant analytical raycast against nearby spatial grid colliders.
+  5. **Distance-Throttled Incense Smoke Particle Simulation (`HueParticles.ts`):**
+     - Added distance gating to skip CPU position updates and GPU buffer uploads (`sAttr.needsUpdate = true`) when the player is $> 65\text{m}$ away from all incense burners.
+  6. **Developer Collision Wireframe Visualizer (`HueCollisionSystem.ts`, `HueHUD.tsx`):**
+     - Added dynamic wireframe generator for active colliders, toggled with the `F3` key or via the HUD controls guide.
+  7. **Automated Unit Tests (`HueCollisionSystem.test.ts`):**
+     - Added 6 Vitest tests verifying spatial cell hashing, cylinder-cylinder penetration, AABB wall sliding, step-up height allowance, melee raycasting accuracy, and open doorway traversability across landmarks.
+- **Files created:**
+  - `apps/game/src/features/hue/engine/collision/HueCollisionSystem.ts`
+  - `apps/game/src/features/hue/engine/collision/HueWorldColliders.ts`
+  - `apps/game/src/features/hue/engine/collision/HueCollisionSystem.test.ts`
+- **Files modified:**
+  - `apps/game/src/features/hue/engine/HueWorldEngine.ts`
+  - `apps/game/src/features/hue/engine/HueParticles.ts`
+  - `apps/game/src/features/hue/components/HueHUD.tsx`
+  - `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (All 3 workspace packages clean, 0 errors)
+  - `pnpm test` (12 test files passed, 109/109 tests passed)
+  - `pnpm build` (Production build succeeded across landing, shared-types, and game)
+- **Build and test results:** 109/109 unit tests passed; typecheck and production build succeeded.
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None. Rapier was kept uninstalled as PROPOSED; custom lightweight spatial hash grid provided superior CPU/GPU efficiency.
+- **Follow-up tasks:** Continue integrating narrative scenario clues and interactive inspection points.
+
 ### 2026-11-11 — Huế Loading & Runtime Performance Overhaul (Infinite Re-render Fix, Procedural Shader Decimation & Ground Collision)
 
 - **Objective:** Fix the root causes of the severe startup loading freeze, 1-2 FPS runtime slideshow, and immovable player movement in `/hue`. Re-establish 60 FPS performance, instant loading (< 100ms), and 100% responsive first-person exploration matching UEH and TestMove.

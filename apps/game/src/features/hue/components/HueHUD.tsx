@@ -132,9 +132,13 @@ export const HueHUD: React.FC<HueHUDProps> = ({
                   <span className="text-amber-300 font-semibold">G</span>
                   <span className="text-zinc-400"> : Thỉnh chuông</span>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <span className="text-amber-300 font-semibold">Ctrl</span>
-                  <span className="text-zinc-400"> : Ẩn / Hiện chuột</span>
+                  <span className="text-zinc-400"> : Chuột</span>
+                </div>
+                <div>
+                  <span className="text-emerald-400 font-semibold">F3</span>
+                  <span className="text-zinc-400"> : Khung va chạm</span>
                 </div>
               </div>
             </div>
