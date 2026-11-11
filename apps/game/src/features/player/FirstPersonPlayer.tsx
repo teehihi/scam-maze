@@ -2,7 +2,23 @@ import React, { useRef, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CharacterRuntime } from "./runtime/CharacterRuntime";
 import type { GameWorldAdapter } from "./adapters/GameWorldAdapter";
-import type { FirstPersonPlayerProps } from "./types";
+import type { FirstPersonPlayerProps, PlayerControlsState } from "./types";
+
+// Read-only idle input the runtime sees while the player is disabled (the runtime never writes keys)
+const IDLE_KEYS_REF: { readonly current: PlayerControlsState } = {
+  current: Object.freeze({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    sprint: false,
+    jump: false,
+    punch: false,
+    block: false,
+    inspect: false,
+    interact: false,
+  }),
+};
 
 export interface UnifiedPlayerProps extends Omit<FirstPersonPlayerProps, "bounds"> {
   bounds?: FirstPersonPlayerProps["bounds"];
@@ -23,6 +39,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
   onInteract,
   soundEnabled = true,
   sfxVolume = 1.0,
+  enabled = true,
 }) => {
   const { camera } = useThree();
   const runtimeRef = useRef<CharacterRuntime | null>(null);
@@ -40,6 +57,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     onInteract,
     soundEnabled,
     sfxVolume,
+    enabled,
   });
 
   propsRef.current = {
@@ -54,6 +72,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     onInteract,
     soundEnabled,
     sfxVolume,
+    enabled,
   };
 
   // Initialize unified CharacterRuntime ONCE on mount
@@ -133,14 +152,21 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
       },
     };
 
+    // While disabled, the runtime keeps ticking (gravity, deceleration, idle arms) but sees idle
+    // keys, zero look delta and no triggers. Real sources are still drained every frame so
+    // accumulated mouse movement or a queued trigger does not fire on resume.
+    const isEnabled = () => propsRef.current.enabled !== false;
     const controls = {
       get keysRef() {
-        return propsRef.current.keysRef;
+        return isEnabled() ? propsRef.current.keysRef : IDLE_KEYS_REF;
       },
-      consumeMovement: () => propsRef.current.consumeMovement(),
-      consumePunchTrigger: () => propsRef.current.consumePunchTrigger(),
-      consumeInspectTrigger: () => propsRef.current.consumeInspectTrigger(),
-      consumeInteractTrigger: () => propsRef.current.consumeInteractTrigger(),
+      consumeMovement: () => {
+        const delta = propsRef.current.consumeMovement();
+        return isEnabled() ? delta : { x: 0, y: 0 };
+      },
+      consumePunchTrigger: () => propsRef.current.consumePunchTrigger() && isEnabled(),
+      consumeInspectTrigger: () => propsRef.current.consumeInspectTrigger() && isEnabled(),
+      consumeInteractTrigger: () => propsRef.current.consumeInteractTrigger() && isEnabled(),
     };
 
     const runtime = new CharacterRuntime({

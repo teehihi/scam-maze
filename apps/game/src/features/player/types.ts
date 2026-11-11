@@ -46,4 +46,9 @@ export interface FirstPersonPlayerProps {
   hitSoundPath?: string;
   missSoundPath?: string;
   interactReach?: number;
+  /**
+   * When false, movement, look and action input are ignored (pending mouse movement and
+   * triggers are drained so the camera does not jump on resume). Defaults to true.
+   */
+  enabled?: boolean;
 }
