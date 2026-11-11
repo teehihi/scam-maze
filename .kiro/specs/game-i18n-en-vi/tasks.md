@@ -435,7 +435,7 @@ Rules for every task:
 - [x] 11. Checkpoint: full suite
   - Run `pnpm test`, `pnpm typecheck` and `pnpm build`. Confirm `git diff --stat 8fed327 -- apps/landing apps/game/index.html` is empty. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Documentation and steering
+- [x] 12. Documentation and steering
   - [x] 12.1 Update the language steering rule
     - In `.kiro/steering/language.md`: repository documents, code, comments, identifiers and
       commit messages stay English; localization has started for `apps/game` user-facing text,
@@ -467,7 +467,7 @@ Rules for every task:
       typed-`t` choice from 1.3, and a recommendation for a native-speaker review of all Vietnamese
       text; update the status sections
     - _Requirements: 14.12, 15.5_
-  - [-] 12.6 Commit the documentation
+  - [x] 12.6 Commit the documentation
     - Stage `.kiro/steering/language.md`, `AGENTS.md`, `CONTRIBUTING.md`,
       `docs/architecture/OVERVIEW.md`, `docs/PROJECT_PROGRESS.md` and
       `.kiro/specs/game-i18n-en-vi/{requirements.md,design.md,tasks.md,.config.kiro}`
@@ -475,7 +475,7 @@ Rules for every task:
     - Do not push
     - _Requirements: 16.1, 16.2, 16.3_
 
-- [~] 13. Final checkpoint
+- [x] 13. Final checkpoint
   - Run `pnpm test`, `pnpm typecheck` and `pnpm build`, and `git log --oneline 8fed327..HEAD` to list the local commits. Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

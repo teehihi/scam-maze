@@ -1,0 +1,1179 @@
+{
+  "pbtResults": {
+    "2.4 Write the property test for decision hint codes": {
+      "status": "passed",
+      "lastRunTimestamp": 1794415226489
+    },
+    "2.2 Write the property test for scenario localization": {
+      "status": "passed",
+      "lastRunTimestamp": 1794415237700
+    },
+    "3.2 Write the property tests for settings parsing and round trip": {
+      "status": "passed",
+      "lastRunTimestamp": 1794416102313
+    },
+    "3.4 Write the property test for language selections": {
+      "status": "passed",
+      "lastRunTimestamp": 1794416371629
+    },
+    "10.2 Write the i18n property tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1794423498195
+    }
+  },
+  "executionHistory": {
+    "1.1 Add the i18n dependencies": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414894610
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414915452
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415126702
+      }
+    ],
+    "1.2 Add `GameLocale` and `GameSettings.language`": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414894682
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414916238
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415127896
+      }
+    ],
+    "1.3 Create the I18n_Module skeleton": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414894754
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415138842
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415363587
+      }
+    ],
+    "1.4 Initialize i18n in the test setup": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414894819
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415376404
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415563837
+      }
+    ],
+    "1.5 Write the init and key-consistency tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414894959
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415376158
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415563268
+      }
+    ],
+    "1.6 Name the i18n packages in the narrative boundaries test": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895017
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414917182
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415129043
+      }
+    ],
+    "1.7 Commit the foundations": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895072
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415705603
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415818966
+      }
+    ],
+    "2.1 Implement `localizeScenario`": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895128
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414918163
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415127039
+      }
+    ],
+    "2.2 Write the property test for scenario localization": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895190
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415138158
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415364441
+      }
+    ],
+    "2.3 Add reason codes and decision hint codes": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895256
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414918810
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415126542
+      }
+    ],
+    "2.4 Write the property test for decision hint codes": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895325
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415137372
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415362801
+      }
+    ],
+    "2.5 Commit the narrative core": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895387
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415581439
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415687953
+      }
+    ],
+    "3.1 Implement the settings storage module": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895504
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415377115
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415562482
+      }
+    ],
+    "3.2 Write the property tests for settings parsing and round trip": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895566
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415997114
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416277272
+      }
+    ],
+    "3.3 Wire settings and locale into the App_Shell and `main.tsx`": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895628
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415997754
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416277121
+      }
+    ],
+    "3.4 Write the property test for language selections": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895690
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416285288
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416388417
+      }
+    ],
+    "3.5 Add the Language_Selector and translate the Settings_Modal": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895754
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415998482
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416277482
+      }
+    ],
+    "3.6 Write the Settings_Modal tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895820
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416397636
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416928771
+      }
+    ],
+    "3.7 Commit the language setting": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895876
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417353053
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417519060
+      }
+    ],
+    "4. Checkpoint: settings and core": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414895943
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424495654
+      }
+    ],
+    "5.1 Localize the main menu and prologue": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896006
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416397912
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416927296
+      }
+    ],
+    "5.2 Localize the credits headings": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896073
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416398817
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416929548
+      }
+    ],
+    "5.3 Localize the loading screens, errors, tips and WebGL fallback": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896141
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416399697
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416927506
+      }
+    ],
+    "5.4 Localize chapter titles, asset text and the chapter placeholder": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896202
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417519869
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417905526
+      }
+    ],
+    "5.5 Write the credits tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896261
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417520655
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417906093
+      }
+    ],
+    "5.6 Extend the loading tests for Vietnamese": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896324
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794418066443
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421111766
+      }
+    ],
+    "5.7 Write the App language tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896379
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417523367
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417905931
+      }
+    ],
+    "5.8 Commit the shared screens": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896442
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421572009
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423183394
+      }
+    ],
+    "6.1 Add the display scenario module and overlay skeleton": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896501
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415376284
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415560905
+      }
+    ],
+    "6.2 Translate the core part": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896563
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415821521
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415992905
+      }
+    ],
+    "6.3 Translate the evidence part": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896620
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415819920
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415992650
+      }
+    ],
+    "6.4 Translate the world part": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896674
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415822334
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415994960
+      }
+    ],
+    "6.5 Translate the dialogues part": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896731
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415823109
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415993061
+      }
+    ],
+    "6.6 Translate the phone part": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896785
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415820763
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415994107
+      }
+    ],
+    "6.7 Translate the decisions part": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896842
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415995745
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416277633
+      }
+    ],
+    "6.8 Write the narrative overlay tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414896937
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416400430
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416927681
+      }
+    ],
+    "6.9 Write the locale-independence property tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897031
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416950165
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417341446
+      }
+    ],
+    "6.10 Commit the narrative overlay": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897093
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417916713
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794418055788
+      }
+    ],
+    "7.1 Localize the HUD area": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897154
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416950389
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417341279
+      }
+    ],
+    "7.2 Localize the phone area": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897214
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416951018
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417341690
+      }
+    ],
+    "7.3 Localize the story area": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897276
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416952055
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417341096
+      }
+    ],
+    "7.4 Localize the outcome area": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897345
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794416952601
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417340827
+      }
+    ],
+    "7.5 Wire the display scenario into the Chapter_Page": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897412
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417521873
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417905673
+      }
+    ],
+    "7.6 Extend the phone tests for Vietnamese": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897479
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794418067401
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421112468
+      }
+    ],
+    "7.7 Extend the decision and debrief tests for Vietnamese": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897548
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417522655
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417906235
+      }
+    ],
+    "7.8 Extend the chapter page and accessibility tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897616
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421122180
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421562333
+      }
+    ],
+    "7.9 Commit the Chapter 1 interface": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897677
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423532338
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423696309
+      }
+    ],
+    "8. Checkpoint: game screens and Chapter 1": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897737
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424495874
+      }
+    ],
+    "9.1 Localize the Ho Chi Minh City world": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897795
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794418068234
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421111523
+      }
+    ],
+    "9.2 Localize the TestMove world": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897859
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794418068982
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421112895
+      }
+    ],
+    "9.3 Localize the UEH world": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897925
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794418069707
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421111964
+      }
+    ],
+    "9.4 Localize the Hue world": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414897983
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421122876
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794421562076
+      }
+    ],
+    "9.5 Write the world page render tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898058
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423194413
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423389711
+      }
+    ],
+    "9.6 Commit the world pages": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898113
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423708488
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423765385
+      }
+    ],
+    "10.1 Write the Vietnamese content lint": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898171
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423194645
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423389984
+      }
+    ],
+    "10.2 Write the i18n property tests": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898231
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423194813
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423516154
+      }
+    ],
+    "10.3 Commit the cross-cutting checks": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898290
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424217188
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424481234
+      }
+    ],
+    "11. Checkpoint: full suite": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898352
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424496071
+      }
+    ],
+    "12.1 Update the language steering rule": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898411
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423532524
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423697033
+      }
+    ],
+    "12.2 Update AGENTS.md": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898528
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423532659
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423698079
+      }
+    ],
+    "12.3 Add \"Adding a language\" to CONTRIBUTING.md": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898588
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423532827
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423698914
+      }
+    ],
+    "12.4 Update the architecture overview": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898651
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423533225
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423699757
+      }
+    ],
+    "12.5 Record the work in PROJECT_PROGRESS.md": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898712
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423771852
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424212356
+      }
+    ],
+    "12.6 Commit the documentation": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898773
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424496218
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424588933
+      }
+    ],
+    "13. Final checkpoint": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794414898831
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424589464
+      },
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424766527
+      }
+    ],
+    "2. Narrative localization core (pure)": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415688044
+      }
+    ],
+    "1. Foundations": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794415819064
+      }
+    ],
+    "3. Language setting, persistence and runtime switching": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794417519225
+      }
+    ],
+    "6. Vietnamese Chapter 1 narrative overlay": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794418055929
+      }
+    ],
+    "5. Shared screens": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423183536
+      }
+    ],
+    "7. Chapter 1 interface": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423696408
+      }
+    ],
+    "9. Teammate world pages (extraction only, lower priority)": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794423765504
+      }
+    ],
+    "10. Cross-cutting checks": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424481364
+      }
+    ],
+    "12. Documentation and steering": [
+      {
+        "executionId": "21149ece-6b55-49b4-9fa9-68728a348383",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794424589060
+      }
+    ]
+  }
+}

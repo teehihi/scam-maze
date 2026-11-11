@@ -1,0 +1,217 @@
+{
+  "pbtResults": {
+    "1. Write bug condition exploration test": {
+      "status": "passed",
+      "failingExample": "Unfixed code, seed 0x5ca33a2e: 50 of 50 seeded runs fail, plus all concrete cases. (a) chapter, reducedMotion=false, doneAtMs=0: data-state is \"hidden\" on the first render. (b) chapter, reducedMotion=true, doneAtMs=50 (cached): data-state is \"hidden\" at t=50, expected \"visible\" until 1500 ms. (c) startup, reducedMotion=false, doneAtMs=0: \"hidden\" on the first render. (d) startup, reducedMotion=true, doneAtMs=1: \"hidden\" at t=1, expected \"visible\" until 1200 ms.",
+      "lastRunTimestamp": 1794320180899
+    },
+    "2. Write preservation property tests (BEFORE implementing the fix)": {
+      "status": "passed",
+      "lastRunTimestamp": 1794320948386
+    },
+    "3.7 Verify the bug condition exploration test now passes": {
+      "status": "passed",
+      "lastRunTimestamp": 1794321604776
+    },
+    "3.8 Verify preservation tests still pass": {
+      "status": "passed",
+      "lastRunTimestamp": 1794321613589
+    }
+  },
+  "executionHistory": {
+    "1. Write bug condition exploration test": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319907381
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319920981
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794320222188
+      }
+    ],
+    "2. Write preservation property tests (BEFORE implementing the fix)": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319907543
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794320223744
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794320975517
+      }
+    ],
+    "3.1 Add the `fadeIn` option to `SceneTransition`": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319907670
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794320989069
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321068400
+      }
+    ],
+    "3.2 Add the `useMinimumDisplayTime` hook and the `shouldShowLoadingScreen` helper": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319907743
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794320990069
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321069342
+      }
+    ],
+    "3.3 Apply the hold and opaque first frame to `ChapterLoadingFlow`": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319907822
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321080765
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321316367
+      }
+    ],
+    "3.4 Apply the hold, opaque first frame and \"Ready\" status to `MenuStartupLoading`": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319907902
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321081507
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321316465
+      }
+    ],
+    "3.5 Update existing real-time timing tests to fake timers": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319907990
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321322294
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321570535
+      }
+    ],
+    "3.6 Record the fix in `docs/PROJECT_PROGRESS.md`": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319908085
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321639640
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321735997
+      }
+    ],
+    "3.7 Verify the bug condition exploration test now passes": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319908157
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321576170
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321630463
+      }
+    ],
+    "3.8 Verify preservation tests still pass": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319908231
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321576797
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321631095
+      }
+    ],
+    "4. Checkpoint - Ensure all tests and checks pass": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794319908301
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321741562
+      },
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321803117
+      }
+    ],
+    "3. Fix the loading screens that flash too fast to see": [
+      {
+        "executionId": "12572e79-26b4-42f7-a9e8-8c6ea38c4435",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794321736071
+      }
+    ]
+  }
+}
