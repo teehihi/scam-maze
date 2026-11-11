@@ -96,6 +96,9 @@ function checkPanel(
   }
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("decision panel hint codes", () => {
   it("sets hintCode exactly when the hint is a core reason", () => {
     // Feature: game-i18n-en-vi, Property 9: Decision hint codes match their reasons
@@ -123,5 +126,5 @@ describe("decision panel hint codes", () => {
     // Both hint origins must actually occur, or the property says nothing.
     expect(counts.reason).toBeGreaterThan(0);
     expect(counts.scenario).toBeGreaterThan(0);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

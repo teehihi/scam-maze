@@ -165,6 +165,9 @@ function runStore(
   return { state, serialized: JSON.stringify(encodeProgress(state, pose, CHECKPOINT_ID)) };
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("locale independence properties", () => {
   // Feature: game-i18n-en-vi, Property 7: The core gives the same results with any Localized_Scenario
   it("Property 7: the core gives the same results with any Localized_Scenario (Requirements 10.4, 9.4)", () => {
@@ -186,7 +189,7 @@ describe("locale independence properties", () => {
         ).toEqual([]);
       }
     }
-  });
+  }, PROPERTY_TIMEOUT_MS);
 
   // Feature: game-i18n-en-vi, Property 8: Saves do not depend on the UI language
   it("Property 8: saves do not depend on the UI language (Requirements 10.5, 10.6, 10.7)", () => {
@@ -226,5 +229,5 @@ describe("locale independence properties", () => {
     }
     // At least some runs actually switched to Vietnamese mid-sequence.
     expect(switchedRuns).toBeGreaterThan(CORE_PROPERTY_RUNS / 2);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

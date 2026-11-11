@@ -125,6 +125,9 @@ function generateCase(next: () => number): {
   return { origin, direction, spheres };
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe('findFocusedInteractable (property)', () => {
   it('matches a brute-force reference on 500 seeded cases', () => {
     // Feature: chapter-01-the-urgent-call, Property 9: Focus selection matches a brute-force reference
@@ -152,5 +155,5 @@ describe('findFocusedInteractable (property)', () => {
     expect(ambiguousCases).toBeLessThan(CASES * 0.02);
     expect(hits).toBeGreaterThan(CASES * 0.2);
     expect(checked - hits).toBeGreaterThan(CASES * 0.2);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

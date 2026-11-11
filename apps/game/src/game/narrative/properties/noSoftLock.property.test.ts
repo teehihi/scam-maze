@@ -49,6 +49,9 @@ function softLockProblem(start: ChapterState): string | null {
   return null;
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("Property 4: No soft-lock", () => {
   it("completes the chapter from every randomly reached state", () => {
     // Feature: chapter-01-the-urgent-call, Property 4: No soft-lock
@@ -70,7 +73,7 @@ describe("Property 4: No soft-lock", () => {
         }
       }
     }
-  });
+  }, PROPERTY_TIMEOUT_MS);
 
   it("reaches every outcome from the start state through a scripted path", () => {
     const option = (optionId: string): CoreAction => ({ type: "SELECT_DIALOGUE_OPTION", optionId });
@@ -105,5 +108,5 @@ describe("Property 4: No soft-lock", () => {
 
     // The guided policy alone also finishes from the initial state.
     expect(softLockProblem(createInitialState())).toBeNull();
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

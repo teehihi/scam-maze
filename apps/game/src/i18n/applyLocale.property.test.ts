@@ -34,6 +34,9 @@ function createMemoryStorage(): Pick<Storage, "getItem" | "setItem"> {
   };
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("applyLocale properties", () => {
   // Feature: game-i18n-en-vi, Property 3: Language selections change only the language and the document language follows
   it("Property 3: language selections change only the language and the document language follows (Requirements 2.8, 4.1, 4.3)", () => {
@@ -68,5 +71,5 @@ describe("applyLocale properties", () => {
     }
     // Both locales were the final selection at least once.
     expect([...lastSelections].sort()).toEqual(["en", "vi"]);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

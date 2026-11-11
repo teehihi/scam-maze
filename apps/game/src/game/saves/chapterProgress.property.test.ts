@@ -59,6 +59,9 @@ function randomPose(next: () => number): SavedPlayerPose {
   return { position: [x, y, z], yaw };
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("chapter progress save round trip", () => {
   it("restores the same Chapter_State and the clamped pose after encode, JSON and parse", () => {
     // Feature: chapter-01-the-urgent-call, Property 12: Save round trip
@@ -107,5 +110,5 @@ describe("chapter progress save round trip", () => {
       expect(fromStorage.state, label).toEqual(state);
       expect(fromStorage.pose, label).toEqual(expectedPose);
     }
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

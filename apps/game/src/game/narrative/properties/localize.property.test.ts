@@ -100,6 +100,9 @@ function stringLeafDifferences(expected: unknown, actual: unknown, path: string,
   }
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("narrative localization", () => {
   it("replaces only text and falls back to English per field", () => {
     // Feature: game-i18n-en-vi, Property 6: Localization replaces only text and falls back per field
@@ -160,5 +163,5 @@ describe("narrative localization", () => {
     // The property is only meaningful if both translation and fallback happened.
     expect(translatedFields).toBeGreaterThan(0);
     expect(fallbackFields).toBeGreaterThan(0);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

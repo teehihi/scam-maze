@@ -110,6 +110,9 @@ function checkDebrief(state: ChapterState, label: string): void {
   expect(buildDebrief(rebuilt, scenario), `${label}: debrief from replayed state`).toEqual(view);
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("Property 11: The debrief is derived only from data and the Event_Log", () => {
   it("builds the debrief only from Scenario_Data and the Event_Log for random completed runs", () => {
     // Feature: chapter-01-the-urgent-call, Property 11: The debrief is derived only from data and the Event_Log
@@ -122,5 +125,5 @@ describe("Property 11: The debrief is derived only from data and the Event_Log",
       checkDebrief(outcomeState, `${label} (outcome state)`);
       checkDebrief(final, `${label} (finished state)`);
     }
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

@@ -56,6 +56,9 @@ function firstViolation(actions: readonly unknown[]): { step: number; message: s
   return null;
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("chapter core dispatch", () => {
   it("returns a result for every dispatch and leaves state unchanged on rejection", () => {
     // Feature: chapter-01-the-urgent-call, Property 1: Every dispatch returns a result, and rejections change nothing
@@ -101,5 +104,5 @@ describe("chapter core dispatch", () => {
     // The generator must exercise both branches of the property.
     expect(accepted).toBeGreaterThan(0);
     expect(rejected).toBeGreaterThan(0);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

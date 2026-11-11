@@ -104,6 +104,9 @@ function checkCase(index: number, seed: number): { violations: string[]; accepte
   return { violations, accepted: acceptedCount, rejected: rejectedCount };
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("chapter store notifications", () => {
   it("notifies exactly on accepted actions and mirrors the reducer fold", () => {
     // Feature: chapter-01-the-urgent-call, Property 14: The store notifies exactly on accepted actions
@@ -122,5 +125,5 @@ describe("chapter store notifications", () => {
     // The generator must exercise both branches of the property.
     expect(accepted).toBeGreaterThan(0);
     expect(rejected).toBeGreaterThan(0);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

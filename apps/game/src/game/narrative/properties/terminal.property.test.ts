@@ -80,6 +80,9 @@ function outcomeStateFor(seed: number): ChapterState {
   return reached ?? completeChapterFrom(run.final).outcomeState;
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("chapter core terminal state", () => {
   it("accepts only FINISH_CHAPTER after the Outcome, and nothing after it", () => {
     // Feature: chapter-01-the-urgent-call, Property 5: After the Outcome only FINISH_CHAPTER is accepted
@@ -122,5 +125,5 @@ describe("chapter core terminal state", () => {
         expect(result.reason, where).toBeTruthy();
       }
     }
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

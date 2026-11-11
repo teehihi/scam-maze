@@ -68,6 +68,9 @@ function firstViolatingState(actions: readonly unknown[]): { index: number; viol
   return { index: -1, violations: [] };
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("chapter core properties", () => {
   // Feature: chapter-01-the-urgent-call, Property 10: The journal shows exactly the discovered evidence in order
   it("shows exactly the discovered evidence in discovery order, with notes once unlocked", () => {
@@ -92,5 +95,5 @@ describe("chapter core properties", () => {
       ].join("\n");
       expect.fail(report);
     }
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

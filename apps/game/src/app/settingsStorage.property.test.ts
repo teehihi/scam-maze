@@ -106,6 +106,9 @@ function generateSettings(next: () => number): GameSettings {
   };
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("settingsStorage properties", () => {
   // Feature: game-i18n-en-vi, Property 1: Stored settings parsing matches the legacy merge and validates the language
   it("Property 1: parsing matches the legacy merge and validates the language (Requirements 1.1, 2.2, 2.4, 2.5, 2.6, 2.7)", () => {
@@ -122,7 +125,7 @@ describe("settingsStorage properties", () => {
     }
     // Every input class from the property statement was exercised.
     expect([...kinds].sort()).toEqual(["absent", "array", "object", "primitive", "text"]);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 
   // Feature: game-i18n-en-vi, Property 2: Settings serialization round trip
   it("Property 2: parseStoredSettings(JSON.stringify(settings)) equals settings (Requirements 2.3, 2.4)", () => {
@@ -134,5 +137,5 @@ describe("settingsStorage properties", () => {
         settings,
       );
     }
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

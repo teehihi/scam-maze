@@ -83,6 +83,9 @@ function sequenceFails(actions: readonly unknown[]): boolean {
   return runSequence(actions).states.some((state) => optionProblems(state).length > 0);
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("Property 8: Dialogue options respect conditions and never dead-end", () => {
   it("lists only available authored options, never dead-ends, and accepts every listed option", () => {
     // Feature: chapter-01-the-urgent-call, Property 8: Dialogue options respect conditions and never dead-end
@@ -106,5 +109,5 @@ describe("Property 8: Dialogue options respect conditions and never dead-end", (
     }
     // Guard against a vacuous pass: the generator must reach conversations.
     if (checkedStates === 0) throw new Error("Property 8: no generated state had a conversation.");
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

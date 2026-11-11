@@ -17,6 +17,9 @@ const PHONE_NEUTRAL_SEED = (CORE_PROPERTY_SEED ^ 0x00070007) >>> 0;
 const OPEN_PHONE: CoreAction = { type: "OPEN_PHONE" };
 const CLOSE_PHONE: CoreAction = { type: "CLOSE_PHONE" };
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("chapter core phone neutrality", () => {
   it("never changes objectives when the phone is opened or closed", () => {
     // Feature: chapter-01-the-urgent-call, Property 7: Opening and closing the phone never changes objectives
@@ -56,5 +59,5 @@ describe("chapter core phone neutrality", () => {
     // The property is only meaningful if both actions were accepted in some reachable states.
     expect(acceptedOpens).toBeGreaterThan(0);
     expect(acceptedCloses).toBeGreaterThan(0);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

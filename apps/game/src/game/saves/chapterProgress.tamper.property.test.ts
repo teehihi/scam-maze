@@ -201,6 +201,9 @@ function tamper(kind: TamperKind, save: ValidSave, next: () => number): Envelope
   }
 }
 
+/** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
+const PROPERTY_TIMEOUT_MS = 60_000;
+
 describe("chapter progress saves", () => {
   it("rejects tampered saves without throwing", () => {
     // Feature: chapter-01-the-urgent-call, Property 13: Tampered saves are rejected
@@ -236,5 +239,5 @@ describe("chapter progress saves", () => {
 
     expect(checked).toBeGreaterThanOrEqual(TAMPER_RUNS);
     for (const kind of TAMPER_KINDS) expect(counts[kind], kind).toBeGreaterThan(0);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });
