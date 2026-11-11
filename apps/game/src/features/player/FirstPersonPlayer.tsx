@@ -115,8 +115,21 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
           }
         }
       },
+      get raycastPunch() {
+        return propsRef.current.adapter?.raycastPunch
+          ? (origin: import('three').Vector3, direction: import('three').Vector3, maxDistance: number) =>
+              propsRef.current.adapter!.raycastPunch!(origin, direction, maxDistance)
+          : undefined;
+      },
       getInteractionTargets() {
-        return propsRef.current.adapter?.getInteractionTargets?.() ?? [];
+        const custom = propsRef.current.adapter?.getInteractionTargets?.();
+        if (custom && custom.length > 0) return custom;
+        if (camera.parent) {
+          let root: import('three').Object3D = camera.parent;
+          while (root.parent) root = root.parent;
+          return root.children;
+        }
+        return [];
       },
     };
 

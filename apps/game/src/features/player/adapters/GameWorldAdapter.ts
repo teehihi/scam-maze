@@ -40,6 +40,12 @@ export interface GameWorldAdapter {
   getInteractionTargets?(): THREE.Object3D[];
 
   /**
+   * Optional custom raycast for melee punch reach (2.5m).
+   * Returns true if a solid surface/target is hit, or false if missed.
+   */
+  raycastPunch?(origin: THREE.Vector3, direction: THREE.Vector3, maxDistance: number): boolean;
+
+  /**
    * Map-specific adult eye height offset in meters (defaults to 1.85m).
    */
   eyeHeight?: number;

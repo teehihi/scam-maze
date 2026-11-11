@@ -142,32 +142,38 @@ export class CharacterRuntime {
 
   private performPunchRaycastAndAudio() {
     this.camera.getWorldDirection(this.aimDir);
-    this.raycaster.set(this.camera.position, this.aimDir);
-    this.raycaster.near = 0.1;
-    this.raycaster.far = 2.4;
-
-    let targets = this.adapter.getInteractionTargets?.();
-    if (!targets && this.camera.parent) {
-      // Find scene root if targets not explicitly supplied
-      let root: THREE.Object3D = this.camera.parent;
-      while (root.parent) root = root.parent;
-      targets = root.children;
-    }
+    const maxReach = 2.5;
 
     let hit = false;
-    if (targets && targets.length > 0) {
-      const intersects = this.raycaster.intersectObjects(targets, true);
-      const validHit = intersects.find((i) => {
-        let parent: THREE.Object3D | null = i.object;
-        while (parent) {
-          if (parent === this.camera || parent === this.arms.group || !parent.visible) {
-            return false;
+    if (this.adapter.raycastPunch) {
+      hit = this.adapter.raycastPunch(this.camera.position, this.aimDir, maxReach);
+    } else {
+      this.raycaster.set(this.camera.position, this.aimDir);
+      this.raycaster.near = 0.1;
+      this.raycaster.far = maxReach;
+
+      let targets = this.adapter.getInteractionTargets?.();
+      if ((!targets || targets.length === 0) && this.camera.parent) {
+        // Find scene root if targets not explicitly supplied
+        let root: THREE.Object3D = this.camera.parent;
+        while (root.parent) root = root.parent;
+        targets = root.children;
+      }
+
+      if (targets && targets.length > 0) {
+        const intersects = this.raycaster.intersectObjects(targets, true);
+        const validHit = intersects.find((i) => {
+          let parent: THREE.Object3D | null = i.object;
+          while (parent) {
+            if (parent === this.camera || parent === this.arms.group || !parent.visible) {
+              return false;
+            }
+            parent = parent.parent;
           }
-          parent = parent.parent;
-        }
-        return true;
-      });
-      hit = Boolean(validHit);
+          return true;
+        });
+        hit = Boolean(validHit);
+      }
     }
 
     if (hit) {

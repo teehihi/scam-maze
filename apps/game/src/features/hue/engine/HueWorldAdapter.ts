@@ -35,4 +35,13 @@ export class HueWorldAdapter implements GameWorldAdapter {
       height,
     );
   }
+
+  public raycastPunch(
+    origin: import('three').Vector3,
+    direction: import('three').Vector3,
+    maxDistance: number,
+  ): boolean {
+    const hit = this.collision.raycast(origin, direction, maxDistance);
+    return hit.hit;
+  }
 }

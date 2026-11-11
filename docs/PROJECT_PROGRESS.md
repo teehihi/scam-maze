@@ -125,6 +125,30 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — Restore Spatial Hash Raycast & Distinct Hit vs Miss Punch Audio
+
+- **Objective:** Restore the distinct punch audio logic (`hit_punch.mp3` with heavy impact gain on solid collision vs `miss_punch.mp3` whiff on air):
+  1. Bridge `HueCollisionSystem.raycast` into `HueWorldAdapter.raycastPunch` so punches in Huế immediately check against spatial hash colliders (pillars, walls, monuments, pavilions, trees).
+  2. Implement `raycastPunch` interface on `GameWorldAdapter` and fall back to scene root geometry raycasting in `<FirstPersonPlayer>` for UEH campus and TestMove street environments.
+  3. Ensure `CharacterRuntime` properly differentiates hit vs miss and triggers the respective Web Audio pre-decoded buffers and fallback HTML audio elements.
+- **Completed work:**
+  - `GameWorldAdapter.ts`: Added optional `raycastPunch(origin, direction, maxDistance): boolean` method to interface contract.
+  - `HueWorldAdapter.ts`: Implemented `raycastPunch` utilizing `this.collision.raycast(origin, direction, 2.5)` for instant zero-overhead spatial collider queries.
+  - `CharacterRuntime.ts`: Updated `performPunchRaycastAndAudio` to query `adapter.raycastPunch` first, falling back to scene root mesh raycasting when not provided, correctly resolving `hit` vs `miss`.
+  - `FirstPersonPlayer.tsx`: Wired `raycastPunch` and dynamic scene root `getInteractionTargets` fallback in `adapterProxy`.
+- **Files created, modified or deleted:**
+  - Modified: `apps/game/src/features/player/adapters/GameWorldAdapter.ts`
+  - Modified: `apps/game/src/features/hue/engine/HueWorldAdapter.ts`
+  - Modified: `apps/game/src/features/player/runtime/CharacterRuntime.ts`
+  - Modified: `apps/game/src/features/player/FirstPersonPlayer.tsx`
+  - Modified: `docs/PROJECT_PROGRESS.md`
+- **Validation commands executed:**
+  - `pnpm typecheck` (0 errors across 3/3 packages)
+  - `pnpm test` (109/109 tests passed)
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None.
+- **Follow-up tasks:** None.
+
 ### 2026-11-11 — Fix Character Viewmodel Sprint-Punch Transition & R3F Scene Graph Parenting
 
 - **Objective:** Fix regressions across character viewmodel animations and R3F maps (`/hue`, `/ueh`, `/testmove`):
