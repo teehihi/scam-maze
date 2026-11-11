@@ -4,6 +4,7 @@ import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { HCMPage } from "../features/hochiminh";
 import { TestMovePage } from "../features/testmove";
 import { UEHPage } from "../features/ueh";
+import { HuePage } from "../features/hue";
 import { MenuStartupLoading } from "../features/loading/MenuStartupLoading";
 import { ChapterLoadingFlow } from "../features/loading/ChapterLoadingFlow";
 import { ChapterPlaceholder } from "../features/chapter/ChapterPlaceholder";
@@ -46,7 +47,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   fov: 72,
 };
 
-type AppRoute = "menu" | "hochiminh" | "testmove" | "ueh";
+type AppRoute = "menu" | "hochiminh" | "testmove" | "ueh" | "hue";
 
 function getAppRoute(): AppRoute {
   if (typeof window === "undefined") return "menu";
@@ -54,6 +55,7 @@ function getAppRoute(): AppRoute {
   const hash = window.location.hash.toLowerCase();
   if (path.startsWith("/testmove") || hash.includes("testmove")) return "testmove";
   if (path.startsWith("/ueh") || hash.includes("ueh")) return "ueh";
+  if (path.startsWith("/hue") || hash.includes("hue")) return "hue";
   if (
     path.startsWith("/hochiminh") ||
     path.startsWith("/hcm") ||
@@ -106,8 +108,10 @@ export const App: React.FC = () => {
         : newRoute === "testmove"
           ? "/testmove"
           : newRoute === "ueh"
-            ? "/UEH"
-            : "/";
+            ? "/ueh"
+            : newRoute === "hue"
+              ? "/hue"
+              : "/";
     window.history.pushState(null, "", targetPath);
     setRoute(newRoute);
   };
@@ -469,6 +473,16 @@ export const App: React.FC = () => {
   if (route === "ueh") {
     return (
       <UEHPage
+        settings={settings}
+        onBackToMenu={() => navigateTo("menu")}
+      />
+    );
+  }
+
+  // Route: /hue or /HUE -> Procedural 3D Huế Heritage World (Cố Đô Huế)
+  if (route === "hue") {
+    return (
+      <HuePage
         settings={settings}
         onBackToMenu={() => navigateTo("menu")}
       />

@@ -1,8 +1,9 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import React, { useRef, useEffect, useCallback } from "react";
 import * as THREE from "three";
-import { FirstPersonArms } from "./FirstPersonArms";
-import type { FirstPersonPlayerProps } from "./types";
+import { useFrame, useThree } from "@react-three/fiber";
+import { CharacterRuntime } from "./runtime/CharacterRuntime";
+import type { GameWorldAdapter } from "./adapters/GameWorldAdapter";
+import type { FirstPersonPlayerProps, PlayerStats } from "./types";
 import {
   type BoxCollider,
   type VehicleState,
@@ -13,10 +14,29 @@ import {
   useVehicleAudio,
 } from "../vehicle";
 
-export const FirstPersonPlayer: React.FC<FirstPersonPlayerProps> = ({
+/** Car collider half extents (Lexus GX 550) and player radius used against it. */
+const CAR_HALF_WIDTH = 1.28;
+const CAR_HALF_LENGTH = 2.85;
+const PLAYER_CAR_RADIUS = 0.45;
+/** Steering column axis in car-local space. */
+const STEERING_AXIS = new THREE.Vector3(0, 0.233, -0.972).normalize();
+/** Driver eye position in car-local space (commanding SUV eye height). */
+const SEAT_OFFSET = new THREE.Vector3(0.493, 1.86, -0.24);
+/** Fallback if the engine-start sound never reports completion. */
+const ENGINE_START_FALLBACK_MS = 11300;
+/** Driver seat / headrest meshes hidden while driving so they never block the cockpit view. */
+const isDriverSeatMesh = (name: string) => name.includes("016_") || name.includes("017") || name.includes("ZY");
+
+export interface UnifiedPlayerProps extends Omit<FirstPersonPlayerProps, "bounds"> {
+  bounds?: FirstPersonPlayerProps["bounds"];
+  adapter?: GameWorldAdapter;
+}
+
+export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
   spawnPosition,
   spawnYaw = 0,
   bounds,
+  adapter,
   consumeMovement,
   consumePunchTrigger,
   consumeInspectTrigger,
@@ -26,85 +46,15 @@ export const FirstPersonPlayer: React.FC<FirstPersonPlayerProps> = ({
   onInteract,
   soundEnabled = true,
   sfxVolume = 1.0,
-  hitSoundPath = "/assets/audio/hit_punch.mp3",
-  missSoundPath = "/assets/audio/miss_punch.mp3",
   carPivotRef,
 }) => {
-  const { camera, scene } = useThree();
+  const { camera } = useThree();
+  const runtimeRef = useRef<CharacterRuntime | null>(null);
 
-  // Audio system for hit_punch & miss_punch with zero-latency pre-decoding
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const hitBufferRef = useRef<AudioBuffer | null>(null);
-  const missBufferRef = useRef<AudioBuffer | null>(null);
-
-  // Melee punch raycaster and aim direction
-  const raycasterRef = useRef(new THREE.Raycaster());
-  const aimDirRef = useRef(new THREE.Vector3());
-
-  useEffect(() => {
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    audioCtxRef.current = ctx;
-
-    fetch(hitSoundPath)
-      .then((res) => res.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => {
-        hitBufferRef.current = decoded;
-      })
-      .catch((err) => console.warn("Failed to load hit sound:", err));
-
-    fetch(missSoundPath)
-      .then((res) => res.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => {
-        missBufferRef.current = decoded;
-      })
-      .catch((err) => console.warn("Failed to load miss sound:", err));
-
-    return () => {
-      ctx.close().catch(() => {});
-    };
-  }, [hitSoundPath, missSoundPath]);
-
-  const playPunchSound = useCallback(
-    (type: "hit" | "miss") => {
-      if (!soundEnabled) return;
-      const ctx = audioCtxRef.current;
-      const buffer = type === "hit" ? hitBufferRef.current : missBufferRef.current;
-      if (!ctx || !buffer) return;
-
-      if (ctx.state === "suspended") {
-        ctx.resume().catch(() => {});
-      }
-
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.playbackRate.value = 0.94 + Math.random() * 0.12;
-
-      const gain = ctx.createGain();
-      gain.gain.value =
-        type === "hit" ? Math.min(1.0, 0.9 * sfxVolume) : Math.min(1.0, 0.65 * sfxVolume);
-
-      source.connect(gain);
-      gain.connect(ctx.destination);
-      source.start(0);
-    },
-    [soundEnabled, sfxVolume]
-  );
-
-  // First-person locomotion state
-  const posRef = useRef(new THREE.Vector3(...spawnPosition));
-  const velocityRef = useRef(new THREE.Vector3(0, 0, 0));
-  const isGroundedRef = useRef(true);
-
-  // Vehicle driving and proximity state
-  const [isDriving, setIsDriving] = useState(false);
-  const [isNearCar, setIsNearCar] = useState(false);
-
+  // ==========================================
+  // VEHICLE LAYER (active only when a carPivotRef is supplied, e.g. /testmove)
+  // ==========================================
+  const hasVehicle = Boolean(carPivotRef);
   const carStateRef = useRef<VehicleState>({
     position: [186.29, -94.92, -68.75],
     yaw: 0,
@@ -117,494 +67,356 @@ export const FirstPersonPlayer: React.FC<FirstPersonPlayerProps> = ({
     pitch: 0,
     roll: 0,
   });
+  const isNearCarRef = useRef(false);
+  const cockpitYawRef = useRef(0);
+  const cockpitPitchRef = useRef(0);
+  const wasAcceleratingRef = useRef(false);
+  const canDriveRef = useRef(false);
+  const engineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDrivingStatsRef = useRef(0);
+  const seatScratch = useRef(new THREE.Vector3());
+  const carEulerScratch = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
 
-  const {
-    playDoorSound,
-    playDriveSound,
-    playStopSound,
-    playStopCarSound,
-    stopAll,
-  } = useVehicleAudio({
+  const { playDoorSound, playDriveSound, playStopSound, playStopCarSound, stopAll } = useVehicleAudio({
     enabled: soundEnabled,
     volume: sfxVolume,
   });
 
-  const cockpitYawRef = useRef(0);
-  const cockpitPitchRef = useRef(0);
-  const wasAcceleratingRef = useRef(false);
-  const isStartingEngineRef = useRef(false);
-  const canDriveRef = useRef(false);
+  const setDriverSeatVisible = useCallback(
+    (visible: boolean) => {
+      carPivotRef?.current?.traverse((child: THREE.Object3D) => {
+        if (child.name && isDriverSeatMesh(child.name)) child.visible = visible;
+      });
+    },
+    [carPivotRef],
+  );
+
+  const enableDriving = useCallback(() => {
+    canDriveRef.current = true;
+    if (carStateRef.current.gear === "P") carStateRef.current.gear = "D";
+  }, []);
 
   const enterCar = useCallback(() => {
-    setIsDriving(true);
-    carStateRef.current.isDriving = true;
-    carStateRef.current.gear = "P";
+    const car = carStateRef.current;
+    car.isDriving = true;
+    car.gear = "P";
     cockpitYawRef.current = 0;
     cockpitPitchRef.current = 0;
     wasAcceleratingRef.current = false;
-    isStartingEngineRef.current = true;
     canDriveRef.current = false;
-
-    // Phát sound closedoorlx khi lên xe; sau khi xong sound start thì cho phép lái xe
-    playDoorSound(() => {
-      isStartingEngineRef.current = false;
-      canDriveRef.current = true;
-      carStateRef.current.gear = "D";
-    });
-
-    // Fallback timer matching duration (~11.3s) so player is never prematurely able to drive while start sound is playing
-    setTimeout(() => {
-      isStartingEngineRef.current = false;
-      canDriveRef.current = true;
-      if (carStateRef.current.gear === "P") {
-        carStateRef.current.gear = "D";
-      }
-    }, 11300);
-
-    // Hide driver seat & headrest meshes so they never block cockpit view
-    if (carPivotRef?.current) {
-      carPivotRef.current.traverse((child: THREE.Object3D) => {
-        if (child.name && (child.name.includes("016_") || child.name.includes("017") || child.name.includes("ZY"))) {
-          child.visible = false;
-        }
-      });
-    }
-  }, [playDoorSound, carPivotRef]);
+    // Door + engine-start sound; driving is unlocked when it finishes (or by the fallback timer).
+    playDoorSound(enableDriving);
+    if (engineTimerRef.current) clearTimeout(engineTimerRef.current);
+    engineTimerRef.current = setTimeout(enableDriving, ENGINE_START_FALLBACK_MS);
+    if (runtimeRef.current) runtimeRef.current.arms.group.visible = false;
+    setDriverSeatVisible(false);
+  }, [playDoorSound, enableDriving, setDriverSeatVisible]);
 
   const exitCar = useCallback(() => {
-    setIsDriving(false);
-    carStateRef.current.isDriving = false;
-    carStateRef.current.speed = 0;
+    const car = carStateRef.current;
+    car.isDriving = false;
+    car.speed = 0;
     wasAcceleratingRef.current = false;
-    isStartingEngineRef.current = false;
     canDriveRef.current = false;
-
-    stopAll(); // Dừng toàn bộ âm thanh lái
-    playStopCarSound(); // Phát duy nhất sound stopCar cho hành động xuống xe (không phát closedoorlx!)
-
-    // Restore driver seat visibility
-    if (carPivotRef?.current) {
-      carPivotRef.current.traverse((child: THREE.Object3D) => {
-        if (child.name && (child.name.includes("016_") || child.name.includes("017") || child.name.includes("ZY"))) {
-          child.visible = true;
-        }
-      });
-      // Reset steering wheel rotation to neutral
-      const steeringPivot = carPivotRef.current.userData?.steeringPivot as THREE.Group | undefined;
-      if (steeringPivot) {
-        steeringPivot.quaternion.identity();
-      }
+    if (engineTimerRef.current) {
+      clearTimeout(engineTimerRef.current);
+      engineTimerRef.current = null;
     }
+    stopAll();
+    playStopCarSound();
+    setDriverSeatVisible(true);
+    const steeringPivot = carPivotRef?.current?.userData?.steeringPivot as THREE.Group | undefined;
+    steeringPivot?.quaternion.identity();
 
-    const carPos = carStateRef.current.position;
-    const carYaw = carStateRef.current.yaw;
-    const cosY = Math.cos(carYaw);
-    const sinY = Math.sin(carYaw);
-
-    // Spawn beside the left driver door (+1.5m X, -0.2m Z in authentic LHD space)
-    posRef.current.x = carPos[0] + (1.5 * cosY - (-0.2) * sinY);
-    posRef.current.y = bounds.groundY;
-    posRef.current.z = carPos[2] + (1.5 * sinY + (-0.2) * cosY);
-    velocityRef.current.set(0, 0, 0);
-
-    yawRef.current = carYaw + Math.PI * 0.45;
-    targetYawRef.current = yawRef.current;
-    pitchRef.current = 0;
-    targetPitchRef.current = 0;
-  }, [bounds.groundY, stopAll, playStopCarSound, carPivotRef]);
-
-  // Camera orientation
-  const yawRef = useRef(spawnYaw);
-  const pitchRef = useRef(0);
-  const targetYawRef = useRef(spawnYaw);
-  const targetPitchRef = useRef(0);
-
-  // Animation and action states
-  const [isMoving, setIsMoving] = useState(false);
-  const [isSprinting, setIsSprinting] = useState(false);
-  const [isPunching, setIsPunching] = useState(false);
-  const [isBlocking, setIsBlocking] = useState(false);
-  const [isInteracting, setIsInteracting] = useState(false);
-  const [isInspecting, setIsInspecting] = useState(false);
-
-  const handlePunchFinished = useCallback(() => {
-    setIsPunching(false);
-  }, []);
-
-  const handleInspectFinished = useCallback(() => {
-    setIsInspecting(false);
-  }, []);
-
-  const handleInteractFinished = useCallback(() => {
-    setIsInteracting(false);
-  }, []);
-
-  // Raycast melee reach & audio feedback on each punch strike
-  const performPunchRaycastAndAudio = useCallback(() => {
-    camera.getWorldDirection(aimDirRef.current);
-    raycasterRef.current.set(camera.position, aimDirRef.current);
-    raycasterRef.current.near = 0.1;
-    raycasterRef.current.far = 2.4;
-
-    const intersects = raycasterRef.current.intersectObjects(scene.children, true);
-    const hit = intersects.find((i) => {
-      let parent: THREE.Object3D | null = i.object;
-      while (parent) {
-        if (parent === camera || parent.name === "FirstPersonArms" || !parent.visible) {
-          return false;
-        }
-        parent = parent.parent;
-      }
-      return true;
-    });
-
-    if (hit) {
-      playPunchSound("hit");
-    } else {
-      playPunchSound("miss");
+    // Step out beside the driver door (+1.5m X, -0.2m Z in car-local space).
+    const cosY = Math.cos(car.yaw);
+    const sinY = Math.sin(car.yaw);
+    const x = car.position[0] + (1.5 * cosY - -0.2 * sinY);
+    const z = car.position[2] + (1.5 * sinY + -0.2 * cosY);
+    const runtime = runtimeRef.current;
+    if (runtime) {
+      const ground = runtime.adapter.getGroundHeight(x, z) ?? propsRef.current.bounds?.groundY ?? 0;
+      runtime.teleport([x, ground + (runtime.adapter.eyeHeight ?? 0), z], car.yaw + Math.PI * 0.45);
+      runtime.arms.group.visible = true;
     }
-  }, [camera, scene, playPunchSound]);
+  }, [stopAll, playStopCarSound, setDriverSeatVisible, carPivotRef]);
 
-  // Initialize camera position and orientation ONLY ONCE on mount
-  const isInitializedRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (engineTimerRef.current) clearTimeout(engineTimerRef.current);
+    },
+    [],
+  );
+
+  // Latest vehicle handlers for the runtime proxies (which are created once).
+  const vehicleRef = useRef({ hasVehicle, enterCar });
+  vehicleRef.current = { hasVehicle, enterCar };
+
+  // Keep a stable ref to latest props to prevent recreating runtime on parent re-renders
+  const propsRef = useRef({
+    adapter,
+    bounds,
+    keysRef,
+    consumeMovement,
+    consumePunchTrigger,
+    consumeInspectTrigger,
+    consumeInteractTrigger,
+    onStatsUpdate,
+    onInteract,
+    soundEnabled,
+    sfxVolume,
+  });
+
+  propsRef.current = {
+    adapter,
+    bounds,
+    keysRef,
+    consumeMovement,
+    consumePunchTrigger,
+    consumeInspectTrigger,
+    consumeInteractTrigger,
+    onStatsUpdate,
+    onInteract,
+    soundEnabled,
+    sfxVolume,
+  };
+
+  // Initialize unified CharacterRuntime ONCE on mount
   useEffect(() => {
-    if (isInitializedRef.current) return;
-    isInitializedRef.current = true;
+    // Dynamic adapter proxy forwarding calls to current props without tearing down runtime
+    const adapterProxy: GameWorldAdapter = {
+      get eyeHeight() {
+        return propsRef.current.adapter?.eyeHeight ?? 0;
+      },
+      get gravity() {
+        return propsRef.current.adapter?.gravity ?? -22.0;
+      },
+      get jumpForce() {
+        return propsRef.current.adapter?.jumpForce ?? 7.0;
+      },
+      getGroundHeight(x, z) {
+        if (propsRef.current.adapter) {
+          return propsRef.current.adapter.getGroundHeight(x, z);
+        }
+        return propsRef.current.bounds?.groundY ?? 0;
+      },
+      resolveMovement(currX, currZ, targetX, targetZ, footY, radius, height) {
+        const base = propsRef.current.adapter?.resolveMovement
+          ? propsRef.current.adapter.resolveMovement(currX, currZ, targetX, targetZ, footY, radius, height)
+          : { newX: targetX, newZ: targetZ, collided: false, hitNormalX: 0, hitNormalZ: 0 };
+        if (!vehicleRef.current.hasVehicle) return base;
 
-    posRef.current.set(spawnPosition[0], spawnPosition[1], spawnPosition[2]);
-    yawRef.current = spawnYaw;
-    pitchRef.current = 0;
-    targetYawRef.current = spawnYaw;
-    targetPitchRef.current = 0;
-
-    camera.position.set(spawnPosition[0], spawnPosition[1], spawnPosition[2]);
-    camera.rotation.set(0, spawnYaw, 0, "YXZ");
-  }, [camera, spawnPosition, spawnYaw]);
-
-  const lastStatsTimeRef = useRef(0);
-
-  // Cached vector objects to eliminate GC allocations in 60 FPS animation loop
-  const forwardVecRef = useRef(new THREE.Vector3());
-  const rightVecRef = useRef(new THREE.Vector3());
-  const wishDirRef = useRef(new THREE.Vector3());
-  const upAxisRef = useRef(new THREE.Vector3(0, 1, 0));
-
-  useFrame((_state, delta) => {
-    const dt = Math.min(delta, 0.05); // Guard against frame drops / backgrounding spikes
-    const keys = keysRef.current;
-
-    // 1. Mouse Look with silky interpolation (separated for walking vs driving)
-    const mouseDelta = consumeMovement();
-
-    if (!isDriving) {
-      const MOUSE_SENSITIVITY = 0.0022;
-      targetYawRef.current -= mouseDelta.x * MOUSE_SENSITIVITY;
-      targetPitchRef.current -= mouseDelta.y * MOUSE_SENSITIVITY;
-
-      const PITCH_LIMIT = (85 * Math.PI) / 180;
-      targetPitchRef.current = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, targetPitchRef.current));
-
-      const ROT_SMOOTH = 1 - Math.exp(-25 * dt);
-      yawRef.current += (targetYawRef.current - yawRef.current) * ROT_SMOOTH;
-      pitchRef.current += (targetPitchRef.current - pitchRef.current) * ROT_SMOOTH;
-    } else {
-      // Driver head glance inside cockpit: natural glance bounded to side mirrors and windshield
-      const MOUSE_SENSITIVITY = 0.0020;
-      // Mouse right -> glance right; Mouse left -> glance left
-      cockpitYawRef.current -= mouseDelta.x * MOUSE_SENSITIVITY;
-      cockpitPitchRef.current -= mouseDelta.y * MOUSE_SENSITIVITY;
-
-      // Limit horizontal glance to passenger mirror (right) and driver mirror (left) as requested
-      cockpitYawRef.current = Math.max(-0.95, Math.min(0.95, cockpitYawRef.current));
-      // Limit vertical pitch to windshield/rearview mirror and dashboard gauges
-      cockpitPitchRef.current = Math.max(-0.28, Math.min(0.22, cockpitPitchRef.current));
-    }
-
-    // 2. Action Triggers
-    // Defensive Block / Guard: Right Click hold
-    const blocking = Boolean(keys.block);
-    setIsBlocking((prev) => (prev !== blocking ? blocking : prev));
-
-    // Punch Trigger: Left Click / F
-    const punchTriggered = consumePunchTrigger();
-    const isHoldingPunch = keys.punch;
-    if ((punchTriggered || isHoldingPunch) && !isPunching && !blocking && !isDriving) {
-      setIsPunching(true);
-    }
-
-    // Interact Trigger: Key E (Enter / Exit vehicle, or object interact)
-    const interactTriggered = consumeInteractTrigger();
-    if (interactTriggered) {
-      if (isDriving) {
-        if (Math.abs(carStateRef.current.speed) < 2.5) {
-          exitCar();
+        // Solid car body: the player cannot walk through the Lexus.
+        const car = carStateRef.current;
+        const carBox: BoxCollider = {
+          x: car.position[0],
+          z: car.position[2],
+          halfWidth: CAR_HALF_WIDTH,
+          halfLength: CAR_HALF_LENGTH,
+          yaw: car.yaw,
+        };
+        const hit = resolveBoxCollision(base.newX, base.newZ, PLAYER_CAR_RADIUS, carBox);
+        if (!hit.collided) return base;
+        const nx = hit.x - base.newX;
+        const nz = hit.z - base.newZ;
+        const len = Math.hypot(nx, nz) || 1;
+        return { newX: hit.x, newZ: hit.z, collided: true, hitNormalX: nx / len, hitNormalZ: nz / len };
+      },
+      clampPosition(pos) {
+        if (propsRef.current.adapter?.clampPosition) {
+          propsRef.current.adapter.clampPosition(pos);
           return;
         }
-      } else if (isNearCar) {
-        enterCar();
-        return;
-      } else if (!isInteracting && !isPunching) {
-        setIsInteracting(true);
-        onInteract?.([posRef.current.x, posRef.current.y, posRef.current.z]);
-      }
-    }
-
-    // Inspect Trigger: Keys T / I
-    const inspectTriggered = consumeInspectTrigger();
-    if (inspectTriggered && !isInspecting && !isPunching && !blocking && !isDriving) {
-      setIsInspecting(true);
-    }
-
-    // ==========================================
-    // DRIVING MODE PHYSICS & COCKPIT CAMERA
-    // ==========================================
-    if (isDriving) {
-      // 2. Step vehicle physics simulation
-      // Xe chỉ có thể lái khi kết thúc sound start (isEngineStarting = false)
-      const isEngineStarting = isStartingEngineRef.current || !canDriveRef.current;
-      const vehicleInputs = {
-        forward: !isEngineStarting && Boolean(keys.forward),
-        backward: !isEngineStarting && Boolean(keys.backward),
-        left: !isEngineStarting && Boolean(keys.left),
-        right: !isEngineStarting && Boolean(keys.right),
-        handbrake: Boolean(keys.jump) || isEngineStarting,
-      };
-
-      const nextCar = stepVehiclePhysics(carStateRef.current, vehicleInputs, DEFAULT_VEHICLE_CONFIG, dt);
-      if (isEngineStarting) {
-        nextCar.gear = "P";
-        nextCar.speed = 0;
-      }
-      carStateRef.current = nextCar;
-
-      // Vehicle audio triggers:
-      // - Khi đã nổ máy xong và bắt đầu nhấn ga (W/S): phát drive sound
-      // - Khi nhả ga (không còn nhấn ga): phát stop sound
-      if (!isEngineStarting) {
-        const isAccelerating = Boolean(vehicleInputs.forward || vehicleInputs.backward);
-        if (isAccelerating) {
-          if (!wasAcceleratingRef.current) {
-            wasAcceleratingRef.current = true;
+        const b = propsRef.current.bounds;
+        if (!b) return;
+        if (b.minX !== undefined && pos.x < b.minX) pos.x = b.minX;
+        if (b.maxX !== undefined && pos.x > b.maxX) pos.x = b.maxX;
+        if (b.minZ !== undefined && pos.z < b.minZ) pos.z = b.minZ;
+        if (b.maxZ !== undefined && pos.z > b.maxZ) pos.z = b.maxZ;
+        if (b.maxRadius !== undefined) {
+          const dist = Math.hypot(pos.x, pos.z);
+          if (dist > b.maxRadius) {
+            const angle = Math.atan2(pos.z, pos.x);
+            pos.x = Math.cos(angle) * b.maxRadius;
+            pos.z = Math.sin(angle) * b.maxRadius;
           }
-          playDriveSound(nextCar.speed);
-        } else if (wasAcceleratingRef.current) {
-          wasAcceleratingRef.current = false;
-          playStopSound();
         }
-      }
-
-      // 3. Update 3D car pivot in world
-      if (carPivotRef?.current) {
-        carPivotRef.current.position.set(
-          nextCar.position[0],
-          nextCar.position[1],
-          nextCar.position[2]
-        );
-        carPivotRef.current.rotation.set(
-          nextCar.pitch,
-          nextCar.yaw,
-          nextCar.roll,
-          "YXZ"
-        );
-
-        // Rotate the model's authentic steering wheel around steering column axis
-        const steeringPivot = carPivotRef.current.userData?.steeringPivot as THREE.Group | undefined;
-        if (steeringPivot) {
-          const steeringAxis = new THREE.Vector3(0, 0.233, -0.972).normalize();
-          steeringPivot.quaternion.setFromAxisAngle(
-            steeringAxis,
-            nextCar.steeringWheelRotation
-          );
+      },
+      get raycastPunch() {
+        return propsRef.current.adapter?.raycastPunch
+          ? (origin: import('three').Vector3, direction: import('three').Vector3, maxDistance: number) =>
+              propsRef.current.adapter!.raycastPunch!(origin, direction, maxDistance)
+          : undefined;
+      },
+      getInteractionTargets() {
+        const custom = propsRef.current.adapter?.getInteractionTargets?.();
+        if (custom && custom.length > 0) return custom;
+        if (camera.parent) {
+          let root: import('three').Object3D = camera.parent;
+          while (root.parent) root = root.parent;
+          return root.children;
         }
-      }
+        return [];
+      },
+    };
 
-      // 4. Position camera in driver's seat looking forward through the windshield
-      // Local seat offset: X = +0.493 (alignment with steering wheel), Y = +1.86 (commanding Lexus SUV eye height), Z = -0.24 (headrest/seat back)
-      const seatOffset = new THREE.Vector3(0.493, 1.86, -0.24);
-      seatOffset.applyEuler(new THREE.Euler(nextCar.pitch, nextCar.yaw, nextCar.roll, "YXZ"));
-      const seatWorldX = nextCar.position[0] + seatOffset.x;
-      const seatWorldY = nextCar.position[1] + seatOffset.y;
-      const seatWorldZ = nextCar.position[2] + seatOffset.z;
+    const controls = {
+      get keysRef() {
+        return propsRef.current.keysRef;
+      },
+      consumeMovement: () => propsRef.current.consumeMovement(),
+      consumePunchTrigger: () => propsRef.current.consumePunchTrigger(),
+      consumeInspectTrigger: () => propsRef.current.consumeInspectTrigger(),
+      consumeInteractTrigger: () => {
+        const triggered = propsRef.current.consumeInteractTrigger();
+        // E next to the car enters it instead of the normal interact gesture.
+        if (triggered && vehicleRef.current.hasVehicle && isNearCarRef.current) {
+          vehicleRef.current.enterCar();
+          return false;
+        }
+        return triggered;
+      },
+    };
 
-      camera.position.set(seatWorldX, seatWorldY, seatWorldZ);
-      camera.rotation.set(
-        -0.10 + cockpitPitchRef.current + nextCar.pitch * 0.5,
-        nextCar.yaw + Math.PI + cockpitYawRef.current,
-        nextCar.roll * 0.5,
-        "YXZ"
-      );
-
-      posRef.current.set(seatWorldX, seatWorldY, seatWorldZ);
-
-      // Throttled HUD update
-      const now = performance.now();
-      if (now - lastStatsTimeRef.current > 100) {
-        lastStatsTimeRef.current = now;
-        onStatsUpdate?.({
-          position: [seatWorldX, seatWorldY, seatWorldZ],
-          speed: Math.abs(nextCar.speed),
-          isSprinting: false,
-          isGrounded: true,
-          isBlocking: false,
-          isDriving: true,
-          isNearCar: false,
-          carSpeed: Math.abs(nextCar.speed),
-          carGear: isEngineStarting ? "P" : nextCar.gear,
-          carPosition: nextCar.position,
-          isEngineStarting,
+    const runtime = new CharacterRuntime({
+      camera,
+      adapter: adapterProxy,
+      controls,
+      spawnPosition,
+      spawnYaw,
+      soundEnabled,
+      sfxVolume,
+      onStatsUpdate: (stats) => {
+        if (!vehicleRef.current.hasVehicle) {
+          propsRef.current.onStatsUpdate?.(stats);
+          return;
+        }
+        const car = carStateRef.current;
+        propsRef.current.onStatsUpdate?.({
+          ...stats,
+          isDriving: false,
+          isNearCar: isNearCarRef.current,
+          carSpeed: 0,
+          carGear: car.gear,
+          carPosition: car.position,
         });
+      },
+      onInteract: (pos) => propsRef.current.onInteract?.(pos),
+    });
+
+    runtimeRef.current = runtime;
+    // Runtime can be recreated (e.g. sound settings change) while seated: keep arms hidden.
+    if (carStateRef.current.isDriving) runtime.arms.group.visible = false;
+
+    return () => {
+      runtime.dispose();
+      runtimeRef.current = null;
+    };
+  }, [camera, spawnPosition, spawnYaw, soundEnabled, sfxVolume]);
+
+  // Drive unified physics & animation loop in R3F frame cycle
+  useFrame((_state, delta) => {
+    const dt = Math.min(delta, 0.05);
+    const runtime = runtimeRef.current;
+    if (!runtime) return;
+
+    if (!carStateRef.current.isDriving) {
+      runtime.update(dt);
+      if (hasVehicle) {
+        const p = camera.position;
+        const car = carStateRef.current;
+        isNearCarRef.current = checkProximityToCar(p.x, p.y, p.z, car.position, car.yaw);
       }
       return;
     }
+    stepDriving(dt);
+  });
 
-    // ==========================================
-    // ON-FOOT LOCOMOTION & COLLISION
-    // ==========================================
-    // 3. Locomotion Movement Direction (relative to camera yaw)
-    const moveX = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-    const moveZ = (keys.forward ? 1 : 0) - (keys.backward ? 1 : 0);
-    const hasInput = moveX !== 0 || moveZ !== 0;
+  /** Driving mode: vehicle physics, cockpit camera, audio and HUD. Runtime is paused. */
+  function stepDriving(dt: number) {
+    const keys = keysRef.current;
 
-    const sprinting = hasInput && keys.sprint && isGroundedRef.current && !blocking && moveZ > 0;
+    // Cockpit glance, bounded to the side mirrors and the windshield/dashboard.
+    const mouse = consumeMovement();
+    const SENS = 0.002;
+    cockpitYawRef.current = Math.max(-0.95, Math.min(0.95, cockpitYawRef.current - mouse.x * SENS));
+    cockpitPitchRef.current = Math.max(-0.28, Math.min(0.22, cockpitPitchRef.current - mouse.y * SENS));
 
-    // Update React animation states only when they change to prevent re-render stutter
-    setIsMoving((prev) => (prev !== hasInput ? hasInput : prev));
-    setIsSprinting((prev) => (prev !== sprinting ? sprinting : prev));
-
-    // Three.js camera forward is -Z, right is +X
-    forwardVecRef.current.set(0, 0, -1).applyAxisAngle(upAxisRef.current, yawRef.current);
-    rightVecRef.current.set(1, 0, 0).applyAxisAngle(upAxisRef.current, yawRef.current);
-
-    wishDirRef.current.set(0, 0, 0);
-    if (hasInput) {
-      wishDirRef.current.addScaledVector(forwardVecRef.current, moveZ);
-      wishDirRef.current.addScaledVector(rightVecRef.current, moveX);
-      wishDirRef.current.normalize();
+    // Consume the other triggers so they don't fire when the player steps out.
+    consumePunchTrigger();
+    consumeInspectTrigger();
+    if (consumeInteractTrigger() && Math.abs(carStateRef.current.speed) < 2.5) {
+      exitCar();
+      return;
     }
 
-    // Locomotion Speeds: Walk = 4.2 m/s, Sprint = 8.2 m/s, Block = 2.0 m/s
-    const targetSpeed = blocking ? 2.0 : (sprinting ? 8.2 : 4.2);
-    const currentSpeedTarget = hasInput ? targetSpeed : 0;
-
-    // Acceleration & Friction
-    const accel = isGroundedRef.current ? (hasInput ? 18.0 : 12.0) : 4.0;
-    const targetVelX = wishDirRef.current.x * currentSpeedTarget;
-    const targetVelZ = wishDirRef.current.z * currentSpeedTarget;
-
-    velocityRef.current.x += (targetVelX - velocityRef.current.x) * Math.min(1, accel * dt);
-    velocityRef.current.z += (targetVelZ - velocityRef.current.z) * Math.min(1, accel * dt);
-
-    // 4. Jump & Gravity physics
-    const GRAVITY = -22.0;
-    const JUMP_FORCE = 7.0;
-
-    if (keys.jump && isGroundedRef.current && !blocking) {
-      velocityRef.current.y = JUMP_FORCE;
-      isGroundedRef.current = false;
-    }
-
-    if (!isGroundedRef.current) {
-      velocityRef.current.y += GRAVITY * dt;
-    }
-
-    // 5. Integrate position & apply map boundaries
-    posRef.current.x += velocityRef.current.x * dt;
-    posRef.current.y += velocityRef.current.y * dt;
-    posRef.current.z += velocityRef.current.z * dt;
-
-    // Ground clamp
-    if (posRef.current.y <= bounds.groundY) {
-      posRef.current.y = bounds.groundY;
-      velocityRef.current.y = 0;
-      isGroundedRef.current = true;
-    }
-
-    // Box bounds clamp
-    if (bounds.minX !== undefined && posRef.current.x < bounds.minX) posRef.current.x = bounds.minX;
-    if (bounds.maxX !== undefined && posRef.current.x > bounds.maxX) posRef.current.x = bounds.maxX;
-    if (bounds.minZ !== undefined && posRef.current.z < bounds.minZ) posRef.current.z = bounds.minZ;
-    if (bounds.maxZ !== undefined && posRef.current.z > bounds.maxZ) posRef.current.z = bounds.maxZ;
-
-    // Obstacle collision: Lexus car collider box (cannot walk through car!)
-    const carBox: BoxCollider = {
-      x: carStateRef.current.position[0],
-      z: carStateRef.current.position[2],
-      halfWidth: 1.28,
-      halfLength: 2.85,
-      yaw: carStateRef.current.yaw,
+    // The car can only move once the engine-start sound has finished.
+    const engineStarting = !canDriveRef.current;
+    const inputs = {
+      forward: !engineStarting && Boolean(keys.forward),
+      backward: !engineStarting && Boolean(keys.backward),
+      left: !engineStarting && Boolean(keys.left),
+      right: !engineStarting && Boolean(keys.right),
+      handbrake: Boolean(keys.jump) || engineStarting,
     };
-    const resolved = resolveBoxCollision(posRef.current.x, posRef.current.z, 0.45, carBox);
-    if (resolved.collided) {
-      posRef.current.x = resolved.x;
-      posRef.current.z = resolved.z;
+    const next = stepVehiclePhysics(carStateRef.current, inputs, DEFAULT_VEHICLE_CONFIG, dt);
+    if (engineStarting) {
+      next.gear = "P";
+      next.speed = 0;
     }
+    carStateRef.current = next;
 
-    // Proximity check for car interaction prompt
-    const near = checkProximityToCar(
-      posRef.current.x,
-      posRef.current.y,
-      posRef.current.z,
-      carStateRef.current.position,
-      carStateRef.current.yaw
-    );
-    if (near !== isNearCar) {
-      setIsNearCar(near);
-    }
-
-    // Circular radius clamp (e.g. UEH campus courtyard)
-    if (bounds.maxRadius !== undefined) {
-      const distFromCenter = Math.hypot(posRef.current.x, posRef.current.z);
-      if (distFromCenter > bounds.maxRadius) {
-        const angle = Math.atan2(posRef.current.z, posRef.current.x);
-        posRef.current.x = Math.cos(angle) * bounds.maxRadius;
-        posRef.current.z = Math.sin(angle) * bounds.maxRadius;
+    if (!engineStarting) {
+      const accelerating = inputs.forward || inputs.backward;
+      if (accelerating) {
+        wasAcceleratingRef.current = true;
+        playDriveSound(next.speed);
+      } else if (wasAcceleratingRef.current) {
+        wasAcceleratingRef.current = false;
+        playStopSound();
       }
     }
 
-    // Update camera world position and orientation ('YXZ' Euler order prevents horizon tilt)
-    camera.position.copy(posRef.current);
-    camera.rotation.set(pitchRef.current, yawRef.current, 0, "YXZ");
-
-    // Throttled stats callback for HUD (120ms throttle)
-    const now = performance.now();
-    if (now - lastStatsTimeRef.current > 120) {
-      lastStatsTimeRef.current = now;
-      const horizontalSpeed = Math.hypot(velocityRef.current.x, velocityRef.current.z);
-      onStatsUpdate?.({
-        position: [posRef.current.x, posRef.current.y, posRef.current.z],
-        speed: horizontalSpeed,
-        isSprinting: sprinting,
-        isGrounded: isGroundedRef.current,
-        isBlocking: blocking,
-        isDriving: false,
-        isNearCar: near,
-        carSpeed: 0,
-        carGear: carStateRef.current.gear,
-        carPosition: carStateRef.current.position,
-      });
+    // Move the car model and turn its steering wheel.
+    const pivot = carPivotRef?.current;
+    if (pivot) {
+      pivot.position.set(next.position[0], next.position[1], next.position[2]);
+      pivot.rotation.set(next.pitch, next.yaw, next.roll, "YXZ");
+      const steeringPivot = pivot.userData?.steeringPivot as THREE.Group | undefined;
+      steeringPivot?.quaternion.setFromAxisAngle(STEERING_AXIS, next.steeringWheelRotation);
     }
-  });
 
-  return (
-    <>
-      <primitive object={camera}>
-        {!isDriving && (
-          <FirstPersonArms
-            isMoving={isMoving}
-            isSprinting={isSprinting}
-            isPunching={isPunching}
-            isBlocking={isBlocking}
-            isInteracting={isInteracting}
-            isInspecting={isInspecting}
-            keysRef={keysRef}
-            consumePunchTrigger={consumePunchTrigger}
-            onPunchStrike={performPunchRaycastAndAudio}
-            onPunchFinished={handlePunchFinished}
-            onInspectFinished={handleInspectFinished}
-            onInteractFinished={handleInteractFinished}
-          />
-        )}
-      </primitive>
-    </>
-  );
+    // Driver-seat camera.
+    carEulerScratch.current.set(next.pitch, next.yaw, next.roll, "YXZ");
+    const seat = seatScratch.current.copy(SEAT_OFFSET).applyEuler(carEulerScratch.current);
+    camera.position.set(next.position[0] + seat.x, next.position[1] + seat.y, next.position[2] + seat.z);
+    camera.rotation.set(
+      -0.1 + cockpitPitchRef.current + next.pitch * 0.5,
+      next.yaw + Math.PI + cockpitYawRef.current,
+      next.roll * 0.5,
+      "YXZ",
+    );
+
+    const now = performance.now();
+    if (now - lastDrivingStatsRef.current > 100) {
+      lastDrivingStatsRef.current = now;
+      const stats: PlayerStats = {
+        position: [camera.position.x, camera.position.y, camera.position.z],
+        speed: Math.abs(next.speed),
+        isSprinting: false,
+        isGrounded: true,
+        isBlocking: false,
+        isDriving: true,
+        isNearCar: false,
+        carSpeed: Math.abs(next.speed),
+        carGear: engineStarting ? "P" : next.gear,
+        carPosition: next.position,
+        isEngineStarting: engineStarting,
+      };
+      onStatsUpdate?.(stats);
+    }
+  }
+
+  // Adding camera to R3F scene graph is essential for Three.js to render camera children (arms viewmodel)
+  return <primitive object={camera} />;
 };

@@ -81,6 +81,13 @@ export function usePlayerControls(_domElementRef?: React.RefObject<HTMLElement |
     window.addEventListener("blur", handleBlur);
 
     return () => {
+      if (document.pointerLockElement) {
+        try {
+          document.exitPointerLock?.();
+        } catch {
+          // Guard
+        }
+      }
       document.removeEventListener("pointerlockchange", handlePointerLockChange);
       document.removeEventListener("pointerlockerror", handlePointerLockError);
       window.removeEventListener("blur", handleBlur);
