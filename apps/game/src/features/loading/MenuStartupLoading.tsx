@@ -3,7 +3,9 @@ import { useProgress } from "@react-three/drei";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
 import { SceneTransition } from "../../components/ui/SceneTransition";
 import { createLoadingError } from "../../game/loading/loadingErrors";
-import { formatFileCount, LOADING_TEXT } from "../../game/loading/loadingStrings";
+import { useTranslation } from "react-i18next";
+import { formatFileCount } from "../../game/loading/loadingStrings";
+import { useGameLocale } from "../../i18n";
 import { menuAssetProgress } from "../../game/loading/menuAssetProgress";
 import { STARTUP_LOADING_MIN_DISPLAY_MS } from "./loadingHold";
 import { shouldShowLoadingScreen, useMinimumDisplayTime } from "./useMinimumDisplayTime";
@@ -54,6 +56,8 @@ export const MenuStartupLoading: React.FC<MenuStartupLoadingProps> = ({
   );
   const [dismissed, setDismissed] = useState(false);
   const [slow, setSlow] = useState(false);
+  const { t } = useTranslation(["loading", "common"]);
+  const locale = useGameLocale();
 
   const failed = errors.length > 0 || sceneError !== null;
   const minElapsed = useMinimumDisplayTime(STARTUP_LOADING_MIN_DISPLAY_MS);
@@ -74,26 +78,26 @@ export const MenuStartupLoading: React.FC<MenuStartupLoadingProps> = ({
       : createLoadingError("webgl-init", sceneError ?? undefined)
     : null;
 
-  let status: string = LOADING_TEXT.menuStartup.startingEngine;
+  let status: string = t("loading:menuStartup.startingEngine");
   let detail: string | undefined;
   let progress: number | null = null;
   if (sceneReady && !error) {
     // Scene is ready; the screen is only being held for the minimum display time.
-    status = LOADING_TEXT.menuStartup.ready;
+    status = t("loading:menuStartup.ready");
     progress = 1;
   } else if (bytePercent === 100) {
     // All bytes are in; shaders may still be compiling, so the status says work remains.
-    status = LOADING_TEXT.menuStartup.preparingScene;
+    status = t("loading:menuStartup.preparingScene");
     progress = 1;
   } else if (bytePercent !== null) {
     // Measured download percent; the Drei file count would contradict it, so it is omitted.
-    status = LOADING_TEXT.menuStartup.loadingFiles;
+    status = t("loading:menuStartup.loadingFiles");
     progress = bytePercent / 100;
   } else if (total > 0 && loaded < total) {
-    status = LOADING_TEXT.menuStartup.loadingFiles;
-    detail = formatFileCount(loaded, total);
+    status = t("loading:menuStartup.loadingFiles");
+    detail = formatFileCount(loaded, total, { t, locale });
   } else if (total > 0) {
-    status = LOADING_TEXT.menuStartup.preparingScene;
+    status = t("loading:menuStartup.preparingScene");
   }
 
   const dismiss = () => setDismissed(true);
@@ -101,26 +105,26 @@ export const MenuStartupLoading: React.FC<MenuStartupLoadingProps> = ({
   return (
     <SceneTransition visible={visible} fadeIn={false} onHidden={onFinished} className="z-50">
       <LoadingScreen
-        eyebrow={LOADING_TEXT.menuStartup.eyebrow}
-        chapterTitle={LOADING_TEXT.menuStartup.title}
-        subtitle={LOADING_TEXT.menuStartup.subtitle}
+        eyebrow={t("loading:menuStartup.eyebrow")}
+        chapterTitle={t("loading:menuStartup.title")}
+        subtitle={t("loading:menuStartup.subtitle")}
         loadingStage={status}
         progress={progress}
         progressDetail={detail}
         notice={
           slow
             ? {
-                message: LOADING_TEXT.menuStartup.slowNotice,
-                actionLabel: LOADING_TEXT.continueToMenu,
+                message: t("loading:slowNotice"),
+                actionLabel: t("loading:continueToMenu"),
                 onAction: dismiss,
               }
             : null
         }
         error={error}
         onRetry={() => window.location.reload()}
-        retryLabel={LOADING_TEXT.reload}
+        retryLabel={t("common:actions.reload")}
         onBackToMenu={dismiss}
-        backLabel={LOADING_TEXT.continueToMenu}
+        backLabel={t("loading:continueToMenu")}
       />
     </SceneTransition>
   );

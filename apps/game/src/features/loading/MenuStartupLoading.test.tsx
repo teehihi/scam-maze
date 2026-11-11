@@ -22,6 +22,7 @@ import {
 } from "../../test/loadingRuns";
 import { formatFileCount, LOADING_TEXT } from "../../game/loading/loadingStrings";
 import { menuAssetProgress, type ByteProgressEvent } from "../../game/loading/menuAssetProgress";
+import { applyLocale } from "../../i18n";
 
 function setProgress(patch: Partial<typeof progressState>) {
   Object.assign(progressState, patch);
@@ -181,6 +182,107 @@ describe("MenuStartupLoading", () => {
     expect(screen.getByText(/longer than usual/)).toBeTruthy();
     // The watchdog never changes the measured value.
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("10");
+  });
+});
+
+describe("MenuStartupLoading in Vietnamese", () => {
+  const viPercent = (fraction: number) =>
+    new Intl.NumberFormat("vi", { style: "percent", maximumFractionDigits: 0 }).format(fraction);
+
+  it("shows the Vietnamese branding, stage text and a file count with vi number formatting", () => {
+    applyLocale("vi");
+    setProgress({ active: true, loaded: 1200, total: 3400 });
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Con phố của bạn" })).toBeTruthy();
+    expect(screen.getByText("Menu chính")).toBeTruthy();
+    expect(screen.getByText("Khu phố đang thức dậy.")).toBeTruthy();
+    expect(screen.getByText("Đang tải cảnh con phố")).toBeTruthy();
+    // Vietnamese has one plural form; numbers use "." as the group separator.
+    expect(screen.getByText(/1\.200 \/ 3\.400 tệp/)).toBeTruthy();
+    expect(screen.queryByText(/files/)).toBeNull();
+  });
+
+  it("uses the same plural form for a single file", () => {
+    applyLocale("vi");
+    setProgress({ active: true, loaded: 0, total: 1 });
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    expect(screen.getByText(/0 \/ 1 tệp/)).toBeTruthy();
+    expect(formatFileCount(0, 1)).toBe("0 of 1 file");
+  });
+
+  it("shows the measured percentage with Intl vi and the later stage texts", () => {
+    applyLocale("vi");
+    setProgress({ active: true, loaded: 1, total: 3 });
+    const { rerender } = render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    reportBytes({ loaded: 42, total: 100, lengthComputable: true });
+    expect(screen.getByRole("progressbar", { name: "Tiến trình tải" }).getAttribute("aria-valuenow")).toBe("42");
+    expect(screen.getByText(viPercent(0.42))).toBeTruthy();
+    expect(screen.getByText("Đang tải cảnh con phố")).toBeTruthy();
+
+    markBytesComplete();
+    expect(screen.getByText("Đang chuẩn bị cảnh con phố")).toBeTruthy();
+    expect(screen.getByText(viPercent(1))).toBeTruthy();
+
+    rerender(<MenuStartupLoading sceneReady sceneError={null} onFinished={() => {}} />);
+    expect(screen.getByText("Sẵn sàng")).toBeTruthy();
+  });
+
+  it("shows the Vietnamese network error with Tải lại trang and Tiếp tục vào menu", () => {
+    applyLocale("vi");
+    setProgress({ loaded: 1, total: 2, errors: ["/assets/missing.glb"] });
+    const onFinished = vi.fn();
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={onFinished} />);
+    const alert = screen.getByRole("alert");
+    expect(screen.getByRole("heading", { name: "Lỗi kết nối" })).toBeTruthy();
+    expect(alert.textContent).toContain("Không tải được các tệp trò chơi.");
+    // The technical detail stays plain English text.
+    expect(alert.textContent).toContain("/assets/missing.glb");
+    expect(screen.getByRole("button", { name: "Tải lại trang" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tiếp tục vào menu" }));
+    expect(screen.getByTestId("scene-transition").getAttribute("data-state")).toBe("hidden");
+  });
+
+  it("shows the Vietnamese 3D graphics error when the scene crashes", () => {
+    applyLocale("vi");
+    setProgress({ loaded: 3, total: 3 });
+    render(<MenuStartupLoading sceneReady={false} sceneError="Context lost" onFinished={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Không khởi động được đồ họa 3D" })).toBeTruthy();
+    expect(screen.getByText(/Hãy bật tăng tốc phần cứng/)).toBeTruthy();
+    expect(screen.getByText("Context lost")).toBeTruthy();
+  });
+
+  it("shows the Vietnamese slow notice", () => {
+    vi.useFakeTimers();
+    applyLocale("vi");
+    setProgress({ active: true, loaded: 0, total: 2 });
+    render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={() => {}} />);
+    act(() => vi.advanceTimersByTime(STARTUP_SLOW_NOTICE_MS));
+    expect(screen.getByText(/Việc tải đang lâu hơn bình thường/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Tiếp tục vào menu" })).toBeTruthy();
+  });
+
+  it("switches to Vietnamese at runtime without a remount or a reset of the hold", async () => {
+    vi.useFakeTimers();
+    const clock = createClock();
+    setProgress({ active: true, loaded: 1, total: 3 });
+    const onFinished = vi.fn();
+    const { rerender } = render(<MenuStartupLoading sceneReady={false} sceneError={null} onFinished={onFinished} />);
+    const heading = screen.getByRole("heading", { name: "Your street" });
+    const layer = screen.getByTestId("scene-transition");
+    expect(screen.getByText(/1 of 3 files/)).toBeTruthy();
+
+    await clock.advanceTo(STARTUP_LOADING_MIN_DISPLAY_MS - 100);
+    act(() => applyLocale("vi"));
+
+    expect(heading.textContent).toBe("Con phố của bạn");
+    expect(screen.getByTestId("scene-transition")).toBe(layer);
+    expect(screen.getByText("Đang tải cảnh con phố")).toBeTruthy();
+    expect(screen.getByText(/1 \/ 3 tệp/)).toBeTruthy();
+
+    // The minimum display time was not restarted by the language change.
+    rerender(<MenuStartupLoading sceneReady sceneError={null} onFinished={onFinished} />);
+    await clock.advanceTo(STARTUP_LOADING_MIN_DISPLAY_MS);
+    expect(layer.getAttribute("data-state")).toBe("hidden");
   });
 });
 

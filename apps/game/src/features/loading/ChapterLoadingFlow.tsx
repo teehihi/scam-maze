@@ -4,13 +4,15 @@ import { SceneTransition } from "../../components/ui/SceneTransition";
 import { getChapter } from "../../game/chapters/chapterRegistry";
 import type { ChapterSession } from "../../game/chapters/chapterSession";
 import type { ChapterLoaderDeps, ChapterLoadRequest } from "../../game/loading/chapterLoader";
+import { useTranslation } from "react-i18next";
 import {
   describeChapterStage,
   formatChapterLabel,
   formatFileCount,
-  LOADING_TEXT,
+  type LoadingTextContext,
 } from "../../game/loading/loadingStrings";
 import { useChapterLoader } from "../../game/loading/useChapterLoader";
+import { useGameLocale } from "../../i18n";
 import { CHAPTER_LOADING_MIN_DISPLAY_MS } from "./loadingHold";
 import { shouldShowLoadingScreen, useMinimumDisplayTime } from "./useMinimumDisplayTime";
 
@@ -36,6 +38,10 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
   const { snapshot, retry, cancel } = useChapterLoader(request, deps);
   const [leavingToMenu, setLeavingToMenu] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const { t } = useTranslation(["loading", "common"]);
+  const { t: tChapters } = useTranslation("chapters");
+  const locale = useGameLocale();
+  const text: LoadingTextContext = { t, locale };
 
   // Presentation-only hold so a fast (cached) load is still readable. Restarts on Retry.
   const minElapsed = useMinimumDisplayTime(CHAPTER_LOADING_MIN_DISPLAY_MS, attempt);
@@ -63,12 +69,22 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
   const requested = request.kind === "new-game" ? getChapter(request.chapterId) : undefined;
   const chapter = snapshot.chapter ?? requested ?? null;
 
-  const eyebrow = chapter ? formatChapterLabel(chapter.number) : LOADING_TEXT.continueEyebrow;
-  const title = chapter?.title ?? LOADING_TEXT.continueTitle;
-  const subtitle = chapter?.subtitle ?? LOADING_TEXT.continueSubtitle;
+  // Chapter text by chapter ID and asset ID. The registry's English text is the fallback for a
+  // chapter or asset without a dictionary key.
+  const eyebrow = chapter ? formatChapterLabel(chapter.number, text) : t("loading:continueEyebrow");
+  const title = chapter
+    ? tChapters(`${chapter.id}.title`, { defaultValue: chapter.title })
+    : t("loading:continueTitle");
+  const subtitle = chapter
+    ? tChapters(`${chapter.id}.subtitle`, { defaultValue: chapter.subtitle })
+    : t("loading:continueSubtitle");
+  const stageText =
+    snapshot.stage === "loading-assets" && chapter && snapshot.currentAssetId && snapshot.currentAssetText
+      ? tChapters(`${chapter.id}.assets.${snapshot.currentAssetId}`, { defaultValue: snapshot.currentAssetText })
+      : describeChapterStage(snapshot, text);
   const detail =
     snapshot.stage === "loading-assets" && snapshot.filesTotal > 0
-      ? formatFileCount(snapshot.filesCompleted, snapshot.filesTotal)
+      ? formatFileCount(snapshot.filesCompleted, snapshot.filesTotal, text)
       : undefined;
   const progress = snapshot.stage === "loading-assets" ? snapshot.progress : snapshot.stage === "ready" ? 1 : null;
 
@@ -79,7 +95,7 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
         chapterId={chapter?.id}
         chapterTitle={title}
         subtitle={subtitle}
-        loadingStage={describeChapterStage(snapshot)}
+        loadingStage={stageText}
         progress={progress}
         progressDetail={detail}
         error={snapshot.error}

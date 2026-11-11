@@ -4,8 +4,8 @@ import { BrandLogo } from "./BrandLogo";
 import { LoadingProgress } from "./LoadingProgress";
 import { LoadingTip } from "./LoadingTip";
 import { LoadingErrorState } from "./LoadingErrorState";
+import { useTranslation } from "react-i18next";
 import type { LoadingError } from "../../game/loading/loadingErrors";
-import { LOADING_TEXT } from "../../game/loading/loadingStrings";
 import { LOADING_BACKGROUND_JPG, LOADING_BACKGROUND_WEBP } from "../../config/assetPaths";
 
 export interface LoadingNotice {
@@ -56,6 +56,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   tips,
   initialTipIndex,
 }) => {
+  const { t } = useTranslation("common");
   const escapeAction = error ? onBackToMenu : onCancel;
 
   useEffect(() => {
@@ -147,7 +148,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
                 className="-ml-2 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-[#a9a4c4] transition-colors hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
               >
                 <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                {LOADING_TEXT.cancel}
+                {t("actions.cancel")}
               </button>
             )}
           </div>

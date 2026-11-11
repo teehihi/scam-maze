@@ -7,6 +7,7 @@ import { getChapter } from "../game/chapters/chapterRegistry";
 import { restoreProgress } from "../game/saves/chapterProgress";
 import type { SaveGameSource } from "../game/saves/saveGame";
 
+/** English source text; the menu shows `menu:continueReasons.<reasonCode>` in the UI language. */
 export const CONTINUE_REASONS = {
   none: "No saved game found.",
   invalid: "Your saved game could not be read. Start a new game instead.",
@@ -15,14 +16,14 @@ export const CONTINUE_REASONS = {
 export function readContinueAvailability(source: SaveGameSource): ContinueAvailability {
   const result = source.read();
   if (result.status === "none") {
-    return { available: false, reason: CONTINUE_REASONS.none };
+    return { available: false, reasonCode: "none", reason: CONTINUE_REASONS.none };
   }
   if (result.status === "invalid" || !getChapter(result.save.chapterId)) {
-    return { available: false, reason: CONTINUE_REASONS.invalid };
+    return { available: false, reasonCode: "invalid", reason: CONTINUE_REASONS.invalid };
   }
   const { progress } = result.save;
   if (progress !== undefined && !restoreProgress(progress).ok) {
-    return { available: false, reason: CONTINUE_REASONS.invalid };
+    return { available: false, reasonCode: "invalid", reason: CONTINUE_REASONS.invalid };
   }
   return { available: true };
 }

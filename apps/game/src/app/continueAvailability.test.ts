@@ -28,6 +28,7 @@ describe("readContinueAvailability", () => {
   it("reports that no saved game exists", () => {
     expect(readContinueAvailability(sourceOf({ status: "none" }))).toEqual({
       available: false,
+      reasonCode: "none",
       reason: "No saved game found.",
     });
   });
@@ -35,6 +36,7 @@ describe("readContinueAvailability", () => {
   it("reports an unreadable save", () => {
     expect(readContinueAvailability(sourceOf({ status: "invalid", reason: "Saved data is not valid JSON." }))).toEqual({
       available: false,
+      reasonCode: "invalid",
       reason: "Your saved game could not be read. Start a new game instead.",
     });
   });
@@ -43,6 +45,7 @@ describe("readContinueAvailability", () => {
     const save = v2Save([{ type: "START_CHAPTER" }], "chapter-99");
     expect(readContinueAvailability(sourceOf({ status: "valid", save }))).toEqual({
       available: false,
+      reasonCode: "invalid",
       reason: CONTINUE_REASONS.invalid,
     });
   });
@@ -52,6 +55,7 @@ describe("readContinueAvailability", () => {
     const save = v2Save([{ type: "START_CHAPTER" }, { type: "OPEN_PHONE" }, { type: "OPEN_PHONE" }]);
     expect(readContinueAvailability(sourceOf({ status: "valid", save }))).toEqual({
       available: false,
+      reasonCode: "invalid",
       reason: CONTINUE_REASONS.invalid,
     });
   });

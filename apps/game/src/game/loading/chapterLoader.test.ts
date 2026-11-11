@@ -30,6 +30,7 @@ describe("createChapterLoader", () => {
     expect(snapshot.stage).toBe("starting");
     expect(snapshot.progress).toBeNull();
     expect(snapshot.session).toBeNull();
+    expect(snapshot.currentAssetId).toBeNull();
     expect(fake.calls).toHaveLength(0);
   });
 
@@ -54,17 +55,20 @@ describe("createChapterLoader", () => {
     model.push(glb.slice(0, 100));
     await vi.waitFor(() => expect(loader.getSnapshot().progress).toBeCloseTo(100 / total));
     expect(loader.getSnapshot().currentAssetText).toBe(MODEL.loadingText);
+    expect(loader.getSnapshot().currentAssetId).toBe(MODEL.id);
 
     model.push(glb.slice(100));
     model.finish();
     await vi.waitFor(() => expect(loader.getSnapshot().filesCompleted).toBe(1));
     expect(loader.getSnapshot().progress).toBeCloseTo(glb.byteLength / total);
     expect(loader.getSnapshot().currentAssetText).toBe(TEXTURE.loadingText);
+    expect(loader.getSnapshot().currentAssetId).toBe(TEXTURE.id);
 
     texture.push(png);
     texture.finish();
     await waitForStage(loader, "ready");
     expect(loader.getSnapshot().progress).toBe(1);
+    expect(loader.getSnapshot().currentAssetId).toBeNull();
   });
 
   it("stays indeterminate when the server does not report file sizes", async () => {

@@ -9,7 +9,10 @@ export interface ChapterAsset {
   /** Public URL of the file. */
   url: string;
   kind: ChapterAssetKind;
-  /** Status text shown while this file downloads. Full sentence for later translation. */
+  /**
+   * English status text shown while this file downloads. The UI shows the translation from
+   * `chapters:<chapterId>.assets.<assetId>` and falls back to this text.
+   */
   loadingText: string;
 }
 
@@ -64,6 +67,7 @@ export function getChapter(chapterId: string): ChapterDefinition | undefined {
   return CHAPTERS.find((chapter) => chapter.id === chapterId);
 }
 
+/** English scene labels (source text). The UI translates them with `chapters:scenes.<SceneId>`. */
 export const SCENE_LABELS: Record<SceneId, string> = {
   "main-menu": "Main menu",
   "intro-prologue": "Prologue",
