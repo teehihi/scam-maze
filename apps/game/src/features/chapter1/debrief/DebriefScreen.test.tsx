@@ -13,6 +13,9 @@ import type { ChapterState, CoreAction } from "../../../game/narrative/types";
 import type { EvidenceId } from "../../../game/narrative/chapter1/ids";
 import { CHAPTER_1_ENDINGS, SIMULATION_LABEL } from "../../../game/narrative/chapter1/endings";
 import { CHAPTER_1_SCENARIO } from "../../../game/narrative/chapter1/scenario";
+import { applyLocale } from "../../../i18n";
+import { getDisplayScenario } from "../../../i18n/narrative";
+import viOutcome from "../../../i18n/locales/vi/chapter1/outcome";
 import { EndingTransition, ENDING_TEXT } from "../ending/EndingTransition";
 import { DebriefScreen, DEBRIEF_TEXT } from "./DebriefScreen";
 
@@ -218,5 +221,137 @@ describe("EndingTransition and DebriefScreen from scripted runs", () => {
     fireEvent.click(within(screenEl).getByRole("button", { name: DEBRIEF_TEXT.returnToMenu }));
     expect(onReturnToMenu).toHaveBeenCalledTimes(1);
     expect(onReplay).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Vietnamese (game-i18n-en-vi task 7.7, Requirements 8.3, 8.4, 8.6)
+// ---------------------------------------------------------------------------
+
+const VI_SCENARIO = getDisplayScenario("vi");
+const VI_DEBRIEF = viOutcome.debrief;
+const VI_SIMULATION_LABEL = "Mô phỏng: không có điều gì thật sự xảy ra.";
+
+function viDebriefFor(actions: readonly CoreAction[]): DebriefView {
+  const view = buildDebrief(playthrough(actions), VI_SCENARIO);
+  expect(view).not.toBeNull();
+  return view as DebriefView;
+}
+
+/** Never call anything "safe" ("an toàn" in Vietnamese; safety.md). */
+function expectNoSafeWordVi(element: HTMLElement): void {
+  expect(element.textContent ?? "").not.toMatch(/(^|[^\p{L}])an toàn/iu);
+}
+
+/** Ids, tags and order only: the parts of a DebriefView that must not depend on the language. */
+function structureOf(view: DebriefView) {
+  return {
+    outcome: view.outcome.id,
+    consequence: view.outcome.consequence?.id ?? null,
+    decisions: view.decisions.map((decision) => [decision.seq, decision.tag]),
+    evidenceFound: view.evidenceFound.map((item) => item.id),
+    warningSigns: view.warningSignsNoticed.map((sign) => sign.id),
+    cluesMissed: view.cluesMissed.map((clue) => clue.id),
+    saferAlternatives: view.saferAlternatives.length,
+  };
+}
+
+describe("EndingTransition and DebriefScreen in Vietnamese", () => {
+  it.each([
+    ["verified", VERIFIED_RUN],
+    ["risky", RISKY_MONEY_MOVED_RUN],
+    ["uncertain", UNCERTAIN_RUN],
+  ] as const)("%s run: decisions and outcome match English", (outcomeId, actions) => {
+    const english = debriefFor(actions);
+    const vietnamese = viDebriefFor(actions);
+    expect(vietnamese.outcome.id).toBe(outcomeId);
+    expect(structureOf(vietnamese)).toEqual(structureOf(english));
+    expect(vietnamese.outcome.title).not.toBe(english.outcome.title);
+    expect(vietnamese.outcome.simulationLabel).toBe(VI_SIMULATION_LABEL);
+  });
+
+  it("risky run: the ending shows Vietnamese text and a Vietnamese Continue button", () => {
+    applyLocale("vi");
+    const view = viDebriefFor(RISKY_MONEY_MOVED_RUN);
+    const onContinue = vi.fn();
+    render(<EndingTransition outcome={view.outcome} onContinue={onContinue} />);
+    const ending = screen.getByTestId("ending-transition");
+
+    expect(ending.getAttribute("data-outcome")).toBe("risky");
+    expect(screen.getByRole("dialog", { name: VI_SCENARIO.endings.risky.title })).toBe(ending);
+    expect(within(ending).getByText(viOutcome.ending.eyebrow)).toBeTruthy();
+    expect(within(ending).getByText(VI_SIMULATION_LABEL)).toBeTruthy();
+    expect(within(ending).queryByText(SIMULATION_LABEL)).toBeNull();
+    const variant = VI_SCENARIO.endings.risky.variants.find((v) => v.id === "risky.money-moved");
+    expect(within(ending).getByText(variant?.text ?? "<missing variant>").getAttribute("data-variant")).toBe(
+      "risky.money-moved",
+    );
+    expectNoSafeWordVi(ending);
+
+    fireEvent.click(within(ending).getByRole("button", { name: viOutcome.ending.continue }));
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it("verified run: the debrief shows Vietnamese headings and Vietnamese Scenario_Data text", () => {
+    applyLocale("vi");
+    const view = viDebriefFor(VERIFIED_RUN);
+    const { screenEl } = renderDebrief(view);
+
+    expect(screen.getByRole("dialog", { name: VI_SCENARIO.endings.verified.title })).toBe(screenEl);
+    expect(within(screenEl).getByText(VI_DEBRIEF.eyebrow)).toBeTruthy();
+    expect(within(screenEl).getByText(VI_SIMULATION_LABEL)).toBeTruthy();
+    for (const heading of [
+      VI_DEBRIEF.outcome,
+      VI_DEBRIEF.decisions,
+      VI_DEBRIEF.evidenceFound,
+      VI_DEBRIEF.warningSigns,
+      VI_DEBRIEF.cluesMissed,
+      VI_DEBRIEF.mechanism,
+      VI_DEBRIEF.saferAlternatives,
+    ]) {
+      expect(within(screenEl).getByRole("heading", { name: heading })).toBeTruthy();
+    }
+    for (const heading of Object.values(DEBRIEF_TEXT)) {
+      expect(within(screenEl).queryByRole("heading", { name: heading })).toBeNull();
+    }
+
+    expect(sectionItems(screenEl, VI_DEBRIEF.evidenceFound)).toEqual(
+      view.evidenceFound.map((item) => VI_SCENARIO.evidence[item.id].title),
+    );
+    expect(sectionItems(screenEl, VI_DEBRIEF.warningSigns)).toEqual(
+      view.warningSignsNoticed.map((sign) => VI_SCENARIO.warningSigns[sign.id].label),
+    );
+    expect(sectionItems(screenEl, VI_DEBRIEF.cluesMissed)).toEqual(
+      view.cluesMissed.map(
+        (clue) => `${VI_SCENARIO.evidence[clue.id].title}${VI_SCENARIO.evidence[clue.id].debriefHint}`,
+      ),
+    );
+    expect(within(screenEl).getByText(VI_SCENARIO.debrief.mechanism)).toBeTruthy();
+    expect(within(screenEl).queryByText(CHAPTER_1_SCENARIO.debrief.mechanism)).toBeNull();
+    expect(within(screenEl).getByText(VI_SCENARIO.debrief.outcomeSummaries.verified)).toBeTruthy();
+    expectNoSafeWordVi(screenEl);
+  });
+
+  it("uncertain run: the debrief shows the Vietnamese partial-result wording", () => {
+    applyLocale("vi");
+    const view = viDebriefFor(UNCERTAIN_RUN);
+    const { screenEl } = renderDebrief(view);
+    const summary = VI_SCENARIO.debrief.outcomeSummaries.uncertain;
+    expect(summary).toContain("không phải thất bại");
+    expect(within(screenEl).getByText(summary)).toBeTruthy();
+    expect(within(screenEl).getByText(VI_SCENARIO.endings.uncertain.variants[0].text)).toBeTruthy();
+    expectNoSafeWordVi(screenEl);
+  });
+
+  it("Replay and Return to menu have Vietnamese accessible names and call their callbacks", () => {
+    applyLocale("vi");
+    const view = viDebriefFor(UNCERTAIN_RUN);
+    const { screenEl, onReplay, onReturnToMenu } = renderDebrief(view);
+
+    expect(within(screenEl).queryByRole("button", { name: DEBRIEF_TEXT.replay })).toBeNull();
+    fireEvent.click(within(screenEl).getByRole("button", { name: VI_DEBRIEF.replay }));
+    expect(onReplay).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(screenEl).getByRole("button", { name: VI_DEBRIEF.returnToMenu }));
+    expect(onReturnToMenu).toHaveBeenCalledTimes(1);
   });
 });

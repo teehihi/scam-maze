@@ -4,6 +4,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { CircleCheck, Flag } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { usePrefersReducedMotion } from "../../../components/ui/usePrefersReducedMotion";
 import { UI } from "../theme";
 
@@ -18,14 +19,10 @@ export interface ObjectiveToastProps {
   durationMs?: number;
 }
 
-export const OBJECTIVE_TOAST_LABEL: Record<ObjectiveChangeKind, string> = {
-  activated: "New objective",
-  completed: "Objective complete",
-};
-
 const FADE_MS = 300;
 
 export const ObjectiveToast: React.FC<ObjectiveToastProps> = ({ kind, text, onDismiss, durationMs = 4000 }) => {
+  const { t } = useTranslation("chapter1");
   const reducedMotion = usePrefersReducedMotion();
   const [visible, setVisible] = useState(reducedMotion);
   // Latest callback without restarting the timers when the parent passes a new function.
@@ -60,7 +57,7 @@ export const ObjectiveToast: React.FC<ObjectiveToastProps> = ({ kind, text, onDi
         aria-hidden="true"
       />
       <div>
-        <p className={UI.label}>{OBJECTIVE_TOAST_LABEL[kind]}</p>
+        <p className={UI.label}>{t(`toast.${kind}`)}</p>
         <p>{text}</p>
       </div>
     </div>

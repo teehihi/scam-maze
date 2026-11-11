@@ -4,6 +4,9 @@
 
 import React, { useEffect, useRef } from "react";
 import { Loader2, Play } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { formatNumber } from "../../../i18n/format";
+import { useGameLocale } from "../../../i18n/useGameLocale";
 import { UI } from "../theme";
 
 export type TitleCardMode = "begin" | "continue";
@@ -21,18 +24,6 @@ export interface ChapterTitleCardProps {
   onBegin: () => void;
 }
 
-export const TITLE_CARD_TEXT = {
-  preparing: "Preparing the street",
-  ready: "The street is ready",
-  begin: "Begin",
-  continue: "Continue",
-} as const;
-
-/** Small label above the title. One function so the full phrase can be translated later. */
-export function chapterEyebrow(chapterNumber: number): string {
-  return `Chapter ${chapterNumber}`;
-}
-
 export const ChapterTitleCard: React.FC<ChapterTitleCardProps> = ({
   chapterNumber,
   title,
@@ -42,6 +33,8 @@ export const ChapterTitleCard: React.FC<ChapterTitleCardProps> = ({
   mode,
   onBegin,
 }) => {
+  const { t } = useTranslation("chapter1");
+  const locale = useGameLocale();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -56,7 +49,7 @@ export const ChapterTitleCard: React.FC<ChapterTitleCardProps> = ({
     >
       <div className="w-full max-w-2xl space-y-4">
         <p className="font-mono text-xs uppercase tracking-[0.28em] text-[#b9a5f5]">
-          {chapterEyebrow(chapterNumber)}
+          {t("titleCard.eyebrow", { number: formatNumber(locale, chapterNumber) })}
         </p>
         <h1
           id="chapter-title-card-heading"
@@ -73,11 +66,11 @@ export const ChapterTitleCard: React.FC<ChapterTitleCardProps> = ({
         <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
           <button type="button" onClick={onBegin} disabled={!ready} className={UI.buttonPrimary}>
             <Play className="h-4 w-4" aria-hidden="true" />
-            {mode === "continue" ? TITLE_CARD_TEXT.continue : TITLE_CARD_TEXT.begin}
+            {mode === "continue" ? t("titleCard.continue") : t("titleCard.begin")}
           </button>
           <p role="status" className={`flex items-center gap-2 text-sm ${UI.textMuted}`}>
             {!ready && <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />}
-            {ready ? TITLE_CARD_TEXT.ready : TITLE_CARD_TEXT.preparing}
+            {ready ? t("titleCard.ready") : t("titleCard.preparing")}
           </p>
         </div>
       </div>

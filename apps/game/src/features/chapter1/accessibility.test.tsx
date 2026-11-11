@@ -18,6 +18,12 @@ import { buildDebrief, type DebriefView } from "../../game/narrative/debrief";
 import { createInitialState } from "../../game/narrative/reducer";
 import { createChapterStore } from "../../game/narrative/store";
 import type { CoreAction } from "../../game/narrative/types";
+import { applyLocale } from "../../i18n";
+import viHud from "../../i18n/locales/vi/chapter1/hud";
+import viOutcome from "../../i18n/locales/vi/chapter1/outcome";
+import viPhone from "../../i18n/locales/vi/chapter1/phone";
+import viStory from "../../i18n/locales/vi/chapter1/story";
+import { getDisplayPrompts, getDisplayScenario } from "../../i18n/narrative";
 import { mockReducedMotion, restoreMatchMedia } from "../../test/loadingRuns";
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
@@ -72,15 +78,15 @@ function canvas(): ChapterOneCanvasProps {
   return harness.canvasProps;
 }
 
-function renderPage() {
+function renderPage(settings: GameSettings = SETTINGS) {
   const chapter = getChapter("chapter-1");
   if (!chapter) throw new Error("chapter-1 is not registered");
-  render(<ChapterOnePage session={createNewChapterSession(chapter)} settings={SETTINGS} onReturnToMenu={vi.fn()} />);
+  render(<ChapterOnePage session={createNewChapterSession(chapter)} settings={settings} onReturnToMenu={vi.fn()} />);
 }
 
-function beginChapter() {
+function beginChapter(beginLabel = "Begin") {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: "Begin" }));
+  fireEvent.click(screen.getByRole("button", { name: beginLabel }));
 }
 
 function inspectWallet() {
@@ -387,6 +393,125 @@ describe("Chapter 1 accessibility", () => {
       expect(ending.style.transitionDuration).toBe("0ms");
       expect(ending.style.opacity).toBe("1");
     });
+  });
+
+  describe("in Vietnamese (game-i18n-en-vi task 7.8)", () => {
+    const VI_SCENARIO = getDisplayScenario("vi");
+    const VI_WALLET = VI_SCENARIO.interactables["obj.wallet"];
+
+    function renderVi() {
+      applyLocale("vi");
+      renderPage({ ...SETTINGS, language: "vi" });
+    }
+
+    function liveRegion(): HTMLElement {
+      const tracker = screen.getByRole("region", { name: viHud.objectives.heading });
+      const live = tracker.querySelector('[aria-live="polite"]');
+      if (!(live instanceof HTMLElement)) throw new Error("objective tracker has no live region");
+      return live;
+    }
+
+    it("gives every dialog and button a Vietnamese accessible name", () => {
+      renderVi();
+      expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Cuộc gọi khẩn cấp" }));
+      expectAccessibleDom("vi title card");
+      beginChapter(viHud.titleCard.begin);
+      expectAccessibleDom("vi hud");
+
+      inspectWallet();
+      const inspection = dialog(VI_WALLET.label);
+      expectFocusInside(inspection);
+      expectAccessibleDom("vi inspection");
+      fireEvent.click(within(inspection).getByRole("button", { name: viStory.inspection.close }));
+      expect(document.activeElement).toBe(gameView());
+
+      pressEscape();
+      expectFocusInside(dialog(viOutcome.pause.heading));
+      expectAccessibleDom("vi pause");
+      pressEscape();
+
+      pressP();
+      const phone = dialog(viPhone.phone.overlay.name);
+      expectFocusInside(phone);
+      expect(within(phone).getByRole("button", { name: viPhone.phone.overlay.close })).not.toBeNull();
+      expectAccessibleDom("vi phone home");
+      pressP();
+
+      pressJ();
+      expectFocusInside(dialog(viStory.journal.title));
+      expectAccessibleDom("vi journal");
+      pressJ();
+
+      waitForRing();
+      expectFocusInside(dialog(viPhone.phone.overlay.name));
+      expect(screen.getByTestId("incoming-call-accept").textContent).toContain(viPhone.phone.incomingCall.accept);
+      expect(screen.getByRole("button", { name: viPhone.phone.incomingCall.decline })).not.toBeNull();
+      expectAccessibleDom("vi incoming call");
+      fireEvent.click(screen.getByTestId("incoming-call-accept"));
+      expect(screen.getByRole("button", { name: viPhone.phone.call.hangUp })).not.toBeNull();
+      expectAccessibleDom("vi active call");
+      fireEvent.click(screen.getByTestId("call-screen-hang-up"));
+      expectAccessibleDom("vi phone after call");
+      pressP();
+
+      pressJ();
+      fireEvent.click(within(dialog(viStory.journal.title)).getByRole("button", { name: viStory.journal.decide }));
+      expectFocusInside(dialog(viOutcome.decision.heading));
+      expectAccessibleDom("vi decision");
+
+      // No English dialog name is left.
+      for (const english of ["Paused", "Phone", "Journal", "Decide how to respond", WALLET.label]) {
+        expect(screen.queryByRole("dialog", { name: english })).toBeNull();
+      }
+    });
+
+    it("announces objectives in Vietnamese in the polite live region", () => {
+      renderVi();
+      beginChapter(viHud.titleCard.begin);
+      expect(within(liveRegion()).getByText(VI_SCENARIO.objectives["obj.look-around"].text)).not.toBeNull();
+
+      ringFirstCallVi();
+      fireEvent.click(screen.getByTestId("incoming-call-accept"));
+      const answered = VI_SCENARIO.objectives["obj.answer-call"].text;
+      expect(liveRegion().textContent).toContain(`Đã hoàn thành mục tiêu: ${answered}`);
+      expect(liveRegion().textContent).not.toContain("Objective completed");
+
+      // The call's dialogue line is a live region too, with the Vietnamese caller name.
+      const line = screen.getByTestId("dialogue-line");
+      expect(line.getAttribute("aria-live")).toBe("polite");
+      expect(line.textContent).toContain(VI_SCENARIO.dialogues["dlg.scam-call"].persona.name);
+    });
+
+    it("keeps the key hints E, P, J and Esc literal", () => {
+      renderVi();
+      beginChapter(viHud.titleCard.begin);
+      act(() => canvas().onFocusChange("obj.wallet"));
+      expect(screen.getByTestId("interaction-prompt").textContent).toBe(getDisplayPrompts("vi")["obj.wallet"]);
+      expect(screen.getByTestId("interaction-prompt").textContent).toMatch(/^Nhấn E /);
+
+      // The name starts with the label; an unread badge adds its Vietnamese count text after it.
+      const phone = screen.getByRole("button", { name: new RegExp(`^${viHud.hud.phone}`) });
+      const journal = screen.getByRole("button", { name: new RegExp(`^${viHud.hud.journal}`) });
+      expect(accessibleName(phone)).not.toMatch(/unread|Phone/);
+      expect(phone.getAttribute("aria-keyshortcuts")).toBe("P");
+      expect(phone.querySelector("kbd")?.textContent).toBe("P");
+      expect(journal.getAttribute("aria-keyshortcuts")).toBe("J");
+      expect(journal.querySelector("kbd")?.textContent).toBe("J");
+
+      // The Escape key still opens and closes the pause menu in Vietnamese.
+      act(() => canvas().onFocusChange(null));
+      pressEscape();
+      expect(dialog(viOutcome.pause.heading)).not.toBeNull();
+      pressEscape();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    /** Vietnamese twin of `ringFirstCall`: the inspection panel's Close is "Đóng". */
+    function ringFirstCallVi() {
+      inspectWallet();
+      fireEvent.click(within(dialog(VI_WALLET.label)).getByRole("button", { name: viStory.inspection.close }));
+      waitForRing();
+    }
   });
 
   it("uses no emoji anywhere in the features/chapter1 source", () => {

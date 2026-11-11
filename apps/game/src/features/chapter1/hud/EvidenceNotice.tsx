@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { NotebookPen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { UI } from "../theme";
 
 export interface EvidenceNoticeProps {
@@ -12,9 +13,8 @@ export interface EvidenceNoticeProps {
   durationMs?: number;
 }
 
-export const EVIDENCE_NOTICE_LABEL = "New evidence recorded:";
-
 export const EvidenceNotice: React.FC<EvidenceNoticeProps> = ({ title, onDismiss, durationMs = 4000 }) => {
+  const { t } = useTranslation("chapter1");
   // Latest callback without restarting the timer when the parent passes a new function.
   const onDismissRef = useRef(onDismiss);
   useEffect(() => {
@@ -34,7 +34,7 @@ export const EvidenceNotice: React.FC<EvidenceNoticeProps> = ({ title, onDismiss
     >
       <NotebookPen className={`mt-0.5 h-4 w-4 shrink-0 ${UI.textPositive}`} aria-hidden="true" />
       <span>
-        <span className="font-semibold">{EVIDENCE_NOTICE_LABEL}</span> {title}
+        <span className="font-semibold">{t("notice.evidenceRecorded")}</span> {title}
       </span>
     </p>
   );

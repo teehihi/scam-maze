@@ -15,11 +15,11 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import type { GameSettings } from "@scammaze/shared-types";
 import { getChapter } from "../../game/chapters/chapterRegistry";
 import type { ChapterSession } from "../../game/chapters/chapterSession";
-import { CHAPTER_1_SCENARIO } from "../../game/narrative/chapter1/scenario";
-import type { DecisionId, EvidenceId, InteractableId } from "../../game/narrative/chapter1/ids";
+import type { DecisionId, EvidenceId, InteractableId, ObjectiveId } from "../../game/narrative/chapter1/ids";
 import { buildDebrief } from "../../game/narrative/debrief";
 import { createInitialState } from "../../game/narrative/reducer";
 import {
@@ -34,6 +34,8 @@ import {
 import { createChapterStore, type ChapterStore } from "../../game/narrative/store";
 import type { ChapterState } from "../../game/narrative/types";
 import { createLocalStorageSaveSource, type SaveGameSource } from "../../game/saves/saveGame";
+import { getDisplayPrompts, useDisplayScenario } from "../../i18n/narrative";
+import { useGameLocale } from "../../i18n/useGameLocale";
 import { usePlayerControls } from "../player";
 import { ChapterOneCanvas, type ChapterOnePlayerPose } from "./ChapterOneCanvas";
 import { EvidenceNotice } from "./hud/EvidenceNotice";
@@ -81,26 +83,17 @@ const DEFAULT_SPAWN: SpawnPose = Object.freeze({});
 /** Overlays that Escape never closes (Requirement 4.6). */
 const ESCAPE_LOCKED: ReadonlySet<OverlayKind> = new Set(["ending", "debrief"]);
 
+/** Queued items keep IDs only; text is resolved at render, so a language switch updates them. */
 interface ToastItem {
   key: number;
   kind: ObjectiveChangeKind;
-  text: string;
+  objectiveId: ObjectiveId;
 }
 
 interface NoticeItem {
   key: number;
-  title: string;
+  evidenceId: EvidenceId;
 }
-
-/** Screen-reader text for a completed objective. One function so the phrase can be translated later. */
-export function objectiveCompletedAnnouncement(objectiveText: string): string {
-  return `Objective complete: ${objectiveText}`;
-}
-
-/** Text for the face-to-face dialogue overlay. */
-export const DIALOGUE_OVERLAY_TEXT = {
-  caption: "Conversation",
-} as const;
 
 /**
  * True while a Call rings or is active and the chapter has no outcome yet. Once an outcome is
@@ -141,7 +134,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
 function useHudNotices(store: ChapterStore) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
-  const [announcement, setAnnouncement] = useState<string | null>(null);
+  // The objective whose completion is announced to screen readers.
+  const [announcement, setAnnouncement] = useState<ObjectiveId | null>(null);
 
   useEffect(() => {
     let seenEvents = store.getState().events.length;
@@ -163,23 +157,23 @@ function useHudNotices(store: ChapterStore) {
       const newToasts: ToastItem[] = [];
       for (const event of state.events.slice(seenEvents)) {
         for (const id of event.derived.objectivesCompleted) {
-          newToasts.push({ key: nextKey++, kind: "completed", text: CHAPTER_1_SCENARIO.objectives[id].text });
+          newToasts.push({ key: nextKey++, kind: "completed", objectiveId: id });
         }
         for (const id of event.derived.objectivesActivated) {
-          newToasts.push({ key: nextKey++, kind: "activated", text: CHAPTER_1_SCENARIO.objectives[id].text });
+          newToasts.push({ key: nextKey++, kind: "activated", objectiveId: id });
         }
       }
       seenEvents = state.events.length;
 
       const newNotices: NoticeItem[] = state.discovered
         .slice(seenEvidence)
-        .map((id) => ({ key: nextKey++, title: CHAPTER_1_SCENARIO.evidence[id].title }));
+        .map((id) => ({ key: nextKey++, evidenceId: id }));
       seenEvidence = state.discovered.length;
 
       if (newToasts.length > 0) {
         setToasts((queue) => [...queue, ...newToasts]);
         const lastCompleted = [...newToasts].reverse().find((toast) => toast.kind === "completed");
-        if (lastCompleted) setAnnouncement(objectiveCompletedAnnouncement(lastCompleted.text));
+        if (lastCompleted) setAnnouncement(lastCompleted.objectiveId);
       }
       if (newNotices.length > 0) setNotices((queue) => [...queue, ...newNotices]);
     });
@@ -220,23 +214,38 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   const [canvasKey, setCanvasKey] = useState(0);
   const [saveFailed, setSaveFailed] = useState(false);
 
+  const { t } = useTranslation("chapter1");
+  const locale = useGameLocale();
+  // Display text only. The store and reducer keep the canonical scenario, so the language never
+  // changes Chapter_State. The reference changes only when the language changes; the selectors
+  // below are memoized by (state, scenario), so each selector callback is stable per language
+  // and a language switch gives new snapshots and a re-render.
+  const scenario = useDisplayScenario();
+  const activeObjectivesSelector = useCallback((state: ChapterState) => selectActiveObjectives(state, scenario), [scenario]);
+  const dialogueViewSelector = useCallback((state: ChapterState) => selectDialogueView(state, scenario), [scenario]);
+  const phoneMessagesSelector = useCallback((state: ChapterState) => selectPhoneMessages(state, scenario), [scenario]);
+  const callLogSelector = useCallback((state: ChapterState) => selectCallLog(state, scenario), [scenario]);
+  const journalEntriesSelector = useCallback((state: ChapterState) => selectJournalEntries(state, scenario), [scenario]);
+  const claimStatusesSelector = useCallback((state: ChapterState) => selectClaimStatuses(state, scenario), [scenario]);
+  const decisionPanelSelector = useCallback((state: ChapterState) => selectDecisionPanel(state, scenario), [scenario]);
+
   const status = useChapterState(store, (state) => state.status);
-  const activeObjectives = useChapterState(store, selectActiveObjectives);
+  const activeObjectives = useChapterState(store, activeObjectivesSelector);
   const discovered = useChapterState(store, (state) => state.discovered);
   const phoneUnread = useChapterState(store, (state) => state.phone.unread.length);
   const call = useChapterState(store, (state) => state.call);
   const callBusy = useChapterState(store, callInProgress);
   const faceToFaceActive = useChapterState(store, faceToFaceInProgress);
-  const dialogueView = useChapterState(store, selectDialogueView);
-  const phoneMessages = useChapterState(store, selectPhoneMessages);
-  const callLog = useChapterState(store, selectCallLog);
-  const journalEntries = useChapterState(store, selectJournalEntries);
-  const claimStatuses = useChapterState(store, selectClaimStatuses);
-  const decisionPanel = useChapterState(store, selectDecisionPanel);
+  const dialogueView = useChapterState(store, dialogueViewSelector);
+  const phoneMessages = useChapterState(store, phoneMessagesSelector);
+  const callLog = useChapterState(store, callLogSelector);
+  const journalEntries = useChapterState(store, journalEntriesSelector);
+  const claimStatuses = useChapterState(store, claimStatusesSelector);
+  const decisionPanel = useChapterState(store, decisionPanelSelector);
   const outcome = useChapterState(store, (state) => state.outcome);
-  // Rebuilt only when the state changes; `null` until an Outcome is set.
+  // Rebuilt only when the state or the language changes; `null` until an Outcome is set.
   const chapterState = useChapterState(store);
-  const debriefView = useMemo(() => buildDebrief(chapterState), [chapterState]);
+  const debriefView = useMemo(() => buildDebrief(chapterState, scenario), [chapterState, scenario]);
 
   const [sceneReady, setSceneReady] = useState(false);
   // A restored session that has already ended goes straight to the ending or the debrief.
@@ -538,9 +547,9 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
 
   /** Opens the decision panel on top of the journal or the phone (Requirement 13.1). */
   const handleOpenDecision = useCallback(() => {
-    if (!selectDecisionPanel(store.getState()).offered) return;
+    if (!selectDecisionPanel(store.getState(), scenario).offered) return;
     openOverlay({ kind: "decision" });
-  }, [openOverlay, store]);
+  }, [openOverlay, scenario, store]);
 
   /**
    * Step 1 of the official route: call Northgate on the official number. The accepted action
@@ -612,7 +621,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   // Caller name and number come from the Call definition in Scenario_Data (plain text).
   let callSlot: ReactNode = null;
   if (callBusy && call.current !== null) {
-    const callDef = CHAPTER_1_SCENARIO.calls[call.current];
+    const callDef = scenario.calls[call.current];
     callSlot =
       call.status === "ringing" ? (
         <IncomingCallScreen
@@ -635,10 +644,10 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   const renderOverlay = (overlay: Overlay) => {
     switch (overlay.kind) {
       case "inspection": {
-        const def = CHAPTER_1_SCENARIO.interactables[overlay.objectId];
+        const def = scenario.interactables[overlay.objectId];
         const evidence = def.reveals
           .filter((id) => discovered.includes(id))
-          .map((id) => ({ id, title: CHAPTER_1_SCENARIO.evidence[id].title }));
+          .map((id) => ({ id, title: scenario.evidence[id].title }));
         return (
           <InspectionPanel
             key="inspection"
@@ -665,7 +674,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
             key="phone"
             messages={phoneMessages}
             callLog={callLog}
-            bankApp={CHAPTER_1_SCENARIO.phone.bankApp}
+            bankApp={scenario.phone.bankApp}
             onInspectEvidence={handleInspectEvidence}
             onVerifyBankApp={handleVerifyBankApp}
             onClose={handleClosePhone}
@@ -675,7 +684,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
         );
       case "dialogue": {
         if (!dialogueView || dialogueView.channel !== "face-to-face") return null;
-        const persona = CHAPTER_1_SCENARIO.dialogues[dialogueView.graphId].persona;
+        const persona = scenario.dialogues[dialogueView.graphId].persona;
         return (
           <div key="dialogue" className={UI.backdrop}>
             <div
@@ -686,7 +695,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
               data-testid="dialogue-overlay"
             >
               <div>
-                <p className={UI.label}>{DIALOGUE_OVERLAY_TEXT.caption}</p>
+                <p className={UI.label}>{t("dialogue.caption")}</p>
                 <h2 id="dialogue-overlay-heading" className={UI.heading}>
                   {persona.name}
                 </h2>
@@ -762,19 +771,33 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
       {hudVisible && (
         <>
           <div className="pointer-events-none absolute left-4 top-4 z-10">
-            <ObjectiveTracker objectives={activeObjectives} announcement={announcement} />
+            <ObjectiveTracker
+              objectives={activeObjectives}
+              announcement={
+                announcement === null
+                  ? null
+                  : t("page.announce.objectiveCompleted", { objective: scenario.objectives[announcement].text })
+              }
+            />
           </div>
 
           <div className="pointer-events-none absolute left-1/2 top-4 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
             {toast && (
-              <ObjectiveToast key={toast.key} kind={toast.kind} text={toast.text} onDismiss={dismissToast} />
+              <ObjectiveToast
+                key={toast.key}
+                kind={toast.kind}
+                text={scenario.objectives[toast.objectiveId].text}
+                onDismiss={dismissToast}
+              />
             )}
-            {notice && <EvidenceNotice key={notice.key} title={notice.title} onDismiss={dismissNotice} />}
+            {notice && (
+              <EvidenceNotice key={notice.key} title={scenario.evidence[notice.evidenceId].title} onDismiss={dismissNotice} />
+            )}
           </div>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-24 z-10 flex flex-col items-center gap-2 px-4">
             <ResumePrompt visible={showResume} />
-            {inputEnabled && <InteractionPrompt objectId={focusedId} />}
+            {inputEnabled && <InteractionPrompt objectId={focusedId} prompts={getDisplayPrompts(locale)} />}
           </div>
 
           <div className="absolute bottom-4 right-4 z-10" onMouseDown={stopMouseDown}>
@@ -805,8 +828,8 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
       {titleCardOpen && (
         <ChapterTitleCard
           chapterNumber={chapter?.number ?? session.chapterNumber}
-          title={chapter?.title ?? CHAPTER_1_SCENARIO.title}
-          subtitle={chapter?.subtitle ?? CHAPTER_1_SCENARIO.subtitle}
+          title={scenario.title}
+          subtitle={scenario.subtitle}
           ready={sceneReady}
           mode={titleMode}
           onBegin={handleBegin}

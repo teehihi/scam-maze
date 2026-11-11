@@ -3,6 +3,9 @@
 
 import React from "react";
 import { NotebookText, Smartphone } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { formatNumber } from "../../../i18n/format";
+import { useGameLocale } from "../../../i18n/useGameLocale";
 import { UI } from "../theme";
 
 export interface HudButtonsProps {
@@ -17,22 +20,9 @@ export interface HudButtonsProps {
   disabled?: boolean;
 }
 
-export const HUD_BUTTON_TEXT = {
-  phone: "Phone",
-  journal: "Journal",
-  phoneKey: "P",
-  journalKey: "J",
-} as const;
-
-/** Full screen-reader text for the phone badge, one sentence per plural form. */
-export function unreadMessagesText(count: number): string {
-  return count === 1 ? "1 unread message" : `${count} unread messages`;
-}
-
-/** Full screen-reader text for the journal badge, one sentence per plural form. */
-export function newEntriesText(count: number): string {
-  return count === 1 ? "1 new entry" : `${count} new entries`;
-}
+/** Keyboard keys are literal text in every language. */
+const PHONE_KEY = "P";
+const JOURNAL_KEY = "J";
 
 interface HudButtonProps {
   label: string;
@@ -84,27 +74,31 @@ export const HudButtons: React.FC<HudButtonsProps> = ({
   phoneUnread = 0,
   journalUnread = 0,
   disabled = false,
-}) => (
-  <div className="flex gap-3">
-    <HudButton
-      label={HUD_BUTTON_TEXT.phone}
-      keyHint={HUD_BUTTON_TEXT.phoneKey}
-      icon={<Smartphone className="h-4 w-4" aria-hidden="true" />}
-      count={phoneUnread}
-      countText={unreadMessagesText(phoneUnread)}
-      pressed={phoneOpen}
-      disabled={disabled}
-      onClick={onPhone}
-    />
-    <HudButton
-      label={HUD_BUTTON_TEXT.journal}
-      keyHint={HUD_BUTTON_TEXT.journalKey}
-      icon={<NotebookText className="h-4 w-4" aria-hidden="true" />}
-      count={journalUnread}
-      countText={newEntriesText(journalUnread)}
-      pressed={journalOpen}
-      disabled={disabled}
-      onClick={onJournal}
-    />
-  </div>
-);
+}) => {
+  const { t } = useTranslation("chapter1");
+  const locale = useGameLocale();
+  return (
+    <div className="flex gap-3">
+      <HudButton
+        label={t("hud.phone")}
+        keyHint={PHONE_KEY}
+        icon={<Smartphone className="h-4 w-4" aria-hidden="true" />}
+        count={phoneUnread}
+        countText={t("hud.unreadMessages", { count: phoneUnread, number: formatNumber(locale, phoneUnread) })}
+        pressed={phoneOpen}
+        disabled={disabled}
+        onClick={onPhone}
+      />
+      <HudButton
+        label={t("hud.journal")}
+        keyHint={JOURNAL_KEY}
+        icon={<NotebookText className="h-4 w-4" aria-hidden="true" />}
+        count={journalUnread}
+        countText={t("hud.newEntries", { count: journalUnread, number: formatNumber(locale, journalUnread) })}
+        pressed={journalOpen}
+        disabled={disabled}
+        onClick={onJournal}
+      />
+    </div>
+  );
+};

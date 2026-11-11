@@ -3,6 +3,7 @@
 // See design.md, "UI components", and Requirements 13.11, 14.1.
 
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, ArrowRight, CircleCheck, CircleHelp, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { usePrefersReducedMotion } from "../../../components/ui/usePrefersReducedMotion";
@@ -21,6 +22,7 @@ export interface EndingTransitionProps {
   onContinue: () => void;
 }
 
+/** English source text; the rendered text comes from `chapter1:ending.*`. */
 export const ENDING_TEXT = {
   eyebrow: "Chapter ending",
   continue: "Continue",
@@ -40,6 +42,7 @@ const ACCENTS: Record<OutcomeId, { icon: LucideIcon; text: string; border: strin
 };
 
 export const EndingTransition: React.FC<EndingTransitionProps> = ({ outcome, onContinue }) => {
+  const { t } = useTranslation("chapter1");
   const reducedMotion = usePrefersReducedMotion();
   const [entered, setEntered] = useState(reducedMotion);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -76,7 +79,7 @@ export const EndingTransition: React.FC<EndingTransitionProps> = ({ outcome, onC
       <div className={`${UI.panel} ${accent.border} max-w-xl space-y-5`}>
         <p className={`flex items-center gap-2 ${UI.label}`}>
           <Icon className={`h-4 w-4 ${accent.text}`} aria-hidden="true" />
-          {ENDING_TEXT.eyebrow}
+          {t("ending.eyebrow")}
         </p>
         <h2
           id="ending-transition-heading"
@@ -97,7 +100,7 @@ export const EndingTransition: React.FC<EndingTransitionProps> = ({ outcome, onC
         </p>
         <div className="flex justify-end">
           <button type="button" onClick={onContinue} className={UI.buttonPrimary}>
-            {ENDING_TEXT.continue}
+            {t("ending.continue")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>

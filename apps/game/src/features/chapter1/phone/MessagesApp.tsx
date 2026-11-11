@@ -2,6 +2,7 @@
 // Message bodies contain a look-alike domain; it is rendered as plain text, never as a link.
 
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Check } from "lucide-react";
 import type { EvidenceId, MessageId } from "../../../game/narrative/chapter1/ids";
 import type { PhoneMessageView } from "../../../game/narrative/selectors";
@@ -14,20 +15,11 @@ export interface MessagesAppProps {
   onBack: () => void;
 }
 
-export const MESSAGES_APP_TEXT = {
-  heading: "Messages",
-  back: "Back",
-  backToList: "Back to messages",
-  empty: "No messages.",
-  unread: "Unread",
-  recorded: "Recorded in your journal",
-  from: "From",
-} as const;
-
 const LIST_BUTTON =
   "flex w-full flex-col gap-1 rounded-lg border border-[#38344f] bg-[#171521] p-3 text-left motion-safe:transition-colors hover:border-[#7654d6] hover:bg-[#26233a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer";
 
 export const MessagesApp: React.FC<MessagesAppProps> = ({ messages, onInspectEvidence, onBack }) => {
+  const { t } = useTranslation("chapter1");
   const [openId, setOpenId] = useState<MessageId | null>(null);
   const open = openId === null ? null : (messages.find((message) => message.id === openId) ?? null);
 
@@ -41,10 +33,10 @@ export const MessagesApp: React.FC<MessagesAppProps> = ({ messages, onInspectEvi
       <div className="space-y-3">
         <button type="button" className={UI.buttonSecondary} onClick={() => setOpenId(null)}>
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          {MESSAGES_APP_TEXT.backToList}
+          {t("phone.messages.backToList")}
         </button>
         <article className={`${UI.card} space-y-2`} aria-labelledby={`phone-message-${open.id}-from`}>
-          <p className={UI.label}>{MESSAGES_APP_TEXT.from}</p>
+          <p className={UI.label}>{t("phone.messages.from")}</p>
           <h3 id={`phone-message-${open.id}-from`} className="text-sm font-bold text-[#f7f5ff]">
             {open.from}
           </h3>
@@ -53,7 +45,7 @@ export const MessagesApp: React.FC<MessagesAppProps> = ({ messages, onInspectEvi
           {open.evidenceRecorded && (
             <p className={`flex items-center gap-1.5 text-xs font-semibold ${UI.textPositive}`}>
               <Check className="h-3.5 w-3.5" aria-hidden="true" />
-              {MESSAGES_APP_TEXT.recorded}
+              {t("phone.messages.recorded")}
             </p>
           )}
         </article>
@@ -65,11 +57,11 @@ export const MessagesApp: React.FC<MessagesAppProps> = ({ messages, onInspectEvi
     <div className="space-y-3">
       <button type="button" className={UI.buttonSecondary} onClick={onBack}>
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        {MESSAGES_APP_TEXT.back}
+        {t("phone.messages.back")}
       </button>
-      <h3 className={UI.label}>{MESSAGES_APP_TEXT.heading}</h3>
+      <h3 className={UI.label}>{t("phone.messages.heading")}</h3>
       {messages.length === 0 ? (
-        <p className={UI.body}>{MESSAGES_APP_TEXT.empty}</p>
+        <p className={UI.body}>{t("phone.messages.empty")}</p>
       ) : (
         <ul className="space-y-2">
           {messages.map((message) => (
@@ -81,7 +73,7 @@ export const MessagesApp: React.FC<MessagesAppProps> = ({ messages, onInspectEvi
                   </span>
                   {message.unread && (
                     <span className="rounded-full bg-[#f2b24b] px-2 py-0.5 text-xs font-bold text-[#171521]">
-                      {MESSAGES_APP_TEXT.unread}
+                      {t("phone.messages.unread")}
                     </span>
                   )}
                 </span>

@@ -3,6 +3,7 @@
 // "Inspect number" records the caller-number evidence when the core would accept it.
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Check, Search } from "lucide-react";
 import type { EvidenceId } from "../../../game/narrative/chapter1/ids";
 import type { CallLogEntryView } from "../../../game/narrative/selectors";
@@ -15,24 +16,8 @@ export interface CallHistoryAppProps {
   onBack: () => void;
 }
 
-export const CALL_HISTORY_TEXT = {
-  heading: "Calls",
-  back: "Back",
-  empty: "No calls yet.",
-  inspectNumber: "Inspect number",
-  recorded: "Recorded in your journal",
-  incoming: "Incoming",
-  outgoing: "Outgoing",
-  status: {
-    ringing: "Ringing",
-    answered: "Answered",
-    ended: "Answered",
-    declined: "Declined",
-    missed: "Missed",
-  } satisfies Record<CallLogEntryView["status"], string>,
-} as const;
-
 export const CallHistoryApp: React.FC<CallHistoryAppProps> = ({ calls, onInspectEvidence, onBack }) => {
+  const { t } = useTranslation("chapter1");
   // Newest first, like a real phone. The selector returns oldest first.
   const entries = [...calls].reverse();
 
@@ -40,11 +25,11 @@ export const CallHistoryApp: React.FC<CallHistoryAppProps> = ({ calls, onInspect
     <div className="space-y-3">
       <button type="button" className={UI.buttonSecondary} onClick={onBack}>
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        {CALL_HISTORY_TEXT.back}
+        {t("phone.calls.back")}
       </button>
-      <h3 className={UI.label}>{CALL_HISTORY_TEXT.heading}</h3>
+      <h3 className={UI.label}>{t("phone.calls.heading")}</h3>
       {entries.length === 0 ? (
-        <p className={UI.body}>{CALL_HISTORY_TEXT.empty}</p>
+        <p className={UI.body}>{t("phone.calls.empty")}</p>
       ) : (
         <ul className="space-y-2">
           {entries.map((entry) => {
@@ -56,15 +41,15 @@ export const CallHistoryApp: React.FC<CallHistoryAppProps> = ({ calls, onInspect
                   {/* Plain text only: phone numbers are never links. */}
                   <p className="text-sm text-[#f7f5ff]">{entry.number}</p>
                   <p className={`text-xs ${entry.status === "missed" || entry.status === "declined" ? UI.textWarning : UI.textMuted}`}>
-                    {entry.direction === "outgoing" ? CALL_HISTORY_TEXT.outgoing : CALL_HISTORY_TEXT.incoming}
+                    {entry.direction === "outgoing" ? t("phone.calls.outgoing") : t("phone.calls.incoming")}
                     {" · "}
-                    {CALL_HISTORY_TEXT.status[entry.status]}
+                    {t(`phone.calls.status.${entry.status}`)}
                   </p>
                 </div>
                 {evidenceId !== null && entry.evidenceRecorded && (
                   <p className={`flex items-center gap-1.5 text-xs font-semibold ${UI.textPositive}`}>
                     <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                    {CALL_HISTORY_TEXT.recorded}
+                    {t("phone.calls.recorded")}
                   </p>
                 )}
                 {evidenceId !== null && !entry.evidenceRecorded && entry.evidenceAvailable && (
@@ -74,7 +59,7 @@ export const CallHistoryApp: React.FC<CallHistoryAppProps> = ({ calls, onInspect
                     onClick={() => onInspectEvidence(evidenceId)}
                   >
                     <Search className="h-4 w-4" aria-hidden="true" />
-                    {CALL_HISTORY_TEXT.inspectNumber}
+                    {t("phone.calls.inspectNumber")}
                   </button>
                 )}
               </li>

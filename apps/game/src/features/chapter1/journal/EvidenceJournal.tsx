@@ -3,11 +3,16 @@
 // See .kiro/specs/chapter-01-the-urgent-call/design.md, "Rendering layer", and Requirements
 // 11.7-11.9, 13.1 and 17.6. Props only: the page passes selector output and callbacks.
 // Escape is handled by the page through the overlay stack; this panel only offers Close.
+// Chrome comes from `chapter1:journal.*`. Stance, claim status and source are rendered by their
+// codes, not by the core's English `stanceText` / `statusText`; narrative text (titles, notes,
+// claims) comes from the scenario the page passes to the selectors.
 
 import React, { useEffect, useRef } from "react";
 import { Scale, NotebookText, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ClaimStatusView, JournalEntry } from "../../../game/narrative/selectors";
 import type { ClaimStatus, EvidenceItem, Stance } from "../../../game/narrative/types";
+import enStory from "../../../i18n/locales/en/chapter1/story";
 import { UI } from "../theme";
 
 export interface EvidenceJournalProps {
@@ -21,29 +26,14 @@ export interface EvidenceJournalProps {
   onClose: () => void;
 }
 
-export const EVIDENCE_JOURNAL_TEXT = {
-  title: "Journal",
-  evidenceHeading: "Evidence",
-  claimsHeading: "Claims",
-  emptyState: "You have not found any evidence yet. Look around and check what the caller tells you.",
-  noClaimEvidence: "No evidence about this claim yet.",
-  sourceLabel: "Source",
-  locationLabel: "Found at",
-  statusLabel: "Status",
-  notesHeading: "Your notes",
-  decidePrompt: "You can decide what to do now.",
-  decide: "Decide",
-  close: "Close",
-} as const;
+/**
+ * English source text of the journal chrome (`chapter1:journal.*`). The panel renders through
+ * `t`; this export stays for tests and callers that compare against the English text.
+ */
+export const EVIDENCE_JOURNAL_TEXT = enStory.journal;
 
-/** Text for each Evidence_Item source. */
-export const EVIDENCE_SOURCE_TEXT: Record<EvidenceItem["source"], string> = {
-  physical: "Something you found",
-  device: "Your phone",
-  dialogue: "The phone call",
-  npc: "A person you talked to",
-  verification: "A check through a channel you trust",
-};
+/** English source text for each Evidence_Item source (`chapter1:journal.source.*`). */
+export const EVIDENCE_SOURCE_TEXT: Record<EvidenceItem["source"], string> = enStory.journal.source;
 
 /** Text color per Stance. Always shown with the stance text, never alone. */
 const STANCE_CLASS: Record<Stance, string> = {
@@ -68,6 +58,7 @@ export const EvidenceJournal: React.FC<EvidenceJournalProps> = ({
   onDecide,
   onClose,
 }) => {
+  const { t } = useTranslation("chapter1");
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -89,16 +80,16 @@ export const EvidenceJournal: React.FC<EvidenceJournalProps> = ({
           className={`${UI.heading} flex items-center gap-2`}
         >
           <NotebookText className="h-5 w-5 text-[#b9a5f5]" aria-hidden="true" />
-          {EVIDENCE_JOURNAL_TEXT.title}
+          {t("journal.title")}
         </h2>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
           <section aria-labelledby="evidence-journal-evidence-heading" className="space-y-2">
             <h3 id="evidence-journal-evidence-heading" className={UI.label}>
-              {EVIDENCE_JOURNAL_TEXT.evidenceHeading}
+              {t("journal.evidenceHeading")}
             </h3>
             {entries.length === 0 ? (
-              <p className={UI.body}>{EVIDENCE_JOURNAL_TEXT.emptyState}</p>
+              <p className={UI.body}>{t("journal.emptyState")}</p>
             ) : (
               <ol className="space-y-3">
                 {entries.map((entry) => (
@@ -106,9 +97,9 @@ export const EvidenceJournal: React.FC<EvidenceJournalProps> = ({
                     <h4 className="text-sm font-bold text-[#f7f5ff]">{entry.title}</h4>
                     <p className={UI.body}>{entry.description}</p>
                     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                      <dt className="font-semibold text-[#b9a5f5]">{EVIDENCE_JOURNAL_TEXT.sourceLabel}</dt>
-                      <dd className="text-[#f7f5ff]">{EVIDENCE_SOURCE_TEXT[entry.source]}</dd>
-                      <dt className="font-semibold text-[#b9a5f5]">{EVIDENCE_JOURNAL_TEXT.locationLabel}</dt>
+                      <dt className="font-semibold text-[#b9a5f5]">{t("journal.sourceLabel")}</dt>
+                      <dd className="text-[#f7f5ff]">{t(`journal.source.${entry.source}`)}</dd>
+                      <dt className="font-semibold text-[#b9a5f5]">{t("journal.locationLabel")}</dt>
                       <dd className="text-[#f7f5ff]">{entry.location}</dd>
                     </dl>
                     {entry.stances.length > 0 && (
@@ -117,7 +108,7 @@ export const EvidenceJournal: React.FC<EvidenceJournalProps> = ({
                           <li key={stance.claimId} className="text-xs leading-relaxed">
                             <span className="text-[#a9a4c4]">{stance.claimText}</span>{" "}
                             <span className={`font-semibold ${STANCE_CLASS[stance.stance]}`}>
-                              {stance.stanceText}.
+                              {t(`journal.stance.${stance.stance}`)}.
                             </span>{" "}
                             {stance.note && <span className="text-[#a9a4c4]">{stance.note}</span>}
                           </li>
@@ -126,7 +117,7 @@ export const EvidenceJournal: React.FC<EvidenceJournalProps> = ({
                     )}
                     {entry.notes.length > 0 && (
                       <div className="space-y-1 border-t border-[#38344f] pt-2">
-                        <h5 className={UI.label}>{EVIDENCE_JOURNAL_TEXT.notesHeading}</h5>
+                        <h5 className={UI.label}>{t("journal.notesHeading")}</h5>
                         <ul className="space-y-1">
                           {entry.notes.map((note) => (
                             <li key={note} className="text-xs leading-relaxed text-[#f7f5ff]">
@@ -144,24 +135,24 @@ export const EvidenceJournal: React.FC<EvidenceJournalProps> = ({
 
           <section aria-labelledby="evidence-journal-claims-heading" className="space-y-2">
             <h3 id="evidence-journal-claims-heading" className={UI.label}>
-              {EVIDENCE_JOURNAL_TEXT.claimsHeading}
+              {t("journal.claimsHeading")}
             </h3>
             <ul className="space-y-2">
               {claims.map((claim) => (
                 <li key={claim.id} className={`${UI.card} space-y-1`}>
                   <h4 className="text-sm font-semibold text-[#f7f5ff]">{claim.text}</h4>
                   <p className="text-xs">
-                    <span className="font-semibold text-[#b9a5f5]">{EVIDENCE_JOURNAL_TEXT.statusLabel}: </span>
-                    <span className={`font-semibold ${CLAIM_STATUS_CLASS[claim.status]}`}>{claim.statusText}</span>
+                    <span className="font-semibold text-[#b9a5f5]">{t("journal.statusLabel")}: </span>
+                    <span className={`font-semibold ${CLAIM_STATUS_CLASS[claim.status]}`}>{t(`journal.claimStatus.${claim.status}`)}</span>
                   </p>
                   {claim.evidence.length === 0 ? (
-                    <p className="text-xs text-[#a9a4c4]">{EVIDENCE_JOURNAL_TEXT.noClaimEvidence}</p>
+                    <p className="text-xs text-[#a9a4c4]">{t("journal.noClaimEvidence")}</p>
                   ) : (
                     <ul className="space-y-0.5">
                       {claim.evidence.map((item) => (
                         <li key={item.evidenceId} className="text-xs text-[#a9a4c4]">
                           {item.title}:{" "}
-                          <span className={`font-semibold ${STANCE_CLASS[item.stance]}`}>{item.stanceText}</span>
+                          <span className={`font-semibold ${STANCE_CLASS[item.stance]}`}>{t(`journal.stance.${item.stance}`)}</span>
                         </li>
                       ))}
                     </ul>
@@ -175,16 +166,16 @@ export const EvidenceJournal: React.FC<EvidenceJournalProps> = ({
         <div className="flex flex-wrap items-center justify-end gap-3">
           {decisionOffered && (
             <>
-              <p className={`${UI.body} mr-auto`}>{EVIDENCE_JOURNAL_TEXT.decidePrompt}</p>
+              <p className={`${UI.body} mr-auto`}>{t("journal.decidePrompt")}</p>
               <button type="button" onClick={onDecide} className={UI.buttonPrimary}>
                 <Scale className="h-4 w-4" aria-hidden="true" />
-                {EVIDENCE_JOURNAL_TEXT.decide}
+                {t("journal.decide")}
               </button>
             </>
           )}
           <button type="button" onClick={onClose} className={UI.buttonSecondary}>
             <X className="h-4 w-4" aria-hidden="true" />
-            {EVIDENCE_JOURNAL_TEXT.close}
+            {t("journal.close")}
           </button>
         </div>
       </div>

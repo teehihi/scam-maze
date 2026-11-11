@@ -6,6 +6,7 @@
 // (audience.md). Missed clues are framed as things to look for next time.
 
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BookOpen,
   Eye,
@@ -28,6 +29,7 @@ export interface DebriefScreenProps {
   onReturnToMenu: () => void;
 }
 
+/** English source text; the rendered text comes from `chapter1:debrief.*`. */
 export const DEBRIEF_TEXT = {
   eyebrow: "Debrief",
   outcome: "Your outcome",
@@ -65,6 +67,7 @@ const DebriefSection: React.FC<SectionProps> = ({ id, title, icon: Icon, childre
 const EmptyNote: React.FC<{ text: string }> = ({ text }) => <p className={UI.body}>{text}</p>;
 
 export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, onReturnToMenu }) => {
+  const { t } = useTranslation("chapter1");
   const headingRef = useRef<HTMLHeadingElement>(null);
   const { outcome } = view;
 
@@ -83,7 +86,7 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
     >
       <article aria-labelledby="debrief-heading" className="mx-auto w-full max-w-2xl space-y-8 pb-8">
         <header className="space-y-3">
-          <p className={UI.label}>{DEBRIEF_TEXT.eyebrow}</p>
+          <p className={UI.label}>{t("debrief.eyebrow")}</p>
           <h2
             id="debrief-heading"
             ref={headingRef}
@@ -98,7 +101,7 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
           </p>
         </header>
 
-        <DebriefSection id="debrief-outcome" title={DEBRIEF_TEXT.outcome} icon={Flag}>
+        <DebriefSection id="debrief-outcome" title={t("debrief.outcome")} icon={Flag}>
           {outcome.summary && <p className={UI.body}>{outcome.summary}</p>}
           {outcome.consequence && (
             <p className={`${UI.card} text-sm leading-relaxed`} data-variant={outcome.consequence.id}>
@@ -107,9 +110,9 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
           )}
         </DebriefSection>
 
-        <DebriefSection id="debrief-decisions" title={DEBRIEF_TEXT.decisions} icon={Footprints}>
+        <DebriefSection id="debrief-decisions" title={t("debrief.decisions")} icon={Footprints}>
           {view.decisions.length === 0 ? (
-            <EmptyNote text={DEBRIEF_TEXT.decisionsEmpty} />
+            <EmptyNote text={t("debrief.decisionsEmpty")} />
           ) : (
             <ol className="space-y-2">
               {view.decisions.map((decision) => (
@@ -121,9 +124,9 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
           )}
         </DebriefSection>
 
-        <DebriefSection id="debrief-evidence" title={DEBRIEF_TEXT.evidenceFound} icon={Search}>
+        <DebriefSection id="debrief-evidence" title={t("debrief.evidenceFound")} icon={Search}>
           {view.evidenceFound.length === 0 ? (
-            <EmptyNote text={DEBRIEF_TEXT.evidenceFoundEmpty} />
+            <EmptyNote text={t("debrief.evidenceFoundEmpty")} />
           ) : (
             <ul className="space-y-2">
               {view.evidenceFound.map((item) => (
@@ -135,9 +138,9 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
           )}
         </DebriefSection>
 
-        <DebriefSection id="debrief-warning-signs" title={DEBRIEF_TEXT.warningSigns} icon={Eye}>
+        <DebriefSection id="debrief-warning-signs" title={t("debrief.warningSigns")} icon={Eye}>
           {view.warningSignsNoticed.length === 0 ? (
-            <EmptyNote text={DEBRIEF_TEXT.warningSignsEmpty} />
+            <EmptyNote text={t("debrief.warningSignsEmpty")} />
           ) : (
             <ul className="space-y-2">
               {view.warningSignsNoticed.map((sign) => (
@@ -149,9 +152,9 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
           )}
         </DebriefSection>
 
-        <DebriefSection id="debrief-clues-missed" title={DEBRIEF_TEXT.cluesMissed} icon={Lightbulb}>
+        <DebriefSection id="debrief-clues-missed" title={t("debrief.cluesMissed")} icon={Lightbulb}>
           {view.cluesMissed.length === 0 ? (
-            <EmptyNote text={DEBRIEF_TEXT.cluesMissedEmpty} />
+            <EmptyNote text={t("debrief.cluesMissedEmpty")} />
           ) : (
             <ul className="space-y-2">
               {view.cluesMissed.map((clue) => (
@@ -164,11 +167,11 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
           )}
         </DebriefSection>
 
-        <DebriefSection id="debrief-mechanism" title={DEBRIEF_TEXT.mechanism} icon={Workflow}>
+        <DebriefSection id="debrief-mechanism" title={t("debrief.mechanism")} icon={Workflow}>
           <p className={UI.body}>{view.mechanism}</p>
         </DebriefSection>
 
-        <DebriefSection id="debrief-better-choices" title={DEBRIEF_TEXT.saferAlternatives} icon={BookOpen}>
+        <DebriefSection id="debrief-better-choices" title={t("debrief.saferAlternatives")} icon={BookOpen}>
           <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-[#a9a4c4] marker:text-[#b9a5f5]">
             {view.saferAlternatives.map((text) => (
               <li key={text}>{text}</li>
@@ -179,11 +182,11 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
         <div className="flex flex-col gap-3 border-t border-[#38344f] pt-6 sm:flex-row sm:justify-end">
           <button type="button" onClick={onReturnToMenu} className={UI.buttonSecondary}>
             <Home className="h-4 w-4" aria-hidden="true" />
-            {DEBRIEF_TEXT.returnToMenu}
+            {t("debrief.returnToMenu")}
           </button>
           <button type="button" onClick={onReplay} className={UI.buttonPrimary}>
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            {DEBRIEF_TEXT.replay}
+            {t("debrief.replay")}
           </button>
         </div>
       </article>

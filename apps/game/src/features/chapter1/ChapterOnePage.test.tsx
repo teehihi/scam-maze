@@ -20,8 +20,16 @@ import { CHAPTER_1_SCENARIO } from "../../game/narrative/chapter1/scenario";
 import type { ChapterStore } from "../../game/narrative/store";
 import type { CoreAction } from "../../game/narrative/types";
 import type { SaveGameSource, SaveReadResult, SavedGameV2 } from "../../game/saves/saveGame";
+import { FALLBACK_OPTION_ID, FALLBACK_OPTION_TEXT } from "../../game/narrative/dialogueEngine";
+import type { DialogueView } from "../../game/narrative/selectors";
+import { applyLocale } from "../../i18n";
+import viHud from "../../i18n/locales/vi/chapter1/hud";
+import viOutcome from "../../i18n/locales/vi/chapter1/outcome";
+import viStory from "../../i18n/locales/vi/chapter1/story";
+import { getDisplayPrompts, getDisplayScenario } from "../../i18n/narrative";
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
+import { DialoguePanel } from "./dialogue/DialoguePanel";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -136,14 +144,14 @@ function createMemorySaveSource(writable = true) {
 }
 
 /** Without a `saveSource`, the page uses jsdom's localStorage, which `afterEach` clears. */
-function renderPage(saveSource?: SaveGameSource) {
+function renderPage(saveSource?: SaveGameSource, settings: GameSettings = SETTINGS) {
   const chapter = getChapter("chapter-1");
   if (!chapter) throw new Error("chapter-1 is not registered");
   const onReturnToMenu = vi.fn();
   render(
     <ChapterOnePage
       session={createNewChapterSession(chapter)}
-      settings={SETTINGS}
+      settings={settings}
       onReturnToMenu={onReturnToMenu}
       saveSource={saveSource}
     />,
@@ -371,5 +379,179 @@ describe("ChapterOnePage", () => {
     fireEvent.click(gameView);
     expect(document.body.requestPointerLock).toHaveBeenCalledTimes(2);
     expect(screen.queryByText("Click to resume")).toBeNull();
+  });
+});
+
+// --- Vietnamese (game-i18n-en-vi task 7.8; Requirements 4.5, 8.1, 8.3, 8.4, 8.5, 8.7, 9.8) ---
+
+const VI_SETTINGS: GameSettings = { ...SETTINGS, language: "vi" };
+const VI_SCENARIO = getDisplayScenario("vi");
+const VI_WALLET = VI_SCENARIO.interactables["obj.wallet"];
+const VI_BANK_CARD = VI_SCENARIO.evidence["ev.bank-card"];
+const VI_FIRST_OBJECTIVE = VI_SCENARIO.objectives["obj.look-around"].text;
+
+/** The App applies the language before paint; the page itself only follows i18n. */
+function renderPageVi(saveSource?: SaveGameSource) {
+  applyLocale("vi");
+  return renderPage(saveSource, VI_SETTINGS);
+}
+
+function beginChapterVi() {
+  sceneReady();
+  fireEvent.click(screen.getByRole("button", { name: viHud.titleCard.begin }));
+}
+
+describe("ChapterOnePage in Vietnamese", () => {
+  it("shows the Vietnamese title card, objective tracker and HUD buttons", () => {
+    renderPageVi();
+    expect(VI_SCENARIO.title).toBe("Cuộc gọi khẩn cấp");
+    expect(screen.getByRole("heading", { name: "Cuộc gọi khẩn cấp" })).not.toBeNull();
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Bắt đầu" }).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Begin" })).toBeNull();
+
+    beginChapterVi();
+    expect(dispatched("START_CHAPTER")).toHaveLength(1);
+    const tracker = screen.getByRole("region", { name: viHud.objectives.heading });
+    expect(within(tracker).getByText(VI_FIRST_OBJECTIVE)).not.toBeNull();
+    expect(VI_FIRST_OBJECTIVE).not.toBe(FIRST_OBJECTIVE);
+
+    // The name starts with the label; an unread badge adds its count text after it.
+    const phone = screen.getByRole("button", { name: new RegExp(`^${viHud.hud.phone}`) });
+    const journal = screen.getByRole("button", { name: new RegExp(`^${viHud.hud.journal}`) });
+    expect(phone.textContent).not.toMatch(/Phone|unread/);
+    // Key hints stay literal in every language.
+    expect(phone.getAttribute("aria-keyshortcuts")).toBe("P");
+    expect(journal.getAttribute("aria-keyshortcuts")).toBe("J");
+    expect(screen.queryByRole("button", { name: "Phone" })).toBeNull();
+  });
+
+  it("shows the Vietnamese interaction prompt, inspection panel and evidence notice", () => {
+    renderPageVi();
+    beginChapterVi();
+    focus("obj.wallet");
+    const prompt = screen.getByTestId("interaction-prompt");
+    expect(prompt.textContent).toBe(getDisplayPrompts("vi")["obj.wallet"]);
+    expect(prompt.textContent).toMatch(/^Nhấn E để /);
+
+    interact();
+    expect(dispatched("INTERACT_OBJECT")).toEqual([{ type: "INTERACT_OBJECT", objectId: "obj.wallet" }]);
+    const panel = screen.getByRole("dialog", { name: VI_WALLET.label });
+    expect(within(panel).getByText(VI_WALLET.inspectionText)).not.toBeNull();
+    expect(within(panel).getByText(VI_BANK_CARD.title)).not.toBeNull();
+    expect(within(panel).getByText(viStory.inspection.evidenceHeading)).not.toBeNull();
+
+    const notice = screen.getByTestId("evidence-notice");
+    expect(notice.textContent).toContain(viHud.notice.evidenceRecorded);
+    expect(notice.textContent).toContain(VI_BANK_CARD.title);
+
+    fireEvent.click(within(panel).getByRole("button", { name: viStory.inspection.close }));
+    expect(queryDialog(VI_WALLET.label)).toBeNull();
+  });
+
+  it("shows the Vietnamese pause menu and restart confirmation", () => {
+    renderPageVi();
+    beginChapterVi();
+    pressEscape();
+    const paused = screen.getByRole("dialog", { name: viOutcome.pause.heading });
+    expect(within(paused).getByRole("button", { name: viOutcome.pause.resume })).not.toBeNull();
+    expect(within(paused).getByRole("button", { name: viOutcome.pause.saveAndReturn })).not.toBeNull();
+
+    fireEvent.click(within(paused).getByRole("button", { name: viOutcome.pause.restart }));
+    expect(screen.getByText("Chơi lại Chương 1? Tiến trình của bạn trong chương này sẽ bị mất.")).not.toBeNull();
+    expect(screen.getByRole("button", { name: viOutcome.pause.confirmRestart })).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: viOutcome.pause.cancel }));
+    expect(screen.getByRole("button", { name: viOutcome.pause.resume })).not.toBeNull();
+  });
+
+  it("shows the Vietnamese journal with stance, claim status and source by code", () => {
+    renderPageVi();
+    beginChapterVi();
+    focus("obj.wallet");
+    interact();
+    pressEscape();
+
+    pressJ();
+    const journal = screen.getByRole("dialog", { name: viStory.journal.title });
+    const text = journal.textContent ?? "";
+    expect(within(journal).getAllByText(VI_BANK_CARD.title).length).toBeGreaterThan(0);
+    expect(text).toContain(VI_BANK_CARD.description);
+    expect(text).toContain(`${viStory.journal.stance["needs-verification"]}.`);
+    expect(text).toContain(viStory.journal.source.physical);
+    expect(text).toContain(viStory.journal.claimStatus.unverified);
+    for (const english of ["Needs checking", "Not checked yet", "Something you found", "Evidence", "Close"]) {
+      expect(text).not.toContain(english);
+    }
+    expect(within(journal).getByRole("button", { name: viStory.journal.close })).not.toBeNull();
+  });
+
+  it("shows the Vietnamese player speaker and fallback option in the dialogue panel", () => {
+    applyLocale("vi");
+    const view: DialogueView = {
+      graphId: "dlg.shopkeeper",
+      nodeId: "sam.before.greet",
+      callId: null,
+      channel: "face-to-face",
+      speaker: "player",
+      // The core's English label; the panel renders the speaker by its code instead.
+      speakerName: "You",
+      line: Object.values(VI_SCENARIO.dialogues["dlg.shopkeeper"].lines)[0],
+      options: [{ id: FALLBACK_OPTION_ID, lineId: "__fallback.end", text: FALLBACK_OPTION_TEXT, fallback: true }],
+    };
+    const onSelectOption = vi.fn();
+    render(<DialoguePanel view={view} onSelectOption={onSelectOption} />);
+
+    const line = screen.getByTestId("dialogue-line");
+    expect(within(line).getByText(viStory.dialogue.playerSpeaker)).not.toBeNull();
+    expect(within(line).queryByText("You")).toBeNull();
+    const fallback = screen.getByRole("button", { name: /Kết thúc cuộc trò chuyện/ });
+    expect(fallback.textContent).not.toContain(FALLBACK_OPTION_TEXT);
+    fireEvent.click(fallback);
+    expect(onSelectOption).toHaveBeenCalledWith(FALLBACK_OPTION_ID);
+  });
+
+  it("switching language mid-chapter changes the visible text but not the store or the open overlay", () => {
+    renderPage();
+    beginChapter();
+    // The objective toast for the first objective is shown before the switch.
+    expect(screen.getByTestId("objective-toast").textContent).toContain(FIRST_OBJECTIVE);
+
+    pressJ();
+    expect(queryDialog("Journal")).not.toBeNull();
+    const stateBefore = store().getState();
+    const eventsBefore = stateBefore.events;
+    const dispatchesBefore = store().dispatch.mock.calls.length;
+    const storeBefore = store();
+
+    act(() => applyLocale("vi"));
+
+    // Same store, same state object, same event log, no new dispatch.
+    expect(harness.stores).toHaveLength(1);
+    expect(store()).toBe(storeBefore);
+    expect(store().getState()).toBe(stateBefore);
+    expect(store().getState().events).toBe(eventsBefore);
+    expect(store().dispatch.mock.calls.length).toBe(dispatchesBefore);
+
+    // The journal stays open and is now Vietnamese.
+    expect(queryDialog("Journal")).toBeNull();
+    const journal = screen.getByRole("dialog", { name: viStory.journal.title });
+    expect(within(journal).getByText(viStory.journal.emptyState)).not.toBeNull();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+
+    // HUD and the toast queued before the switch follow the new language.
+    const toast = screen.getByTestId("objective-toast");
+    expect(toast.textContent).toContain(VI_FIRST_OBJECTIVE);
+    expect(toast.textContent).toContain(viHud.toast.activated);
+    expect(toast.textContent).not.toContain(FIRST_OBJECTIVE);
+    const tracker = screen.getByRole("region", { name: viHud.objectives.heading });
+    expect(within(tracker).getByText(VI_FIRST_OBJECTIVE)).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: new RegExp(`^${viHud.hud.journal}`) }).getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    // The journal still closes with J, and the store did not restart.
+    pressJ();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(store().getState().status).toBe("playing");
+    expect(dispatched("START_CHAPTER")).toHaveLength(1);
   });
 });

@@ -3,6 +3,7 @@
 // VERIFY_CLAIM `bank-app`. The screens are plain text; numbers and domains are never links.
 
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import type { PhoneContent } from "../../../game/narrative/types";
 import { UI } from "../theme";
@@ -14,11 +15,8 @@ export interface BankAppProps {
   onBack: () => void;
 }
 
-export const BANK_APP_TEXT = {
-  back: "Back",
-} as const;
-
 export const BankApp: React.FC<BankAppProps> = ({ bankApp, onVerifyBankApp, onBack }) => {
+  const { t } = useTranslation("chapter1");
   // A ref guard keeps the call to once per mount, also under React StrictMode effect replays.
   const verifiedRef = useRef(false);
   const onVerifyRef = useRef(onVerifyBankApp);
@@ -34,7 +32,7 @@ export const BankApp: React.FC<BankAppProps> = ({ bankApp, onVerifyBankApp, onBa
     <div className="space-y-3">
       <button type="button" className={UI.buttonSecondary} onClick={onBack}>
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        {BANK_APP_TEXT.back}
+        {t("phone.bank.back")}
       </button>
       <h3 className={UI.label}>{bankApp.title}</h3>
       <ul className="space-y-2">

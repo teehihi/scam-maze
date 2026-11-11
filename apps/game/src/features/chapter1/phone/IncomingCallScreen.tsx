@@ -3,6 +3,7 @@
 // "Incoming call" caption, and Accept and Decline buttons. The phone icon vibrates gently, only
 // when the user allows motion. Presentational only: the page dispatches ANSWER_CALL and END_CALL.
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Phone, PhoneIncoming, PhoneOff } from "lucide-react";
 import { usePrefersReducedMotion } from "../../../components/ui/usePrefersReducedMotion";
 import { UI } from "../theme";
@@ -20,10 +21,6 @@ export interface IncomingCallScreenProps {
   disabled?: boolean;
 }
 
-export const INCOMING_CALL_CAPTION = "Incoming call";
-export const ACCEPT_LABEL = "Accept";
-export const DECLINE_LABEL = "Decline";
-
 const VIBRATE_ANIMATION = "scammaze-call-vibrate 1.4s ease-in-out infinite";
 // A small rotation wobble with a rest between bursts, so it stays subtle.
 const VIBRATE_KEYFRAMES = `@keyframes scammaze-call-vibrate {
@@ -39,6 +36,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
   onDecline,
   disabled = false,
 }) => {
+  const { t } = useTranslation("chapter1");
   const reducedMotion = usePrefersReducedMotion();
 
   return (
@@ -52,7 +50,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
       <div className="flex flex-col items-center gap-4">
         <p id="incoming-call-caption" className={`${UI.label} flex items-center gap-1.5`}>
           <PhoneIncoming className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>{INCOMING_CALL_CAPTION}</span>
+          <span>{t("phone.incomingCall.caption")}</span>
         </p>
         <div
           data-testid="incoming-call-icon"
@@ -82,7 +80,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           data-testid="incoming-call-decline"
         >
           <PhoneOff className="h-4 w-4" aria-hidden="true" />
-          <span>{DECLINE_LABEL}</span>
+          <span>{t("phone.incomingCall.decline")}</span>
         </button>
         <button
           type="button"
@@ -92,7 +90,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({
           data-testid="incoming-call-accept"
         >
           <Phone className="h-4 w-4" aria-hidden="true" />
-          <span>{ACCEPT_LABEL}</span>
+          <span>{t("phone.incomingCall.accept")}</span>
         </button>
       </div>
     </section>

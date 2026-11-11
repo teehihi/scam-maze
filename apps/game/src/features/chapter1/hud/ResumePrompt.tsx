@@ -3,15 +3,15 @@
 
 import React from "react";
 import { MousePointerClick } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { UI } from "../theme";
 
 export interface ResumePromptProps {
   visible: boolean;
 }
 
-export const RESUME_PROMPT_TEXT = "Click to resume";
-
 export const ResumePrompt: React.FC<ResumePromptProps> = ({ visible }) => {
+  const { t } = useTranslation("chapter1");
   if (!visible) return null;
   return (
     <p
@@ -19,7 +19,7 @@ export const ResumePrompt: React.FC<ResumePromptProps> = ({ visible }) => {
       className={`${UI.hudPanel} pointer-events-none flex items-center gap-2 font-semibold`}
     >
       <MousePointerClick className="h-4 w-4 text-[#b9a5f5]" aria-hidden="true" />
-      {RESUME_PROMPT_TEXT}
+      {t("resume.prompt")}
     </p>
   );
 };

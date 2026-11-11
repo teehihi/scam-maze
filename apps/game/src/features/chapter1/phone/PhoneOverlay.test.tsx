@@ -10,6 +10,10 @@ import { CHAPTER_1_SCENARIO } from "../../../game/narrative/chapter1/scenario";
 import { createInitialState } from "../../../game/narrative/reducer";
 import { selectCallLog, selectDialogueView, selectPhoneMessages } from "../../../game/narrative/selectors";
 import { createChapterStore, type ChapterStore } from "../../../game/narrative/store";
+import type { ScenarioDefinition } from "../../../game/narrative/types";
+import { applyLocale } from "../../../i18n";
+import viPhone from "../../../i18n/locales/vi/chapter1/phone";
+import { getDisplayScenario } from "../../../i18n/narrative";
 import { CallScreen } from "./CallScreen";
 import { IncomingCallScreen } from "./IncomingCallScreen";
 import { PhoneOverlay } from "./PhoneOverlay";
@@ -21,14 +25,21 @@ function startedStore(): ChapterStore {
   return store;
 }
 
-/** Phone overlay bound to a real store, wired like the Chapter_Page. */
-const PhoneHarness: React.FC<{ store: ChapterStore; onInspect?: (id: string) => void }> = ({ store, onInspect }) => {
+/**
+ * Phone overlay bound to a real store, wired like the Chapter_Page. `scenario` is the display
+ * scenario (`getDisplayScenario(locale)`); it defaults to the canonical English scenario.
+ */
+const PhoneHarness: React.FC<{
+  store: ChapterStore;
+  onInspect?: (id: string) => void;
+  scenario?: ScenarioDefinition;
+}> = ({ store, onInspect, scenario = CHAPTER_1_SCENARIO }) => {
   const state = useSyncExternalStore(store.subscribe, store.getState);
-  const dialogue = selectDialogueView(state);
+  const dialogue = selectDialogueView(state, scenario);
   const current = state.call.current;
   let callSlot: React.ReactNode = null;
   if (current !== null) {
-    const def = CHAPTER_1_SCENARIO.calls[current];
+    const def = scenario.calls[current];
     callSlot =
       state.call.status === "ringing" ? (
         <IncomingCallScreen
@@ -49,9 +60,9 @@ const PhoneHarness: React.FC<{ store: ChapterStore; onInspect?: (id: string) => 
   }
   return (
     <PhoneOverlay
-      messages={selectPhoneMessages(state)}
-      callLog={selectCallLog(state)}
-      bankApp={CHAPTER_1_SCENARIO.phone.bankApp}
+      messages={selectPhoneMessages(state, scenario)}
+      callLog={selectCallLog(state, scenario)}
+      bankApp={scenario.phone.bankApp}
       onInspectEvidence={(evidenceId) => {
         onInspect?.(evidenceId);
         store.dispatch({ type: "INSPECT_EVIDENCE", evidenceId });
@@ -234,5 +245,141 @@ describe("Phone call → dialogue with a real chapter store", () => {
     expect(document.activeElement).toBe(second);
     fireEvent.keyDown(second, { key: "Home" });
     expect(document.activeElement).toBe(first);
+  });
+});
+
+// game-i18n-en-vi task 7.6 (Requirements 8.2, 8.4, 9.10). Chrome comes from the `chapter1`
+// phone dictionary; names, bodies and dialogue come from the Vietnamese display scenario.
+// Numbers, domains and IDs stay the same as in English.
+describe("Phone in Vietnamese", () => {
+  const VI = viPhone.phone;
+  const viScenario = () => getDisplayScenario("vi");
+
+  function viStore(): ChapterStore {
+    applyLocale("vi");
+    return startedStore();
+  }
+
+  const viDialog = () => screen.getByRole("dialog", { name: VI.overlay.name });
+
+  it("shows Vietnamese chrome, app names and the unread count", () => {
+    const store = viStore();
+    render(<PhoneHarness store={store} scenario={viScenario()} />);
+    const dialog = viDialog();
+
+    expect(within(dialog).getByRole("heading", { name: VI.routes.home, level: 2 })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: VI.overlay.close })).toBeTruthy();
+    const messagesButton = within(dialog).getByRole("button", { name: new RegExp(VI.home.messages) });
+    expect(messagesButton.textContent).toContain("1 chưa đọc");
+    expect(within(dialog).getByRole("button", { name: VI.home.calls })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: viScenario().phone.bankApp.title })).toBeTruthy();
+    expect(within(dialog).queryByText("Messages")).toBeNull();
+  });
+
+  it("opens the message with the Vietnamese body; the domain stays plain text", () => {
+    const store = viStore();
+    const scenario = viScenario();
+    const { container } = render(<PhoneHarness store={store} scenario={scenario} />);
+    const dialog = viDialog();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: new RegExp(VI.home.messages) }));
+    expect(within(dialog).getByRole("heading", { name: VI.routes.messages, level: 2 })).toBeTruthy();
+    expect(within(dialog).getByText(VI.messages.unread)).toBeTruthy();
+
+    const viBody = scenario.phone.messages["msg.sms-alert"].body;
+    expect(viBody).not.toBe(CHAPTER_1_SCENARIO.phone.messages["msg.sms-alert"].body);
+    const [message] = selectPhoneMessages(store.getState(), scenario);
+    fireEvent.click(within(dialog).getByRole("button", { name: new RegExp(message.from) }));
+
+    expect(store.getState().discovered).toContain("ev.sms-alert");
+    expect(within(dialog).getByText(viBody)).toBeTruthy();
+    expect(within(dialog).getByText(/northgate-secure-verify\.invalid/)).toBeTruthy();
+    expect(within(dialog).getByText(VI.messages.recorded)).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: VI.messages.backToList })).toBeTruthy();
+    expect(container.querySelectorAll("a")).toHaveLength(0);
+  });
+
+  it("shows Vietnamese caller names and statuses in the call history; numbers unchanged", () => {
+    const store = viStore();
+    store.dispatch({ type: "RING_CALL", callId: "call.scam-1", reason: "first-interaction" });
+    store.dispatch({ type: "END_CALL" });
+    const scenario = viScenario();
+    const { container } = render(<PhoneHarness store={store} scenario={scenario} />);
+    const dialog = viDialog();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: VI.home.calls }));
+    const [entry] = selectCallLog(store.getState(), scenario);
+    expect(entry.displayName).toBe(scenario.calls["call.scam-1"].displayName);
+    expect(entry.displayName).not.toBe(CHAPTER_1_SCENARIO.calls["call.scam-1"].displayName);
+    expect(within(dialog).getByText(entry.displayName)).toBeTruthy();
+    expect(within(dialog).getByText(CHAPTER_1_SCENARIO.calls["call.scam-1"].number)).toBeTruthy();
+    expect(within(dialog).getByText(new RegExp(VI.calls.status[entry.status]))).toBeTruthy();
+    expect(within(dialog).getByText(new RegExp(VI.calls.incoming))).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: VI.calls.inspectNumber })).toBeTruthy();
+    expect(container.querySelectorAll("a")).toHaveLength(0);
+  });
+
+  it("shows the bank app in Vietnamese; number and domain stay plain text", () => {
+    const store = viStore();
+    const scenario = viScenario();
+    const { container } = render(<PhoneHarness store={store} scenario={scenario} />);
+    const dialog = viDialog();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: scenario.phone.bankApp.title }));
+    expect(within(dialog).getByRole("button", { name: VI.bank.back })).toBeTruthy();
+    for (const bankScreen of scenario.phone.bankApp.screens) {
+      expect(within(dialog).getByRole("heading", { name: bankScreen.title })).toBeTruthy();
+      expect(within(dialog).getByText(bankScreen.body)).toBeTruthy();
+    }
+    expect(within(dialog).getByText(/\+000 555 0100/)).toBeTruthy();
+    expect(within(dialog).getByText(/northgate\.example/)).toBeTruthy();
+    expect(container.querySelectorAll("a")).toHaveLength(0);
+  });
+
+  it("shows the incoming and active call screens in Vietnamese with the same number", () => {
+    const store = viStore();
+    expect(store.dispatch({ type: "RING_CALL", callId: "call.scam-1", reason: "first-interaction" }).accepted).toBe(true);
+    const scenario = viScenario();
+    const { container } = render(<PhoneHarness store={store} scenario={scenario} />);
+    const def = scenario.calls["call.scam-1"];
+
+    expect(within(viDialog()).getByRole("heading", { name: VI.overlay.callInProgress, level: 2 })).toBeTruthy();
+    expect(screen.getByText(VI.incomingCall.caption)).toBeTruthy();
+    expect(screen.getByTestId("incoming-call-name").textContent).toBe(def.displayName);
+    expect(screen.getByTestId("incoming-call-number").textContent).toBe(CHAPTER_1_SCENARIO.calls["call.scam-1"].number);
+    expect(screen.getByRole("button", { name: VI.incomingCall.decline })).toBeTruthy();
+    expect(container.querySelectorAll("a")).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: VI.incomingCall.accept }));
+    expect(store.getState().call.status).toBe("active");
+    expect(screen.getByText(VI.call.status)).toBeTruthy();
+    expect(screen.getByRole("button", { name: VI.call.hangUp })).toBeTruthy();
+    expect(screen.getByTestId("call-screen-number").textContent).toBe(CHAPTER_1_SCENARIO.calls["call.scam-1"].number);
+    expect(container.querySelectorAll("a")).toHaveLength(0);
+  });
+
+  it("shows Vietnamese dialogue and dispatches the same option IDs as English", () => {
+    const store = viStore();
+    store.dispatch({ type: "RING_CALL", callId: "call.scam-1", reason: "first-interaction" });
+    const scenario = viScenario();
+    render(<PhoneHarness store={store} scenario={scenario} />);
+    fireEvent.click(screen.getByRole("button", { name: VI.incomingCall.accept }));
+
+    const state = store.getState();
+    const viView = selectDialogueView(state, scenario)!;
+    const enView = selectDialogueView(state, CHAPTER_1_SCENARIO)!;
+    expect(viView.nodeId).toBe(enView.nodeId);
+    expect(viView.options.map((o) => o.id)).toEqual(enView.options.map((o) => o.id));
+    expect(viView.line).not.toBe(enView.line);
+    expect(screen.getByTestId("dialogue-line").textContent).toContain(viView.line);
+    viView.options.forEach((option, index) => {
+      expect(option.text).not.toBe(enView.options[index].text);
+      expect(screen.getByTestId(`dialogue-option-${option.id}`).textContent).toContain(option.text);
+    });
+
+    const dispatch = vi.spyOn(store, "dispatch");
+    fireEvent.click(screen.getByTestId(`dialogue-option-${viView.options[0].id}`));
+    expect(dispatch).toHaveBeenCalledWith({ type: "SELECT_DIALOGUE_OPTION", optionId: enView.options[0].id });
+    expect(store.getState().conversation?.nodeId).not.toBe(viView.nodeId);
   });
 });

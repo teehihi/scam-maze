@@ -4,6 +4,7 @@
 // Escape is handled by the page through the overlay stack (it closes this menu).
 
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DoorOpen, Play, RotateCcw, Undo2 } from "lucide-react";
 import { UI } from "../theme";
 
@@ -15,6 +16,7 @@ export interface PauseMenuProps {
   onSaveAndReturn: () => void;
 }
 
+/** English source text; the rendered text comes from `chapter1:pause.*`. */
 export const PAUSE_MENU_TEXT = {
   heading: "Paused",
   resume: "Resume",
@@ -25,12 +27,13 @@ export const PAUSE_MENU_TEXT = {
   cancel: "Cancel",
 } as const;
 
-/** Confirmation text for Restart. One function so the full sentence can be translated later. */
+/** English confirmation text for Restart; the rendered text is `chapter1:pause.restartConfirm`. */
 export function restartConfirmText(chapterNumber: number): string {
   return `Restart Chapter ${chapterNumber}? Your progress in this chapter will be lost.`;
 }
 
 export const PauseMenu: React.FC<PauseMenuProps> = ({ chapterNumber, onResume, onRestart, onSaveAndReturn }) => {
+  const { t } = useTranslation("chapter1");
   const [confirming, setConfirming] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -49,22 +52,22 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({ chapterNumber, onResume, o
         className={`${UI.panel} max-w-md space-y-4`}
       >
         <h2 id="pause-menu-heading" ref={headingRef} tabIndex={-1} className={UI.heading}>
-          {confirming ? PAUSE_MENU_TEXT.confirmHeading : PAUSE_MENU_TEXT.heading}
+          {confirming ? t("pause.confirmHeading") : t("pause.heading")}
         </h2>
 
         {confirming ? (
           <>
             <p id="pause-menu-confirm-text" className={UI.body}>
-              {restartConfirmText(chapterNumber)}
+              {t("pause.restartConfirm", { number: chapterNumber })}
             </p>
             <div className="flex flex-wrap justify-end gap-3">
               <button type="button" onClick={() => setConfirming(false)} className={UI.buttonSecondary}>
                 <Undo2 className="h-4 w-4" aria-hidden="true" />
-                {PAUSE_MENU_TEXT.cancel}
+                {t("pause.cancel")}
               </button>
               <button type="button" onClick={onRestart} className={UI.buttonWarning}>
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                {PAUSE_MENU_TEXT.confirmRestart}
+                {t("pause.confirmRestart")}
               </button>
             </div>
           </>
@@ -72,15 +75,15 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({ chapterNumber, onResume, o
           <div className="flex flex-col gap-3">
             <button type="button" onClick={onResume} className={UI.buttonPrimary}>
               <Play className="h-4 w-4" aria-hidden="true" />
-              {PAUSE_MENU_TEXT.resume}
+              {t("pause.resume")}
             </button>
             <button type="button" onClick={() => setConfirming(true)} className={UI.buttonSecondary}>
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              {PAUSE_MENU_TEXT.restart}
+              {t("pause.restart")}
             </button>
             <button type="button" onClick={onSaveAndReturn} className={UI.buttonSecondary}>
               <DoorOpen className="h-4 w-4" aria-hidden="true" />
-              {PAUSE_MENU_TEXT.saveAndReturn}
+              {t("pause.saveAndReturn")}
             </button>
           </div>
         )}

@@ -5,8 +5,10 @@
 // Escape is handled by the page through the overlay stack; this panel only offers Close.
 
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Check, Info, PhoneCall, X } from "lucide-react";
 import type { DecisionId } from "../../../game/narrative/chapter1/ids";
+import type { ReasonCode } from "../../../game/narrative/reducer";
 import type { DecisionOptionView, DecisionPanelView } from "../../../game/narrative/selectors";
 import { UI } from "../theme";
 
@@ -19,6 +21,7 @@ export interface DecisionPanelProps {
   onClose: () => void;
 }
 
+/** English source text; the rendered text comes from `chapter1:decision.*`. */
 export const DECISION_PANEL_TEXT = {
   heading: "Decide how to respond",
   intro: "Choose what to do about the call. You can keep looking around before you decide.",
@@ -36,6 +39,11 @@ export const DECISION_PANEL_TEXT = {
 const HEADING_ID = "decision-panel-heading";
 const CONFIRM_HEADING_ID = "decision-panel-confirm-heading";
 
+/** A hint with a core reason code is translated by its code; scenario hints arrive localized. */
+function useHintText(): (hint: string | null, hintCode: ReasonCode | null) => string | null {
+  const { t } = useTranslation("chapter1");
+  return (hint, hintCode) => (hintCode ? t(`reasons.${hintCode}`) : hint);
+}
 function hintId(id: string): string {
   return `decision-hint-${id}`;
 }
@@ -51,7 +59,8 @@ const SimpleOption: React.FC<{ option: DecisionOptionView; onChoose: (id: Decisi
   option,
   onChoose,
 }) => {
-  const describedBy = option.hint ? hintId(option.id) : undefined;
+  const hintText = useHintText()(option.hint, option.hintCode);
+  const describedBy = hintText ? hintId(option.id) : undefined;
   return (
     <li className={`${UI.card} space-y-2`}>
       <button
@@ -63,7 +72,7 @@ const SimpleOption: React.FC<{ option: DecisionOptionView; onChoose: (id: Decisi
       >
         {option.label}
       </button>
-      {option.hint && <Hint id={hintId(option.id)} text={option.hint} />}
+      {hintText && <Hint id={hintId(option.id)} text={hintText} />}
     </li>
   );
 };
@@ -73,26 +82,30 @@ const TwoStepOption: React.FC<{
   onStartOfficialCall: () => void;
   onChoose: (id: DecisionId) => void;
 }> = ({ option, onStartOfficialCall, onChoose }) => {
+  const { t } = useTranslation("chapter1");
+  const hintText = useHintText();
   const preStep = option.preStep!;
+  const preStepHint = hintText(preStep.hint, preStep.hintCode);
+  const optionHint = hintText(option.hint, option.hintCode);
   const preStepHintId = hintId(`${option.id}-pre-step`);
   // When the pre-step is not possible yet, the decision shows the same hint; show it once.
-  const showDecisionHint = option.hint !== null && option.hint !== preStep.hint;
+  const showDecisionHint = optionHint !== null && optionHint !== preStepHint;
 
   return (
     <li className={`${UI.card} space-y-3`}>
       <div className="space-y-2">
-        <p className={UI.label}>{DECISION_PANEL_TEXT.stepOne}</p>
+        <p className={UI.label}>{t("decision.stepOne")}</p>
         {preStep.done ? (
           <p className={`flex items-center gap-2 text-sm ${UI.textPositive}`}>
             <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{preStep.label}</span>
-            <span className="font-semibold">{DECISION_PANEL_TEXT.stepDone}</span>
+            <span className="font-semibold">{t("decision.stepDone")}</span>
           </p>
         ) : (
           <button
             type="button"
             disabled={!preStep.available}
-            aria-describedby={preStep.hint ? preStepHintId : undefined}
+            aria-describedby={preStepHint ? preStepHintId : undefined}
             onClick={onStartOfficialCall}
             className={`${UI.buttonSecondary} w-full justify-start text-left`}
           >
@@ -100,27 +113,28 @@ const TwoStepOption: React.FC<{
             {preStep.label}
           </button>
         )}
-        {preStep.hint && <Hint id={preStepHintId} text={preStep.hint} />}
+        {preStepHint && <Hint id={preStepHintId} text={preStepHint} />}
       </div>
 
       <div className="space-y-2">
-        <p className={UI.label}>{DECISION_PANEL_TEXT.stepTwo}</p>
+        <p className={UI.label}>{t("decision.stepTwo")}</p>
         <button
           type="button"
           disabled={!option.available}
-          aria-describedby={option.hint ? (showDecisionHint ? hintId(option.id) : preStepHintId) : undefined}
+          aria-describedby={optionHint ? (showDecisionHint ? hintId(option.id) : preStepHintId) : undefined}
           onClick={() => onChoose(option.id)}
           className={`${UI.buttonSecondary} w-full justify-start text-left`}
         >
           {option.label}
         </button>
-        {showDecisionHint && <Hint id={hintId(option.id)} text={option.hint!} />}
+        {showDecisionHint && <Hint id={hintId(option.id)} text={optionHint} />}
       </div>
     </li>
   );
 };
 
 export const DecisionPanel: React.FC<DecisionPanelProps> = ({ panel, onStartOfficialCall, onDecide, onClose }) => {
+  const { t } = useTranslation("chapter1");
   const headingRef = useRef<HTMLHeadingElement>(null);
   const confirmHeadingRef = useRef<HTMLHeadingElement>(null);
   const [pendingId, setPendingId] = useState<DecisionId | null>(null);
@@ -144,16 +158,16 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ panel, onStartOffi
         {pending ? (
           <>
             <h2 id={CONFIRM_HEADING_ID} ref={confirmHeadingRef} tabIndex={-1} className={UI.heading}>
-              {DECISION_PANEL_TEXT.confirmHeading}
+              {t("decision.confirmHeading")}
             </h2>
             <div className={`${UI.card} space-y-1`}>
-              <p className={UI.label}>{DECISION_PANEL_TEXT.confirmChoiceLabel}</p>
+              <p className={UI.label}>{t("decision.confirmChoiceLabel")}</p>
               <p className="text-sm text-[#f7f5ff]">{pending.label}</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <button type="button" onClick={() => setPendingId(null)} className={UI.buttonSecondary}>
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                {DECISION_PANEL_TEXT.back}
+                {t("decision.back")}
               </button>
               <button
                 type="button"
@@ -164,16 +178,16 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ panel, onStartOffi
                 className={UI.buttonPrimary}
               >
                 <Check className="h-4 w-4" aria-hidden="true" />
-                {DECISION_PANEL_TEXT.confirm}
+                {t("decision.confirm")}
               </button>
             </div>
           </>
         ) : (
           <>
             <h2 id={HEADING_ID} ref={headingRef} tabIndex={-1} className={UI.heading}>
-              {DECISION_PANEL_TEXT.heading}
+              {t("decision.heading")}
             </h2>
-            <p className={UI.body}>{panel.offered ? DECISION_PANEL_TEXT.intro : DECISION_PANEL_TEXT.notOffered}</p>
+            <p className={UI.body}>{panel.offered ? t("decision.intro") : t("decision.notOffered")}</p>
             <ul className="space-y-3">
               {panel.options.map((option) =>
                 option.preStep ? (
@@ -191,7 +205,7 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ panel, onStartOffi
             <div className="flex justify-end">
               <button type="button" onClick={onClose} className={UI.buttonSecondary}>
                 <X className="h-4 w-4" aria-hidden="true" />
-                {DECISION_PANEL_TEXT.close}
+                {t("decision.close")}
               </button>
             </div>
           </>

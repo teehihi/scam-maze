@@ -2,11 +2,14 @@
 // Used inside the phone call screen and in the face-to-face panel with Sam.
 // Presentational only: it reads a `DialogueView` from `selectDialogueView` and reports the chosen
 // option through `onSelectOption`. See design.md, "Rendering layer", and Requirements 9.3-9.5.
+// Chrome comes from `chapter1:dialogue.*`. The player and system speaker labels and the fallback
+// option are rendered by their codes; lines, option text and persona names come from the view.
 //
 // Keyboard: options are buttons in a list (Tab and Shift+Tab), Arrow Up/Down and Home/End move
 // between them, and number keys 1-9 select the matching option when `numberKeys` is on.
 import React, { useEffect, useRef } from "react";
 import { MessageCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { DialogueView } from "../../../game/narrative/selectors";
 import { UI } from "../theme";
 
@@ -24,13 +27,6 @@ export interface DialoguePanelProps {
   className?: string;
 }
 
-/** Shown in the line area for system lines, which have no speaker name. */
-const SYSTEM_SPEAKER_LABEL = "Narration";
-/** Accessible name of the option list. */
-const OPTIONS_LABEL = "Your reply";
-/** Shown when the current node has no options (for example a closing line). */
-const NO_OPTIONS_TEXT = "No replies available.";
-
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
@@ -45,6 +41,7 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
   autoFocus = true,
   className = "",
 }) => {
+  const { t } = useTranslation("chapter1");
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const options = view.options;
 
@@ -90,7 +87,13 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
     optionRefs.current[next]?.focus();
   };
 
-  const speakerLabel = view.speakerName ?? SYSTEM_SPEAKER_LABEL;
+  // Speaker by code: the core's "You" is not shown; caller and NPC names come from the scenario.
+  const speakerLabel =
+    view.speaker === "player"
+      ? t("dialogue.playerSpeaker")
+      : view.speaker === "system"
+        ? t("dialogue.systemSpeaker")
+        : (view.speakerName ?? t("dialogue.systemSpeaker"));
   const listLabelId = `dialogue-options-${view.graphId}`;
 
   return (
@@ -105,10 +108,10 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
 
       <div>
         <p id={listLabelId} className="sr-only">
-          {OPTIONS_LABEL}
+          {t("dialogue.optionsLabel")}
         </p>
         {options.length === 0 ? (
-          <p className={UI.body}>{NO_OPTIONS_TEXT}</p>
+          <p className={UI.body}>{t("dialogue.noOptions")}</p>
         ) : (
           <ol aria-labelledby={listLabelId} className="flex flex-col gap-2">
             {options.map((option, index) => (
@@ -132,7 +135,7 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
                       {index + 1}
                     </span>
                   ) : null}
-                  <span>{option.text}</span>
+                  <span>{option.fallback ? t("dialogue.fallbackOption") : option.text}</span>
                 </button>
               </li>
             ))}

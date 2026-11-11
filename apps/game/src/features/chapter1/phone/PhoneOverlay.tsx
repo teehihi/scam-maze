@@ -6,6 +6,7 @@
 // ringing or active), the call screen replaces the apps and the phone cannot be closed here.
 
 import React, { useEffect, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Scale, X } from "lucide-react";
 import type { EvidenceId } from "../../../game/narrative/chapter1/ids";
 import type { CallLogEntryView, PhoneMessageView } from "../../../game/narrative/selectors";
@@ -42,22 +43,6 @@ export interface PhoneOverlayProps {
   onDecide?: () => void;
 }
 
-export const PHONE_OVERLAY_TEXT = {
-  name: "Phone",
-  close: "Close phone",
-  closeLabel: "Close",
-  callInProgress: "Call",
-  decidePrompt: "You can decide what to do about the call now.",
-  decide: "Decide",
-} as const;
-
-const ROUTE_TITLE: Record<PhoneRoute, string> = {
-  home: "Home",
-  messages: "Messages",
-  calls: "Calls",
-  bank: "Northgate Bank",
-};
-
 export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
   messages,
   callLog,
@@ -69,6 +54,7 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
   initialRoute = "home",
   onDecide,
 }) => {
+  const { t } = useTranslation("chapter1");
   const [route, setRoute] = useState<PhoneRoute>(initialRoute);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const inCall = callSlot !== undefined && callSlot !== null && callSlot !== false;
@@ -80,7 +66,12 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
 
   const unreadCount = messages.filter((message) => message.unread).length;
   const goHome = () => setRoute("home");
-  const title = inCall ? PHONE_OVERLAY_TEXT.callInProgress : route === "bank" ? bankApp.title : ROUTE_TITLE[route];
+  // The bank app title is narrative content from the display scenario, not UI chrome.
+  const title = inCall
+    ? t("phone.overlay.callInProgress")
+    : route === "bank"
+      ? bankApp.title
+      : t(`phone.routes.${route}`);
 
   let content: ReactNode;
   if (inCall) {
@@ -97,10 +88,10 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
       <div className="space-y-4">
         {home}
         <div className="space-y-2 border-t border-[#38344f] pt-4">
-          <p className={UI.body}>{PHONE_OVERLAY_TEXT.decidePrompt}</p>
+          <p className={UI.body}>{t("phone.overlay.decidePrompt")}</p>
           <button type="button" onClick={onDecide} className={`${UI.buttonPrimary} w-full`}>
             <Scale className="h-4 w-4" aria-hidden="true" />
-            {PHONE_OVERLAY_TEXT.decide}
+            {t("phone.overlay.decide")}
           </button>
         </div>
       </div>
@@ -114,7 +105,7 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={PHONE_OVERLAY_TEXT.name}
+        aria-label={t("phone.overlay.name")}
         className="flex h-full max-h-full w-full flex-col overflow-hidden bg-[#1d1b2b] text-[#f7f5ff] shadow-xl sm:h-[min(720px,100%)] sm:max-w-[380px] sm:rounded-[2rem] sm:border-4 sm:border-[#38344f]"
         data-phone-frame
       >
@@ -126,11 +117,11 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
             <button
               type="button"
               onClick={onClose}
-              aria-label={PHONE_OVERLAY_TEXT.close}
+              aria-label={t("phone.overlay.close")}
               className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-[#a9a4c4] motion-safe:transition-colors hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
             >
               <X className="h-4 w-4" aria-hidden="true" />
-              <span aria-hidden="true">{PHONE_OVERLAY_TEXT.closeLabel}</span>
+              <span aria-hidden="true">{t("phone.overlay.closeLabel")}</span>
             </button>
           )}
         </div>
