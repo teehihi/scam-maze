@@ -4,6 +4,7 @@ import {
   restoreChapterSession,
   type ChapterSession,
 } from "../chapters/chapterSession";
+import { restoreProgress, type RestoreProgressResult } from "../saves/chapterProgress";
 import { createLocalStorageSaveSource, type SaveGameSource, type SavedGame } from "../saves/saveGame";
 import { fetchAssetBytes, isAbortError, type FetchLike } from "./assetFetcher";
 import { verifyAsset } from "./assetVerification";
@@ -223,6 +224,13 @@ export function createChapterLoader(request: ChapterLoadRequest, deps: ChapterLo
         const restored = restoreChapterSession(chapter, save);
         if (!restored.ok) fail(createLoadingError("invalid-save", restored.reason));
         session = (restored as { ok: true; session: ChapterSession }).session;
+        if (session.progress !== undefined) {
+          // A save is valid only when the chapter core accepts every saved action (Req. 15.6).
+          const replayed = restoreProgress(session.progress);
+          if (!replayed.ok) fail(createLoadingError("invalid-save", replayed.reason));
+          const { state, pose } = replayed as Extract<RestoreProgressResult, { ok: true }>;
+          session = { ...session, restored: { state, pose } };
+        }
       } else {
         update({ stage: "initializing-state", currentAssetText: null });
         session = createNewChapterSession(chapter);

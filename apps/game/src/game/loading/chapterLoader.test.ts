@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createChapterLoader, type ChapterLoadSnapshot } from "./chapterLoader";
 import { createFakeFetch, createTestDeps, makeGlb, makePng, TEST_CHAPTER } from "../../test/fakeAssets";
+import type { CoreAction } from "../narrative/types";
+import { restoreProgress } from "../saves/chapterProgress";
+import type { SavedGameV2 } from "../saves/saveGame";
 
 const NEW_GAME = { kind: "new-game", chapterId: TEST_CHAPTER.id } as const;
 const [MODEL, TEXTURE] = TEST_CHAPTER.assets;
@@ -275,6 +278,52 @@ describe("createChapterLoader", () => {
       await waitForStage(loader, "error");
       expect(loader.getSnapshot().error?.code).toBe("invalid-save");
       expect(loader.getSnapshot().session).toBeNull();
+    });
+
+    describe("with version 2 progress", () => {
+      const actions: CoreAction[] = [{ type: "START_CHAPTER" }, { type: "OPEN_PHONE" }];
+      const v2Save = (progress: SavedGameV2["progress"]) =>
+        ({
+          status: "valid",
+          save: { ...validSave.save, formatVersion: 2, progress },
+        }) as const;
+
+      function serveAssets() {
+        const fake = createFakeFetch();
+        fake.serve(MODEL.url, makeGlb());
+        fake.serve(TEXTURE.url, makePng());
+        return fake;
+      }
+
+      it("replays valid progress into a ready session with the restored state", async () => {
+        const fake = serveAssets();
+        const progress = { checkpointId: "start", actions, playerPose: { position: [0, -200, 0], yaw: 1 } } as SavedGameV2["progress"];
+        const loader = createChapterLoader({ kind: "continue" }, createTestDeps(fake.fetchImpl, { save: v2Save(progress) }));
+        loader.start();
+        await waitForStage(loader, "ready");
+
+        const expected = restoreProgress(progress);
+        if (!expected.ok) throw new Error("Test setup progress must replay.");
+        const session = loader.getSnapshot().session;
+        expect(session).toMatchObject({ origin: "saved-game", progress });
+        expect(session?.restored?.state).toEqual(expected.state);
+        expect(session?.restored?.state.events.map((entry) => entry.action)).toEqual(actions);
+        // The pose is clamped to the Play_Area.
+        expect(session?.restored?.pose).toEqual(expected.pose);
+        expect(session?.restored?.pose?.position).not.toEqual([0, -200, 0]);
+      });
+
+      it.each([
+        ["a rejected action", { checkpointId: "start", actions: [...actions, { type: "OPEN_PHONE" }], playerPose: null }],
+        ["a non-finite pose", { checkpointId: "start", actions, playerPose: { position: [Number.NaN, 0, 0], yaw: 0 } }],
+      ] as Array<[string, SavedGameV2["progress"]]>)("fails with invalid-save for tampered progress (%s)", async (_label, progress) => {
+        const fake = serveAssets();
+        const loader = createChapterLoader({ kind: "continue" }, createTestDeps(fake.fetchImpl, { save: v2Save(progress) }));
+        loader.start();
+        await waitForStage(loader, "error");
+        expect(loader.getSnapshot().error).toMatchObject({ code: "invalid-save", retryable: false });
+        expect(loader.getSnapshot().session).toBeNull();
+      });
     });
   });
 });
