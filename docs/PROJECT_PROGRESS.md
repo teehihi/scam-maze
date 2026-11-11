@@ -19,7 +19,7 @@
 - **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
   ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
-- **Last updated:** 2026-11-10
+- **Last updated:** 2026-11-11
 
 ## Completed
 
@@ -124,6 +124,40 @@ Resolved:
   tests; no accessibility audit yet.
 
 ## Task History
+
+### 2026-11-11 — Commit Chapter 1 enablement (spec tasks 15.1 and 15.3)
+
+- **Objective:** Commit the Chapter 1 enablement (task 15.1) and its routing tests (task 15.2).
+- **Completed work:** Task 15.1 had no entry here; recorded now. `gameplayAvailable` is `true` for
+  `chapter-1`, and `App.tsx` renders `ChapterOnePage` after New Game or Continue loading when the
+  session's chapter is playable; other chapters still reach `ChapterPlaceholder`. The menu canvas
+  stays mounted and paused under the chapter page. Checked the 15.2 entry: its file list and its
+  targeted run (3 files, 16 tests) are accurate.
+- **Files:** `apps/game/src/game/chapters/chapterRegistry.ts`,
+  `apps/game/src/game/chapters/chapterRegistry.test.ts`, `apps/game/src/app/App.tsx`,
+  `apps/game/src/app/continueAvailability.test.ts`, `apps/game/src/app/App.chapter.test.tsx`,
+  `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm test` (48 files, 392 tests passed); `pnpm typecheck` passed; `pnpm build`
+  passed (existing warning: game JS chunk 1,755 kB, over the 1,500 kB limit).
+- **Issues / deviations:** Commit message is `feat(game): make Chapter 1 playable from New Game and
+  Continue` instead of the one in `tasks.md`. Not pushed. No manual browser test of the chapter in
+  this task. **Follow-up:** task 16.
+
+### 2026-11-11 — Chapter 1 routing tests (spec task 15.2)
+
+- **Objective:** Test that New Game reaches the Chapter 1 page, that a chapter without gameplay
+  reaches the placeholder, and that returning to the menu refreshes Continue.
+- **Completed work:** Unit tests for `readContinueAvailability` (no save, unreadable save, unknown
+  chapter, v2 progress that fails replay, valid v2 progress, v1 save). App routing tests with the
+  menu canvas, startup loading, chapter loading flow, chapter page and other routes stubbed; the
+  menu, prologue and placeholder are real. Registry test for `gameplayAvailable: true`.
+- **Files:** created `apps/game/src/app/continueAvailability.test.ts`,
+  `apps/game/src/app/App.chapter.test.tsx`; modified
+  `apps/game/src/game/chapters/chapterRegistry.test.ts`, `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm --filter @scammaze/game test -- src/app src/game/chapters/chapterRegistry`
+  (3 files, 16 tests passed); `pnpm typecheck` passed. Full suite and `pnpm build` not run.
+- **Issues / deviations:** No production code changed; no bugs found. Not committed.
+  **Follow-up:** 15.3 (commit).
 
 ### 2026-11-11 — Commit Chapter 1 checkpoints, pause menu and polish (spec task 14.5)
 

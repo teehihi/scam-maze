@@ -24,8 +24,9 @@ export interface ChapterDefinition {
   /** Files the start scene needs before the chapter can begin. */
   assets: readonly ChapterAsset[];
   /**
-   * True only when a playable scene exists for this chapter. While false, the loading
-   * pipeline still runs for real, and the player lands on an honest "in development" screen.
+   * True only when a playable scene exists for this chapter. When true, the App shell renders
+   * the chapter page after loading. While false, the loading pipeline still runs for real,
+   * and the player lands on an honest "in development" screen.
    */
   gameplayAvailable: boolean;
 }
@@ -52,7 +53,8 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
         loadingText: "Loading the sky",
       },
     ],
-    gameplayAvailable: false,
+    // Playable: the App shell renders features/chapter1/ChapterOnePage after loading.
+    gameplayAvailable: true,
   },
 ];
 
