@@ -11,6 +11,9 @@
 - **Product stage:** Pre-Alpha / Game Foundation.
   - Landing application (`apps/landing`): live on GitHub Pages with 4 cinematic sections and full Knowledge Hub.
   - Game application (`apps/game`): 3D first-person street scene serving as the game's Main Menu built with Three.js r174, R3F v9, Drei v10, and verified Sketchfab 3D assets.
+  - Chapter 1 "The Urgent Call": playable vertical slice from New Game and Continue on branch
+    `feat/chapter-01-playable` (not merged, not deployed). Covered by automated tests only; not
+    yet played through in a browser.
   - Shared contracts (`packages/shared-types`): pure TypeScript types.
 - **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
 - **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
@@ -25,7 +28,8 @@
 
 Verified against merged pull requests on GitHub and local workspace builds.
 
-- [x] **Cinematic chapter loading screen (branch `feat/game-cinematic-loading-screen`, not merged):** Real loading pipeline for New Game / Continue with byte-measured progress, asset verification, stall watchdog, error recovery, fade transitions and reduced-motion support. Startup menu loading rewritten without fabricated progress. First automated tests (Vitest, 103 tests after the 2026-11-10 startup loading percentage task). Startup screen shows a byte-measured percentage of the street GLB. Loading screens are opaque from the first frame and stay up for a minimum display time (1.5 s chapter, 1.2 s startup). Chapter 1 gameplay itself is not implemented; loading ends on an honest "in development" screen.
+- [x] **Chapter 1 "The Urgent Call" playable vertical slice (branch `feat/chapter-01-playable`, not merged):** Deterministic narrative core (reducer, selectors, dialogue engine, scenario validator), versioned save v2 with replay validation, Chapter 1 street canvas with interactable props, smartphone (calls, messages, call history, bank app), face-to-face dialogue, evidence journal, decisions, three ending groups (`verified`, `risky`, `uncertain`), debrief, checkpoints and pause menu. Verified by `pnpm test` (48 files, 392 tests); not verified in a browser. See the task history entry of 2026-11-11.
+- [x] **Cinematic chapter loading screen (branch `feat/game-cinematic-loading-screen`, not merged):** Real loading pipeline for New Game / Continue with byte-measured progress, asset verification, stall watchdog, error recovery, fade transitions and reduced-motion support. Startup menu loading rewritten without fabricated progress. First automated tests (Vitest, 103 tests after the 2026-11-10 startup loading percentage task). Startup screen shows a byte-measured percentage of the street GLB. Loading screens are opaque from the first frame and stay up for a minimum display time (1.5 s chapter, 1.2 s startup). At the time, loading ended on an honest "in development" screen; on branch `feat/chapter-01-playable` it now opens the Chapter 1 page.
 - [x] **Main Menu Performance Optimization (Round 2 — Progressive Loading & Deep GLB Reduction):** Implemented instantaneous menu UI interaction on Frame 1 with non-blocking progressive loading. Decoupled Suspense boundaries so the sky dome and procedural street fallback (`StreetFallback.tsx`) render immediately without waiting for the 3D model. Conducted deep decimation across heavy vehicle CAD hierarchies (VinFast VF3, Lexus GX 550, PCX, fence, pedestrian scan), dropping triangles from 2.68M down to 542k (-91.6% from original) and file size to 21.50 MB (-95.1% from original). Resized normal maps with high-quality WebP, and added parallel asynchronous GPU shader pre-compilation via `gl.compileAsync` to eliminate first-render freeze spikes.
 - [x] **Deep Performance Optimization of Main Menu 3D Scene (Phases 1–7):** Conducted complete asset forensics on the 440.5MB `MenuBG.glb` asset. Engineered an automated Node.js optimization pipeline (`apps/game/scripts/optimize-environment.cjs`) utilizing `@gltf-transform`, Meshopt, and Sharp. Reduced GLB file size from 440.53MB to 43.00MB (-89.76%) and polygon count from 6.48M to 2.68M triangles (-58.6%) without degrading visual fidelity from the authored camera viewpoint. Replaced 8K/4K scan textures with WebP (172.8MB -> 24.1MB), eliminated hidden dead meshes, froze static matrices, eliminated frame-loop memory allocations in `MenuCamera`, optimized SkyDome geometry, capped Retina DPR, and resolved WebGL context exhaustion.
 - [x] **Main Menu Initialization & Render Performance Optimization:** Eliminated initial camera rotation swing and blue-screen flash on menu entry. Added an atmospheric cyber-safety Loading Screen (`LoadingScreen.tsx`) covering 3D asset downloads. Optimized Three.js rendering pipeline by removing 420MB scene cloning, freezing static mesh matrices (`matrixAutoUpdate = false`), capping device pixel ratio, and limiting dynamic foliage animation to ensure smooth 60 FPS performance.
@@ -51,22 +55,30 @@ Verified against merged pull requests on GitHub and local workspace builds.
 
 ## In Progress
 
-- [ ] In-game smartphone interface and message notifications.
-- [ ] Chapter 1 "The Urgent Call" scenario state machine.
+- [ ] Chapter 1 "The Urgent Call" documentation commit (spec task 16.5). Gameplay document,
+      architecture overview update and the quality gate record (task 16.4: 48 files, 392 tests,
+      typecheck and build passed) are done but not committed.
+- [ ] Chapter 1 manual browser playthrough: all endings, prop position calibration, play time,
+      FPS, keyboard-only and screen-reader checks.
 
 ## Planned
 
-Updated for the 3D direction (positioning section 11); none started.
+Updated for the 3D direction (positioning section 11). Items marked "partly done" have a first
+version on branch `feat/chapter-01-playable`.
 
 - [ ] 3D prototype and benchmark with Three.js + React Three Fiber + Drei (and Rapier, if
       adopted): walkable apartment and street on target devices (integrated
       GPUs), to set triangle, draw-call and memory budgets.
-- [ ] Deterministic core (pure TypeScript, Zod-validated scenarios, Zustand store, Dexie
-      saves): chapter state machine, evidence and tactic definitions, persistent
-      world state, local save (IndexedDB), tests for every branch.
-- [ ] In-game smartphone UI: messages, browser with fictional sites, bank app, parcel app.
-- [ ] Vertical slice: Prologue and Chapter 1 "The Missing Parcel" (2 safe, 2 unsafe, 1
-      ambiguous route), debrief, phone-only transfer check.
+- [ ] Deterministic core, partly done: the Chapter 1 reducer, evidence and scenario validator
+      exist in pure TypeScript with a small hand-written store and a `localStorage` save (v2).
+      Still planned: Zod schemas, Zustand, Dexie/IndexedDB saves and persistent world state
+      across chapters, if still needed.
+- [ ] In-game smartphone UI, partly done: calls, messages, call history and a bank app exist
+      for Chapter 1. Still planned: browser with fictional sites, parcel app.
+- [ ] Later chapter "The Missing Parcel" (positioning section 11; moved after Chapter 1 "The
+      Urgent Call" by owner decision 2026-11-10/11).
+- [ ] Touch controls for the chapter page.
+- [ ] Reduce the game JS bundle below the 1,500 kB warning limit (code-split the chapter page).
 - [ ] Bounded AI Scam Actor with authored fallback and AI on/off toggle (after provider approval).
 - [ ] Phase D — Usability sessions with Vietnamese and international participants; polish.
 - [ ] Phase E — Submission package, video, release tag.
@@ -113,17 +125,117 @@ Resolved:
 - The live landing page (PR #7) describes the earlier concept ("five fictional digital
   environments, linked together") and does not mention the 3D world. See
   [OVERVIEW.md section 10](architecture/OVERVIEW.md#10-known-inaccuracies-on-the-live-landing-page).
-- Delivery risk: about 25 days remain before the internal deadline (3 Dec 2026 23:00 ICT) and no
-  3D code exists; the slice must stay small (positioning section 11, master plan risk register).
+- Delivery risk: the internal deadline is 3 Dec 2026 23:00 ICT; the slice must stay small
+  (positioning section 11, master plan risk register). Chapter 1 exists but is not merged or
+  played through in a browser.
 - Issue #4 (URL checker flags official country domains such as `google.co.uk`) was closed as
   completed on 2026-11-07, but `src/lib/urlCheck.ts` has not been changed; the false positive
   still exists (the checker is now legacy code, not shown on the site).
 - PR #7 did not update this file or the architecture documents; reconciled on 2026-11-08.
 - `ACCESSIBILITY.md` still describes the flat light theme of PR #2; not re-audited after PR #7.
-- Automated tests cover only the game loading pipeline (Vitest, jsdom); no browser or end-to-end
-  tests; no accessibility audit yet.
+- Automated tests (Vitest, jsdom, a seeded property-test generator; no fast-check) cover the loading pipeline, the Chapter 1
+  narrative core, saves and the chapter page (48 files, 392 tests on 2026-11-11). There are no
+  browser or end-to-end tests and no manual accessibility audit yet.
+- Game JS chunk is 1,755 kB, over the 1,500 kB Vite warning limit (about 1,340 kB before
+  Chapter 1).
+- The main menu canvas stays mounted (paused) under the Chapter 1 page, so two WebGL contexts
+  exist at once; memory and GPU cost not measured.
+- The prologue banner location "District 4 · Morning" is country-specific, against the
+  `audience.md` rule for core content.
 
 ## Task History
+
+### 2026-11-11 — Chapter 1 "The Urgent Call": playable vertical slice (spec `chapter-01-the-urgent-call`, tasks 16.3 and 16.4)
+
+- **Objective:** Make Chapter 1 "The Urgent Call" playable from New Game and Continue as a small
+  first-person slice: a phone scam call, evidence in the street and on the phone, a decision,
+  an ending and a debrief. This entry summarizes all phases; the entries below (14.4, 14.5, 15.2,
+  15.1/15.3) keep the per-task detail.
+- **Completed work, by phase:**
+  1. *Narrative core:* pure TypeScript `chapterReducer` with action validation, selectors,
+     dialogue engine, evidence, objectives, outcome and debrief logic, and a scenario validator.
+     Chapter 1 data: claims, evidence, interactables, four dialogue graphs (scam call, callback,
+     shopkeeper, official line), decisions, endings and debrief text. A `RING_CALL` action
+     rings the scam call (after the first interaction, an exploration timer or a re-ring) and
+     the callback.
+  2. *Saves v2:* versioned chapter progress in `localStorage`; on load, the action log is
+     replayed through the reducer and rejected if it does not match; v1 saves migrate. Continue
+     availability uses the same check.
+  3. *Controls pause:* `usePlayerControls` / `FirstPersonPlayer` take an `enabled` flag so
+     movement and look stop while a panel is open.
+  4. *Canvas and props:* `ChapterOneCanvas` on the street play area, interactable props from
+     `propLayout.ts`, a look-at probe and an interaction prompt.
+  5. *Page and HUD:* `ChapterOnePage`, title card, objective tracker (polite live region),
+     objective toast, evidence notice, HUD buttons, resume prompt.
+  6. *Phone:* incoming call and call screens, messages, call history, bank app.
+  7. *Dialogue:* face-to-face dialogue panel for the shopkeeper.
+  8. *Journal:* evidence journal with an entry point to the decision.
+  9. *Decisions and endings:* decision panel; ending groups `verified`, `risky` and
+     `uncertain` with variants (for example `risky.money-moved`, `uncertain.stopped`); ending
+     transition.
+  10. *Debrief:* debrief screen with tactics, evidence found and decision notes.
+  11. *Checkpoints and pause:* checkpoint saver, save failure notice, pause menu, focus trap.
+  12. *Accessibility:* focus moves into and back out of every dialog, `aria-modal` and names,
+      `aria-hidden` lucide icons, reduced motion for toast, call vibration and ending fade; a
+      test scans `features/chapter1/` for emoji.
+  13. *Menu music fade:* menu music fades out when the chapter starts (`App.tsx`).
+  14. *Prologue callout:* status callout in `IntroPrologueModal.tsx`.
+  15. *Enablement:* `gameplayAvailable: true` for `chapter-1`; `App.tsx` routes to
+      `ChapterOnePage` after loading; other chapters still reach `ChapterPlaceholder`.
+- **Commits on `feat/chapter-01-playable`** (oldest first, not pushed, not merged):
+  `845045d` narrative core and scenario data; `1cfbb89` save v2 with replay validation;
+  `f846996` street canvas, props, look-at interaction and controls `enabled` flag; `a1a4265`
+  page, smartphone, dialogue, journal and debrief; `a99ea25` checkpoints, pause menu,
+  accessibility, menu music fade and prologue callout; `f02f29f` enablement from New Game and
+  Continue. This entry and the 16.1/16.2 documents are uncommitted (task 16.5).
+- **Files:** 119 files changed against `main` (18,046 insertions, 99 deletions), mainly under
+  `apps/game/src/game/narrative/` (core and `chapter1/` data), `apps/game/src/game/saves/`,
+  `apps/game/src/features/chapter1/` (page, canvas, HUD, phone, dialogue, journal, decision,
+  ending, debrief, pause), `apps/game/src/features/player/`, `apps/game/src/app/App.tsx`,
+  `apps/game/src/app/continueAvailability.ts`, `apps/game/src/game/chapters/`,
+  `apps/game/src/game/loading/chapterLoader.ts`,
+  `apps/game/src/game/scenes/MainMenuScene/streetPlayArea.ts`,
+  `apps/game/src/features/menu/IntroPrologueModal.tsx`, test helpers in `apps/game/src/test/`,
+  and the spec in `.kiro/specs/chapter-01-the-urgent-call/`. A temporary
+  `PlaceholderOverlays.tsx` was added in `a1a4265` and removed in `a99ea25`. This task modified
+  only `docs/PROJECT_PROGRESS.md`.
+- **Validation (task 16.4, run from the repository root on 2026-11-11, no code changes needed):**
+  - `pnpm test`: passed. 48 test files, 392 tests passed (Vitest 5.1.0, `apps/game`; 35.6 s, a
+    second run 26.3 s). No "Multiple instances of Three.js" warning and no stderr in either run.
+  - `pnpm typecheck`: passed for all 3 workspace projects (`apps/landing`, `apps/game`,
+    `packages/shared-types`), no errors.
+  - `pnpm build`: passed for all 3 projects. Game build (Vite 8.3.6, 2,780 modules, 41.2 s):
+    JS chunk `index-*.js` 1,755.10 kB (gzip 497.60 kB), CSS 75.74 kB (gzip 15.06 kB). One
+    warning: chunks larger than 1,500 kB after minification (the game JS chunk). Landing JS
+    chunk 300.55 kB, no warnings.
+  - Dev server: `pnpm dev:game` started (Vite ready in 553 ms) and `GET http://localhost:5174/`
+    returned HTTP 200 (1,465 bytes); the server was then stopped. This only confirms the dev
+    server serves the page; gameplay was not checked in a browser.
+- **Limitations and manual checks still needed:**
+  - Not played through in a browser; no end-to-end test. Needed: every ending, keyboard-only
+    play, screen reader pass, pointer lock behavior with panels.
+  - Prop positions in `propLayout.ts` are not calibrated against the street model.
+  - No touch controls.
+  - The kept-mounted menu canvas creates a second WebGL context; its cost is not measured.
+  - Game JS chunk 1,755 kB, over the 1,500 kB warning limit; it was about 1,340 kB before this
+    chapter, so the chapter added about 400 kB.
+  - A "Multiple instances of Three.js being imported" warning was seen in earlier test runs; it
+    did not appear in the task 16.4 runs. Not investigated.
+  - Play duration and FPS are not measured.
+  - The prologue banner "District 4 · Morning" is country-specific (`audience.md`).
+- **Deviations:**
+  - Chapter 1 is "The Urgent Call", not "The Missing Parcel" from positioning section 11, by
+    owner decision (2026-11-10/11); "The Missing Parcel" becomes a later chapter. The
+    positioning document has not been changed.
+  - No Zustand, Zod or Dexie: a small hand-written store (`narrative/store.ts`), hand-written
+    action validation in the reducer, and `localStorage` save v2 instead of IndexedDB.
+  - `RING_CALL` action added to the core action set (not in the original design).
+  - The safe ending group is named `verified`, not "safe", to follow `safety.md` (never imply
+    something is safe).
+- **Follow-up:** task 16.5 (documentation commit); manual browser
+  playthrough; prop calibration; WebGL context and bundle size measurement; replace "District
+  4" with a fictional or neutral location; update positioning section 11 for the new chapter
+  order after owner review.
 
 ### 2026-11-11 — Commit Chapter 1 enablement (spec tasks 15.1 and 15.3)
 

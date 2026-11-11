@@ -96,7 +96,7 @@ Rules for every task:
       paths to end nodes
     - _Requirements: 9.8, 9.9, 10.1, 11.1, 14.6, 16.1, 16.2, 16.3, 16.4, 16.5, 18.1_
 
-- [ ] 3. Deterministic game core (steps 04, 06, 07, 08, pure parts)
+- [x] 3. Deterministic game core (steps 04, 06, 07, 08, pure parts)
   - [x] 3.1 Implement conditions, effects and the evidence registry
     - Create `narrative/conditions.ts` (`evaluateCondition`, `applyEffect`) and
       `narrative/evidence.ts` (`canDiscover`, `discover` as an idempotent append,
@@ -210,16 +210,16 @@ Rules for every task:
       `node:fs`, and fail on imports of `react`, `three`, `@react-three/`, `@dimforge/rapier`,
       `zustand` or `dexie`
     - _Requirements: 5.7_
-  - [-] 3.23 Commit the narrative data and core
+  - [x] 3.23 Commit the narrative data and core
     - Stage `apps/game/src/test/seededRandom.ts`, `apps/game/src/test/loadingRuns.ts`,
       `apps/game/src/test/chapterRuns.ts` and `apps/game/src/game/narrative/**`
     - Message: `feat(game): add deterministic Chapter 1 narrative core and scenario data`
     - _Requirements: 18.1_
 
-- [~] 4. Checkpoint: core complete
+- [x] 4. Checkpoint: core complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Save format version 2 (step 10, pure parts)
+- [x] 5. Save format version 2 (step 10, pure parts)
   - [x] 5.1 Extend the save module with version 2, migration, write and clear
     - In `apps/game/src/game/saves/saveGame.ts`, add `SAVE_STORAGE_KEY_V2`,
       `SAVE_FORMAT_VERSION_V2`, `SavedGameV2`, `parseSaveEnvelopeV2` and
@@ -242,20 +242,20 @@ Rules for every task:
     - In `game/loading/chapterLoader.ts`, run `restoreProgress` in the continue path, and fail
       with `invalid-save` when it is not ok
     - _Requirements: 15.6, 15.12_
-  - [~] 5.4 Write unit tests for saves
+  - [x] 5.4 Write unit tests for saves
     - Extend `saves/saveGame.test.ts` (v2 valid, unknown version, v1 migration, write failure,
       clear) and add `saves/chapterProgress.test.ts` (non-finite pose, out-of-bounds pose
       clamped, cap) and loader continue-path cases in `loading/chapterLoader.test.ts`
     - _Requirements: 15.3, 15.6, 15.7, 15.9, 15.10, 15.14, 18.1_
-  - [~] 5.5 Write the property test for the save round trip
+  - [x] 5.5 Write the property test for the save round trip
     - File `saves/chapterProgress.property.test.ts`
     - **Property 12: Save round trip**
     - **Validates: Requirements 15.3, 15.5, 15.8**
-  - [~] 5.6 Write the property test for tampered saves
+  - [x] 5.6 Write the property test for tampered saves
     - File `saves/chapterProgress.tamper.property.test.ts`
     - **Property 13: Tampered saves are rejected**
     - **Validates: Requirements 15.6**
-  - [~] 5.7 Commit the save version 2 work
+  - [x] 5.7 Commit the save version 2 work
     - Stage `apps/game/src/game/saves/**`, `apps/game/src/game/chapters/chapterSession.ts` and
       `apps/game/src/game/loading/chapterLoader.ts` and their tests
     - Message: `feat(game): add versioned chapter progress saves with replay validation`
@@ -274,7 +274,7 @@ Rules for every task:
       unchanged
     - _Requirements: 4.2, 4.3, 18.1_
 
-- [ ] 7. Chapter scene canvas and interactions (steps 02 and 03)
+- [x] 7. Chapter scene canvas and interactions (steps 02 and 03)
   - [x] 7.1 Implement focus detection
     - Create `features/chapter1/interaction/findFocusedInteractable.ts`, a pure ray–sphere test
       with `MAX_INTERACT_DISTANCE = 3.0` and no three import
@@ -304,13 +304,13 @@ Rules for every task:
     - Add `interactionToAction.test.ts` for all five objects, the null focus case and a layout
       bounds check
     - _Requirements: 2.5, 3.4, 3.5, 3.7_
-  - [~] 7.6 Commit the controls and world work
+  - [x] 7.6 Commit the controls and world work
     - Stage `apps/game/src/features/player/**` changes,
       `apps/game/src/game/scenes/MainMenuScene/streetPlayArea.ts` and
       `apps/game/src/features/chapter1/{interaction,world}/**` and `ChapterOneCanvas.tsx`
     - Message: `feat(game): add Chapter 1 street canvas, props and look-at interaction`
 
-- [ ] 8. Chapter page shell and HUD (steps 03 and 04, UI)
+- [x] 8. Chapter page shell and HUD (steps 03 and 04, UI)
   - [x] 8.1 Add the theme, the overlay stack and the state hook
     - Create `features/chapter1/theme.ts` (the brand tokens), `overlays.ts` (the stack type with
       `push`, `pop`, `top`, `isOpen`) and `useChapterState.ts` (`useSyncExternalStore` binding)
@@ -329,7 +329,7 @@ Rules for every task:
       interaction, falls back at 60 s, re-rings 20 s after a decline, and rings the callback once
       90 s after the first call ends with no decision
     - _Requirements: 8.1, 8.2, 8.4, 8.5_
-  - [~] 8.4 Create the chapter page
+  - [x] 8.4 Create the chapter page
     - Create `features/chapter1/ChapterOnePage.tsx`: create the store (fresh, or restored state
       from `session.progress`), the overlay stack and `inputEnabled`. Show the title card until
       Begin dispatches START_CHAPTER. Connect `onInteract` → focused ID → `interactionToAction`
@@ -339,12 +339,12 @@ Rules for every task:
       Render the HUD. Add an `onReturnToMenu` prop
     - Punches never dispatch to the store
     - _Requirements: 1.4, 1.5, 1.6, 2.6, 3.4, 3.5, 3.6, 4.1, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9_
-  - [~] 8.5 Write tests for the call triggers
+  - [x] 8.5 Write tests for the call triggers
     - File `features/chapter1/useCallTriggers.test.ts` with fake timers: ring after the first
       interaction, the 60 s fallback, re-ring after a decline, the callback after 90 s, at most
       one callback, and timers paused while an overlay is open
     - _Requirements: 8.1, 8.2, 8.4, 8.5, 18.6_
-  - [~] 8.6 Write integration tests for the page
+  - [x] 8.6 Write integration tests for the page
     - File `features/chapter1/ChapterOnePage.test.tsx`, with `ChapterOneCanvas` mocked by a stub
       that exposes `onSceneReady`, `onInteract` and the focus callback
     - Cover: Begin disabled until ready; Begin dispatches START_CHAPTER; one interact with focus
@@ -352,8 +352,8 @@ Rules for every task:
       the overlay disables input; Escape, P and J behavior; the resume prompt
     - _Requirements: 1.5, 1.6, 3.4, 3.5, 3.6, 4.1, 4.4, 4.6, 4.7, 4.8, 4.9, 18.6_
 
-- [ ] 9. Virtual smartphone and dialogue UI (steps 05 and 06, UI)
-  - [~] 9.1 Build the phone frame and apps
+- [x] 9. Virtual smartphone and dialogue UI (steps 05 and 06, UI)
+  - [x] 9.1 Build the phone frame and apps
     - Create `features/chapter1/phone/PhoneOverlay.tsx` (a responsive frame: full width below
       640 px, at most 380 px at 640 px and wider; an app router), `phone/PhoneHome.tsx`,
       `phone/MessagesApp.tsx`, `phone/CallHistoryApp.tsx` and `phone/BankApp.tsx`
@@ -361,164 +361,164 @@ Rules for every task:
       VERIFY_CLAIM `bank-app`
     - Render domains and numbers as plain text, never as `<a>`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9_
-  - [~] 9.2 Build the call screens and the shared dialogue panel
+  - [x] 9.2 Build the call screens and the shared dialogue panel
     - Create `phone/IncomingCallScreen.tsx` (caller name, `+000 555 0142`, Accept, Decline, the
       "Incoming call" caption, a vibration animation that is off under reduced motion),
       `phone/CallScreen.tsx` (the dialogue and Hang up) and `dialogue/DialoguePanel.tsx` (line and
       options from `selectDialogueView`, used by phone calls and by Sam face to face)
     - _Requirements: 8.3, 8.7, 9.3, 9.4, 9.5_
-  - [~] 9.3 Wire the phone and dialogue into the page
+  - [x] 9.3 Wire the phone and dialogue into the page
     - In `ChapterOnePage.tsx`: OPEN_PHONE and CLOSE_PHONE with the overlay stack; a ringing call
       pushes the phone; ANSWER_CALL, END_CALL and SELECT_DIALOGUE_OPTION handlers; TALK_TO_NPC
       opens the face-to-face dialogue overlay; the phone cannot close while a call is ringing or
       active
     - _Requirements: 4.8, 7.1, 8.3, 10.7, 10.8_
-  - [~] 9.4 Write phone and dialogue tests
+  - [x] 9.4 Write phone and dialogue tests
     - File `features/chapter1/phone/PhoneOverlay.test.tsx`: the unread message at start; opening
       the message dispatches INSPECT_EVIDENCE; the page contains no anchor elements; keyboard
       navigation; Accept shows the options, and selecting one advances the node (phone →
       dialogue)
     - _Requirements: 7.2, 7.3, 7.4, 7.6, 8.3, 9.5, 18.6_
 
-- [ ] 10. Evidence journal and decisions (steps 07 and 08, UI)
-  - [~] 10.1 Build the evidence journal
+- [x] 10. Evidence journal and decisions (steps 07 and 08, UI)
+  - [x] 10.1 Build the evidence journal
     - Create `features/chapter1/journal/EvidenceJournal.tsx`: discovered entries in order, with
       title, description, source, location and stance text per claim; a claim list with status
       text; a "Decide" button when the decision panel is available
     - _Requirements: 11.7, 11.8, 11.9, 13.1, 17.6_
-  - [~] 10.2 Build the decision panel
+  - [x] 10.2 Build the decision panel
     - Create `features/chapter1/decision/DecisionPanel.tsx` with the three options from
       `selectDecisionPanel`, the unavailable state with its hint, and the two-step official
       route: VERIFY_CLAIM, then MAKE_DECISION `verify-independently` after confirmation
     - _Requirements: 13.1, 13.2, 13.3, 13.4_
-  - [~] 10.3 Wire the journal and decisions into the page
+  - [x] 10.3 Wire the journal and decisions into the page
     - In `ChapterOnePage.tsx`: the journal overlay, the decision overlay opened from the journal
       and the phone, and the evidence notice when `discovered` grows
     - _Requirements: 4.9, 11.6, 13.1_
-  - [~] 10.4 Write evidence-to-decision tests
+  - [x] 10.4 Write evidence-to-decision tests
     - File `features/chapter1/decision/DecisionPanel.test.tsx`: the official option is
       unavailable with its hint until the card or letter is found; it is enabled after
       discovery; the journal shows only discovered items and the "Points against this claim"
       text
     - _Requirements: 11.7, 11.9, 13.3, 18.6_
 
-- [ ] 11. Endings and debrief (step 09)
-  - [~] 11.1 Build the ending transition and the debrief screen
+- [x] 11. Endings and debrief (step 09)
+  - [x] 11.1 Build the ending transition and the debrief screen
     - Create `features/chapter1/ending/EndingTransition.tsx` (outcome title, consequence variant,
       "Simulation: nothing real happened.", Continue) and `debrief/DebriefScreen.tsx` (all
       `DebriefView` sections, Replay, Return to menu)
     - _Requirements: 13.11, 14.1, 14.3_
-  - [~] 11.2 Wire the endings and debrief into the page
+  - [x] 11.2 Wire the endings and debrief into the page
     - In `ChapterOnePage.tsx`: when an outcome is set, show the ending transition; Continue
       dispatches FINISH_CHAPTER and shows the debrief; Return to menu calls `onReturnToMenu`;
       Replay is connected in 12.2
     - _Requirements: 1.7, 14.1, 14.2_
-  - [~] 11.3 Write consequence-to-debrief tests
+  - [x] 11.3 Write consequence-to-debrief tests
     - File `features/chapter1/debrief/DebriefScreen.test.tsx`: a risky run shows the simulation
       label and the right variant; the debrief lists evidence found, warning signs and clues
       missed for a scripted state; an uncertain run shows the partial-result wording
     - _Requirements: 13.11, 14.1, 14.3, 14.5, 18.6_
-  - [~] 11.4 Commit the chapter UI
+  - [x] 11.4 Commit the chapter UI
     - Stage `apps/game/src/features/chapter1/**` (page, HUD, intro, panels, phone, dialogue,
       journal, decision, ending, debrief, theme, overlays, hooks, tests)
     - Message: `feat(game): add Chapter 1 page, smartphone, dialogue, journal and debrief`
 
-- [ ] 12. Save, continue and replay (step 10, UI)
-  - [~] 12.1 Implement the checkpoint saver
+- [x] 12. Save, continue and replay (step 10, UI)
+  - [x] 12.1 Implement the checkpoint saver
     - Create `features/chapter1/useCheckpointSaver.ts`. Write when objectives change and no call
       is ringing or active. If a change happens during a call, write when the call ends. Also
       write after FINISH_CHAPTER (`debrief`). Report a write failure through a callback
     - _Requirements: 15.1, 15.2, 15.14_
-  - [~] 12.2 Connect restore, restart, replay and the pause menu
+  - [x] 12.2 Connect restore, restart, replay and the pause menu
     - Create `features/chapter1/pause/PauseMenu.tsx` (Resume, Restart chapter with confirm, Save
       and return to menu)
     - In `ChapterOnePage.tsx`: restore the state and pose from `session.progress` and skip the
       intro text; Restart and Replay call `clear()` and `store.replace(createInitialState())`;
       show the notice "Progress cannot be saved on this device." on write failure
     - _Requirements: 15.12, 15.13, 15.14_
-  - [~] 12.3 Update Continue availability in the App shell
+  - [x] 12.3 Update Continue availability in the App shell
     - In `app/App.tsx`, `readContinueAvailability` validates v2 progress with `restoreProgress`.
       Reasons: "No saved game found." and "Your saved game could not be read. Start a new game
       instead."
     - _Requirements: 15.6, 15.11_
-  - [~] 12.4 Write save-to-restore integration tests
+  - [x] 12.4 Write save-to-restore integration tests
     - File `features/chapter1/useCheckpointSaver.test.tsx` (writes on an objective change, a
       deferred write during a call, a storage failure notice) and
       `features/chapter1/ChapterOnePage.restore.test.tsx` (mount with progress restores the
       objectives and evidence; Restart clears the save)
     - _Requirements: 15.1, 15.2, 15.12, 15.13, 15.14, 18.6_
 
-- [~] 13. Checkpoint: full chapter loop works through the UI tests
+- [x] 13. Checkpoint: full chapter loop works through the UI tests
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Visual polish and accessibility (step 11)
-  - [~] 14.1 Apply reduced motion, focus management and accessible names
+- [x] 14. Visual polish and accessibility (step 11)
+  - [x] 14.1 Apply reduced motion, focus management and accessible names
     - Across `features/chapter1/**` and `ChapterOnePage.tsx`: use `usePrefersReducedMotion` to
       remove slide, shake and fade; move focus into an overlay when it opens and return it when
       it closes; give icon-only buttons an `aria-label`; set `aria-hidden` on decorative icons;
       use text labels for stance, call status and outcome; apply restrained styling with the
       brand tokens
     - _Requirements: 16.6, 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
-  - [~] 14.2 Fade menu music during the chapter
+  - [x] 14.2 Fade menu music during the chapter
     - In `app/App.tsx`, the music gain target is 0 while `screen.kind === "chapter"`, and the
       street ambient is kept. Menu-screen behavior is unchanged
     - _Requirements: 17.7, 17.8_
-  - [~] 14.3 Update the prologue status callout
+  - [x] 14.3 Update the prologue status callout
     - In `features/menu/IntroPrologueModal.tsx`, replace "Scheduled for Milestone… / In
       Progress" with an honest playable status ("Playable · about 8 to 15 minutes"), and keep the
       existing story text
     - _Requirements: 1.1, 19.3_
-  - [~] 14.4 Write accessibility and icon tests
+  - [x] 14.4 Write accessibility and icon tests
     - File `features/chapter1/accessibility.test.tsx`: reduced motion removes the animation
       classes (`mockReducedMotion`); focus moves into the phone and back; icon-only buttons have
       names; a source scan finds no emoji code points under `features/chapter1/`
     - _Requirements: 16.6, 17.1, 17.2, 17.3, 17.4, 18.1_
-  - [~] 14.5 Commit the save UI and polish
+  - [x] 14.5 Commit the save UI and polish
     - Stage `apps/game/src/features/chapter1/**` changes, `apps/game/src/app/App.tsx` and
       `apps/game/src/features/menu/IntroPrologueModal.tsx`
     - Message: `feat(game): add Chapter 1 checkpoints, continue, restart and accessibility polish`
 
-- [ ] 15. Enable Chapter 1 gameplay
-  - [~] 15.1 Set `gameplayAvailable` and render the chapter page
+- [x] 15. Enable Chapter 1 gameplay
+  - [x] 15.1 Set `gameplayAvailable` and render the chapter page
     - In `game/chapters/chapterRegistry.ts`, set `gameplayAvailable: true` for `chapter-1`
     - In `app/App.tsx`, render `ChapterOnePage` when the session's chapter has
       `gameplayAvailable`, and keep `ChapterPlaceholder` otherwise. Return to menu refreshes
       Continue. Keep the menu canvas mounted and paused (the documented decision)
     - _Requirements: 1.1, 1.2, 1.3, 1.7_
-  - [~] 15.2 Write the routing tests
+  - [x] 15.2 Write the routing tests
     - Update `game/chapters/chapterRegistry.test.ts` for the flag. Add `app/App.chapter.test.tsx`
       with the loader, canvas and page mocked: a playable chapter renders the page; a test
       chapter with the flag `false` renders the placeholder; Return to menu shows the menu
     - _Requirements: 1.1, 1.2, 1.3, 1.7, 18.6_
-  - [~] 15.3 Commit the enablement
+  - [x] 15.3 Commit the enablement
     - Stage `apps/game/src/game/chapters/**` and `apps/game/src/app/**`
     - Message: `feat(game): make Chapter 1 "The Urgent Call" playable from New Game`
 
 - [ ] 16. Full test run and documentation (step 12)
-  - [~] 16.1 Write the chapter narrative document
+  - [x] 16.1 Write the chapter narrative document
     - Create `docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md` with the story, interactables and
       positions, evidence table, claims, contradiction chains, dialogue graph summaries,
       decisions, outcomes and debrief content, the content-safety notes and status labels
     - _Requirements: 19.4_
-  - [~] 16.2 Update the architecture overview
+  - [x] 16.2 Update the architecture overview
     - In `docs/architecture/OVERVIEW.md`, describe the chapter core, the store, save v2 (replay
       validation, v1 migration), the chapter page and canvas and the controls `enabled` flag, with
       `IMPLEMENTED` and `PLANNED` labels. Note the open follow-up to measure the cost of the second
       WebGL context
     - _Requirements: 19.3_
-  - [~] 16.3 Add the progress entry
+  - [x] 16.3 Add the progress entry
     - In `docs/PROJECT_PROGRESS.md`, add the newest task-history entry with the nine AGENTS.md §6
       items. Record the deviation (Chapter 1 is "The Urgent Call", not "The Missing Parcel" from
       positioning section 11, which becomes a later chapter), the `verified` naming, the
       unmeasured play time and FPS, and the manual checks still needed. Update the status
       sections
     - _Requirements: 19.1, 19.2_
-  - [~] 16.4 Run the quality gates and record the results
+  - [x] 16.4 Run the quality gates and record the results
     - Run `pnpm test`, `pnpm typecheck` and `pnpm build` from the repository root. Fix any
       failures. Write the exact observed results, such as test and file counts, into the progress
       entry
     - _Requirements: 18.7_
-  - [~] 16.5 Commit the documentation
+  - [-] 16.5 Commit the documentation
     - Stage `docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md`, `docs/architecture/OVERVIEW.md` and
       `docs/PROJECT_PROGRESS.md`
     - Message: `docs: document Chapter 1 "The Urgent Call" and record progress`
