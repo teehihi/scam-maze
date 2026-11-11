@@ -63,6 +63,10 @@ interface LandmarkChunk {
   group: THREE.Group;
   center: THREE.Vector3;
   streamDist: number;
+  preloadDist: number;
+  hysteresisDist: number;
+  isWarmed: boolean;
+  isWarming: boolean;
   lanterns: LanternHandle[];
   interiorLights?: THREE.PointLight[];
 }
@@ -257,6 +261,10 @@ export class HueWorldEngine {
         group: thienMu.group,
         center: new THREE.Vector3(-210, 9.5, -100),
         streamDist: 340,
+        preloadDist: 480,
+        hysteresisDist: 390,
+        isWarmed: false,
+        isWarming: false,
         lanterns: thienMu.lanterns,
       },
       {
@@ -265,6 +273,10 @@ export class HueWorldEngine {
         group: khaiDinh.group,
         center: new THREE.Vector3(40, 16, 310),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: khaiDinh.lanterns,
         interiorLights: khaiDinh.interiorLights,
       },
@@ -274,6 +286,10 @@ export class HueWorldEngine {
         group: tuDuc.group,
         center: new THREE.Vector3(-68, 5.4, 170),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: tuDuc.lanterns,
       },
       {
@@ -282,6 +298,10 @@ export class HueWorldEngine {
         group: trangTien.group,
         center: new THREE.Vector3(195, 8.2, 0),
         streamDist: 320,
+        preloadDist: 460,
+        hysteresisDist: 370,
+        isWarmed: false,
+        isWarming: false,
         lanterns: trangTien.lanterns,
       },
       {
@@ -290,6 +310,10 @@ export class HueWorldEngine {
         group: thanhToan.group,
         center: new THREE.Vector3(258, 4.5, 215),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: thanhToan.lanterns,
       },
       {
@@ -298,10 +322,23 @@ export class HueWorldEngine {
         group: kimLong.group,
         center: new THREE.Vector3(-120, 3.2, -35),
         streamDist: 280,
+        preloadDist: 420,
+        hysteresisDist: 330,
+        isWarmed: false,
+        isWarming: false,
         lanterns: kimLong.lanterns,
       },
     ];
     this.updateStreamingChunks();
+
+    // Staggered zero-hitch background shader pre-warming across all chunks
+    this.landmarkChunks.forEach((chunk, index) => {
+      window.setTimeout(() => {
+        if (!this.disposed) {
+          this.prewarmChunk(chunk);
+        }
+      }, 300 + index * 250);
+    });
 
     // Atmospheric Particles (incense smoke + sunbeam dust motes + Mưa Bụi)
     const particles = createHueParticles([
@@ -784,7 +821,26 @@ export class HueWorldEngine {
   }
 
   /**
-   * Distance Streaming & Dynamic LOD:
+   * Asynchronous Zero-Hitch Shader & Buffer Pre-warming:
+   * Uses WebGL2 parallel shader compilation (compileAsync) to compile GLSL programs
+   * and prime GPU state before a landmark crosses the visibility boundary.
+   */
+  private prewarmChunk(chunk: LandmarkChunk) {
+    if (chunk.isWarmed || chunk.isWarming) return;
+    chunk.isWarming = true;
+    this.renderer
+      .compileAsync(chunk.group, this.camera, this.scene)
+      .then(() => {
+        chunk.isWarmed = true;
+        chunk.isWarming = false;
+      })
+      .catch(() => {
+        chunk.isWarming = false;
+      });
+  }
+
+  /**
+   * Distance Streaming & Dynamic LOD with Hysteresis & Predictive Pre-warming:
    * Only renders monuments within active zone distance. Points lights beyond 75m
    * are hidden to eliminate rasterization fill rate overhead.
    */
@@ -792,12 +848,24 @@ export class HueWorldEngine {
     const cp = this.camera.position;
     for (const chunk of this.landmarkChunks) {
       const dist = Math.hypot(cp.x - chunk.center.x, cp.z - chunk.center.z);
-      const maxDist = this.mode === 'fly' ? chunk.streamDist * 1.5 : chunk.streamDist;
-      const isVisible = dist <= maxDist;
-      chunk.group.visible = isVisible;
+      const streamThreshold = this.mode === 'fly' ? chunk.streamDist * 1.5 : chunk.streamDist;
+      const hysteresisThreshold = this.mode === 'fly' ? chunk.hysteresisDist * 1.4 : chunk.hysteresisDist;
+
+      // Predictive pre-warming: asynchronously compile shaders before entering view radius
+      if (dist <= chunk.preloadDist && !chunk.isWarmed && !chunk.isWarming) {
+        this.prewarmChunk(chunk);
+      }
+
+      // Hysteresis prevents visual stutter & rapid boundary toggling
+      const currentlyVisible = chunk.group.visible;
+      const shouldBeVisible = currentlyVisible
+        ? dist <= hysteresisThreshold
+        : dist <= streamThreshold;
+
+      chunk.group.visible = shouldBeVisible;
 
       // Distance culling for point lights: only active within 75m to save GPU fill rate
-      const lightsActive = isVisible && dist <= 75;
+      const lightsActive = shouldBeVisible && dist <= 75;
       chunk.lanterns.forEach((l) => {
         if (l.light) l.light.visible = lightsActive;
       });
@@ -884,7 +952,8 @@ export class HueWorldEngine {
     this.qualityTimer = 0;
     const cur = this.renderer.getPixelRatio();
     let next = cur;
-    if (avg > 1 / 38) next = Math.max(0.6, cur - 0.15);
+    // Maintain minimum pixel ratio of 1.0 so close-up heritage textures remain crisp
+    if (avg > 1 / 38) next = Math.max(1.0, cur - 0.1);
     else if (avg < 1 / 57) next = Math.min(this.maxPixelRatio, cur + 0.1);
     if (Math.abs(next - cur) > 0.01) {
       this.renderer.setPixelRatio(next);

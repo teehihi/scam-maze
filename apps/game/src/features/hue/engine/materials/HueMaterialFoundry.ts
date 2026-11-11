@@ -237,7 +237,7 @@ export function createHueMaterialFoundry(): HueMaterialSet {
   // 4. Pháp Lam Men Ngọc & Men Chàm (Tháp Phước Duyên plaques & Cù Dao)
   const buildPhapLam = (baseR: number, baseG: number, baseB: number, seed: number) =>
     track(
-      makeMaps(128, 2.5, 1, 1, (u, v) => {
+      makeMaps(256, 2.5, 1, 1, (u, v) => {
         const border =
           u < 0.09 || u > 0.91 || v < 0.09 || v > 0.91
             ? 1
@@ -287,7 +287,7 @@ export function createHueMaterialFoundry(): HueMaterialSet {
 
   // 10. Phù Điêu Rồng Mây Lăng Khải Định (Refined grey carved limestone relief, isotropic grain)
   const khaiDinhReliefMaps = track(
-    makeMaps(128, 3.6, 1, 1, (u, v) => {
+    makeMaps(512, 3.6, 1, 1, (u, v) => {
       const warpX = tileableFbm(u, v, 6, 3, 619) * 0.28;
       const warpY = tileableFbm(u + 0.3, v + 0.7, 6, 3, 629) * 0.28;
       const carving = tileableFbm(u + warpX, v + warpY, 12, 4, 631);
@@ -315,7 +315,7 @@ export function createHueMaterialFoundry(): HueMaterialSet {
   ) =>
     track(
       makeMaps(
-        128,
+        512,
         3.8,
         mode === 'wallWide' ? 6 : mode === 'wall' ? 2 : 1,
         mode === 'wallWide' ? 2 : mode === 'wall' ? 2 : 1,
@@ -445,7 +445,7 @@ export function createHueMaterialFoundry(): HueMaterialSet {
 
   // 12. Đá Hoa Cẩm Thạch Cung Thiên Định (Checkered colonial-imperial marble tile floor)
   const marbleMaps = track(
-    makeMaps(128, 1.5, 5, 5, (u, v) => {
+    makeMaps(512, 1.5, 5, 5, (u, v) => {
       const n = 4;
       const ix = Math.floor(u * n);
       const iy = Math.floor(v * n);
@@ -470,7 +470,7 @@ export function createHueMaterialFoundry(): HueMaterialSet {
 
   // 13. Thép Nhũ Bạc Đinh Tán Cầu Trường Tiền
   const steelMaps = track(
-    makeMaps(128, 2.2, 2, 1, (u, v) => {
+    makeMaps(256, 2.2, 2, 1, (u, v) => {
       const f = tileableFbm(u, v, 12, 3, 907);
       const rust = smoothstep(0.68, 0.9, tileableFbm(u, v, 8, 4, 919));
       const rivetX = Math.abs((u * 8) % 1 - 0.5);
@@ -496,7 +496,7 @@ export function createHueMaterialFoundry(): HueMaterialSet {
   );
 
   const bambooMaps = track(
-    makeMaps(128, 3.0, 3, 2, (u, v) => {
+    makeMaps(256, 3.0, 3, 2, (u, v) => {
       const wx = Math.floor(u * 12);
       const wy = Math.floor(v * 12);
       const fx = u * 12 - wx;

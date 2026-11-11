@@ -125,6 +125,37 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — Huế World Visual Restoration & Zero-Hitch Landmark Streaming
+
+- **Objective:** Fix visual regressions from aggressive previous optimization pass (restore original 5-layer height-blended anti-tiling terrain shader, 256 ground texture maps, 512 architectural PBR textures, lush 280-pine forest density, 28,000 grass tufts with 5 blades/tuft) while strictly eliminating grass sprouting through stone courtyards, and resolve the one-time chunk entry stutter via WebGL2 asynchronous parallel shader compilation (`compileAsync`) and distance hysteresis.
+- **Completed work:**
+  1. **High-Definition Procedural Material Restoration (`HueSurface.ts` & `HueMaterialFoundry.ts`):** Restored procedural photographic synthesis resolution from 64 to 256 for `photoSet` (brick, stone, plaster, tile, wood, gravel, pinebark) and 128 to 256 for `groundSet` (grass, laterite, path, mud, forest). Restored procedural PBR maps to 512 for Khải Định limestone dragon relief, porcelain mosaic shards, and colonial-imperial checkered marble floors, restoring rich jewel tones and architectural relief.
+  2. **Height-Blended Anti-Tile Terrain Splatting (`HueTerrainAndFlora.ts`):** Restored high-density $256 \times 256$ terrain plane geometry. Restored dual-tap `antiTile` sampling to eliminate visible texture repetition across distant fields, multi-octave noise blend boundary deformation (`hFbm`), luminance-weighted height-blending (`s0-ma`), and macro hue drift (`dry` straw vs damp lush green grass) with rain wetness darkening.
+  3. **Lush Vegetation & Strict Courtyard Grass Suppression (`HueTerrainAndFlora.ts`):**
+     - Restored pine forest density up to 280 trees across Ngự Bình and hill slopes.
+     - Restored riverside broadleaf and phượng trees to 75.
+     - Restored 1,000 wild riverbank reeds and cogon-grass tufts.
+     - Upgraded traveling GPU grass field to 28,000 tufts with 5 curved blades per tuft (cross-star structure) and a $256 \times 256$ density map.
+     - Fixed grass leaking into courtyards: strictly suppressed grass generation in architectural zones (`isBuiltUp` and `isClearedForArchitecture`), completely stopping blades from poking through stone-tiled terraces of Chùa Thiên Mụ and monuments.
+  4. **Zero-Hitch Staged Landmark Streaming (`HueWorldEngine.ts`):**
+     - Solved the synchronous shader compilation freeze when crossing landmark chunk boundaries. Added `preloadDist` ($140\text{m}$ beyond stream radius) and asynchronous background shader pre-warming using `renderer.compileAsync(chunk.group, camera, scene)` via WebGL2 `KHR_parallel_shader_compile`.
+     - Added distance hysteresis ($50\text{m}$ gap between appear and disappear radii) to eliminate visual stutter and boundary thrashing.
+     - Implemented staggered startup pre-warming queue across all 6 landmark complexes during initial idle frames, priming GPU driver caches before the player begins walking.
+     - Locked minimum adaptive pixel ratio to $1.0$ to prevent canvas blurriness.
+- **Files created/modified:**
+  - `apps/game/src/features/hue/engine/materials/HueSurface.ts` (Restored 256x256 photoSet and groundSet resolution)
+  - `apps/game/src/features/hue/engine/materials/HueMaterialFoundry.ts` (Restored 512x512 mosaic, relief, and marble maps)
+  - `apps/game/src/features/hue/engine/terrain/HueTerrainAndFlora.ts` (256 terrain segments, antiTile height-blend shader, 28k grass tufts, courtyard suppression, 280 pines, 75 trees)
+  - `apps/game/src/features/hue/engine/HueWorldEngine.ts` (Predictive compileAsync pre-warming, distance hysteresis, staggered startup pre-compilation, min 1.0 pixel ratio)
+  - `docs/PROJECT_PROGRESS.md` (Updated task history)
+- **Validation commands executed:**
+  - `pnpm typecheck` passed (3/3 packages clean).
+  - `pnpm test` passed (12 test files, 109/109 tests passed).
+  - `pnpm build` passed (apps/landing, packages/shared-types, apps/game production build clean).
+- **Unresolved issues and known limitations:** None.
+- **Deviations from documented architecture:** None. Rapier was not installed.
+- **Follow-up tasks:** None.
+
 ### 2026-11-11 — Brisk Punch Recovery & Viewmodel Stow Speed Optimization
 
 - **Objective:** Fix punch animation keeping arms raised on screen for too long ("Đấm xong phải thả tay xuống sau khoảng ngắn thôi, giờ thả lâu quá"), shortening the combat readiness grace window and accelerating arm stow-down speed.

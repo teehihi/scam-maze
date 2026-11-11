@@ -208,7 +208,7 @@ export function photoSet(key: PhotoKey): PhotoSet {
   if (cached) return cached;
 
   let set: PhotoSet;
-  const size = 64;
+  const size = 256;
 
   switch (key) {
     case 'brick': {
@@ -376,7 +376,7 @@ export function groundSet(key: GroundKey): { color: THREE.Texture; normal: THREE
   if (cached) return cached;
 
   let set: { color: THREE.Texture; normal: THREE.Texture };
-  const size = 128;
+  const size = 256;
 
   switch (key) {
     case 'grass': {
