@@ -13,6 +13,7 @@ useLoader.preload(StreetGLTFLoader, CITY_MODEL_PATH, streetLoaderExtensions);
 interface StreetEnvironmentProps {
   shadows?: boolean;
   onReady?: () => void;
+  onCarLoaded?: (carPivot: THREE.Group) => void;
 }
 
 interface AnimatedPedestrian {
@@ -42,6 +43,7 @@ interface FoliageAnimSystem {
 export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
   shadows = false,
   onReady,
+  onCarLoaded,
 }) => {
   const { gl, camera } = useThree();
   const [isCompiled, setIsCompiled] = useState(false);
@@ -122,6 +124,12 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
         return;
       }
 
+      // Detect Lexus GX 550 vehicle for dynamic driving and locomotion collision
+      if (lowerName.includes("lexus")) {
+        enableDynamicMatrix(child);
+        return;
+      }
+
       // Configure meshes & materials
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -197,11 +205,116 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
       }
     });
 
+    // Setup dynamic car pivot if not already done
+    if (!scene.userData.carPivot) {
+      let lexusObj: THREE.Object3D | null = null;
+      scene.traverse((obj) => {
+        if (!lexusObj && obj.name.toLowerCase().includes("lexus")) {
+          lexusObj = obj;
+        }
+      });
+
+      if (lexusObj) {
+        enableDynamicMatrix(lexusObj);
+        scene.updateMatrixWorld(true);
+
+        const initialWorldPos = new THREE.Vector3();
+        const initialWorldQuat = new THREE.Quaternion();
+        const initialWorldScale = new THREE.Vector3();
+        (lexusObj as THREE.Object3D).getWorldPosition(initialWorldPos);
+        (lexusObj as THREE.Object3D).getWorldQuaternion(initialWorldQuat);
+        (lexusObj as THREE.Object3D).getWorldScale(initialWorldScale);
+
+        const carPivot = new THREE.Group();
+        carPivot.name = "LexusCarPivot";
+        carPivot.position.copy(initialWorldPos);
+        carPivot.rotation.set(0, 0, 0);
+
+        // Attach car model directly to dynamic carPivot in authentic original 3D coordinates.
+        // Maintain pristine Left-Hand Drive (LHD) geometry and natural vehicle proportions without horizontal mirroring.
+        carPivot.add(lexusObj);
+        (lexusObj as THREE.Object3D).position.set(0, 0, 0);
+        (lexusObj as THREE.Object3D).quaternion.copy(initialWorldQuat);
+        (lexusObj as THREE.Object3D).scale.copy(initialWorldScale);
+
+        // Set DoubleSide on vehicle materials and vertically flip textures that were authored upside-down in Maya/FBX:
+        // - Llogo: Lexus badge (steering wheel, front grille, rear door, wheels)
+        // - 81481: Speedometer / instrument cluster
+        // - ZK_OBJ007: Center infotainment touchscreen
+        // - plate: Front & rear license plates (GX 550h)
+        (lexusObj as THREE.Object3D).traverse((child: THREE.Object3D) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            if (mesh.material) {
+              const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+              mats.forEach((m) => {
+                m.side = THREE.DoubleSide;
+                const matName = m.name || "";
+                const lowerMat = matName.toLowerCase();
+                if (
+                  lowerMat.includes("llogo") ||
+                  lowerMat.includes("81481") ||
+                  lowerMat.includes("zk_obj007")
+                ) {
+                  const stdMat = m as THREE.MeshStandardMaterial;
+                  if (stdMat.map && !stdMat.map.userData.invertedY) {
+                    stdMat.map.userData.invertedY = true;
+                    stdMat.map.repeat.y = -1;
+                    stdMat.map.offset.y = 1;
+                    stdMat.map.updateMatrix();
+                    stdMat.map.needsUpdate = true;
+                  }
+                }
+              });
+            }
+          }
+        });
+
+        // Find all parts belonging to the authentic Lexus steering wheel (NS_ZK_OBJ031)
+        const steerParts: THREE.Object3D[] = [];
+        (lexusObj as THREE.Object3D).traverse((child: THREE.Object3D) => {
+          if (child.name && child.name.includes("NS_ZK_OBJ031")) {
+            // Pick direct children of RootNode so whole rim, spokes, and logo subtrees are attached
+            if (child.parent && child.parent.name && child.parent.name.includes("RootNode")) {
+              steerParts.push(child);
+            }
+          }
+        });
+
+        if (steerParts.length > 0) {
+          // Steering wheel hub center in authentic LHD space: X=+0.493m, Y=+1.565m, Z=+0.363m
+          const wheelCenter = new THREE.Vector3(0.493, 1.565, 0.363);
+          const steeringPivot = new THREE.Group();
+          steeringPivot.name = "LexusSteeringPivot";
+          steeringPivot.position.copy(wheelCenter);
+          carPivot.add(steeringPivot);
+
+          // Update matrices before attaching to maintain exact world positions
+          carPivot.updateMatrixWorld(true);
+
+          steerParts.forEach((part) => {
+            steeringPivot.attach(part);
+          });
+
+          carPivot.userData.steeringPivot = steeringPivot;
+        }
+
+        scene.add(carPivot);
+        scene.userData.carPivot = carPivot;
+      }
+    }
+
     scene.userData.calibrated = true;
     npcsRef.current = npcs;
     foliageRef.current = foliage;
     return scene;
   }, [cityGltf, shadows]);
+
+  useEffect(() => {
+    if (primaryCityScene?.userData?.carPivot) {
+      onCarLoaded?.(primaryCityScene.userData.carPivot as THREE.Group);
+    }
+  }, [primaryCityScene, onCarLoaded]);
 
   // Async GPU shader pre-compilation: warms up WebGL pipelines in parallel without freezing frame loop
   useEffect(() => {

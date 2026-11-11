@@ -28,6 +28,12 @@ export interface PlayerStats {
   isSprinting: boolean;
   isGrounded: boolean;
   isBlocking: boolean;
+  isDriving?: boolean;
+  isNearCar?: boolean;
+  carSpeed?: number;
+  carGear?: "P" | "D" | "R";
+  carPosition?: [number, number, number];
+  isEngineStarting?: boolean;
 }
 
 export interface FirstPersonPlayerProps {
@@ -46,4 +52,5 @@ export interface FirstPersonPlayerProps {
   hitSoundPath?: string;
   missSoundPath?: string;
   interactReach?: number;
+  carPivotRef?: MutableRefObject<any>;
 }
