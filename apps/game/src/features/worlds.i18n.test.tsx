@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { applyLocale } from "../i18n";
-import type { GameLocale } from "../i18n/locales";
+import type { GameLocale } from "@scammaze/shared-types";
 import { HCMOverlay } from "./hochiminh/HCMOverlay";
 import { HCM_LANDMARKS, HCM_VIEW_PRESETS, type LandmarkInfo } from "./hochiminh/types";
 import { HueHUD } from "./hue/components/HueHUD";
