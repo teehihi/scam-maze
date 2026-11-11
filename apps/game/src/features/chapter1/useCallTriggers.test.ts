@@ -196,6 +196,19 @@ describe("useCallTriggers", () => {
     expect(ringCount(store, "call.scam-1")).toBe(1);
   });
 
+  it("starts every timer again from zero after a restart (store.replace to the initial state)", () => {
+    const { store } = startedSetup();
+    advance(50_000);
+    act(() => store.replace(createInitialState()));
+    advance(TICK);
+
+    dispatchOk(store, { type: "START_CHAPTER" });
+    advance(EXPLORATION_FALLBACK_MS - 2 * TICK);
+    expect(ringCount(store, "call.scam-1")).toBe(0);
+    advance(3 * TICK);
+    expect(ringCount(store, "call.scam-1")).toBe(1);
+  });
+
   it("leaves no timers after unmount", () => {
     const { store, unmount } = startedSetup();
     expect(vi.getTimerCount()).toBe(1);

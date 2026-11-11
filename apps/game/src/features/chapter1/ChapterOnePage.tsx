@@ -10,8 +10,8 @@
  * Requirements 4.8, 7.1, 8.3, 10.7, 10.8). The evidence journal and the decision panel are wired
  * here (task 10.3, Requirements 4.9, 11.6, 13.1): the decision panel opens from the journal and
  * from the phone home screen while it is offered. The ending transition and the debrief are wired
- * here (task 11.2, Requirements 1.7, 14.1, 14.2). The pause overlay still renders a temporary
- * panel until task 12.2.
+ * here (task 11.2, Requirements 1.7, 14.1, 14.2). Checkpoint saves, the pause menu, Restart and
+ * Replay are wired here (task 12.2, Requirements 15.12 to 15.14).
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -33,6 +33,7 @@ import {
 } from "../../game/narrative/selectors";
 import { createChapterStore, type ChapterStore } from "../../game/narrative/store";
 import type { ChapterState } from "../../game/narrative/types";
+import { createLocalStorageSaveSource, type SaveGameSource } from "../../game/saves/saveGame";
 import { usePlayerControls } from "../player";
 import { ChapterOneCanvas, type ChapterOnePlayerPose } from "./ChapterOneCanvas";
 import { EvidenceNotice } from "./hud/EvidenceNotice";
@@ -41,28 +42,41 @@ import { InteractionPrompt } from "./hud/InteractionPrompt";
 import { ObjectiveToast, type ObjectiveChangeKind } from "./hud/ObjectiveToast";
 import { ObjectiveTracker } from "./hud/ObjectiveTracker";
 import { ResumePrompt } from "./hud/ResumePrompt";
+import { SaveFailureNotice } from "./hud/SaveFailureNotice";
 import { interactionToAction } from "./interaction/interactionToAction";
 import { ChapterTitleCard } from "./intro/ChapterTitleCard";
 import { DebriefScreen } from "./debrief/DebriefScreen";
 import { DecisionPanel } from "./decision/DecisionPanel";
 import { DialoguePanel } from "./dialogue/DialoguePanel";
 import { EndingTransition } from "./ending/EndingTransition";
+import { focusDialogStart, topDialog, trapTabKey } from "./focusTrap";
 import { EvidenceJournal } from "./journal/EvidenceJournal";
 import { EMPTY_OVERLAYS, isOpen, pop, push, top, type Overlay, type OverlayKind, type OverlayStack } from "./overlays";
 import { InspectionPanel } from "./panels/InspectionPanel";
-import { PausePlaceholder } from "./panels/PlaceholderOverlays";
+import { PauseMenu } from "./pause/PauseMenu";
 import { CallScreen } from "./phone/CallScreen";
 import { IncomingCallScreen } from "./phone/IncomingCallScreen";
 import { PhoneOverlay } from "./phone/PhoneOverlay";
 import { UI } from "./theme";
 import { useCallTriggers } from "./useCallTriggers";
 import { useChapterState } from "./useChapterState";
+import { useCheckpointSaver } from "./useCheckpointSaver";
 
 export interface ChapterOnePageProps {
   session: ChapterSession;
   settings: GameSettings;
   onReturnToMenu: () => void;
+  /** Where Checkpoints are written. Defaults to this device's local storage. */
+  saveSource?: SaveGameSource;
 }
+
+/** Spawn pose for the canvas. Undefined fields mean the chapter spawn point. */
+interface SpawnPose {
+  position?: [number, number, number];
+  yaw?: number;
+}
+
+const DEFAULT_SPAWN: SpawnPose = Object.freeze({});
 
 /** Overlays that Escape never closes (Requirement 4.6). */
 const ESCAPE_LOCKED: ReadonlySet<OverlayKind> = new Set(["ending", "debrief"]);
@@ -136,9 +150,15 @@ function useHudNotices(store: ChapterStore) {
 
     return store.subscribe(() => {
       const state = store.getState();
-      // `replace` (restore or restart) can shorten the log; start counting again from there.
-      if (state.events.length < seenEvents) seenEvents = state.events.length;
-      if (state.discovered.length < seenEvidence) seenEvidence = state.discovered.length;
+      // `replace` (restart or replay) can shorten the log: drop the queued items from the old
+      // run and start counting again from there.
+      if (state.events.length < seenEvents || state.discovered.length < seenEvidence) {
+        seenEvents = Math.min(seenEvents, state.events.length);
+        seenEvidence = Math.min(seenEvidence, state.discovered.length);
+        setToasts([]);
+        setNotices([]);
+        setAnnouncement(null);
+      }
 
       const newToasts: ToastItem[] = [];
       for (const event of state.events.slice(seenEvents)) {
@@ -171,8 +191,17 @@ function useHudNotices(store: ChapterStore) {
   return { toast: toasts[0] ?? null, notice: notices[0] ?? null, announcement, dismissToast, dismissNotice };
 }
 
-export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, settings, onReturnToMenu }) => {
+export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
+  session,
+  settings,
+  onReturnToMenu,
+  saveSource: saveSourceProp,
+}) => {
   const chapter = getChapter(session.chapterId);
+
+  // Created once per mount; a passed source (for example in tests) takes precedence.
+  const [defaultSaveSource] = useState(() => createLocalStorageSaveSource());
+  const saveSource = saveSourceProp ?? defaultSaveSource;
 
   // Created once per mount: a fresh chapter or the state replayed by the loader.
   const [store] = useState(() => createChapterStore(session.restored?.state ?? createInitialState()));
@@ -182,12 +211,14 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
   );
 
   // Read once at mount and kept stable: a new array would re-create the player runtime.
-  // Undefined means the canvas uses the chapter spawn point.
-  const [spawnPosition] = useState<[number, number, number] | undefined>(() => {
+  // Restart and Replay reset it to the chapter spawn point and remount the canvas (`canvasKey`),
+  // because the player runtime keeps its position from mount.
+  const [spawn, setSpawn] = useState<SpawnPose>(() => {
     const pose = session.restored?.pose;
-    return pose ? [pose.position[0], pose.position[1], pose.position[2]] : undefined;
+    return pose ? { position: [pose.position[0], pose.position[1], pose.position[2]], yaw: pose.yaw } : DEFAULT_SPAWN;
   });
-  const [spawnYaw] = useState(() => session.restored?.pose?.yaw);
+  const [canvasKey, setCanvasKey] = useState(0);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   const status = useChapterState(store, (state) => state.status);
   const activeObjectives = useChapterState(store, selectActiveObjectives);
@@ -226,6 +257,11 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
 
   const poseGetterRef = useRef<(() => ChapterOnePlayerPose) | null>(null);
 
+  // Focus management (Requirements 17.2, 17.3): the element focused when each overlay opened,
+  // and the layer the overlays render into.
+  const overlayLayerRef = useRef<HTMLDivElement>(null);
+  const openersRef = useRef(new Map<OverlayKind, HTMLElement>());
+
   // Latest values for event handlers registered once.
   const focusedRef = useRef<InteractableId | null>(null);
   const inputEnabledRef = useRef(inputEnabled);
@@ -239,6 +275,18 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
 
   useCallTriggers(store, overlayOpen);
   const { toast, notice, announcement, dismissToast, dismissNotice } = useHudNotices(store);
+
+  // Requirement 15.14: a failed write shows a notice; gameplay continues without saving.
+  const handleWriteFailure = useCallback(() => setSaveFailed(true), []);
+  const dismissSaveFailure = useCallback(() => setSaveFailed(false), []);
+  const { saveNow } = useCheckpointSaver({
+    store,
+    saveSource,
+    poseGetterRef,
+    chapterId: session.chapterId,
+    sceneId: session.sceneId,
+    onWriteFailure: handleWriteFailure,
+  });
 
   // --- Overlay stack -------------------------------------------------------------------------
 
@@ -257,6 +305,10 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
   const openOverlay = useCallback(
     (overlay: Overlay) => {
       if (overlay.kind === "journal") setJournalSeen(store.getState().discovered.length);
+      // Remember where focus was, so closing this overlay can return it there (Requirement 17.3).
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active !== document.body) openersRef.current.set(overlay.kind, active);
+      else openersRef.current.delete(overlay.kind);
       if (overlay.kind === "phone" && !isOpen(overlaysRef.current, "phone")) {
         store.dispatch({ type: "OPEN_PHONE" });
       }
@@ -384,6 +436,45 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [canClose, closeTop, openOverlay, store, toggleOverlay]);
 
+  // Tab and Shift+Tab stay inside the top-most overlay while one is open (Requirement 17.2).
+  useEffect(() => {
+    const handleTab = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || overlaysRef.current.length === 0) return;
+      const dialog = topDialog(overlayLayerRef.current);
+      if (dialog) trapTabKey(dialog, event);
+    };
+    window.addEventListener("keydown", handleTab);
+    return () => window.removeEventListener("keydown", handleTab);
+  }, []);
+
+  // Requirement 17.3: when the top-most overlay closes, focus returns to the element that opened
+  // it if that element is still in the overlay now on top; otherwise to the start of that
+  // overlay, or to the game view once no overlay is left. New overlays (for example the ending
+  // replacing the stack) and the title card move focus themselves, so they are skipped here.
+  const previousOverlaysRef = useRef(overlays);
+  useEffect(() => {
+    const previous = previousOverlaysRef.current;
+    previousOverlaysRef.current = overlays;
+    const closed = top(previous);
+    if (!closed || isOpen(overlays, closed.kind)) return;
+
+    const opener = openersRef.current.get(closed.kind) ?? null;
+    for (const entry of previous) {
+      if (!isOpen(overlays, entry.kind)) openersRef.current.delete(entry.kind);
+    }
+    if (titleCardOpen || overlays.some((entry) => !isOpen(previous, entry.kind))) return;
+
+    const dialog = topDialog(overlayLayerRef.current);
+    if (dialog) {
+      if (opener?.isConnected && dialog.contains(opener)) opener.focus({ preventScroll: true });
+      else focusDialogStart(dialog);
+      return;
+    }
+    // The HUD buttons are not used as a target: a focused HUD button would also react to
+    // Space (jump) and Enter during play.
+    gameViewRef.current?.focus({ preventScroll: true });
+  }, [overlays, titleCardOpen]);
+
   // --- Title card ----------------------------------------------------------------------------
 
   const handleBegin = useCallback(() => {
@@ -478,17 +569,34 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
   /** Continue on the ending transition: FINISH_CHAPTER; the chapter-end effect shows the debrief. */
   const handleContinueToDebrief = useCallback(() => store.dispatch({ type: "FINISH_CHAPTER" }), [store]);
 
+  // --- Restart, replay and save ---------------------------------------------------------------
+
   /**
-   * Replay from the debrief: a fresh chapter state, no overlays, and the title card in Begin mode.
-   * TODO(task 12.2): clear the saved checkpoint and confirm before replaying.
+   * Restart (pause menu, after confirmation) and Replay (debrief), Requirement 15.13: delete the
+   * chapter progress, start from the initial Chapter_State with no overlays and the title card in
+   * Begin mode, and put the player back at the chapter spawn point by remounting the canvas. The
+   * Call_Trigger timers reset because the state is back to `not-started`.
    */
-  const handleReplay = useCallback(() => {
+  const restartChapter = useCallback(() => {
+    saveSource.clear?.();
     store.replace(createInitialState());
     updateOverlays(() => EMPTY_OVERLAYS);
+    focusedRef.current = null;
+    setFocusedId(null);
     setJournalSeen(0);
+    setSpawn(DEFAULT_SPAWN);
+    setCanvasKey((key) => key + 1);
+    // The remounted canvas reports readiness again; Begin waits for it.
+    setSceneReady(false);
     setTitleMode("begin");
     setTitleCardOpen(true);
-  }, [store, updateOverlays]);
+  }, [saveSource, store, updateOverlays]);
+
+  /** Writes a Checkpoint with the current pose, then leaves the chapter. */
+  const handleSaveAndReturn = useCallback(() => {
+    saveNow();
+    onReturnToMenu();
+  }, [onReturnToMenu, saveNow]);
 
   // Requirement 4.5: a click on the game view while the resume prompt shows locks the pointer.
   const showResume = inputEnabled && !isLocked;
@@ -542,7 +650,15 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
         );
       }
       case "pause":
-        return <PausePlaceholder key="pause" onResume={closeTop} onReturnToMenu={onReturnToMenu} />;
+        return (
+          <PauseMenu
+            key="pause"
+            chapterNumber={chapter?.number ?? session.chapterNumber}
+            onResume={closeTop}
+            onRestart={restartChapter}
+            onSaveAndReturn={handleSaveAndReturn}
+          />
+        );
       case "phone":
         return (
           <PhoneOverlay
@@ -607,7 +723,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
       case "debrief":
         if (!debriefView) return null;
         return (
-          <DebriefScreen key="debrief" view={debriefView} onReplay={handleReplay} onReturnToMenu={onReturnToMenu} />
+          <DebriefScreen key="debrief" view={debriefView} onReplay={restartChapter} onReturnToMenu={onReturnToMenu} />
         );
     }
   };
@@ -617,16 +733,23 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#171521] select-none">
-      <div ref={gameViewRef} className="absolute inset-0" onClick={handleGameViewClick}>
+      <div
+        ref={gameViewRef}
+        tabIndex={-1}
+        data-testid="chapter-game-view"
+        className="absolute inset-0 outline-none"
+        onClick={handleGameViewClick}
+      >
         <ChapterOneCanvas
+          key={canvasKey}
           settings={settings}
           enabled={inputEnabled}
           focusedId={inputEnabled ? focusedId : null}
           onFocusChange={handleFocusChange}
           onInteract={handleInteract}
           onSceneReady={handleSceneReady}
-          spawnPosition={spawnPosition}
-          spawnYaw={spawnYaw}
+          spawnPosition={spawn.position}
+          spawnYaw={spawn.yaw}
           consumeMovement={consumeMovement}
           consumePunchTrigger={consumePunchTrigger}
           consumeInspectTrigger={consumeInspectTrigger}
@@ -667,7 +790,17 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({ session, setting
         </>
       )}
 
-      {overlays.length > 0 && <div onMouseDown={stopMouseDown}>{overlays.map(renderOverlay)}</div>}
+      {overlays.length > 0 && (
+        <div ref={overlayLayerRef} onMouseDown={stopMouseDown}>
+          {overlays.map(renderOverlay)}
+        </div>
+      )}
+
+      {saveFailed && (
+        <div className="absolute right-4 top-4 z-50" onMouseDown={stopMouseDown}>
+          <SaveFailureNotice onDismiss={dismissSaveFailure} />
+        </div>
+      )}
 
       {titleCardOpen && (
         <ChapterTitleCard

@@ -127,7 +127,7 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
               type="button"
               onClick={onClose}
               aria-label={PHONE_OVERLAY_TEXT.close}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-[#a9a4c4] transition-colors hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-[#a9a4c4] motion-safe:transition-colors hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
             >
               <X className="h-4 w-4" aria-hidden="true" />
               <span aria-hidden="true">{PHONE_OVERLAY_TEXT.closeLabel}</span>

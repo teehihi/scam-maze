@@ -22,7 +22,7 @@ export const PHONE_HOME_TEXT = {
 } as const;
 
 const APP_BUTTON =
-  "flex w-full items-center gap-3 rounded-xl border border-[#38344f] bg-[#171521] px-4 py-3 text-left text-sm font-medium text-[#f7f5ff] transition-colors hover:border-[#7654d6] hover:bg-[#26233a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer";
+  "flex w-full items-center gap-3 rounded-xl border border-[#38344f] bg-[#171521] px-4 py-3 text-left text-sm font-medium text-[#f7f5ff] motion-safe:transition-colors hover:border-[#7654d6] hover:bg-[#26233a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer";
 
 const APP_ICON = "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#7654d6] text-white";
 

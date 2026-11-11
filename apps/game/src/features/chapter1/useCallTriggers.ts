@@ -81,6 +81,9 @@ export function stepCallTriggers(
   deltaMs: number,
   allowed: boolean,
 ): { timers: CallTriggerTimers; ring: CallTriggerRing | null } {
+  // Before START_CHAPTER, including after a restart or replay (`store.replace` back to the
+  // initial state): every timer starts again from zero.
+  if (state.status === "not-started") return { timers: INITIAL_CALL_TRIGGER_TIMERS, ring: null };
   const add = allowed && state.status === "playing" ? Math.max(0, deltaMs) : 0;
   const scam1 = findRecord(state, "call.scam-1");
   const scam1Rang = scam1 !== undefined;

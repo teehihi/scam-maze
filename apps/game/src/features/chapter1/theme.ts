@@ -38,13 +38,13 @@ export const UI = {
   textPositive: "text-[#4fd1b5]",
   textMuted: "text-[#a9a4c4]",
   buttonPrimary:
-    "flex items-center justify-center gap-2 rounded-xl bg-[#7654d6] px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#8b6be8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+    "flex items-center justify-center gap-2 rounded-xl bg-[#7654d6] px-5 py-2.5 text-sm font-bold text-white motion-safe:transition-colors hover:bg-[#8b6be8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
   buttonSecondary:
-    "flex items-center justify-center gap-2 rounded-xl border border-[#38344f] bg-[#171521] px-4 py-2.5 text-sm font-medium text-[#f7f5ff] transition-colors hover:border-[#7654d6] hover:bg-[#26233a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+    "flex items-center justify-center gap-2 rounded-xl border border-[#38344f] bg-[#171521] px-4 py-2.5 text-sm font-medium text-[#f7f5ff] motion-safe:transition-colors hover:border-[#7654d6] hover:bg-[#26233a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
   /** Accept-style call action (Teal). */
   buttonAccept:
-    "flex items-center justify-center gap-2 rounded-xl bg-[#4fd1b5] px-5 py-2.5 text-sm font-bold text-[#171521] transition-colors hover:bg-[#6ee0c7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+    "flex items-center justify-center gap-2 rounded-xl bg-[#4fd1b5] px-5 py-2.5 text-sm font-bold text-[#171521] motion-safe:transition-colors hover:bg-[#6ee0c7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
   /** Decline or hang-up style action (Amber). */
   buttonWarning:
-    "flex items-center justify-center gap-2 rounded-xl bg-[#f2b24b] px-5 py-2.5 text-sm font-bold text-[#171521] transition-colors hover:bg-[#f5c36f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+    "flex items-center justify-center gap-2 rounded-xl bg-[#f2b24b] px-5 py-2.5 text-sm font-bold text-[#171521] motion-safe:transition-colors hover:bg-[#f5c36f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
 } as const;

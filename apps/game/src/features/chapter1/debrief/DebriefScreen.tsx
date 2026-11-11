@@ -74,6 +74,9 @@ export const DebriefScreen: React.FC<DebriefScreenProps> = ({ view, onReplay, on
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="debrief-heading"
       data-testid="debrief-screen"
       data-outcome={outcome.id}
       className="fixed inset-0 z-50 overflow-y-auto bg-[#171521] p-4 text-[#f7f5ff] sm:p-8"

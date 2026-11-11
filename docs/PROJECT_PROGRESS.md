@@ -125,6 +125,36 @@ Resolved:
 
 ## Task History
 
+### 2026-11-11 — Commit Chapter 1 checkpoints, pause menu and polish (spec task 14.5)
+
+- **Objective:** Commit the uncommitted work from spec tasks 12.x and 14.1 to 14.4.
+- **Completed work:** One commit with the checkpoint saver (`useCheckpointSaver.ts`), the save
+  failure notice, the pause menu, the focus trap, restore and saver tests, the accessibility
+  test, reduced-motion and focus edits to the phone, ending and debrief screens, the menu music
+  fade in `App.tsx`, the prologue status callout, and the removal of `PlaceholderOverlays.tsx`.
+  Chapter 1 gameplay is still not enabled from the menu (task 15.1).
+- **Validation:** `pnpm --filter @scammaze/game test` (46 files, 380 tests passed);
+  `pnpm typecheck` passed. `pnpm build` was not run.
+- **Deviations:** Commit message differs slightly from the one in `tasks.md`. **Follow-up:** 15.1.
+
+### 2026-11-11 — Chapter 1 accessibility and icon tests (spec task 14.4)
+
+- **Objective:** Cover Requirements 16.6, 17.1 to 17.5 and 18.1 with automated tests for the
+  Chapter_Page.
+- **Completed work:** Added `accessibility.test.tsx` (10 tests, canvas stubbed): focus moves into
+  the inspection panel, pause menu, phone, journal and decision panel and returns to the game view
+  or to the opener (Decide in the journal); Tab and Shift+Tab wrap inside the top dialog; every
+  dialog is `aria-modal` and named; every button has an accessible name; every rendered lucide
+  icon is `aria-hidden`; the objective tracker is a polite live region; reduced motion removes the
+  toast fade, the call vibration and the ending fade; a source scan finds no emoji under
+  `features/chapter1/`. No product code bug was found, so no source file changed.
+- **Files:** created `apps/game/src/features/chapter1/accessibility.test.tsx`; modified this file.
+- **Validation:** `pnpm --filter @scammaze/game test -- src/features/chapter1` (10 files, 71 tests
+  passed); `pnpm typecheck` passed. `pnpm build` was not run for this test-only change.
+- **Limitations:** jsdom does not move focus on Tab, so the trap is tested at the wrap points
+  only. The face-to-face dialogue overlay is not opened in these tests.
+- **Deviations:** None. **Follow-up:** task 14.5 (commit).
+
 ### 2026-11-11 — Deep Resource Disposal & Background Tab Freeze Optimization
 
 - **Objective:** Deeply optimize memory and GPU VRAM disposal when exiting the 3D map (`/hue`, returning to main menu, or closing page) and freeze animation loops when tabbed out ("out web") to eliminate lingering browser/system lag:

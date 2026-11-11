@@ -1,6 +1,6 @@
 import React from "react";
 import { ModalDialog } from "../../components/ui/ModalDialog";
-import { Play, ArrowLeft, Smartphone, MapPin, AlertCircle } from "lucide-react";
+import { Play, ArrowLeft, Keyboard, Clock, MapPin, AlertCircle } from "lucide-react";
 
 interface IntroPrologueModalProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export const IntroPrologueModal: React.FC<IntroPrologueModalProps> = ({
         {/* Narrative Banner */}
         <div className="relative p-5 rounded-2xl bg-gradient-to-br from-[#241f3b] to-[#161424] border border-[#483d6a] overflow-hidden">
           <div className="flex items-center gap-2 text-xs font-mono text-[#b9a5f5] mb-2 uppercase tracking-wider">
-            <MapPin className="w-3.5 h-3.5 text-[#f2b24b]" /> District 4 · Morning
+            <MapPin className="w-3.5 h-3.5 text-[#f2b24b]" aria-hidden="true" /> District 4 · Morning
           </div>
           <h3 className="text-lg font-bold text-white mb-2">
             The notification arrives before breakfast.
@@ -36,7 +36,7 @@ export const IntroPrologueModal: React.FC<IntroPrologueModalProps> = ({
             You poured yourself a fresh cup of coffee when your smartphone buzzes with a high-priority alert:
           </p>
           <div className="my-3 p-3 rounded-xl bg-black/40 border border-[#3b3452] font-mono text-xs text-amber-200/90 flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <span className="font-bold text-white block text-[11px] mb-0.5">
                 URGENT BANK NOTIFICATION
@@ -50,22 +50,30 @@ export const IntroPrologueModal: React.FC<IntroPrologueModalProps> = ({
           </p>
         </div>
 
-        {/* Status Callout */}
-        <div className="p-3.5 rounded-xl bg-[#1a1727] border border-[#352f4a] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Smartphone className="w-5 h-5 text-[#b9a5f5]" />
-            <div>
-              <div className="text-xs font-semibold text-white">
-                Chapter 1 Gameplay Controller & Scenario Engine
-              </div>
-              <div className="text-[11px] text-zinc-400">
-                Scheduled for Milestone: First-Person Exploration & Digital Phone UI.
+        {/* How to play */}
+        <div className="p-3.5 rounded-xl bg-[#1a1727] border border-[#352f4a]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Keyboard className="w-5 h-5 text-[#b9a5f5] shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <h4 className="text-xs font-semibold text-white">How to play</h4>
+                <ul className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-zinc-300">
+                  <li>Move with W, A, S and D.</li>
+                  <li>Look around with the mouse.</li>
+                  <li>Press E to interact.</li>
+                  <li>Press P to open the phone.</li>
+                  <li>Press J to open the evidence journal.</li>
+                  <li>Press Esc to pause.</li>
+                </ul>
+                <p className="mt-2 text-[11px] text-zinc-400">
+                  Everything in this chapter is a simulation.
+                </p>
               </div>
             </div>
+            <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase px-2.5 py-1 rounded bg-[#7654d6]/20 border border-[#7654d6]/40 text-[#e9e2ff]">
+              <Clock className="w-3 h-3" aria-hidden="true" /> Playable · about 8 to 15 minutes
+            </span>
           </div>
-          <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-1 rounded bg-[#7654d6]/20 border border-[#7654d6]/40 text-[#e9e2ff]">
-            In Progress
-          </span>
         </div>
 
         {/* Actions */}
@@ -75,7 +83,7 @@ export const IntroPrologueModal: React.FC<IntroPrologueModalProps> = ({
             onClick={onClose}
             className="py-2.5 px-4 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-[#1a1827] hover:bg-[#25223a] border border-[#38334f] transition-colors flex items-center gap-2 cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Return to Menu
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Return to Menu
           </button>
           <button
             type="button"

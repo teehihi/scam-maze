@@ -166,6 +166,10 @@ export const App: React.FC = () => {
   const hoverBufferRef = useRef<AudioBuffer | null>(null);
   const musicFadedInRef = useRef<boolean>(false);
   const ambientFadedInRef = useRef<boolean>(false);
+  // Menu music is faded out on chapter screens; the street ambient keeps playing.
+  const onMenuScreen = screen.kind === "menu";
+  const onMenuScreenRef = useRef(onMenuScreen);
+  onMenuScreenRef.current = onMenuScreen;
 
   const playHoverSound = useCallback(() => {
     const ctx = audioContextRef.current;
@@ -206,7 +210,10 @@ export const App: React.FC = () => {
       musicSourceRef.current = source;
 
       // Smooth fade-in from loading screen (ramp up over 3.0s)
-      const targetGain = settings.soundEnabled ? Math.max(0, Math.min(1, settings.musicVolume * 0.28)) : 0;
+      const targetGain =
+        settings.soundEnabled && onMenuScreenRef.current
+          ? Math.max(0, Math.min(1, settings.musicVolume * 0.28))
+          : 0;
       gainNode.gain.cancelScheduledValues(ctx.currentTime);
       gainNode.gain.setValueAtTime(0.0001, ctx.currentTime);
       gainNode.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + 3.0);
@@ -413,9 +420,11 @@ export const App: React.FC = () => {
     masterGain.gain.setTargetAtTime(targetMaster, ctx.currentTime, 0.06);
 
     // If BGM already completed initial fade-in, follow music volume changes reactively
+    // Off the menu screen (chapter loading or chapter) the music fades to 0 over about 1 s.
     if (musicFadedInRef.current && route === "menu") {
-      const targetMusic = settings.soundEnabled ? Math.max(0, Math.min(1, settings.musicVolume * 0.28)) : 0;
-      musicGain.gain.setTargetAtTime(targetMusic, ctx.currentTime, 0.06);
+      const targetMusic =
+        settings.soundEnabled && onMenuScreen ? Math.max(0, Math.min(1, settings.musicVolume * 0.28)) : 0;
+      musicGain.gain.setTargetAtTime(targetMusic, ctx.currentTime, onMenuScreen ? 0.06 : 0.3);
     }
 
     if (sfxGain) {
@@ -427,7 +436,7 @@ export const App: React.FC = () => {
       startMusicSource();
       startAmbientSource();
     }
-  }, [route, settings.soundEnabled, settings.musicVolume, settings.sfxVolume, startMusicSource, startAmbientSource]);
+  }, [route, onMenuScreen, settings.soundEnabled, settings.musicVolume, settings.sfxVolume, startMusicSource, startAmbientSource]);
 
   // Global keyboard shortcuts (e.g. 'M' for mute when in menu)
   useEffect(() => {

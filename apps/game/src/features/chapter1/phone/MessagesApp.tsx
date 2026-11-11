@@ -25,7 +25,7 @@ export const MESSAGES_APP_TEXT = {
 } as const;
 
 const LIST_BUTTON =
-  "flex w-full flex-col gap-1 rounded-lg border border-[#38344f] bg-[#171521] p-3 text-left transition-colors hover:border-[#7654d6] hover:bg-[#26233a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer";
+  "flex w-full flex-col gap-1 rounded-lg border border-[#38344f] bg-[#171521] p-3 text-left motion-safe:transition-colors hover:border-[#7654d6] hover:bg-[#26233a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer";
 
 export const MessagesApp: React.FC<MessagesAppProps> = ({ messages, onInspectEvidence, onBack }) => {
   const [openId, setOpenId] = useState<MessageId | null>(null);

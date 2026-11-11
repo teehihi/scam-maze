@@ -60,6 +60,8 @@ export const EndingTransition: React.FC<EndingTransitionProps> = ({ outcome, onC
 
   return (
     <section
+      role="dialog"
+      aria-modal="true"
       aria-labelledby="ending-transition-heading"
       data-testid="ending-transition"
       data-outcome={outcome.id}

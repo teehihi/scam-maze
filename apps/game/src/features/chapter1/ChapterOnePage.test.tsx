@@ -19,6 +19,7 @@ import { CHAPTER_1_INTERACTABLES } from "../../game/narrative/chapter1/interacta
 import { CHAPTER_1_SCENARIO } from "../../game/narrative/chapter1/scenario";
 import type { ChapterStore } from "../../game/narrative/store";
 import type { CoreAction } from "../../game/narrative/types";
+import type { SaveGameSource, SaveReadResult, SavedGameV2 } from "../../game/saves/saveGame";
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
 
@@ -88,6 +89,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  window.localStorage.clear();
   // @ts-expect-error remove the test doubles so other suites see jsdom's defaults
   delete document.pointerLockElement;
   // @ts-expect-error see above
@@ -115,11 +117,36 @@ function dispatched(type: CoreAction["type"]): CoreAction[] {
     .filter((action) => action.type === type);
 }
 
-function renderPage() {
+/** In-memory save source; `writable = false` makes every write fail like blocked storage. */
+function createMemorySaveSource(writable = true) {
+  let saved: SavedGameV2 | null = null;
+  return {
+    read: vi.fn((): SaveReadResult => (saved ? { status: "valid", save: saved } : { status: "none" })),
+    write: vi.fn((save: SavedGameV2) => {
+      if (!writable) return false;
+      saved = save;
+      return true;
+    }),
+    clear: vi.fn(() => {
+      saved = null;
+      return true;
+    }),
+  } satisfies SaveGameSource;
+}
+
+/** Without a `saveSource`, the page uses jsdom's localStorage, which `afterEach` clears. */
+function renderPage(saveSource?: SaveGameSource) {
   const chapter = getChapter("chapter-1");
   if (!chapter) throw new Error("chapter-1 is not registered");
   const onReturnToMenu = vi.fn();
-  render(<ChapterOnePage session={createNewChapterSession(chapter)} settings={SETTINGS} onReturnToMenu={onReturnToMenu} />);
+  render(
+    <ChapterOnePage
+      session={createNewChapterSession(chapter)}
+      settings={SETTINGS}
+      onReturnToMenu={onReturnToMenu}
+      saveSource={saveSource}
+    />,
+  );
   return { onReturnToMenu };
 }
 
@@ -248,8 +275,49 @@ describe("ChapterOnePage", () => {
     expect(queryDialog("Paused")).toBeNull();
 
     pressEscape();
-    fireEvent.click(screen.getByRole("button", { name: "Return to menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and return to menu" }));
     expect(onReturnToMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it("pause menu: Save and return writes a Checkpoint; Restart asks first, then clears the save", () => {
+    const saveSource = createMemorySaveSource();
+    const { onReturnToMenu } = renderPage(saveSource);
+    beginChapter();
+    const writesAfterStart = saveSource.write.mock.calls.length;
+
+    pressEscape();
+    fireEvent.click(screen.getByRole("button", { name: "Save and return to menu" }));
+    expect(saveSource.write.mock.calls.length).toBe(writesAfterStart + 1);
+    expect(onReturnToMenu).toHaveBeenCalledTimes(1);
+
+    // Restart: the first click only asks; Cancel goes back to the menu.
+    fireEvent.click(screen.getByRole("button", { name: "Restart chapter" }));
+    expect(screen.getByText("Restart Chapter 1? Your progress in this chapter will be lost.")).not.toBeNull();
+    expect(saveSource.clear).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Resume" })).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Restart chapter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restart" }));
+    expect(saveSource.clear).toHaveBeenCalledTimes(1);
+    expect(store().getState().status).toBe("not-started");
+    expect(queryDialog("Paused")).toBeNull();
+    // The title card is back in Begin mode and waits for the remounted canvas.
+    const begin = screen.getByRole<HTMLButtonElement>("button", { name: "Begin" });
+    expect(begin.disabled).toBe(true);
+    expect(canvas().spawnPosition).toBeUndefined();
+  });
+
+  it("shows the save failure notice when a write fails, and the player can dismiss it", () => {
+    const saveSource = createMemorySaveSource(false);
+    renderPage(saveSource);
+    beginChapter();
+
+    const notice = screen.getByTestId("save-failure-notice");
+    expect(notice.getAttribute("role")).toBe("status");
+    expect(notice.textContent).toContain("Progress cannot be saved on this device.");
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss notice" }));
+    expect(screen.queryByTestId("save-failure-notice")).toBeNull();
   });
 
   it("ignores Escape, P and J while the title card is open", () => {
