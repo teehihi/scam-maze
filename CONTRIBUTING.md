@@ -101,9 +101,61 @@ Propose a scenario with the **Scenario proposal** issue template first.
 - **No emoji as icons**, anywhere. Use an installed icon library (preferred:
   `lucide-react`), a PNG/SVG asset chosen by the developer, or a hand-written
   SVG component. Details: [`.kiro/steering/icons.md`](.kiro/steering/icons.md).
-- **English only** for UI copy, docs, comments, commits and PRs.
-  Multi-language support comes later; do not add other languages or an i18n
-  library yet. Details: [`.kiro/steering/language.md`](.kiro/steering/language.md).
+- **English** for docs, code, comments, identifiers, commits and PRs.
+  The game (`apps/game`) ships in English and Vietnamese. Its user-facing text
+  lives in locale dictionaries under `apps/game/src/i18n/`, with English as the
+  source and the fallback. The landing page (`apps/landing`) stays English-only.
+  Details: [`.kiro/steering/language.md`](.kiro/steering/language.md).
+
+## Adding a language
+
+The game uses i18next with dictionaries bundled in the app; no backend loads
+translations. English (`en`) is the source text and the fallback for any missing
+key. Translation changes display text only: it never changes IDs, game state,
+evidence, decisions, outcomes or saves. Do not translate identifiers, and do not
+put language checks in game logic.
+
+To add a language (the example uses a locale code `xx`):
+
+1. **Register the locale.**
+   - Add `'xx'` to the `GameLocale` type in `packages/shared-types/src/index.ts`.
+   - Add `"xx"` to `SUPPORTED_LOCALES` in `apps/game/src/i18n/locales.ts`, and add
+     its label to `LOCALE_LABELS`. Write the label in the language itself (for
+     example `vi: "Tiếng Việt"`); labels are not translated.
+2. **Add the UI dictionaries.**
+   - Copy `apps/game/src/i18n/locales/en/` to `apps/game/src/i18n/locales/xx/`,
+     keeping the same file names, including the area files in `chapter1/` and
+     `worlds/`.
+   - Type each dictionary with `LocaleShape<typeof en>` from
+     `apps/game/src/i18n/types.ts`, as the `vi` files do. TypeScript then reports
+     missing or extra keys.
+   - Translate the text. Keep every `{{variable}}` unchanged, and add the plural
+     forms (`_one`, `_other`, and so on) that the language needs.
+   - Import the dictionaries in `apps/game/src/i18n/resources.ts`, add an
+     `xxResources` object for every namespace in `NAMESPACES`, and add it to
+     `resources`.
+3. **Add the narrative overlay.** Chapter text (scenario, dialogue, evidence,
+   phone content, endings) comes from a narrative overlay, not from the
+   dictionaries.
+   - Create `apps/game/src/i18n/narrative/chapter1.xx.ts`, with one part per area
+     in `apps/game/src/i18n/narrative/chapter1.xx/`, following
+     `chapter1.vi.ts`. The parts must use disjoint keys.
+   - Register the overlay for the locale in `NARRATIVE_OVERLAYS` in
+     `apps/game/src/i18n/narrative.ts`.
+4. **Run and extend the tests.**
+   - Extend the key consistency test (`apps/game/src/i18n/resources.test.ts`)
+     and the overlay test (`apps/game/src/i18n/narrative.test.ts`) to cover the
+     new locale. They check that keys, plural keys and `{{variables}}` match
+     English, that no text is empty, and that the overlay covers every
+     narrative text key.
+   - Write a content lint for the new language, similar to
+     `apps/game/src/i18n/content.vi.test.ts`. It must enforce the content
+     rules: no emoji, never call a URL, message or site "safe", keep fictional
+     brand names, character names, phone numbers, domains and numbers
+     unchanged.
+   - Run `pnpm typecheck`, `pnpm test` and `pnpm build`.
+5. **Ask for a native-speaker review** of the new text before merging, and
+   mention it in the pull request.
 
 ## License
 

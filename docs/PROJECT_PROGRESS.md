@@ -14,6 +14,11 @@
   - Chapter 1 "The Urgent Call": playable vertical slice from New Game and Continue on branch
     `feat/chapter-01-playable` (not merged, not deployed). Covered by automated tests only; not
     yet played through in a browser.
+  - Game localization (English and Vietnamese): `i18next` locale module, persisted Language
+    setting and a Vietnamese Chapter 1 narrative overlay on branch `feat/game-i18n-en-vi`
+    (built on `feat/chapter-01-playable`, not merged). `pnpm typecheck`, `pnpm test` and
+    `pnpm build` pass after the test-file type fixes in commit `5b1c785` (see the task history
+    entry of 2026-11-12). Not yet checked in a browser.
   - Shared contracts (`packages/shared-types`): pure TypeScript types.
 - **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
 - **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
@@ -22,7 +27,7 @@
 - **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
   ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
-- **Last updated:** 2026-11-11
+- **Last updated:** 2026-11-12
 
 ## Completed
 
@@ -55,6 +60,14 @@ Verified against merged pull requests on GitHub and local workspace builds.
 
 ## In Progress
 
+- [ ] Game localization, English and Vietnamese (spec `game-i18n-en-vi`, branch
+      `feat/game-i18n-en-vi`). Code, translations and tests are committed in 9 commits (the
+      cross-cutting tests of task 10.3 in `5b1c785`, with the two test-file type fixes).
+      `pnpm typecheck`, `pnpm test` (62 files, 585 tests) and `pnpm build` pass. The
+      documentation is committed in a tenth commit (task 12.6). Still open: a browser check of
+      the language switch, and a
+      native-speaker review of all Vietnamese text. The pull request depends on the Chapter 1
+      pull request.
 - [ ] Chapter 1 "The Urgent Call" documentation commit (spec task 16.5). Gameplay document,
       architecture overview update and the quality gate record (task 16.4: 48 files, 392 tests,
       typecheck and build passed) are done but not committed.
@@ -78,6 +91,10 @@ version on branch `feat/chapter-01-playable`.
 - [ ] Later chapter "The Missing Parcel" (positioning section 11; moved after Chapter 1 "The
       Urgent Call" by owner decision 2026-11-10/11).
 - [ ] Touch controls for the chapter page.
+- [ ] Game localization follow-ups: native-speaker review of all Vietnamese text; translate the
+      remaining English strings (`ModalDialog` "Close dialog", `MenuButton` "Unavailable",
+      `GameCanvas` WebGL error messages); add accessible names to the Ho Chi Minh City close
+      buttons; update the key table in the `game-i18n-en-vi` design.
 - [ ] Reduce the game JS bundle below the 1,500 kB warning limit (code-split the chapter page).
 - [ ] Bounded AI Scam Actor with authored fallback and AI on/off toggle (after provider approval).
 - [ ] Phase D — Usability sessions with Vietnamese and international participants; polish.
@@ -98,6 +115,8 @@ version on branch `feat/chapter-01-playable`.
 - [ ] Approve the MVP vertical slice details (positioning section 11.1) and chapter content.
 - [ ] Phone-centred fallback mode for devices that cannot run the 3D world.
 - [ ] Update the live landing page copy to the 3D direction.
+- [ ] Who reviews the Vietnamese game text as a native speaker, and when.
+- [ ] Whether and when to localize the landing app (English-only until requested).
 - [ ] Master plan co-author (SaiCT) to review the 8 Nov 2026 amendments.
 - [ ] Select database technology (`DATABASE_DECISION = PENDING`; recommendation in
       [database strategy](architecture/DATABASE_STRATEGY.md#5-recommendation-not-an-approved-decision)).
@@ -140,10 +159,143 @@ Resolved:
   Chapter 1).
 - The main menu canvas stays mounted (paused) under the Chapter 1 page, so two WebGL contexts
   exist at once; memory and GPU cost not measured.
-- The prologue banner location "District 4 · Morning" is country-specific, against the
-  `audience.md` rule for core content.
+- The prologue banner location "District 4 · Morning" (Vietnamese "Quận 4 · Buổi sáng") is
+  country-specific, against the `audience.md` rule for core content.
+- On branch `feat/game-i18n-en-vi` the game JS chunk is 1,905.88 kB (gzip 541.91 kB), over the
+  1,500 kB Vite warning limit.
+- The game localization (branch `feat/game-i18n-en-vi`) has not been checked in a browser or
+  with a screen reader, and its Vietnamese text has not had a native-speaker review.
 
 ## Task History
+
+### 2026-11-12 — Game localization (English and Vietnamese) (spec `game-i18n-en-vi`, task 12.5)
+
+- **Objective:** Let players switch the game (`apps/game`) between English and Vietnamese in
+  Settings, without a reload, with English as the source and fallback. Chapter 1 narrative text
+  gets a Vietnamese display-only overlay; the deterministic core, saves and outcomes do not
+  depend on the UI language.
+- **Completed work:**
+  1. *Dependencies:* `i18next` 27.1.1 and `react-i18next` 18.0.1 added to `apps/game`.
+     Justification: the game had no i18n library. Both are initialized synchronously with
+     bundled resources (`initAsync: false`), with no HTTP backend, no language detector and no
+     Suspense (`react.useSuspense: false`), so the first frame already shows the stored
+     language and the game still works offline. `react-i18next` re-renders components when the
+     language changes, which the runtime switch needs. Peer ranges checked against the
+     installed packages: `i18next` wants `typescript ^5 || ^6 || ^7` (installed 5.9.3);
+     `react-i18next` wants `i18next >= 27.0.1`, `react >= 18.0.0` (installed 19.3.1),
+     `@types/react *` and the same TypeScript range.
+  2. *Locale module (`apps/game/src/i18n/`):* `SUPPORTED_LOCALES` (`en`, `vi`), `initI18n`,
+     `applyLocale` (also sets `<html lang>`), cached `Intl` formatters (`formatNumber`,
+     `formatPercent`, `formatDate`), `useGameLocale`, and namespaced dictionaries in
+     `locales/{en,vi}/`. Every `vi` file is typed against its `en` file (`LocaleShape`).
+  3. *Typed `t` (task 1.3):* `src/i18n/i18next.d.ts` augments `CustomTypeOptions` with
+     `defaultNS: "common"`, `resources: EnResources` and `returnNull: false`, so keys are
+     checked against the English dictionaries. The full augmentation was kept; the
+     resources-only fallback described in task 1.3 was not needed.
+  4. *Language setting:* `GameLocale` and `GameSettings.language` in `packages/shared-types`;
+     `app/settingsStorage.ts` validates only `language` and keeps the legacy merge for the other
+     fields; invalid or missing values give English; a failing storage write still switches the
+     language. Settings has a Language radio group ("English", "Tiếng Việt") with the lucide
+     `Languages` icon.
+  5. *Narrative localization:* pure `game/narrative/localize.ts` replaces only text by stable
+     content key and falls back to English per field; `src/i18n/narrative.ts` serves the
+     display scenario (`en` returns the canonical scenario object). The Vietnamese overlay lives
+     in `src/i18n/narrative/chapter1.vi.ts` and its parts. Decision views gained `hintCode`;
+     `continueAvailability` gained `reasonCode`; the chapter loader snapshot gained
+     `currentAssetId`, so the UI translates by code instead of by English text.
+  6. *Extracted and translated UI:* main menu, prologue, Settings, Credits headings and notes
+     (names, creators, licenses and URLs stay unchanged), loading screens, loading errors, tips,
+     WebGL fallback, chapter titles and placeholder, the full Chapter 1 interface (HUD, phone,
+     dialogue, journal, inspection, decision, ending, debrief, pause), and the teammate world
+     pages (`/hochiminh`, `/testmove`, `/ueh`, `/hue`) with no behavior change. Place and
+     landmark names stay literal.
+  7. *Tests:* init and dictionary consistency tests; a Vietnamese content lint (no "an toàn",
+     reserved domains and `+000` numbers only, no emoji, currency or blaming phrases, "Northgate
+     Bank" kept verbatim); Vietnamese cases in the existing component tests; property tests 1
+     to 9 of the design (settings parsing and round trip, language selections, missing-text
+     fallback, plural selection and count formatting, scenario localization, core and save
+     independence from the locale, decision hint codes); `boundaries.test.ts` forbids
+     `i18next`, `react-i18next` and `src/i18n/` imports in `game/narrative/`.
+  8. *Documentation (tasks 12.1 to 12.4, committed in task 12.6):* `.kiro/steering/language.md`,
+     `AGENTS.md`, `CONTRIBUTING.md` and `docs/architecture/OVERVIEW.md` describe the game
+     localization; OVERVIEW.md records the AI locale contract as `PLANNED`.
+- **Bugs found and fixed during the work:**
+  - The unread badge count on the phone home screen was not formatted for the locale. Found by
+    Property 5 (plural selection and count formatting); `PhoneHome.tsx` now passes
+    `formatNumber(locale, unreadCount)` (commit `059d911`).
+  - `TestMoveOverlay.tsx` used a lightbulb emoji as an icon in the trackpad tip; it is now the
+    lucide `Lightbulb` icon with `aria-hidden="true"` (commit `4f22075`, `icons.md`).
+- **Commits on `feat/game-i18n-en-vi`** (oldest first, local only, not pushed): `bd8f97c`
+  display-only scenario localization and decision hint codes; `e260c97` i18next locale module
+  with English and Vietnamese resources; `98798ec` persisted language setting and runtime
+  switching; `77a6dff` Vietnamese Chapter 1 narrative overlay; `a422a03` explicit timeouts for
+  seeded property tests; `6401086` main menu, credits, loading screens and chapter text;
+  `059d911` Chapter 1 interface; `4f22075` teammate world pages; `5b1c785` Vietnamese content
+  lint and i18n property tests (task 10.3: `src/i18n/content.vi.test.ts`,
+  `src/i18n/i18n.property.test.ts`, plus the `GameLocale` import fix in
+  `src/features/worlds.i18n.test.tsx`); then this commit (task 12.6, "docs: document game
+  localization and the process for adding a language"), which adds the documentation of item
+  8, this entry and the `game-i18n-en-vi` spec files (requirements, design, tasks, config).
+- **Dependency on the Chapter 1 pull request:** the branch was created from
+  `feat/chapter-01-playable` at `8fed327`, not from `main`, because `main` does not contain
+  Chapter 1. The pull request must be merged after the Chapter 1 pull request, or rebased onto
+  `main` once that one is merged.
+- **Files:** against `8fed327`, the 9 code and test commits (`bd8f97c` to `5b1c785`) change
+  149 files (7,303 insertions, 910 deletions), per `git diff --shortstat 8fed327..5b1c785`: `apps/game/package.json`, `pnpm-lock.yaml`, `packages/shared-types/src/index.ts`,
+  new `apps/game/src/i18n/**` (module, `locales/{en,vi}/**`, narrative overlay, tests), new
+  `apps/game/src/app/settingsStorage.ts`, new `apps/game/src/game/narrative/localize.ts`, new
+  `apps/game/src/features/hue/placeNames.ts`, and modified components and tests under
+  `apps/game/src/{app,components/ui,config,features,game}`. Commit `5b1c785` adds the two
+  test files above and changes one line in `src/features/worlds.i18n.test.tsx`.
+  The documentation commit (task 12.6) adds the four documentation files in item 8, this file,
+  the anchor fix of the OVERVIEW.md link to `CONTRIBUTING.md#adding-a-language`, and the spec
+  files. No files deleted. `git diff --stat 8fed327 -- apps/landing apps/game/index.html` is
+  empty (re-run in task 12.6).
+- **Checkpoints 4, 8 and 11** of the `game-i18n-en-vi` task list are satisfied by the passing
+  `pnpm typecheck`, `pnpm test` (62 files, 585 tests) and `pnpm build` run at `5b1c785`
+  below. Task 12.6 changed documentation only, so the checks were not re-run.
+- **Type errors found and fixed (task 10.3, commit `5b1c785`):** the first quality-gate run
+  failed `pnpm typecheck` and `pnpm build` (`tsc -b` runs before `vite build`) on two errors in
+  test files: `src/features/worlds.i18n.test.tsx(5,15)` TS2459 (`GameLocale` imported from
+  `../i18n/locales`, which does not export it) and `src/i18n/i18n.property.test.ts(163,22)`
+  TS2352 (typed `t` result cast straight to `string`). Fixes: import `GameLocale` from
+  `@scammaze/shared-types`, and wrap the `t` result in `String(...)`. No assertion changed.
+- **Validation (run sequentially from the repository root on 2026-11-12, after the fix):**
+  - `pnpm typecheck`: **passed** (`apps/game`, `apps/landing`, `packages/shared-types`).
+  - `pnpm test`: **passed.** 62 test files, 585 tests passed (Vitest 5.1.0, `apps/game`,
+    49.6 s). Baseline on `8fed327`: 48 files, 392 tests.
+  - `pnpm build`: **passed** for all packages. Game JS chunk `index-*.js` 1,905.88 kB (gzip
+    541.91 kB), CSS 75.90 kB (gzip 15.09 kB); Vite warns that the chunk is over 1,500 kB.
+  - Not run: a browser check of the language switch, a screen reader pass in Vietnamese.
+- **Unresolved issues and known limitations:**
+  - The game JS chunk grew from 1,755 kB (Chapter 1 branch) to 1,905.88 kB; not code-split.
+  - All Vietnamese text was written by an AI agent. A native-speaker review of every
+    Vietnamese dictionary and the narrative overlay is recommended before release.
+  - Still English in both locales: the `ModalDialog` "Close dialog" label, the `MenuButton`
+    "Unavailable" badge and the `GameCanvas` WebGL error messages passed to `WebGLFallback`.
+  - The `index.html` title and meta tags stay English by design; only `<html lang>` changes.
+  - Loading tips are translated (`loading:tips.*`) but no loading screen passes `tips` to
+    `LoadingScreen`, so they are not displayed.
+  - The credits item `menuStreetScene` has `sourceUrl` "Local Authoring / Kiroween Asset3D",
+    which `CreditsModal` renders as a link (`href`) that does not work.
+  - The Ho Chi Minh City overlay close buttons (`HCMOverlay.tsx`, icon-only `X`) have no
+    accessible name.
+  - The prologue location is "District 4" / "Quận 4", which is country-specific
+    (`audience.md`).
+  - The key table in the `game-i18n-en-vi` design lists `credits.title`, `credits.subtitle` and
+    `credits.licenseLabel` under the `menu` namespace; they live in the `credits` namespace.
+  - Ending `risky.money-moved` says the balance "reads zero" in English and "là 0" (the digit)
+    in Vietnamese; a small wording difference to check in the native-speaker review.
+  - The landing app stays English-only.
+  - The AI locale contract is documented only (`PLANNED`); no AI code exists.
+- **Deviations:** None from the documented architecture. The branch base (`feat/chapter-01-playable`
+  instead of `main`) is a known dependency, recorded above.
+- **Follow-up:** fix the two type errors and rerun `pnpm test`, `pnpm typecheck` and
+  `pnpm build`; commit task 10.3 and the documentation; native-speaker review of the Vietnamese
+  text; translate the remaining English strings; decide whether loading tips are shown; fix the
+  `menuStreetScene` source link and the HCM close button names; replace "District 4" with a
+  neutral location; update the design key table; open the pull request after the Chapter 1
+  pull request.
 
 ### 2026-11-11 — Chapter 1 "The Urgent Call": playable vertical slice (spec `chapter-01-the-urgent-call`, tasks 16.3 and 16.4)
 

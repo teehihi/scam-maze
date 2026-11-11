@@ -43,10 +43,11 @@ Verified on `feat/chapter-01-playable` (11 Nov 2026):
 | Menu UI & Modals | Interactive UI overlay over 3D Canvas: `NEW GAME` (opens the Prologue modal, whose "Begin Chapter 1" action starts chapter loading), `CONTINUE` (enabled only when the local save names a known chapter and, for a version 2 save, its progress replays through the chapter core; `app/continueAvailability.ts`), `SETTINGS` (real-time graphics quality, FOV, sound toggle, master volume with `localStorage` persistence), `CREDITS` (verified third-party asset licenses), and WebGL fallback detector. |
 | Loading screens | Startup screen for the menu scene and a chapter loading pipeline with byte-measured progress, asset verification, error recovery and fade transitions. Loading ends in the playable Chapter 1 page (`ChapterOnePage`); a chapter with `gameplayAvailable: false` still ends on the "in development" screen. See [section 4.2.1](#421-chapter-loading-implemented). |
 | Chapter 1 "The Urgent Call" | Playable from start to debrief on the menu street scene (`features/chapter1/`): first-person movement, in-world interactables with a focus probe, a scam phone call and three other dialogues, evidence journal, objectives, a final decision, three outcome groups (verified, risky, uncertain) with variants, and a debrief. Play time and frame rate have not been measured. Story and content: [`docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md`](../gameplay/CHAPTER_01_THE_URGENT_CALL.md). |
-| Game core (deterministic) | `game/narrative/`: pure TypeScript reducer `chapterReducer(state, action, scenario)` with dialogue engine, evidence, objectives, outcome and debrief modules; Chapter 1 content in `game/narrative/chapter1/`; hand-written scenario validation (`validateScenario.ts`); a framework-free `ChapterStore` read through `useSyncExternalStore`. No React, Three.js, Zustand or Dexie imports. See [section 4.3](#43-deterministic-core-narrative-engine-and-scam-intelligence-engine-implemented-for-chapter-1). |
+| Game core (deterministic) | `game/narrative/`: pure TypeScript reducer `chapterReducer(state, action, scenario)` with dialogue engine, evidence, objectives, outcome and debrief modules; Chapter 1 content in `game/narrative/chapter1/`; hand-written scenario validation (`validateScenario.ts`); a framework-free `ChapterStore` read through `useSyncExternalStore`; a pure `localize.ts` for display-only translated copies of the scenario. No React, Three.js, Zustand, Dexie or i18n imports. See [section 4.3](#43-deterministic-core-narrative-engine-and-scam-intelligence-engine-implemented-for-chapter-1). |
 | In-game phone | 2D React overlay in `features/chapter1/phone/`: home screen, incoming call and call screens, call history, messages and a fictional bank app. Phone actions are dispatched to the core as Core_Actions. |
 | Local saves (format v2) | `game/saves/saveGame.ts` behind the `SaveGameSource` interface, stored in `localStorage` (key `scammaze_save_v2`). A save holds the accepted Core_Actions (at most 1000), a checkpoint ID and the player pose. Restore replays the actions through the core (`game/saves/chapterProgress.ts`) and rejects saves that do not replay. Version 1 saves are migrated to a chapter-start checkpoint. Checkpoints are written by `features/chapter1/useCheckpointSaver.ts`. |
-| Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings, and scenario metadata. |
+| Game localization (English, Vietnamese) | `apps/game/src/i18n/`: i18next 27.1.1 and react-i18next 18.0.1 with bundled dictionaries, English as default and fallback, Vietnamese as second locale. The choice is stored in `GameSettings.language` (`localStorage` key `scammaze_settings_v1`) and `<html lang>` follows it. Chapter 1 narrative text is translated through a display-only overlay; the chapter core, its state and saves do not depend on the language. The landing app stays English-only. See [section 4.2.2](#422-localization-implemented). |
+| Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings (including `language: GameLocale`), and scenario metadata. |
 | Quality Gates | Root `pnpm typecheck`, `pnpm test` (Vitest + Testing Library in `apps/game`) and `pnpm build`. On 11 Nov 2026, `pnpm test` reported 48 test files and 392 tests passed. Property tests use a seeded generator in `apps/game/src/test/` (no fast-check dependency). No lint script exists. |
 
 ```mermaid
@@ -82,6 +83,7 @@ proxying, persistence and server-side operations.
 | In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `IMPLEMENTED` as an overlay for Chapter 1; in-world surface `PLANNED` |
 | Narrative engine + scam intelligence engine (deterministic core) | Pure **TypeScript** chapter state machines, evidence and tactic definitions, versioned scenario files validated with **Zod** | `IMPLEMENTED` for Chapter 1 as a pure TypeScript reducer with hand-written validation; Zod not used (deviation); downloaded scenario files `PLANNED` |
 | Local progress store | **IndexedDB** through **Dexie** | `PLANNED`; today `localStorage` save v2 behind `SaveGameSource` (`IMPLEMENTED`, deviation) |
+| Game UI localization | **i18next** + **react-i18next** with bundled dictionaries; English source and fallback, Vietnamese second locale (section 4.2.2) | `IMPLEMENTED` in `apps/game`; landing page English-only |
 | Offline shell | Service worker / PWA (plan F11, section 3.3) | `PLANNED` |
 | Backend API | Amazon API Gateway **HTTP API** | `PLANNED` |
 | Compute | AWS Lambda | `PLANNED` |
@@ -178,6 +180,7 @@ stack (section 2) and is not changed by this decision.
 | Runtime schema validation | **Zod** | Validates scenario files, saved state on load, and AI proposals before the engine sees them | `PLANNED`; not installed. Chapter 1 uses hand-written validation (section 4.3) |
 | Local persistence | **IndexedDB** via **Dexie** | Local saves with versioned schema; clear-data support | `PLANNED`; not installed. Chapter 1 saves to `localStorage` (section 4.3) |
 | In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief | `IMPLEMENTED` for Chapter 1 |
+| Localization | **i18next** + **react-i18next** | UI text per language from bundled dictionaries; display only, never read by the deterministic core | `IMPLEMENTED` (i18next 27.1.1, react-i18next 18.0.1; section 4.2.2) |
 | Entity Component System (ECS) | Not chosen | Option for future evaluation only if prototype profiling shows a need (for example many NPCs or props with shared behaviour) | `PROPOSED` (not approved) |
 
 Boundaries:
@@ -215,7 +218,9 @@ No triangle, draw-call or memory budgets are set until these benchmarks exist
 
 Introduces SCAMMAZE and links to the game through `VITE_GAME_URL`. It has no backend dependency
 and must stay fully static. Its copy still describes the earlier "linked digital environments"
-concept; see section 10.
+concept; see section 10. The landing page is English-only and has no i18n library; game
+localization (section 4.2.2) does not change it, and the two apps do not share the language
+setting.
 
 ### 4.2 Game client (`IMPLEMENTED` for the menu and Chapter 1; later chapters `PLANNED`)
 
@@ -326,6 +331,64 @@ Status of items from the 7 Nov brief: main menu and loading screens `IMPLEMENTED
 gameplay `IMPLEMENTED`, later chapters `PLANNED`; level selection replaced by chapter progression in one world `PLANNED`; character
 customization `PROPOSED`, future scope, not in the MVP. A *full* or open 3D world and
 multiplayer remain out of scope.
+
+#### 4.2.2 Localization (`IMPLEMENTED`)
+
+The game app ships in English (`en`, source and fallback) and Vietnamese (`vi`). Localization is
+display only: it changes the text on screen, never game state. Spec:
+[`.kiro/specs/game-i18n-en-vi/`](../../.kiro/specs/game-i18n-en-vi/design.md).
+
+**I18n_Module** (`apps/game/src/i18n/`, `IMPLEMENTED`):
+
+| Part | Files | Role |
+|---|---|---|
+| Instance and start-up | `index.ts` | Own i18next instance (`i18next.createInstance()`), no backend and no language detector. `initI18n(locale)` initializes it synchronously (`initAsync: false`) with the bundled dictionaries before the first render (`main.tsx`); `fallbackLng` is `en`. `applyLocale(locale)` changes the language and sets `document.documentElement.lang` |
+| Locales | `locales.ts` | `SUPPORTED_LOCALES = ["en", "vi"]`, `DEFAULT_LOCALE = "en"`, `isSupportedLocale`, labels shown in their own language |
+| Dictionaries | `locales/en/*.ts`, `locales/vi/*.ts`, `resources.ts`, `types.ts`, `i18next.d.ts` | Typed TypeScript objects in the namespaces `common`, `menu`, `settings`, `loading`, `credits`, `chapters`, `chapter1` and `worlds`. English is the source; the Vietnamese files are typed against the English shape. Plural keys use `_one` and `_other` |
+| Formatting | `format.ts` | `formatNumber`, `formatPercent`, `formatDate` through `Intl`, cached per locale |
+| React binding | `useGameLocale.ts`, `I18nextProvider` in `main.tsx` | Components read text with `useTranslation` and the current locale with `useGameLocale` |
+
+Settings and document language (`IMPLEMENTED`):
+
+- The locale is stored in `GameSettings.language` (`GameLocale = "en" | "vi"` in
+  `packages/shared-types`), saved with the other settings under the `localStorage` key
+  `scammaze_settings_v1` by `app/settingsStorage.ts`. A missing or unknown value becomes `en`.
+- The player picks the language in the Settings modal. `App.tsx` calls `applyLocale` when
+  `settings.language` changes, so `<html lang>` always follows the active locale. The
+  `index.html` title and meta tags stay English.
+- The game reads only its own `localStorage`; it does not share the setting with the landing
+  page.
+
+**Narrative_Overlay** (`IMPLEMENTED` for Chapter 1):
+
+- The English Chapter 1 content in `game/narrative/chapter1/` stays the authored source and the
+  canonical scenario (`CHAPTER_1_SCENARIO`).
+- The Vietnamese text lives in `src/i18n/narrative/chapter1.vi.ts` (split by area in
+  `chapter1.vi/`), a flat map from stable text keys built from scenario IDs (for example
+  `evidence/<id>/title` or `dialogues/<graphId>/lines/<lineId>`) to translated text.
+- `game/narrative/localize.ts` is pure TypeScript with no i18n import. `localizeScenario` returns
+  a copy of the scenario in which only text fields are replaced; IDs, structure, conditions and
+  effects are copied unchanged, and each field falls back to English when the overlay has no
+  non-empty entry. `narrativeTextEntries` lists every translatable field with the same walker.
+- `src/i18n/narrative.ts` builds the **display scenario**: `getDisplayScenario("en")` returns the
+  canonical object itself; other locales are localized once and cached. `ChapterOnePage` reads
+  text through `useDisplayScenario()` and `getDisplayPrompts(locale)` and passes the display
+  scenario to selectors and `buildDebrief`.
+
+**Locale independence of the Chapter_Core** (`IMPLEMENTED`):
+
+- The reducer, the chapter store and save format v2 always use the canonical English scenario.
+  The store is created with `createChapterStore(initial)`; actions carry IDs, not text, so the
+  same actions give the same state in every locale.
+- Saves hold Core_Actions, a checkpoint ID and the player pose, never displayed text, so a save
+  made in one language restores in the other. Changing the language does not remount the chapter
+  page or reset progress.
+- `game/narrative/boundaries.test.ts` fails if any file in `game/narrative/` imports `i18next`,
+  `react-i18next` or the `src/i18n/` module. The dependency goes one way: `src/i18n/` may import
+  from `game/narrative/`, not the reverse.
+- Reducer rejection reasons stay English developer text; they are not shown to players.
+
+Adding a language: see the "Adding a language" section of [CONTRIBUTING.md](../../CONTRIBUTING.md#adding-a-language).
 
 ### 4.3 Deterministic core: narrative engine and scam intelligence engine (`IMPLEMENTED` for Chapter 1)
 
@@ -468,6 +531,16 @@ Rules, following plan section 4.5:
 - timeout about 2.5 s, structured output validation, rate limit and budget limit;
 - on timeout, error or quota, the authored explanation is shown instead;
 - AI output never changes facts, scoring, outcomes or the evidence graph.
+
+**Locale contract for AI dialogue (`PLANNED`).** No AI code exists in `apps/game`. When AI
+dialogue is added, it must follow the localization rules of section 4.2.2:
+
+- each AI dialogue request carries the active `locale` (`GameLocale`) and stable line or intent
+  IDs, never displayed text as the reference;
+- AI output is validated per locale against the same schema and content rules as authored text;
+- on timeout, error, quota or a rejected proposal, the authored text in the active locale is
+  shown (English when that locale has no entry);
+- AI never changes IDs, game state or outcomes, in any language.
 
 Paid AI calls are **not** part of the core gameplay loop. AI provider costs are not covered by
 AWS promotional credits unless the provider is an eligible AWS service; see
