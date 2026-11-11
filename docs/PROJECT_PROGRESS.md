@@ -169,6 +169,18 @@ Resolved:
 
 ## Task History
 
+### 2026-11-12 — Add phone 3D models
+
+- **Objective:** Store the two phone models supplied by the owner in the game asset tree.
+- **Completed work:** Moved `iphone-17-pro.glb` and `phone-17-pro-max.glb` (about 25 MB each,
+  textures embedded) from an untracked root folder to `apps/game/public/assets/3d/props/phone/`
+  and recorded their origin in `SOURCE.md`. Removed the duplicate texture folders and macOS files.
+- **Files created:** `apps/game/public/assets/3d/props/phone/{iphone-17-pro.glb,phone-17-pro-max.glb,SOURCE.md}`.
+- **Validation:** File check only (both GLBs embed all images; no external URIs). No code uses them yet.
+- **Limitations:** License is an owner statement ("free to use"); the source URL and license text
+  are not recorded. Files are not optimized and not in Git LFS.
+- **Follow-up:** credits entry and optimization when a model is used in the game.
+
 ### 2026-11-12 — Merge `main` (PR #16, Lexus driving) into `feat/game-i18n-en-vi`
 
 - **Objective:** Bring the latest `main` into the localization branch.
