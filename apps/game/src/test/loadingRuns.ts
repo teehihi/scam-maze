@@ -1,10 +1,16 @@
 import { act } from "@testing-library/react";
 import { vi } from "vitest";
 import { CHAPTER_LOADING_MIN_DISPLAY_MS, STARTUP_LOADING_MIN_DISPLAY_MS } from "../features/loading/loadingHold";
+import { createLcg } from "./seededRandom";
+
+// The seeded random helpers live in the dependency-free seededRandom module; re-exported here so
+// existing loading tests keep importing them from loadingRuns.
+export { createLcg, pick, randomInt } from "./seededRandom";
 
 /**
  * Test helpers for the loading screen property tests. No property-based testing library is
- * installed, so runs come from a small fixed-seed linear congruential generator (LCG). The same
+ * installed, so runs come from the fixed-seed linear congruential generator (LCG) in
+ * seededRandom.ts. The same
  * seed always yields the same runs, so a failing run can be reproduced from its printed values.
  */
 
@@ -34,15 +40,6 @@ export const FADE_MS = 500;
 
 export const PROPERTY_SEED = 0x5ca33a2e;
 export const PROPERTY_RUNS = 50;
-
-/** Numerical Recipes LCG. Returns numbers in [0, 1). */
-export function createLcg(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (Math.imul(1664525, state) + 1013904223) >>> 0;
-    return state / 0x1_0000_0000;
-  };
-}
 
 /**
  * Generates bug-condition runs: both screens, both reduced-motion values, and a done time in
@@ -130,16 +127,6 @@ export function createClock() {
       now = Math.max(now, target);
     },
   };
-}
-
-/** Integer in [min, max] (both inclusive) from an LCG produced by createLcg. */
-export function randomInt(next: () => number, min: number, max: number): number {
-  return min + Math.floor(next() * (max - min + 1));
-}
-
-/** One element of a non-empty list, chosen by an LCG produced by createLcg. */
-export function pick<T>(next: () => number, items: readonly T[]): T {
-  return items[Math.floor(next() * items.length)];
 }
 
 /**
