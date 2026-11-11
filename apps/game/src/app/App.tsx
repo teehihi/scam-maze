@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { HCMPage } from "../features/hochiminh";
@@ -17,8 +17,17 @@ import type { ChapterLoadRequest } from "../game/loading/chapterLoader";
 import { checkBasicWebGLSupport } from "../game/loading/deviceCapabilities";
 import { createLocalStorageSaveSource } from "../game/saves/saveGame";
 import type { GameSettings } from "@scammaze/shared-types";
+import { applyLocale } from "../i18n";
+import { loadSettings, saveSettings } from "./settingsStorage";
 
-const SETTINGS_STORAGE_KEY = "scammaze_settings_v1";
+/** `window.localStorage` itself can throw (for example when storage is blocked). */
+function getBrowserStorage(): Storage | undefined {
+  try {
+    return typeof window === "undefined" ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
 
 type Screen =
   | { kind: "menu" }
@@ -30,15 +39,6 @@ const saveSource = createLocalStorageSaveSource();
 function readSavedContinueAvailability(): ContinueAvailability {
   return readContinueAvailability(saveSource);
 }
-
-const DEFAULT_SETTINGS: GameSettings = {
-  graphicsQuality: "medium",
-  soundEnabled: true,
-  musicVolume: 1.0,
-  sfxVolume: 1.0,
-  fov: 72,
-  language: "en",
-};
 
 type AppRoute = "menu" | "hochiminh" | "testmove" | "ueh" | "hue";
 
@@ -69,17 +69,12 @@ export const App: React.FC = () => {
   const [screen, setScreen] = useState<Screen>({ kind: "menu" });
   const [continueAvailability, setContinueAvailability] = useState(readSavedContinueAvailability);
 
-  const [settings, setSettings] = useState<GameSettings>(() => {
-    try {
-      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (stored) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-      }
-    } catch {
-      // Fallback to default
-    }
-    return DEFAULT_SETTINGS;
-  });
+  const [settings, setSettings] = useState<GameSettings>(() => loadSettings(getBrowserStorage()));
+
+  // Before paint, so every route (menu, chapter and the world pages) follows the language setting.
+  useLayoutEffect(() => {
+    applyLocale(settings.language);
+  }, [settings.language]);
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -112,11 +107,8 @@ export const App: React.FC = () => {
   const handleUpdateSettings = (updates: Partial<GameSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...updates };
-      try {
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Ignore localStorage quota errors
-      }
+      // A failed write (for example a full quota) is ignored; the new settings still apply.
+      saveSettings(getBrowserStorage(), next);
       return next;
     });
   };
