@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { EnvironmentLighting } from "../../game/scenes/MainMenuScene/EnvironmentLighting";
@@ -38,6 +38,8 @@ export const TestMoveCanvas: React.FC<TestMoveCanvasProps> = ({
   onStatsUpdate,
   onSceneReady,
 }) => {
+  const carPivotRef = useRef<THREE.Group | null>(null);
+
   return (
     <Canvas
       shadows={settings.graphicsQuality === "high"}
@@ -67,6 +69,9 @@ export const TestMoveCanvas: React.FC<TestMoveCanvasProps> = ({
         <StreetEnvironment
           shadows={settings.graphicsQuality === "high"}
           onReady={onSceneReady}
+          onCarLoaded={(pivot) => {
+            carPivotRef.current = pivot;
+          }}
         />
       </Suspense>
 
@@ -84,6 +89,7 @@ export const TestMoveCanvas: React.FC<TestMoveCanvasProps> = ({
           onStatsUpdate={onStatsUpdate}
           soundEnabled={settings.soundEnabled}
           sfxVolume={settings.sfxVolume}
+          carPivotRef={carPivotRef}
         />
       </Suspense>
     </Canvas>
