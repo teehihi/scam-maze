@@ -87,6 +87,9 @@ export const REASONS = {
   chapterAlreadyFinished: "The chapter is already finished.",
 } as const;
 
+/** Stable code of a core rejection reason; the UI translates by this code. */
+export type ReasonCode = keyof typeof REASONS;
+
 // ---------------------------------------------------------------------------
 // Shape check
 // ---------------------------------------------------------------------------

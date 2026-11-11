@@ -24,7 +24,7 @@ import { evaluateCondition, evaluateConditions } from "./conditions";
 import { availableOptions, type DialogueOptionView } from "./dialogueEngine";
 import { canDiscover } from "./evidence";
 import { canCompleteObjective } from "./objectives";
-import { REASONS } from "./reducer";
+import { REASONS, type ReasonCode } from "./reducer";
 import type {
   CallRecord,
   ChapterState,
@@ -278,6 +278,8 @@ export interface DecisionPreStepView {
   available: boolean;
   /** Shown when unavailable; `null` when available or done. */
   hint: string | null;
+  /** Code of `hint` when it is a core rejection reason; `null` when it comes from scenario data. */
+  hintCode: ReasonCode | null;
   /** True once the verification step has been taken. */
   done: boolean;
 }
@@ -289,6 +291,8 @@ export interface DecisionOptionView {
   available: boolean;
   /** Shown when unavailable; `null` when available. */
   hint: string | null;
+  /** Code of `hint` when it is a core rejection reason; `null` when it comes from scenario data. */
+  hintCode: ReasonCode | null;
   preStep: DecisionPreStepView | null;
 }
 
@@ -298,10 +302,25 @@ export interface DecisionPanelView {
   options: DecisionOptionView[];
 }
 
-function busyReason(state: ChapterState): string | null {
-  if (state.call.current !== null) return REASONS.callInProgress;
-  if (state.conversation !== null) return REASONS.conversationInProgress;
+function busyReasonCode(state: ChapterState): ReasonCode | null {
+  if (state.call.current !== null) return "callInProgress";
+  if (state.conversation !== null) return "conversationInProgress";
   return null;
+}
+
+interface HintView {
+  hint: string | null;
+  hintCode: ReasonCode | null;
+}
+
+const NO_HINT: HintView = { hint: null, hintCode: null };
+
+function reasonHint(code: ReasonCode): HintView {
+  return { hint: REASONS[code], hintCode: code };
+}
+
+function scenarioHint(text: string): HintView {
+  return { hint: text, hintCode: null };
 }
 
 /**
@@ -310,7 +329,7 @@ function busyReason(state: ChapterState): string | null {
  */
 export const selectDecisionPanel = memoByState((state, scenario): DecisionPanelView => {
   const offered = isPlaying(state) && state.decision === null && scam1Ended(state);
-  const busy = busyReason(state);
+  const busy = busyReasonCode(state);
   const options = (Object.keys(scenario.decisions) as DecisionId[]).map((id): DecisionOptionView => {
     const def = scenario.decisions[id];
     let preStep: DecisionPreStepView | null = null;
@@ -322,18 +341,29 @@ export const selectDecisionPanel = memoByState((state, scenario): DecisionPanelV
       );
       const meets = evaluateConditions(step.requires, state, scenario);
       const available = offered && !done && meets && busy === null;
-      const hint = available || done ? null : !meets ? step.unavailableHint : (busy ?? null);
-      preStep = { label: step.label, method: step.method, claimId: step.claimId, available, hint, done };
+      const stepHint =
+        available || done
+          ? NO_HINT
+          : !meets
+            ? scenarioHint(step.unavailableHint)
+            : busy !== null
+              ? reasonHint(busy)
+              : NO_HINT;
+      preStep = { label: step.label, method: step.method, claimId: step.claimId, available, ...stepHint, done };
       if (!meets) preStepPendingHint = step.unavailableHint;
     }
     const meets = evaluateConditions(def.requires, state, scenario);
     const available = offered && meets && busy === null;
-    const hint = available
-      ? null
+    const optionHint = available
+      ? NO_HINT
       : !meets
-        ? (preStepPendingHint ?? def.unavailableHint)
-        : (busy ?? (state.decision !== null ? REASONS.decisionAlreadyMade : def.unavailableHint));
-    return { id, label: def.label, available, hint, preStep };
+        ? scenarioHint(preStepPendingHint ?? def.unavailableHint)
+        : busy !== null
+          ? reasonHint(busy)
+          : state.decision !== null
+            ? reasonHint("decisionAlreadyMade")
+            : scenarioHint(def.unavailableHint);
+    return { id, label: def.label, available, ...optionHint, preStep };
   });
   return { offered, options };
 });
@@ -356,6 +386,8 @@ export const selectCallLog = memoByState((state, scenario): CallLogEntryView[] =
     const evidenceId = CALL_LOG_EVIDENCE[record.callId] ?? null;
     return {
       ...record,
+      // Caller name from the (possibly localized) scenario by call ID, else the stored record.
+      displayName: scenario.calls[record.callId]?.displayName ?? record.displayName,
       evidenceId,
       evidenceRecorded: evidenceId !== null && state.discovered.includes(evidenceId),
       evidenceAvailable:
