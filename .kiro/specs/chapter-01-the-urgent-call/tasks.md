@@ -494,7 +494,7 @@ Rules for every task:
     - Stage `apps/game/src/game/chapters/**` and `apps/game/src/app/**`
     - Message: `feat(game): make Chapter 1 "The Urgent Call" playable from New Game`
 
-- [ ] 16. Full test run and documentation (step 12)
+- [x] 16. Full test run and documentation (step 12)
   - [x] 16.1 Write the chapter narrative document
     - Create `docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md` with the story, interactables and
       positions, evidence table, claims, contradiction chains, dialogue graph summaries,
@@ -518,12 +518,12 @@ Rules for every task:
       failures. Write the exact observed results, such as test and file counts, into the progress
       entry
     - _Requirements: 18.7_
-  - [-] 16.5 Commit the documentation
+  - [x] 16.5 Commit the documentation
     - Stage `docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md`, `docs/architecture/OVERVIEW.md` and
       `docs/PROJECT_PROGRESS.md`
     - Message: `docs: document Chapter 1 "The Urgent Call" and record progress`
 
-- [~] 17. Final checkpoint
+- [x] 17. Final checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
