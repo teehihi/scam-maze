@@ -9,6 +9,9 @@ export const OBJECTIVE_IDS = [
   "obj.check-claims",
   "obj.decide",
   "obj.review",
+  "obj.call-bank",
+  "obj.hold-firm",
+  "obj.file-report",
 ] as const;
 export type ObjectiveId = (typeof OBJECTIVE_IDS)[number];
 
@@ -33,6 +36,10 @@ export const EVIDENCE_IDS = [
   "ev.partial-info",
   "ev.sam-testimony",
   "ev.official-confirmation",
+  "ev.transfer-check",
+  "ev.second-number",
+  "ev.case-sms",
+  "ev.shifting-story",
 ] as const;
 export type EvidenceId = (typeof EVIDENCE_IDS)[number];
 
@@ -44,7 +51,12 @@ export const CLAIM_IDS = [
 ] as const;
 export type ClaimId = (typeof CLAIM_IDS)[number];
 
-export const CALL_IDS = ["call.scam-1", "call.callback", "call.official"] as const;
+export const CALL_IDS = [
+  "call.scam-1",
+  "call.callback",
+  "call.official",
+  "call.followup",
+] as const;
 export type CallId = (typeof CALL_IDS)[number];
 
 /** Calls that ring on the player's phone (RING_CALL). The official line is outgoing only. */
@@ -58,10 +70,11 @@ export const DIALOGUE_GRAPH_IDS = [
   "dlg.callback",
   "dlg.shopkeeper",
   "dlg.official-line",
+  "dlg.followup",
 ] as const;
 export type DialogueGraphId = (typeof DIALOGUE_GRAPH_IDS)[number];
 
-export const MESSAGE_IDS = ["msg.sms-alert", "msg.otp-sms"] as const;
+export const MESSAGE_IDS = ["msg.sms-alert", "msg.otp-sms", "msg.case-sms"] as const;
 export type MessageId = (typeof MESSAGE_IDS)[number];
 
 export const FLAG_IDS = [
@@ -79,13 +92,21 @@ export const FLAG_IDS = [
   "number_challenged",
   /** The official line locked the simulated account after the code was shared. */
   "account_locked",
+  "asked_details",
+  "asked_time",
+  "heard_deadline",
+  "link_questioned",
+  "secrecy_heard",
+  "case_sms_sent",
+  "followup_rang",
+  "report_filed",
 ] as const;
 export type FlagId = (typeof FLAG_IDS)[number];
 
 export const DECISION_IDS = ["follow-request", "verify-independently", "stop-and-wait"] as const;
 export type DecisionId = (typeof DECISION_IDS)[number];
 
-export const OUTCOME_IDS = ["verified", "risky", "uncertain"] as const;
+export const OUTCOME_IDS = ["verified", "risky", "uncertain", "investigator"] as const;
 export type OutcomeId = (typeof OUTCOME_IDS)[number];
 
 export const WARNING_SIGN_IDS = [
@@ -96,8 +117,34 @@ export const WARNING_SIGN_IDS = [
   "ws.move-money",
   "ws.partial-details",
   "ws.emotional-pressure",
+  "ws.secrecy",
+  "ws.inconsistent-story",
+  "ws.changing-numbers",
 ] as const;
 export type WarningSignId = (typeof WARNING_SIGN_IDS)[number];
 
 export const VERIFY_METHODS = ["official-line", "bank-app"] as const;
 export type VerifyMethod = (typeof VERIFY_METHODS)[number];
+
+/** Voice identities of the speaking characters (one voice cast entry each). */
+export const SPEAKER_IDS = [
+  "spk.alex",
+  "spk.sam",
+  "spk.northgate-agent",
+  "spk.case-officer",
+] as const;
+export type SpeakerId = (typeof SPEAKER_IDS)[number];
+
+/** Delivery tones of spoken lines. */
+export const TONE_IDS = [
+  "professional",
+  "reassuring",
+  "defensive",
+  "impatient",
+  "pressuring",
+] as const;
+export type Tone = (typeof TONE_IDS)[number];
+
+/** The six acts of Chapter 1. */
+export const ACT_IDS = ["act.1", "act.2", "act.3", "act.4", "act.5", "act.6"] as const;
+export type ActId = (typeof ACT_IDS)[number];

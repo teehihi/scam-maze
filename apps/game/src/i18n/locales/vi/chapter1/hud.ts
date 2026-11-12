@@ -14,6 +14,14 @@ const hud: LocaleShape<typeof en> = {
     // Vietnamese has one plural form, so only `_other` is needed.
     unreadMessages_other: "{{number}} tin nhắn chưa đọc",
     newEntries_other: "{{number}} mục mới",
+    act: {
+      label: "Hồi {{number}}: {{title}}",
+    },
+    saveTrimmed: {
+      message:
+        "Tiến trình đã lưu của bạn đã được cập nhật cho phiên bản mới của chương này. Tiến trình được khôi phục về điểm gần nhất vẫn còn phù hợp.",
+      dismiss: "Đóng",
+    },
   },
   objectives: {
     heading: "Mục tiêu",

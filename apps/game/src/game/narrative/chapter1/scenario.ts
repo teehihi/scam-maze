@@ -2,10 +2,12 @@
 // Pure TypeScript data. See design.md, "Scenario data".
 
 import type { NpcDef, ScenarioDefinition } from "../types";
+import { CHAPTER_1_ACTS } from "./acts";
 import { CHAPTER_1_CLAIMS } from "./claims";
 import { CHAPTER_1_DEBRIEF } from "./debrief";
 import { CHAPTER_1_DECISIONS } from "./decisions";
 import { CALLBACK_DIALOGUE } from "./dialogues/callback";
+import { FOLLOWUP_DIALOGUE } from "./dialogues/followup";
 import { OFFICIAL_LINE_DIALOGUE } from "./dialogues/officialLine";
 import { SCAM_CALL_DIALOGUE } from "./dialogues/scamCall";
 import { SHOPKEEPER_DIALOGUE } from "./dialogues/shopkeeper";
@@ -42,9 +44,11 @@ export const CHAPTER_1_SCENARIO: ScenarioDefinition = {
     "dlg.callback": CALLBACK_DIALOGUE,
     "dlg.shopkeeper": SHOPKEEPER_DIALOGUE,
     "dlg.official-line": OFFICIAL_LINE_DIALOGUE,
+    "dlg.followup": FOLLOWUP_DIALOGUE,
   },
   phone: CHAPTER_1_PHONE,
   decisions: CHAPTER_1_DECISIONS,
   endings: CHAPTER_1_ENDINGS,
   debrief: CHAPTER_1_DEBRIEF,
+  acts: CHAPTER_1_ACTS,
 };

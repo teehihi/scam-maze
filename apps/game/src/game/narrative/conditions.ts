@@ -41,6 +41,16 @@ export function evaluateCondition(
       return hasCallEnded(state, condition.callId);
     case "claimStatus":
       return state.claims[condition.claimId] === condition.status;
+    case "callRang":
+      return state.call.log.some((record) => record.callId === condition.callId);
+    case "objectiveCompleted":
+      return state.objectives.completed.includes(condition.objectiveId);
+    case "outcomeSet":
+      return state.outcome !== null;
+    case "evidenceCountAtLeast": {
+      const found = condition.evidenceIds.filter((id) => state.discovered.includes(id)).length;
+      return found >= condition.count;
+    }
     default:
       return assertNever(condition);
   }

@@ -11,7 +11,7 @@
 //   `dialogue.fallbackOption` for fallback options; `dialogue.noOptions` and no list when empty.
 // - Keyboard logic comes from `useDialogueOptionKeys` (number keys and auto focus on, disabled
 //   while paused). The overlay holds no dialogue state and only reports the chosen option ID.
-import React, { useId } from "react";
+import React, { useEffect, useId, useRef } from "react";
 import { MessageCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { DialogueView } from "../../../game/narrative/selectors";
@@ -30,6 +30,10 @@ export interface PlayerChoiceOverlayProps {
   onSelectOption: (optionId: string) => void;
   /** Region from `computeCallLayout` (`layout.choice`); its height is the maximum height. */
   region: Rect;
+  /** True while the caller is still speaking: replies are hidden until the wait ends. */
+  waiting?: boolean;
+  /** Ends the wait early ("Show replies now"). */
+  onSkipWait?: () => void;
 }
 
 export const PlayerChoiceOverlay: React.FC<PlayerChoiceOverlayProps> = ({
@@ -38,18 +42,32 @@ export const PlayerChoiceOverlay: React.FC<PlayerChoiceOverlayProps> = ({
   disabled,
   onSelectOption,
   region,
+  waiting = false,
+  onSkipWait,
 }) => {
   const { t } = useTranslation("chapter1");
   const labelId = useId();
   const options = view.options;
-  const { setOptionRef, onOptionKeyDown } = useDialogueOptionKeys({
+  const { setOptionRef, onOptionKeyDown, focusFirst } = useDialogueOptionKeys({
     options,
     onSelectOption,
     disabled,
-    numberKeys: true,
-    autoFocus: true,
+    numberKeys: !waiting,
+    autoFocus: !waiting,
     nodeKey: `${view.graphId}:${view.nodeId}`,
   });
+
+  const skipRef = useRef<HTMLButtonElement | null>(null);
+  const wasWaiting = useRef(false);
+  useEffect(() => {
+    if (waiting) {
+      skipRef.current?.focus();
+    } else if (wasWaiting.current) {
+      // The wait just ended: move focus from the removed button to the first option.
+      focusFirst();
+    }
+    wasWaiting.current = waiting;
+  }, [waiting, focusFirst]);
 
   return (
     <div
@@ -80,11 +98,33 @@ export const PlayerChoiceOverlay: React.FC<PlayerChoiceOverlayProps> = ({
         ) : null}
       </div>
 
-      <p id={labelId} className={UI.label}>
-        {t("dialogue.optionsLabel")}
-      </p>
+      {waiting ? (
+        <div className="flex flex-col gap-2" data-testid="choice-waiting">
+          <p role="status" className={UI.body}>
+            {t("phone.call.listening")}
+          </p>
+          <button
+            type="button"
+            ref={skipRef}
+            data-testid="choice-skip-wait"
+            className={UI.choiceOption}
+            disabled={disabled}
+            onClick={() => onSkipWait?.()}
+          >
+            <span className="min-w-0 flex-1 whitespace-normal break-words">
+              {t("phone.call.showReplies")}
+            </span>
+          </button>
+        </div>
+      ) : null}
 
-      {options.length === 0 ? (
+      {waiting ? null : (
+        <p id={labelId} className={UI.label}>
+          {t("dialogue.optionsLabel")}
+        </p>
+      )}
+
+      {waiting ? null : options.length === 0 ? (
         <p className={UI.body}>{t("dialogue.noOptions")}</p>
       ) : (
         <ol aria-labelledby={labelId} className="flex flex-col gap-2">

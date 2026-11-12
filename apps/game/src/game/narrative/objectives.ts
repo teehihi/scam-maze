@@ -79,6 +79,26 @@ function scam1EndedAfterAnswer(state: ChapterState): boolean {
   return evaluateCondition({ kind: "callEnded", callId: "call.scam-1" }, state);
 }
 
+const PRESSURE_CALL_IDS = ["call.callback", "call.followup"] as const;
+
+/** The callback or the follow-up call has a log record. */
+function pressureCallHasRecord(state: ChapterState): boolean {
+  return state.call.log.some((record) =>
+    (PRESSURE_CALL_IDS as readonly string[]).includes(record.callId),
+  );
+}
+
+/** Every callback or follow-up record is ended or declined (and at least one exists). */
+function pressureCallClosed(state: ChapterState): boolean {
+  const records = state.call.log.filter((record) =>
+    (PRESSURE_CALL_IDS as readonly string[]).includes(record.callId),
+  );
+  return (
+    records.length > 0 &&
+    records.every((record) => record.status === "ended" || record.status === "declined")
+  );
+}
+
 /** Discovered evidence items that relate to at least one Claim, excluding the first SMS alert. */
 export function claimRelatedEvidenceCount(
   state: ChapterState,
@@ -123,6 +143,25 @@ export const OBJECTIVE_RULES: Record<ObjectiveId, ObjectiveRule> = {
     id: "obj.review",
     activateWhen: ({ next }) => next.decision !== null,
     completeWhen: ({ next }) => next.status === "finished",
+  },
+  "obj.call-bank": {
+    id: "obj.call-bank",
+    activateWhen: ({ next }) => scam1EndedAfterAnswer(next),
+    completeWhen: ({ next }) => next.discovered.includes("ev.official-confirmation"),
+  },
+  "obj.hold-firm": {
+    id: "obj.hold-firm",
+    activateWhen: ({ next }) => pressureCallHasRecord(next),
+    completeWhen: ({ next }) =>
+      next.call.current === null &&
+      pressureCallClosed(next) &&
+      next.flags.code_shared !== true &&
+      next.flags.money_moved !== true,
+  },
+  "obj.file-report": {
+    id: "obj.file-report",
+    activateWhen: ({ next }) => next.discovered.includes("ev.official-confirmation"),
+    completeWhen: ({ next }) => next.flags.report_filed === true,
   },
 };
 

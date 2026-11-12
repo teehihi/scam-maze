@@ -52,8 +52,14 @@ export function caseSeed(baseSeed: number, index: number): number {
 // Action generator
 // ---------------------------------------------------------------------------
 
-const INCOMING_CALLS: readonly IncomingCallId[] = ["call.scam-1", "call.callback"];
-const RING_REASONS: readonly RingReason[] = ["first-interaction", "exploration-timer", "re-ring", "callback"];
+const INCOMING_CALLS: readonly IncomingCallId[] = ["call.scam-1", "call.callback", "call.followup"];
+const RING_REASONS: readonly RingReason[] = [
+  "first-interaction",
+  "exploration-timer",
+  "re-ring",
+  "callback",
+  "follow-up",
+];
 
 /** Every authored option ID across all graphs, plus one that exists nowhere. */
 const ALL_OPTION_IDS: readonly string[] = [
@@ -284,13 +290,13 @@ export function assertInvariants(
   // outcome ⇒ decision.
   if (state.outcome !== null && state.decision === null) violations.push(`outcome ${state.outcome} without a decision`);
 
-  // verified ⇒ caller identity contradicted and no risky flag.
-  if (state.outcome === "verified") {
+  // verified or investigator ⇒ caller identity contradicted and no risky flag.
+  if (state.outcome === "verified" || state.outcome === "investigator") {
     if (state.claims["claim.caller-identity"] !== "contradicted") {
-      violations.push("verified outcome but the caller identity claim is not contradicted");
+      violations.push(`${state.outcome} outcome but the caller identity claim is not contradicted`);
     }
-    if (state.flags.code_shared) violations.push("verified outcome with code_shared");
-    if (state.flags.money_moved) violations.push("verified outcome with money_moved");
+    if (state.flags.code_shared) violations.push(`${state.outcome} outcome with code_shared`);
+    if (state.flags.money_moved) violations.push(`${state.outcome} outcome with money_moved`);
   }
 
   // Any contradicted claim ⇒ the official confirmation is discovered.
@@ -334,7 +340,8 @@ function scam1Answered(state: ChapterState): boolean {
  * The next action of the guided policy, in priority order:
  * 1. not started → START_CHAPTER; Outcome set → FINISH_CHAPTER;
  * 2. a call is current: if the first scam call rings and was never answered, ANSWER_CALL (its
- *    end is what unlocks the decisions); otherwise END_CALL (declines or hangs up);
+ *    end is what unlocks the decisions); otherwise END_CALL (declines or hangs up, which also
+ *    covers a ringing or active `call.followup` with reason `follow-up`);
  * 3. a face-to-face conversation → its first available option (the fallback when no authored
  *    option is available);
  * 4. the first scam call has ended → MAKE_DECISION stop-and-wait;

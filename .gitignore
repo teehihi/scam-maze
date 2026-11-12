@@ -7,3 +7,6 @@ dist
 .env
 .env.*
 !.env.example
+
+# Chapter 1 voice generator cache (WAV files, job and result files)
+apps/game/.voice-cache/

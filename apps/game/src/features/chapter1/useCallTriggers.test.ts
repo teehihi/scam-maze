@@ -141,7 +141,6 @@ describe("useCallTriggers", () => {
     dispatchOk(store, { type: "END_CALL" });
     advance(10 * CALLBACK_DELAY_MS);
     expect(ringCount(store, "call.callback")).toBe(1);
-    expect(store.getState().call.current).toBeNull();
   });
 
   it("pauses every timer while an Overlay is open", () => {

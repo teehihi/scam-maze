@@ -18,6 +18,10 @@ export const DECISIONS_VI: NarrativeOverlay = {
   "endings/verified/simulationLabel": "Mô phỏng: không có điều gì thật sự xảy ra.",
   "endings/verified/variants/verified.reported/text":
     "Bạn đã kiểm tra qua số chính thức của Northgate Bank. Northgate xác nhận rằng họ không hề gọi cho bạn. Bạn đã chặn số điện thoại và báo cáo số đó. Tài khoản mô phỏng của bạn vẫn hoạt động bình thường.",
+  "endings/investigator/title": "Đã kiểm tra, báo cáo và ghi lại bằng chứng",
+  "endings/investigator/simulationLabel": "Mô phỏng: không có điều gì thật sự xảy ra.",
+  "endings/investigator/variants/investigator.report/text":
+    "Bạn đã kiểm tra câu chuyện qua những kênh mà bạn vốn đã tin cậy, gom các bằng chứng lại với nhau và gửi báo cáo. Northgate đã có thông tin chi tiết về cuộc gọi và có thể cảnh báo các khách hàng khác. Tài khoản mô phỏng của bạn vẫn hoạt động bình thường.",
   "endings/risky/title": "Đã làm theo yêu cầu của người gọi",
   "endings/risky/simulationLabel": "Mô phỏng: không có điều gì thật sự xảy ra.",
   "endings/risky/variants/risky.money-moved/text":
@@ -46,6 +50,8 @@ export const DECISIONS_VI: NarrativeOverlay = {
   "debrief/saferAlternatives/5": "Hãy báo cáo cuộc gọi cho ngân hàng của bạn và chặn số điện thoại đó.",
   "debrief/outcomeSummaries/verified":
     "Bạn đã kiểm tra câu chuyện của người gọi qua một kênh mà bạn vốn đã tin cậy. Northgate xác nhận rằng họ không gọi cho bạn, nên yêu cầu đó là lừa đảo và bạn không mất gì.",
+  "debrief/outcomeSummaries/investigator":
+    "Bạn đã kiểm tra câu chuyện của người gọi qua một kênh mà bạn vốn đã tin cậy, gom các bằng chứng lại với nhau và báo cáo cuộc gọi. Northgate xác nhận rằng họ không gọi cho bạn, nên yêu cầu đó là lừa đảo và bạn không mất gì. Những báo cáo như của bạn giúp ngân hàng cảnh báo các khách hàng khác.",
   "debrief/outcomeSummaries/risky":
     "Lần này, áp lực từ người gọi đã có tác dụng. Điều này xảy ra với cả nhiều người rất cẩn thận, vì kiểu lừa đảo này được dựng lên để tạo cảm giác gấp gáp và có thật. Các bước dưới đây cho thấy những lúc bạn có thể dừng lại và kiểm tra trong lần sau.",
   "debrief/outcomeSummaries/uncertain":
@@ -75,6 +81,28 @@ export const DECISIONS_VI: NarrativeOverlay = {
   "debrief/decisionNotes/told-bank-about-code":
     "Bạn đã báo cho Northgate rằng bạn đã chia sẻ mã. Báo cho ngân hàng sớm giúp họ khóa tài khoản và hạn chế thiệt hại.",
   "debrief/decisionNotes/blocked-number": "Bạn đã chặn số của người gọi sau khi nói chuyện với Northgate.",
+  "debrief/decisionNotes/asked-for-details":
+    "Bạn đã hỏi người gọi các chi tiết về cảnh báo. Câu trả lời vẫn mơ hồ hoặc thay đổi, điều này thường gặp khi người gọi đang đọc theo một kịch bản.",
+  "debrief/decisionNotes/asked-for-time":
+    "Bạn đã hỏi cảnh báo bắt đầu từ lúc nào. Một người gọi không nhìn thấy tài khoản thật của bạn thường không trả lời rõ được.",
+  "debrief/decisionNotes/cited-bank-app":
+    "Bạn đã chỉ ra rằng ứng dụng của ngân hàng không hiển thị cảnh báo nào. Ứng dụng là một kênh bạn vốn đã tin cậy, nên đây là nơi tốt để kiểm tra.",
+  "debrief/decisionNotes/cited-otp-warning":
+    "Bạn đã nhắc rằng tin nhắn chứa mã có ghi không bao giờ được chia sẻ mã. Nhắc lại chính quy tắc của ngân hàng là một cách rõ ràng để từ chối.",
+  "debrief/decisionNotes/challenged-link":
+    "Bạn đã hỏi về địa chỉ web trong tin nhắn. Một địa chỉ trông giống trang thật mà bạn không tự chọn là một dấu hiệu cảnh báo.",
+  "debrief/decisionNotes/noticed-isolation":
+    "Bạn đã nhận ra người gọi yêu cầu giữ kín cuộc gọi. Ngân hàng thật không bảo bạn giấu cuộc gọi với những người bạn tin tưởng.",
+  "debrief/decisionNotes/challenged-story":
+    "Bạn đã nhận ra câu chuyện của người gọi thay đổi. Những chi tiết đổi khác từ phút này sang phút khác là một dấu hiệu cảnh báo.",
+  "debrief/decisionNotes/told-caller-bank-said-no":
+    "Bạn đã nói với người gọi rằng Northgate cho biết họ không gọi cho bạn. Một người gọi nói thật sẽ hoan nghênh việc kiểm tra, chứ không tranh cãi.",
+  "debrief/decisionNotes/reported-details":
+    "Bạn đã cung cấp cho Northgate các chi tiết của cuộc gọi, gồm các số điện thoại và những gì người gọi yêu cầu. Thông tin đầy đủ giúp ngân hàng cảnh báo các khách hàng khác.",
+  "debrief/decisionNotes/reported-basic":
+    "Bạn đã báo cáo cuộc gọi cho Northgate. Lần sau, bạn có thể thêm các số điện thoại và những yêu cầu cụ thể để ngân hàng có thêm thông tin.",
+  "debrief/decisionNotes/hung-up-on-followup":
+    "Bạn đã kết thúc cuộc gọi tiếp theo. Một cuộc gọi thứ hai từ số mới, đề nghị giúp giải quyết vấn đề, là một phần của cùng một kiểu lừa đảo.",
   "debrief/decisionNotes/chose-follow-request":
     "Bạn đã quyết định gọi lại số đó và làm theo yêu cầu của người gọi. Câu chuyện của người gọi được dựng lên để khiến việc này có vẻ là điều đúng đắn.",
   "debrief/decisionNotes/chose-verify-independently":

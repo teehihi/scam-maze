@@ -192,6 +192,7 @@ describe("narrativeTextEntries coverage", () => {
     "npcId", "messageId", "graphId", "interactableId", "callId", "next", "end", "flag", "decision",
     "kind", "via", "method", "debriefTag", "stance", "status", "source", "speaker", "channel",
     "honesty", "direction", "type", "reveals", "requires", "warningSigns",
+    "speakerId", "tone", "objectiveId", "objectives",
   ]);
 
   // Data the lint checks but that is never translated: fictional phone numbers and the reserved

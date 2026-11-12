@@ -286,6 +286,66 @@ Components inside the game client (paths relative to `apps/game/src/`):
     controls and call state.
   - Asset: `call-phone` (`/assets/3d/optimized/call-phone.optimized.glb`, `CALL_PHONE_GLB`) is an
     optional asset in the Chapter 1 manifest. See section 4.2.1.
+- **Chapter 1 voice layer** (spec `chapter-01-voice-narrative`). Voice, captions and sound are a
+  presentation layer: they never change state, evidence, decisions or outcomes, and the game
+  stays playable with sound off. Status labels:
+  - `IMPLEMENTED`, verified by unit, component and property tests (19 files, 123 tests in
+    `game/voice`, `features/chapter1/voice`, `game/saves` and `game/chapters` passed on
+    12 Nov 2026): the pieces below. The tests use a fake audio port; no real audio device, network
+    or browser was involved.
+  - `PLANNED` or not verified: see the last bullet of this list.
+  - **Voice module** (`game/voice/`, plain TypeScript). Files: `manifestTypes.ts` and
+    `chapter1.manifest.ts` (manifest), `renderManifest.ts` (writes and parses the manifest
+    file), `selectClip.ts` (picks the clip for a node and locale), `buildVoiceJobs.ts` (spoken
+    lines, voice cast and tone rate for the generator), `hash.ts` (FNV-1a hash of the source
+    text, used to detect stale clips), `voiceReport.ts` (missing-clip report),
+    `VoiceDialoguePlayer.ts` (phases, prefetch cache of 8 clips with 2 loads at a time, pause,
+    resume, replay and mute through ports only), `mixPlan.ts` (pure gain, pause and filter
+    numbers), `optionsGate.ts` (see below), `audioPort.ts` (`AudioPort` and `PreviewPort`
+    interfaces), `webAudioEngine.ts` and `devSpeechPreview.ts`. `boundaries.test.ts` fails if a
+    voice file imports React, Three.js, i18next, Zustand, Dexie or `src/i18n/`, if any file other
+    than `webAudioEngine.ts` and `devSpeechPreview.ts` touches audio or speech globals, or if a
+    file in `game/narrative/` imports the voice layer.
+  - **Audio graph** (`webAudioEngine.ts`, the only file that creates an `AudioContext`): a clip
+    goes through a high-pass and a low-pass filter (phone voice), a playback gain, the voice bus,
+    the master gain and a limiter to the destination. The ringtone, connect click, street
+    ambience and tension drone are generated in code (no audio files) and each has its own gain,
+    capped by `PEAK_CAP`, before the master gain. Clips load only from the page's own origin.
+    The gain and filter numbers in `mixPlan.ts` are `PROPOSED` and were not tuned by ear.
+  - **Manifest and clips**: `chapter1.manifest.ts` is generated, not edited by hand. It lists 108
+    clips, 54 for `en` and 54 for `vi`, all with status `present`, under
+    `apps/game/public/audio/chapter01/{en,vi}/` as MP3 (`audio/mpeg`). Each entry records the
+    node, speaker, tone, duration, byte size, source-text hash, origin (`tts-generated`) and a
+    credit line. A clip is `present` only if the file exists and the generator wrote it; a missing
+    voice leaves the clip `missing` and the game falls back to captions.
+  - **Generator** (`apps/game/scripts/generate-chapter1-voice.mjs` with the Windows worker
+    `generate-chapter1-voice.ps1`; `package.json` scripts `voice:chapter1`, `voice:script`,
+    `voice:report`): runs locally, makes no network call and adds no dependency. It uses the
+    Windows speech voices installed on the machine (the manifest names Microsoft David, Mark and
+    Zira for English and Microsoft An for Vietnamese), checks size and duration limits, and
+    rewrites the manifest. It is a developer tool and does not run in the browser. Its
+    Windows-only synthesis was run for this feature; running it on another machine was not tested.
+  - **Dev-only speech preview** (`devSpeechPreview.ts`): a `speechSynthesis` preview that exists
+    only in a development build or with `VITE_DEV_VOICE_PREVIEW=true`. It is not in Settings,
+    never counts as a present clip, and stays silent when no voice matches the locale.
+  - **Page hooks** (`features/chapter1/voice/`): `useVoicePlayback.ts` creates one player per
+    mount over the Web Audio engine, builds the voice target from the dialogue view and the call,
+    and applies settings, locale changes and the pause overlay; `useCallAudio.ts` drives the
+    ringtone, connect click, ambience and tension; `useCallDuration.ts` counts the call time.
+    `ChapterOnePage.tsx` calls all three. The hooks only read state and send nothing to the core.
+  - **Options gate extraction** (`optionsGate.ts`): the rule that decides when the player's
+    options appear (`waitForVoice`, audible clip, 300 ms after the clip ends, 1500 ms after the
+    expected duration, "Show replies now") was extracted from the hook into a pure function
+    `areOptionsVisible` with its own input type, so a property test can check it without the
+    player. The input uses elapsed-time fields instead of an end timestamp. This is a small
+    deviation from the original design, which kept the gate inside `useVoicePlayback`. Playback
+    ending alone never advances the dialogue.
+  - **Not verified**: playback in a browser (Chrome, Firefox, Safari, phones), MP3 decoding in
+    each browser, autoplay behavior, sound quality and clarity of every clip, the mix levels,
+    screen reader behavior, and the playtime of Chapter 1. The redistribution terms of the
+    generated audio are not verified; the owner must check them before a public release. Only one
+    male Vietnamese voice is used. No new service was added, so there is no cost change (see
+    [cost estimation](../finops/COST_ESTIMATION.md)).
 - **Chapter page and UI** (`IMPLEMENTED`): `features/chapter1/ChapterOnePage.tsx` owns the
   chapter store (created from the initial state, or from the state the loader already rebuilt
   during `validating-save`), computes the controls `enabled` flag, writes checkpoints (`useCheckpointSaver.ts`),
@@ -462,6 +522,16 @@ Save format v2 (`game/saves/`, `IMPLEMENTED`):
   key, and the v1 key is removed when the write succeeds.
 - Blocked storage or a failed write does not stop gameplay; the chapter shows a save-failure
   notice.
+- **Lenient restore** (`IMPLEMENTED`, unit-tested in `chapterProgress.test.ts`; the Chapter 1
+  voice work added it). `restoreProgress(progress, scenario, { lenient: true })` stops at the
+  first rejected action and returns the state after the last accepted one, with `trimmed`. The
+  chapter session (`game/chapters/chapterSession.ts`) uses it, so a save made before a scenario
+  change resumes from the last valid point instead of failing; it then sets `saveTrimmed` and the
+  page shows the `hud.saveTrimmed.*` notice. If no action is accepted, the chapter starts at the
+  beginning with the same notice. Strict mode (the default of `restoreProgress`) is unchanged. In the
+  loader's `validating-save` step, the invalid-save error described above now applies only to
+  damaged data (for example an unknown chapter or unreadable progress), not to a save whose
+  actions are partly rejected. Not checked in a browser.
 
 **Deviations from the documented stack** (sections 3 and 3.1; to confirm with the owner):
 
@@ -639,7 +709,7 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 | Schema validation | Zod/JSON Schema | Zod | Hand-written validation `IMPLEMENTED` (`validateScenario.ts`, `isCoreAction`, save parsers); Zod `PLANNED`, not installed (deviation, section 4.3) |
 | Local persistence | IndexedDB/Dexie | IndexedDB/Dexie | `localStorage` save format v2 behind `SaveGameSource`, with replay validation and v1 migration, `IMPLEMENTED` (deviation, section 4.3); IndexedDB via Dexie `PLANNED`, not installed |
 | Visual system | "Cyber-noir detective lab", dark and light modes (section 3.5) | Game: stylized realism / stylized low-poly, not Halloween | Landing page: dark cinematic theme `IMPLEMENTED` (PR #7, replaced the flat theme of PR #2); game art `PLANNED`; plan 3.5 amended |
-| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | Vitest + Testing Library (jsdom) `IMPLEMENTED` for the loading pipeline, the Chapter 1 core, saves, chapter UI and the call UI: 80 files, 747 tests passed at the game-3d-phone-call-ui checkpoint (task 12). Property tests use a seeded generator instead of fast-check (deviation). Playwright and a coverage target not added (`PLANNED`) |
+| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | Vitest + Testing Library (jsdom) `IMPLEMENTED` for the loading pipeline, the Chapter 1 core, saves, chapter UI and the call UI: 80 files, 747 tests passed at the game-3d-phone-call-ui checkpoint (task 12). Property tests use a seeded generator instead of fast-check (deviation; the voice layer tests follow the same rule, with a fake audio port and no real audio device). Playwright and a coverage target not added (`PLANNED`) |
 
 ## 10. Known inaccuracies on the live landing page
 

@@ -9,7 +9,15 @@
 import React from "react";
 import type { Ref } from "react";
 import { useTranslation } from "react-i18next";
-import { Phone, PhoneCall, PhoneIncoming, PhoneOff } from "lucide-react";
+import {
+  Phone,
+  PhoneCall,
+  PhoneIncoming,
+  PhoneOff,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { usePrefersReducedMotion } from "../../../components/ui/usePrefersReducedMotion";
 import { UI } from "../theme";
 
@@ -24,8 +32,42 @@ export type CallScreenView =
       line: { speakerName: string; text: string } | "connecting" | null;
     };
 
+/** Voice and caption state for the active call (voice narrative design, section 6). */
+export interface CallControlsView {
+  durationSeconds: number;
+  muted: boolean;
+  /** False when sound is off, volume is 0 or there is no clip and no preview. */
+  replayEnabled: boolean;
+  /** subtitlesEnabled || nothing is audible. When false the caption region stays empty. */
+  captionVisible: boolean;
+  notice: "none" | "autoplay-blocked" | "dev-preview" | "english-voice" | "no-audio";
+  /** True when the screen is short: the avatar is hidden and gaps are tighter. */
+  compact: boolean;
+}
+
+const NOTICE_KEYS = {
+  "autoplay-blocked": "phone.call.notice.autoplayBlocked",
+  "dev-preview": "phone.call.notice.devPreview",
+  "english-voice": "phone.call.notice.englishVoice",
+  "no-audio": "phone.call.notice.noAudio",
+} as const;
+
+function formatDuration(totalSeconds: number): { text: string; iso: string } {
+  const s = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;
+  const minutes = Math.floor(s / 60);
+  const seconds = s % 60;
+  return {
+    text: `${minutes}:${String(seconds).padStart(2, "0")}`,
+    iso: `PT${minutes}M${seconds}S`,
+  };
+}
+
 export interface PhoneScreenUIProps {
   view: CallScreenView;
+  /** Optional voice controls. Absent: the active screen renders exactly as before. */
+  controls?: CallControlsView;
+  onToggleMute?: () => void;
+  onReplay?: () => void;
   /** True while the page is paused; disables every call button (Requirement 5.6). */
   disabled: boolean;
   /** 2D icon wobble; true only in fallback mode while ringing. Reduced motion turns it off. */
@@ -56,6 +98,9 @@ const AVATAR_CLASS =
 
 export const PhoneScreenUI: React.FC<PhoneScreenUIProps> = ({
   view,
+  controls,
+  onToggleMute,
+  onReplay,
   disabled,
   vibrateIcon,
   onAccept,
@@ -67,6 +112,8 @@ export const PhoneScreenUI: React.FC<PhoneScreenUIProps> = ({
   const { t } = useTranslation("chapter1");
   const reducedMotion = usePrefersReducedMotion();
   const vibrating = view.status === "ringing" && vibrateIcon && !reducedMotion;
+  const compact = controls?.compact === true;
+  const duration = controls ? formatDuration(controls.durationSeconds) : null;
 
   return (
     <section
@@ -129,17 +176,40 @@ export const PhoneScreenUI: React.FC<PhoneScreenUIProps> = ({
       ) : (
         <>
           <header className="flex shrink-0 flex-col items-center gap-2">
-            <div className={`${AVATAR_CLASS} h-14 w-14`} aria-hidden="true">
-              <PhoneCall className="h-7 w-7" aria-hidden="true" />
-            </div>
+            {compact ? null : (
+              <div className={`${AVATAR_CLASS} h-14 w-14`} aria-hidden="true">
+                <PhoneCall className="h-7 w-7" aria-hidden="true" />
+              </div>
+            )}
             <div className="min-w-0 max-w-full">
               <p className={NAME_CLASS}>{view.callerName}</p>
               <p className={NUMBER_CLASS} dir="ltr" data-testid="call-screen-number">
                 {view.number}
               </p>
               <p className={`text-sm font-semibold ${UI.textPositive}`}>{t("phone.call.status")}</p>
+              {controls && duration ? (
+                <time
+                  role="timer"
+                  aria-label={t("phone.call.duration")}
+                  dateTime={duration.iso}
+                  data-testid="call-duration"
+                  className="block text-sm tabular-nums text-[#a9a4c4]"
+                >
+                  {duration.text}
+                </time>
+              ) : null}
             </div>
           </header>
+
+          {controls ? (
+            <p
+              aria-live="polite"
+              data-testid="call-notice"
+              className="shrink-0 text-sm leading-relaxed text-[#a9a4c4]"
+            >
+              {controls.notice === "none" ? null : t(NOTICE_KEYS[controls.notice])}
+            </p>
+          ) : null}
 
           {/* One stable polite live region for the Caller_Line and the connecting text, so a
               re-render with the same line makes no new announcement (Req 2.9, 2.10). It scrolls
@@ -152,7 +222,7 @@ export const PhoneScreenUI: React.FC<PhoneScreenUIProps> = ({
             data-testid="call-line-region"
             className="min-h-0 flex-1 overflow-y-auto text-left outline-none"
           >
-            {view.line === "connecting" ? (
+            {controls && !controls.captionVisible ? null : view.line === "connecting" ? (
               <p className="text-sm leading-relaxed text-[#a9a4c4]">{t("phone.call.connecting")}</p>
             ) : view.line ? (
               <div className={UI.card} data-testid="dialogue-line">
@@ -163,6 +233,36 @@ export const PhoneScreenUI: React.FC<PhoneScreenUIProps> = ({
               </div>
             ) : null}
           </div>
+
+          {controls ? (
+            <div className="flex w-full shrink-0 gap-2">
+              <button
+                type="button"
+                className={`${UI.buttonSecondary} flex-1`}
+                onClick={onToggleMute}
+                disabled={disabled}
+                aria-pressed={controls.muted}
+                data-testid="call-screen-mute"
+              >
+                {controls.muted ? (
+                  <VolumeX className="h-4 w-4 shrink-0" aria-hidden="true" />
+                ) : (
+                  <Volume2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                )}
+                <span>{controls.muted ? t("phone.call.unmute") : t("phone.call.mute")}</span>
+              </button>
+              <button
+                type="button"
+                className={`${UI.buttonSecondary} flex-1`}
+                onClick={onReplay}
+                disabled={disabled || !controls.replayEnabled}
+                data-testid="call-screen-replay"
+              >
+                <RotateCcw className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{t("phone.call.replay")}</span>
+              </button>
+            </div>
+          ) : null}
 
           <button
             ref={hangUpRef}

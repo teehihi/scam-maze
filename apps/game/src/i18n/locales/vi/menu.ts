@@ -16,7 +16,7 @@ const menu: LocaleShape<typeof en> = {
   prologue: {
     title: "Mở đầu: Một buổi sáng bình thường",
     subtitle: "Chương 1 — Nơi đường phố gặp thế giới số",
-    location: "Quận 4 · Buổi sáng",
+    location: "Một con phố trong thành phố · Buổi sáng",
     heading: "Thông báo đến trước cả bữa sáng.",
     intro:
       "Mặt trời đang lên trên những tòa nhà gạch và các cửa hàng yên tĩnh dọc con phố của bạn. Bạn vừa rót một tách cà phê thì điện thoại rung lên với một cảnh báo khẩn:",

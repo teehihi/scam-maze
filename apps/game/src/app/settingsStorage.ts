@@ -11,7 +11,37 @@ export const DEFAULT_SETTINGS: GameSettings = {
   sfxVolume: 1.0,
   fov: 72,
   language: "en",
+  voiceVolume: 1.0,
+  subtitlesEnabled: true,
+  reducedStress: false,
+  reducedMotion: "system",
+  phoneVoiceFilter: true,
+  englishVoiceFallback: false,
 };
+
+const REDUCED_MOTION_VALUES: readonly string[] = ["system", "on", "off"];
+
+/** Validates the six voice and accessibility fields; any old or invalid value gives its default. */
+function sanitizeNewFields(merged: GameSettings): GameSettings {
+  const d = DEFAULT_SETTINGS;
+  const bool = (value: unknown, fallback: boolean): boolean =>
+    typeof value === "boolean" ? value : fallback;
+  const volume = merged.voiceVolume as unknown;
+  return {
+    ...merged,
+    voiceVolume:
+      typeof volume === "number" && Number.isFinite(volume)
+        ? Math.min(1, Math.max(0, volume))
+        : d.voiceVolume,
+    subtitlesEnabled: bool(merged.subtitlesEnabled, d.subtitlesEnabled),
+    reducedStress: bool(merged.reducedStress, d.reducedStress),
+    reducedMotion: REDUCED_MOTION_VALUES.includes(merged.reducedMotion as string)
+      ? merged.reducedMotion
+      : d.reducedMotion,
+    phoneVoiceFilter: bool(merged.phoneVoiceFilter, d.phoneVoiceFilter),
+    englishVoiceFallback: bool(merged.englishVoiceFallback, d.englishVoiceFallback),
+  };
+}
 
 /**
  * Same merge as the previous inline reader in `App.tsx`, plus a validated `language`.
@@ -30,10 +60,10 @@ export function parseStoredSettings(raw: string | null): GameSettings {
     return { ...DEFAULT_SETTINGS };
   }
   const merged = { ...DEFAULT_SETTINGS, ...(parsed as Partial<GameSettings>) };
-  return {
+  return sanitizeNewFields({
     ...merged,
     language: isSupportedLocale(merged.language) ? merged.language : DEFAULT_LOCALE,
-  };
+  });
 }
 
 /** Reads the stored settings. Storage access errors (for example a blocked `localStorage`) give the defaults. */

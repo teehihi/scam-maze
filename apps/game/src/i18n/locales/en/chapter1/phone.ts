@@ -57,6 +57,22 @@ const phone = {
       status: "Call in progress",
       hangUp: "Hang up",
       connecting: "Connected. Waiting for the caller to speak.",
+      duration: "Call duration",
+      mute: "Mute",
+      unmute: "Unmute",
+      replay: "Replay",
+      listening: "Listening to the caller.",
+      showReplies: "Show replies now",
+      notice: {
+        autoplayBlocked: "Sound is blocked by the browser. Press Replay to hear this line.",
+        devPreview: "Development preview voice. This is not a recording.",
+        englishVoice: "This line is spoken in English. The caption is in Vietnamese.",
+        noAudio: "There is no audio for this line. Read the caption.",
+      },
+    },
+    sound: {
+      ringing: "Phone ringing",
+      connected: "Call connected",
     },
     callPresentation: {
       name: "Phone call",

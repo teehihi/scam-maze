@@ -41,6 +41,8 @@ function referenceChapter1Variant(state: ChapterState, outcome: OutcomeId): stri
       return "verified.reported";
     case "uncertain":
       return "uncertain.stopped";
+    case "investigator":
+      return "investigator.report";
     case "risky":
       if (state.flags.money_moved) return "risky.money-moved";
       if (state.flags.code_shared && state.flags.account_locked) return "risky.code-shared-locked";

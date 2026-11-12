@@ -181,6 +181,7 @@ function walkScenario(scenario: ScenarioDefinition, text: TextVisitor): Scenario
     decisions: mapRecord(scenario.decisions, (decision) => walkDecision(decision, text)),
     endings: mapRecord(scenario.endings, (ending) => walkEnding(ending, text)),
     debrief: walkDebrief(scenario.debrief, text),
+    acts: scenario.acts.map((act) => ({ ...act, title: text(`acts/${act.id}/title`, act.title) })),
   };
 }
 

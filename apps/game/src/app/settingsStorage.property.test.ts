@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { GameLocale, GameSettings, GraphicsQuality } from "@scammaze/shared-types";
+import type { GameLocale, GameSettings, GraphicsQuality, ReducedMotionSetting } from "@scammaze/shared-types";
+import { effectiveReducedMotion } from "../features/chapter1/comfort/ComfortProvider";
 import { createLcg, pick, randomInt } from "../test/seededRandom";
 import { DEFAULT_SETTINGS, parseStoredSettings } from "./settingsStorage";
 
@@ -7,6 +8,7 @@ import { DEFAULT_SETTINGS, parseStoredSettings } from "./settingsStorage";
 const RUNS = 200;
 const PARSE_SEED = 0x5e771001;
 const ROUND_TRIP_SEED = 0x5e771002;
+const NEW_FIELDS_SEED = 0x5e771015;
 
 /** Written out here, not imported, so the model does not reuse the code under test. */
 const LOCALES: readonly GameLocale[] = ["en", "vi"];
@@ -103,7 +105,62 @@ function generateSettings(next: () => number): GameSettings {
     sfxVolume: pick(next, [0, 1, next()]),
     fov: pick(next, [60, 85, randomInt(next, 60, 85), 60 + next() * 25]),
     language: pick(next, LOCALES),
+    voiceVolume: pick(next, [0, 1, next()]),
+    subtitlesEnabled: next() < 0.5,
+    reducedStress: next() < 0.5,
+    reducedMotion: pick(next, REDUCED_MOTION_VALUES),
+    phoneVoiceFilter: next() < 0.5,
+    englishVoiceFallback: next() < 0.5,
   };
+}
+
+const NEW_FIELDS = [
+  "voiceVolume",
+  "subtitlesEnabled",
+  "reducedStress",
+  "reducedMotion",
+  "phoneVoiceFilter",
+  "englishVoiceFallback",
+] as const;
+
+/** Written out here, not imported, so the model does not reuse the code under test. */
+const REDUCED_MOTION_VALUES: readonly ReducedMotionSetting[] = ["system", "on", "off"];
+const NEW_DEFAULTS = {
+  voiceVolume: 1.0,
+  subtitlesEnabled: true,
+  reducedStress: false,
+  reducedMotion: "system",
+  phoneVoiceFilter: true,
+  englishVoiceFallback: false,
+};
+
+/** Values for the new fields: valid, out of range and wrong-type. */
+const NEW_FIELD_VALUES: readonly unknown[] = [
+  ...ANY_JSON_VALUES,
+  2,
+  -0.25,
+  1e9,
+  0.3,
+  "on",
+  "off",
+  "system",
+  "ON",
+  "auto",
+];
+
+/** Independent model of the six new fields. */
+function expectedNewField(field: (typeof NEW_FIELDS)[number], value: unknown): unknown {
+  if (value === undefined) return NEW_DEFAULTS[field];
+  switch (field) {
+    case "voiceVolume":
+      return typeof value === "number" && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 1.0;
+    case "reducedMotion":
+      return typeof value === "string" && (REDUCED_MOTION_VALUES as readonly string[]).includes(value)
+        ? value
+        : "system";
+    default:
+      return typeof value === "boolean" ? value : NEW_DEFAULTS[field];
+  }
 }
 
 /** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
@@ -138,4 +195,74 @@ describe("settingsStorage properties", () => {
       );
     }
   }, PROPERTY_TIMEOUT_MS);
+
+  // Feature: chapter-01-voice-narrative, Property 15: Settings parsing is total, bounded and idempotent
+  it("Property 15: new fields are validated, bounded, idempotent and keep legacy values (Requirements 11.2, 11.4)", () => {
+    const next = createLcg(NEW_FIELDS_SEED);
+    for (let index = 0; index < RUNS; index += 1) {
+      const stored: Record<string, unknown> = {};
+      for (const field of LEGACY_FIELDS) {
+        if (next() < 0.5) stored[field] = pick(next, QUALITIES as readonly unknown[]);
+      }
+      for (const field of NEW_FIELDS) {
+        if (next() < 0.7) stored[field] = pick(next, NEW_FIELD_VALUES);
+      }
+      const raw = JSON.stringify(stored);
+      const parsedStored = JSON.parse(raw) as Record<string, unknown>;
+      const label = `seed ${NEW_FIELDS_SEED.toString(16)} case ${index}, raw ${raw}`;
+      const actual = parseStoredSettings(raw);
+
+      // Total and bounded: every new field is valid, and each equals the model.
+      for (const field of NEW_FIELDS) {
+        expect(actual[field], `${label}, field ${field}`).toEqual(expectedNewField(field, parsedStored[field]));
+      }
+      expect(actual.voiceVolume, label).toBeGreaterThanOrEqual(0);
+      expect(actual.voiceVolume, label).toBeLessThanOrEqual(1);
+      expect(REDUCED_MOTION_VALUES, label).toContain(actual.reducedMotion);
+      expect(LOCALES, label).toContain(actual.language);
+
+      // Legacy fields keep the legacy merge.
+      for (const field of LEGACY_FIELDS) {
+        expect(actual[field], `${label}, field ${field}`).toEqual(
+          field in parsedStored ? parsedStored[field] : DEFAULT_SETTINGS[field],
+        );
+      }
+
+      // Idempotent: parse(serialize(parse(x))) equals parse(x).
+      expect(parseStoredSettings(JSON.stringify(actual)), label).toEqual(actual);
+
+      // Effective reduced motion is true exactly when "on", or "system" with a matching OS query.
+      for (const osQuery of [true, false]) {
+        expect(effectiveReducedMotion(actual.reducedMotion, osQuery), label).toBe(
+          actual.reducedMotion === "on" || (actual.reducedMotion === "system" && osQuery),
+        );
+      }
+    }
+  }, PROPERTY_TIMEOUT_MS);
+
+  it("loads an old stored object (legacy fields only) with defaults for the six new fields", () => {
+    const old = {
+      graphicsQuality: "high",
+      soundEnabled: false,
+      musicVolume: 0.4,
+      sfxVolume: 0.2,
+      fov: 80,
+      language: "vi",
+    };
+    expect(parseStoredSettings(JSON.stringify(old))).toEqual({ ...old, ...NEW_DEFAULTS });
+  });
+
+  it("falls back to the default for each invalid new value and clamps voiceVolume", () => {
+    const invalid = {
+      voiceVolume: "loud",
+      subtitlesEnabled: "yes",
+      reducedStress: 1,
+      reducedMotion: "auto",
+      phoneVoiceFilter: null,
+      englishVoiceFallback: [],
+    };
+    expect(parseStoredSettings(JSON.stringify(invalid))).toMatchObject(NEW_DEFAULTS);
+    expect(parseStoredSettings(JSON.stringify({ voiceVolume: 5 })).voiceVolume).toBe(1);
+    expect(parseStoredSettings(JSON.stringify({ voiceVolume: -2 })).voiceVolume).toBe(0);
+  });
 });

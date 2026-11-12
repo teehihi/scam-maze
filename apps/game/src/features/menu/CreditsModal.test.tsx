@@ -67,7 +67,7 @@ describe("CreditsModal localization", () => {
     const items = GAME_CREDITS.flatMap((g) => g.items);
     const plainSources = items.filter((i) => !i.sourceUrl.startsWith("https://"));
     expect(plainSources.map((i) => i.id)).toEqual(
-      expect.arrayContaining(["menuStreetScene", "callPhone"]),
+      expect.arrayContaining(["menuStreetScene", "callPhone", "chapter1Voices"]),
     );
     for (const anchor of Array.from(container.querySelectorAll("a"))) {
       expect(anchor.getAttribute("href")).toMatch(/^https:\/\//);

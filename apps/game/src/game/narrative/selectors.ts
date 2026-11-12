@@ -26,6 +26,7 @@ import { canDiscover } from "./evidence";
 import { canCompleteObjective } from "./objectives";
 import { REASONS, type ReasonCode } from "./reducer";
 import type {
+  ActDef,
   CallRecord,
   ChapterState,
   ClaimStatus,
@@ -67,6 +68,7 @@ export const PLAYER_SPEAKER_NAME = "You";
 export const CALL_LOG_EVIDENCE: Partial<Record<CallId, EvidenceId>> = {
   "call.scam-1": "ev.caller-number",
   "call.callback": "ev.caller-number",
+  "call.followup": "ev.second-number",
 };
 
 /** Claim checked by each VERIFY_CLAIM method when the method is not tied to a decision. */
@@ -121,6 +123,22 @@ export const selectActiveObjectives = memoByState((state, scenario): Objective[]
     .filter((id) => Object.hasOwn(scenario.objectives, id))
     .map((id) => scenario.objectives[id]),
 );
+
+// ---------------------------------------------------------------------------
+// Acts
+// ---------------------------------------------------------------------------
+
+/**
+ * The current act: the last act (highest index) whose `enterWhen` holds. Falls back to the first
+ * act when none holds. Pure; reads only Chapter_State and Scenario_Data.
+ */
+export function selectCurrentAct(state: ChapterState, scenario: ScenarioDefinition = CHAPTER_1_SCENARIO): ActDef {
+  let current = scenario.acts[0];
+  for (const act of scenario.acts) {
+    if (evaluateConditions(act.enterWhen, state, scenario)) current = act;
+  }
+  return current;
+}
 
 // ---------------------------------------------------------------------------
 // Dialogue
@@ -475,6 +493,16 @@ export function enumerateCandidateActions(
       !state.call.log.some((record) => record.callId === "call.callback")
     ) {
       actions.push({ type: "RING_CALL", callId: "call.callback", reason: "callback" });
+    }
+
+    const callbackRecord = state.call.log.find((record) => record.callId === "call.callback");
+    if (
+      state.decision === null &&
+      callbackRecord !== undefined &&
+      (callbackRecord.status === "ended" || callbackRecord.status === "declined") &&
+      !state.call.log.some((record) => record.callId === "call.followup")
+    ) {
+      actions.push({ type: "RING_CALL", callId: "call.followup", reason: "follow-up" });
     }
 
     if (

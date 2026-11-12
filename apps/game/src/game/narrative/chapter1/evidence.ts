@@ -49,6 +49,24 @@ export const CHAPTER_1_WARNING_SIGNS: Record<WarningSignId, WarningSignDef> = {
     description:
       "The caller makes you feel worried or guilty so that you act before you think.",
   },
+  "ws.secrecy": {
+    id: "ws.secrecy",
+    label: "Request for secrecy",
+    description:
+      "The caller tells you not to talk to anyone about the call. Scammers do this so that nobody can help you check the story.",
+  },
+  "ws.inconsistent-story": {
+    id: "ws.inconsistent-story",
+    label: "Story that does not match",
+    description:
+      "What the caller says does not match what you can check on a channel you trust. A real account problem would match the bank's own record.",
+  },
+  "ws.changing-numbers": {
+    id: "ws.changing-numbers",
+    label: "Different numbers, same name",
+    description:
+      "Calls and texts that all claim to be the bank come from different numbers. A bank does not need many numbers to reach you, and a name on a screen can be faked.",
+  },
 };
 
 export const CHAPTER_1_EVIDENCE: Record<EvidenceId, EvidenceItem> = {
@@ -298,6 +316,90 @@ export const CHAPTER_1_EVIDENCE: Record<EvidenceId, EvidenceItem> = {
       "Calling the bank yourself on a number you already trust is the most reliable way to check a call or message.",
     debriefHint:
       "Calling Northgate on the number from your card or letter would have confirmed that the bank did not call you.",
+  },
+  "ev.transfer-check": {
+    id: "ev.transfer-check",
+    title: "No pending transfer on the account",
+    description:
+      "You asked the official line about the large transfer the caller mentioned. Northgate says there is no pending transfer and nothing is held on your account. This does not match the caller's story.",
+    source: "verification",
+    location: "Phone · official call",
+    discovery: { via: "dialogue-node", nodeId: "official.transfer" },
+    relations: [
+      {
+        claimId: "claim.account-suspended",
+        stance: "contradicts",
+        note: "The bank's own record shows no transfer and no hold, which does not match what the caller said.",
+      },
+    ],
+    warningSigns: ["ws.inconsistent-story"],
+    relevance:
+      "Asking a follow-up question on a channel you trust can show whether the caller's details match the official record.",
+    debriefHint:
+      "Asking Northgate about the transfer showed that the bank had no record of it, so the caller's story did not match.",
+  },
+  "ev.second-number": {
+    id: "ev.second-number",
+    title: "A third number that says \"Northgate\"",
+    description:
+      "The call history shows \"Northgate Case Desk\" calling from +000 555 0177. This is a different number from the first caller (+000 555 0142) and from the official number (+000 555 0100).",
+    source: "device",
+    location: "Phone · Calls",
+    discovery: { via: "inspect", requires: [{ kind: "flag", flag: "followup_rang" }] },
+    relations: [
+      {
+        claimId: "claim.caller-identity",
+        stance: "contradicts",
+        note: "The number does not match the official number on your card or letter.",
+      },
+    ],
+    warningSigns: ["ws.unknown-number", "ws.changing-numbers"],
+    relevance:
+      "When a new number uses the bank's name, compare it with a number you already trust. You do not need to answer the call to do this.",
+    debriefHint:
+      "The follow-up call came from +000 555 0177, a third number that did not match the official number +000 555 0100.",
+  },
+  "ev.case-sms": {
+    id: "ev.case-sms",
+    title: "Case text with a look-alike address",
+    description:
+      "A text from \"Northgate Bank\" gives a case reference and asks you to review the case at northgate-case-review.invalid. This address does not match the official website northgate.example.",
+    source: "device",
+    location: "Phone · Messages",
+    discovery: { via: "inspect", requires: [{ kind: "flag", flag: "case_sms_sent" }] },
+    relations: [
+      {
+        claimId: "claim.caller-identity",
+        stance: "contradicts",
+        note: "The link does not match the bank's official website.",
+      },
+    ],
+    warningSigns: ["ws.look-alike-link", "ws.changing-numbers"],
+    relevance:
+      "A case reference makes a text look official, but the web address still has to match the bank's real website. Do not open links from a caller.",
+    debriefHint:
+      "The case text pointed to northgate-case-review.invalid, which does not match the official website northgate.example.",
+  },
+  "ev.shifting-story": {
+    id: "ev.shifting-story",
+    title: "The deadline changed",
+    description:
+      "In the first call the caller said you had a few minutes. When the caller called back, the story about the deadline was different. The two accounts do not match.",
+    source: "dialogue",
+    location: "Callback",
+    discovery: { via: "dialogue-node", nodeId: "callback.story-slip" },
+    relations: [
+      {
+        claimId: "claim.caller-identity",
+        stance: "contradicts",
+        note: "A real account problem has one clear record. A story that changes between calls is a warning sign.",
+      },
+    ],
+    warningSigns: ["ws.inconsistent-story", "ws.urgency"],
+    relevance:
+      "Remember what a caller said earlier. When the details change, ask about the difference or end the call and check on your own.",
+    debriefHint:
+      "Pointing out the earlier \"few minutes\" line showed that the caller's story about the deadline had changed.",
   },
 };
 

@@ -23,6 +23,8 @@ export const CHAPTER_1_DEBRIEF: DebriefContent = {
   outcomeSummaries: {
     verified:
       "You checked the caller's story through a channel you already trusted. Northgate confirmed that they did not call you, so the request was a scam and nothing was lost.",
+    investigator:
+      "You checked the caller's story through a channel you already trusted, kept the evidence together and reported the call. Northgate confirmed that they did not call you, so the request was a scam and nothing was lost. Reports like yours help the bank warn other customers.",
     risky:
       "The caller's pressure worked this time. That happens to many careful people, because the scam is built to feel urgent and real. The steps below show where you could stop and check next time.",
     uncertain:
@@ -54,6 +56,28 @@ export const CHAPTER_1_DEBRIEF: DebriefContent = {
     "told-bank-about-code":
       "You told Northgate that you had shared the code. Telling the bank quickly lets them lock the account and limit the harm.",
     "blocked-number": "You blocked the caller's number after speaking to Northgate.",
+    "asked-for-details":
+      "You asked the caller for details about the alert. The answers stayed vague or changed, which is common when a caller is following a script.",
+    "asked-for-time":
+      "You asked when the alert started. A caller who is not looking at your real account often cannot give a clear answer.",
+    "cited-bank-app":
+      "You pointed out that the bank's app shows no alert. The app is a channel you already trust, so it is a good place to check.",
+    "cited-otp-warning":
+      "You pointed out that the code message says never to share the code. Repeating the bank's own rule is a clear way to push back.",
+    "challenged-link":
+      "You asked about the web address in the text. A look-alike address that you did not choose is a warning sign.",
+    "noticed-isolation":
+      "You noticed that the caller asked you to keep the call secret. A real bank does not ask you to hide a call from people you trust.",
+    "challenged-story":
+      "You noticed that the caller's story changed. Details that shift from one minute to the next are a warning sign.",
+    "told-caller-bank-said-no":
+      "You told the caller that Northgate said it did not call you. A caller who is telling the truth would welcome the check, not argue with it.",
+    "reported-details":
+      "You gave Northgate the details of the call, including the numbers and what was asked. Full details help the bank warn other customers.",
+    "reported-basic":
+      "You reported the call to Northgate. Next time, you can add the numbers and the exact requests so the bank has more to work with.",
+    "hung-up-on-followup":
+      "You ended the follow-up call. A second call from a new number that offers to fix the problem is part of the same pattern.",
     "chose-follow-request":
       "You decided to call the number back and do what the caller asked. The caller's story was built to make this feel like the right thing to do.",
     "chose-verify-independently":

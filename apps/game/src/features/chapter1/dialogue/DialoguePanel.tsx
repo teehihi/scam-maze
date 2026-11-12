@@ -8,12 +8,27 @@
 // Keyboard: options are buttons in a list (Tab and Shift+Tab), Arrow Up/Down and Home/End move
 // between them, and number keys 1-9 select the matching option when `numberKeys` is on.
 // The keyboard logic lives in `useDialogueOptionKeys`.
-import React from "react";
-import { MessageCircle } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { MessageCircle, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { DialogueView } from "../../../game/narrative/selectors";
 import { UI } from "../theme";
 import { useDialogueOptionKeys } from "./useDialogueOptionKeys";
+
+/** Optional voice state for the face-to-face line. Absent: the panel renders as before. */
+export interface DialoguePanelVoice {
+  /** False when sound is off, volume is 0 or there is no clip and no preview. */
+  replayEnabled: boolean;
+  notice: "none" | "autoplay-blocked" | "dev-preview" | "english-voice" | "no-audio";
+  onReplay: () => void;
+}
+
+const NOTICE_KEYS = {
+  "autoplay-blocked": "phone.call.notice.autoplayBlocked",
+  "dev-preview": "phone.call.notice.devPreview",
+  "english-voice": "phone.call.notice.englishVoice",
+  "no-audio": "phone.call.notice.noAudio",
+} as const;
 
 export interface DialoguePanelProps {
   /** Current conversation from `selectDialogueView`. */
@@ -26,6 +41,12 @@ export interface DialoguePanelProps {
   numberKeys?: boolean;
   /** Move focus to the first option when the node changes. Default: true. */
   autoFocus?: boolean;
+  /** Voice controls: a Replay button and the notice line. The text card is always visible. */
+  voice?: DialoguePanelVoice;
+  /** True while the speaker is still talking: replies are hidden until the wait ends. */
+  waiting?: boolean;
+  /** Ends the wait early ("Show replies now"). */
+  onSkipWait?: () => void;
   className?: string;
 }
 
@@ -35,18 +56,32 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
   disabled = false,
   numberKeys = true,
   autoFocus = true,
+  voice,
+  waiting = false,
+  onSkipWait,
   className = "",
 }) => {
   const { t } = useTranslation("chapter1");
   const options = view.options;
-  const { setOptionRef, onOptionKeyDown } = useDialogueOptionKeys({
+  const { setOptionRef, onOptionKeyDown, focusFirst } = useDialogueOptionKeys({
     options,
     onSelectOption,
     disabled,
-    numberKeys,
-    autoFocus,
+    numberKeys: numberKeys && !waiting,
+    autoFocus: autoFocus && !waiting,
     nodeKey: `${view.graphId}:${view.nodeId}`,
   });
+
+  const skipRef = useRef<HTMLButtonElement | null>(null);
+  const wasWaiting = useRef(false);
+  useEffect(() => {
+    if (waiting) {
+      skipRef.current?.focus();
+    } else if (wasWaiting.current) {
+      focusFirst();
+    }
+    wasWaiting.current = waiting;
+  }, [waiting, focusFirst]);
 
   // Speaker by code: the core's "You" is not shown; caller and NPC names come from the scenario.
   const speakerLabel =
@@ -67,6 +102,45 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
         <p className="mt-1.5 text-sm leading-relaxed text-[#f7f5ff]">{view.line}</p>
       </div>
 
+      {voice ? (
+        <div className="flex flex-col gap-2">
+          <p
+            aria-live="polite"
+            data-testid="dialogue-notice"
+            className="text-sm leading-relaxed text-[#a9a4c4]"
+          >
+            {voice.notice === "none" ? null : t(NOTICE_KEYS[voice.notice])}
+          </p>
+          <button
+            type="button"
+            className={UI.buttonSecondary}
+            onClick={voice.onReplay}
+            disabled={disabled || !voice.replayEnabled}
+            data-testid="dialogue-replay"
+          >
+            <RotateCcw className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{t("phone.call.replay")}</span>
+          </button>
+        </div>
+      ) : null}
+
+      {waiting ? (
+        <div className="flex flex-col gap-2" data-testid="dialogue-waiting">
+          <p role="status" className={UI.body}>
+            {t("phone.call.listening")}
+          </p>
+          <button
+            ref={skipRef}
+            type="button"
+            className={UI.buttonSecondary}
+            disabled={disabled}
+            onClick={() => onSkipWait?.()}
+            data-testid="dialogue-skip-wait"
+          >
+            <span>{t("phone.call.showReplies")}</span>
+          </button>
+        </div>
+      ) : (
       <div>
         <p id={listLabelId} className="sr-only">
           {t("dialogue.optionsLabel")}
@@ -101,6 +175,7 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
           </ol>
         )}
       </div>
+      )}
     </div>
   );
 };

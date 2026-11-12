@@ -16,6 +16,7 @@ const credits = {
     environments: { category: "3D World Environments & Architecture" },
     vehicles: { category: "3D Vehicles & Street Props" },
     music: { category: "Music" },
+    audio: { category: "Voice & Audio" },
     project: { category: "Game Design, Narrative & Engineering" },
   },
   items: {
@@ -47,6 +48,10 @@ const credits = {
     callPhone: {
       notes:
         "Handheld phone model used for phone calls. Optimized copy with the wallpaper removed and no visible brand marks.",
+    },
+    chapter1Voices: {
+      notes:
+        "Synthetic voices for Chapter 1 dialogue: Microsoft David, Mark and Zira (en-US) and Microsoft An (vi-VN). No real person's voice was cloned. Redistribution terms for the generated audio have not been verified.",
     },
     coreArchitecture: {
       notes: "First-person 3D scam investigation simulation built for Kiroween 2026.",

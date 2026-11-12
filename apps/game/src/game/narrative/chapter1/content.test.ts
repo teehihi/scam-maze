@@ -64,6 +64,10 @@ const IDENTIFIER_KEYS = new Set([
   "reveals",
   "requires",
   "warningSigns",
+  "speakerId",
+  "tone",
+  "objectiveId",
+  "objectives",
 ]);
 
 const ALL_STRINGS = collectStrings(CHAPTER_1_SCENARIO);

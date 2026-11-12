@@ -13,6 +13,16 @@ export const CORE_VI: NarrativeOverlay = {
   "objectives/obj.check-claims/text": "Kiểm tra những gì người gọi đã nói với bạn.",
   "objectives/obj.decide/text": "Quyết định xem bạn sẽ làm gì với yêu cầu của người gọi.",
   "objectives/obj.review/text": "Xem lại những gì đã xảy ra.",
+  "objectives/obj.call-bank/text": "Gọi cho Northgate bằng một số điện thoại mà bạn đã biết là đáng tin.",
+  "objectives/obj.hold-firm/text": "Hãy giữ bình tĩnh. Bạn có thể cúp máy bất cứ lúc nào hoặc xin thêm thời gian.",
+  "objectives/obj.file-report/text": "Báo cho Northgate biết chuyện đã xảy ra. Bước này không bắt buộc.",
+
+  "acts/act.1/title": "Một buổi sáng bình thường",
+  "acts/act.2/title": "Cuộc gọi đầu tiên",
+  "acts/act.3/title": "Điều tra",
+  "acts/act.4/title": "Áp lực tăng dần",
+  "acts/act.5/title": "Quyết định",
+  "acts/act.6/title": "Hậu quả",
 
   "claims/claim.caller-identity/text": "Người gọi là nhân viên của Northgate Bank.",
   "claims/claim.account-suspended/text": "Tài khoản của bạn đã bị tạm khóa.",
@@ -42,6 +52,15 @@ export const CORE_VI: NarrativeOverlay = {
   "warningSigns/ws.emotional-pressure/label": "Gây áp lực cảm xúc",
   "warningSigns/ws.emotional-pressure/description":
     "Người gọi khiến bạn lo lắng hoặc thấy có lỗi để bạn hành động trước khi kịp suy nghĩ.",
+  "warningSigns/ws.secrecy/label": "Yêu cầu giữ bí mật",
+  "warningSigns/ws.secrecy/description":
+    "Người gọi bảo bạn đừng nói với ai về cuộc gọi. Kẻ lừa đảo làm vậy để không ai giúp bạn kiểm tra câu chuyện.",
+  "warningSigns/ws.inconsistent-story/label": "Câu chuyện không khớp",
+  "warningSigns/ws.inconsistent-story/description":
+    "Điều người gọi nói không khớp với những gì bạn kiểm tra được qua một kênh đáng tin. Nếu tài khoản thật sự có vấn đề, thông tin sẽ khớp với hồ sơ của ngân hàng.",
+  "warningSigns/ws.changing-numbers/label": "Nhiều số khác nhau, cùng một cái tên",
+  "warningSigns/ws.changing-numbers/description":
+    "Các cuộc gọi và tin nhắn đều nhận là của ngân hàng nhưng đến từ những số khác nhau. Ngân hàng không cần nhiều số để liên lạc với bạn, và tên hiển thị trên màn hình có thể bị làm giả.",
 
   "journalNotes/note.number-mismatch/text":
     "Hai số điện thoại khác nhau. Đó là một dấu hiệu cảnh báo, nhưng số hiển thị có thể bị giả mạo, nên dù hai số có trùng nhau thì cũng không chứng minh được điều gì.",

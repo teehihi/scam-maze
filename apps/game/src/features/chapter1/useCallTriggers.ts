@@ -20,6 +20,8 @@ export const EXPLORATION_FALLBACK_MS = 60_000;
 export const RE_RING_DELAY_MS = 20_000;
 /** Ring the callback this long after the first scam Call ends with no Decision (Requirement 8.5). */
 export const CALLBACK_DELAY_MS = 90_000;
+/** Ring the follow-up this long after the callback ends or is declined, with no Decision. */
+export const FOLLOWUP_DELAY_MS = 45_000;
 /** Interval between clock ticks. */
 export const CALL_TRIGGER_TICK_MS = 250;
 /** Largest time step added by one tick, so a stalled or throttled timer cannot jump ahead. */
@@ -115,6 +117,35 @@ export function stepCallTriggers(
   return { timers: next, ring };
 }
 
+/**
+ * One clock step for the follow-up call. Pure: returns the next elapsed time and the ring to
+ * dispatch, if any.
+ *
+ * The clock counts (only while `allowed`) from the moment the callback is `ended` or `declined`,
+ * while no Decision exists and the follow-up has not rung. It resets to zero when that rule stops
+ * applying. A due ring waits (time kept) while another call or conversation blocks it. The
+ * follow-up rings once: any log record for it stops the clock. The reducer still guards the
+ * dispatch. Timing is the same in every comfort mode (design.md names no reduced-stress change).
+ */
+export function stepFollowupTrigger(
+  state: ChapterState,
+  elapsedMs: number,
+  deltaMs: number,
+  allowed: boolean,
+): { elapsedMs: number; ring: CallTriggerRing | null } {
+  if (state.status === "not-started") return { elapsedMs: 0, ring: null };
+  const callback = findRecord(state, "call.callback");
+  const callbackClosed = callback?.status === "ended" || callback?.status === "declined";
+  const applies =
+    callbackClosed && state.decision === null && findRecord(state, "call.followup") === undefined;
+  if (!applies) return { elapsedMs: 0, ring: null };
+
+  const add = allowed && state.status === "playing" ? Math.max(0, deltaMs) : 0;
+  const next = elapsedMs + add;
+  if (!allowed || !phoneIsFree(state) || next < FOLLOWUP_DELAY_MS) return { elapsedMs: next, ring: null };
+  return { elapsedMs: next, ring: { callId: "call.followup", reason: "follow-up" } };
+}
+
 function tabVisible(): boolean {
   return typeof document === "undefined" || document.visibilityState === "visible";
 }
@@ -131,6 +162,7 @@ export function useCallTriggers(store: ChapterStore, overlayOpen: boolean): void
 
   useEffect(() => {
     let timers = INITIAL_CALL_TRIGGER_TIMERS;
+    let followupMs = 0;
     let last = Date.now();
 
     const id = setInterval(() => {
@@ -143,6 +175,12 @@ export function useCallTriggers(store: ChapterStore, overlayOpen: boolean): void
       if (step.ring) {
         // The state was checked above; a rejection would be a no-op anyway.
         store.dispatch({ type: "RING_CALL", callId: step.ring.callId, reason: step.ring.reason });
+        return;
+      }
+      const followup = stepFollowupTrigger(store.getState(), followupMs, delta, allowed);
+      followupMs = followup.elapsedMs;
+      if (followup.ring) {
+        store.dispatch({ type: "RING_CALL", callId: followup.ring.callId, reason: followup.ring.reason });
       }
     }, CALL_TRIGGER_TICK_MS);
 

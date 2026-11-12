@@ -58,6 +58,147 @@ describe("encodeProgress", () => {
   });
 });
 
+describe("encodeProgress shape", () => {
+  it("has exactly checkpointId, actions and playerPose (no audio, duration, caption or locale)", () => {
+    const encoded = encodeProgress(replay(acceptedActions(3)), { position: IN_BOUNDS, yaw: 0 }, "start");
+    expect(Object.keys(encoded ?? {}).sort()).toEqual(["actions", "checkpointId", "playerPose"]);
+    const json = JSON.stringify(encoded);
+    for (const word of ["audio", "duration", "caption", "locale"]) expect(json).not.toContain(word);
+  });
+});
+
+const opt = (optionId: string): CoreAction => ({ type: "SELECT_DIALOGUE_OPTION", optionId });
+const START: CoreAction = { type: "START_CHAPTER" };
+const ANSWER: CoreAction = { type: "ANSWER_CALL" };
+const END_CALL: CoreAction = { type: "END_CALL" };
+const OPEN_PHONE: CoreAction = { type: "OPEN_PHONE" };
+const CLOSE_PHONE: CoreAction = { type: "CLOSE_PHONE" };
+const FINISH: CoreAction = { type: "FINISH_CHAPTER" };
+
+/** Frozen copies of the four action logs in `playthroughs.test.ts`. Do not edit when content changes. */
+const FROZEN_LOGS: ReadonlyArray<readonly [string, readonly CoreAction[]]> = [
+  [
+    "verified",
+    [
+      START,
+      { type: "INTERACT_OBJECT", objectId: "obj.wallet" },
+      { type: "RING_CALL", callId: "call.scam-1", reason: "first-interaction" },
+      ANSWER,
+      opt("opt.scam.open.ask-proof"),
+      opt("opt.scam.knows.challenge"),
+      opt("opt.scam.challenged.call-card"),
+      OPEN_PHONE,
+      { type: "INSPECT_EVIDENCE", evidenceId: "ev.caller-number" },
+      { type: "VERIFY_CLAIM", claimId: "claim.account-suspended", method: "bank-app" },
+      CLOSE_PHONE,
+      { type: "VERIFY_CLAIM", claimId: "claim.caller-identity", method: "official-line" },
+      opt("opt.official.greeting.wait"),
+      opt("opt.official.agent.report"),
+      opt("opt.official.confirm.block"),
+      { type: "MAKE_DECISION", decision: "verify-independently" },
+      FINISH,
+    ],
+  ],
+  [
+    "risky: money moved",
+    [
+      START,
+      { type: "RING_CALL", callId: "call.scam-1", reason: "exploration-timer" },
+      ANSWER,
+      opt("opt.scam.open.yes-what"),
+      OPEN_PHONE,
+      { type: "INSPECT_EVIDENCE", evidenceId: "ev.otp-sms" },
+      opt("opt.scam.code.read-code"),
+      opt("opt.scam.move.move-money"),
+      FINISH,
+    ],
+  ],
+  [
+    "risky: code shared then reported",
+    [
+      START,
+      { type: "INTERACT_OBJECT", objectId: "obj.mailbox" },
+      { type: "RING_CALL", callId: "call.scam-1", reason: "first-interaction" },
+      ANSWER,
+      opt("opt.scam.open.yes-what"),
+      OPEN_PHONE,
+      { type: "INSPECT_EVIDENCE", evidenceId: "ev.otp-sms" },
+      opt("opt.scam.code.read-code"),
+      opt("opt.scam.move.stop"),
+      opt("opt.scam.guilt.hang-up"),
+      { type: "VERIFY_CLAIM", claimId: "claim.caller-identity", method: "official-line" },
+      opt("opt.official.greeting.wait"),
+      opt("opt.official.agent.report"),
+      opt("opt.official.confirm.code-shared"),
+      opt("opt.official.locked.block"),
+      { type: "MAKE_DECISION", decision: "verify-independently" },
+      FINISH,
+    ],
+  ],
+  [
+    "uncertain",
+    [
+      START,
+      { type: "RING_CALL", callId: "call.scam-1", reason: "exploration-timer" },
+      END_CALL,
+      { type: "RING_CALL", callId: "call.scam-1", reason: "re-ring" },
+      ANSWER,
+      END_CALL,
+      OPEN_PHONE,
+      { type: "INSPECT_EVIDENCE", evidenceId: "ev.caller-number" },
+      CLOSE_PHONE,
+      { type: "MAKE_DECISION", decision: "stop-and-wait" },
+      FINISH,
+    ],
+  ],
+];
+
+describe("restoreProgress (lenient)", () => {
+  const lenient = (p: ChapterProgressV2) => restoreProgress(p, CHAPTER_1_SCENARIO, { lenient: true });
+
+  it("returns the accepted prefix with trimmed true and acceptedActions", () => {
+    // START_CHAPTER, OPEN_PHONE, then a second OPEN_PHONE (rejected) and one more action after it.
+    const tampered = [...acceptedActions(2), { type: "OPEN_PHONE" } as CoreAction, { type: "CLOSE_PHONE" } as CoreAction];
+    const result = lenient(progress({ actions: tampered }));
+    expect(result).toEqual({
+      ok: true,
+      state: replay(acceptedActions(2)),
+      pose: { position: IN_BOUNDS, yaw: 1 },
+      trimmed: true,
+      acceptedActions: 2,
+    });
+  });
+
+  it("returns trimmed false when every action is accepted", () => {
+    const result = lenient(progress());
+    expect(result.ok && result.trimmed).toBe(false);
+    expect(result.ok && result.acceptedActions).toBe(3);
+  });
+
+  it("returns the initial state with zero accepted actions when the first action is rejected", () => {
+    const result = lenient(progress({ actions: [{ type: "OPEN_PHONE" }] }));
+    expect(result).toMatchObject({ ok: true, trimmed: true, acceptedActions: 0 });
+    expect(result.ok && result.state).toEqual(createInitialState(CHAPTER_1_SCENARIO));
+  });
+
+  it("keeps too many actions and a non-finite pose as hard failures", () => {
+    expect(lenient(progress({ actions: acceptedActions(SAVE_MAX_ACTIONS + 1) }))).toEqual({
+      ok: false,
+      reason: RESTORE_REASONS.tooManyActions,
+    });
+    expect(lenient(progress({ playerPose: { position: [Number.NaN, 0, 0], yaw: 0 } }))).toEqual({
+      ok: false,
+      reason: RESTORE_REASONS.invalidPose,
+    });
+  });
+
+  it.each(FROZEN_LOGS)("restores the frozen %s playthrough log with trimmed false", (_name, actions) => {
+    const result = lenient(progress({ actions: [...actions], playerPose: null }));
+    expect(result).toMatchObject({ ok: true, trimmed: false, acceptedActions: actions.length });
+    expect(result.ok && result.state.status).toBe("finished");
+  });
+});
+
 describe("restoreProgress", () => {
   it("replays valid progress to the same state", () => {
     const result = restoreProgress(progress(), CHAPTER_1_SCENARIO);

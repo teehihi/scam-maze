@@ -34,3 +34,34 @@ describe("callPhone Asset_Credits entry", () => {
     }
   });
 });
+
+describe("chapter1Voices Asset_Credits entry", () => {
+  const audioGroups = GAME_CREDITS.filter((group) => group.id === "audio");
+  const entries = GAME_CREDITS.flatMap((group) =>
+    group.items.filter((item) => item.id === "chapter1Voices"),
+  );
+
+  it("exists exactly once, inside the audio group", () => {
+    expect(audioGroups).toHaveLength(1);
+    expect(entries).toHaveLength(1);
+    expect(audioGroups[0].items.map((item) => item.id)).toContain("chapter1Voices");
+  });
+
+  it("names the generator script and states the terms of use as not verified", () => {
+    const [entry] = entries;
+    expect(entry.name).toBe("Chapter 1 voice clips");
+    expect(entry.sourceUrl).toContain("generate-chapter1-voice");
+    expect(entry.license).toContain("not verified");
+  });
+
+  it("has audio category and chapter1Voices notes keys in en and vi without the words safe or an toàn", () => {
+    for (const locale of ["en", "vi"] as const) {
+      const dict = resources[locale].credits;
+      const notes = dict.items.chapter1Voices?.notes;
+      expect(dict.groups.audio?.category, `${locale} groups.audio.category`).toBeTruthy();
+      expect(notes, `${locale} items.chapter1Voices.notes`).toBeTruthy();
+      expect(notes).not.toMatch(/\bsafe/i);
+      expect(notes?.toLowerCase()).not.toContain("an toàn");
+    }
+  });
+});

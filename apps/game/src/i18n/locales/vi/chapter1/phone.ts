@@ -57,6 +57,22 @@ const phone: LocaleShape<typeof en> = {
       status: "Đang trong cuộc gọi",
       hangUp: "Cúp máy",
       connecting: "Đã kết nối. Đang chờ người gọi lên tiếng.",
+      duration: "Thời lượng cuộc gọi",
+      mute: "Tắt tiếng",
+      unmute: "Bật tiếng",
+      replay: "Nghe lại",
+      listening: "Đang nghe người gọi nói.",
+      showReplies: "Hiện các câu trả lời ngay",
+      notice: {
+        autoplayBlocked: "Trình duyệt đang chặn âm thanh. Hãy nhấn Nghe lại để nghe câu này.",
+        devPreview: "Đây là giọng xem thử khi phát triển. Đây không phải bản ghi âm.",
+        englishVoice: "Câu này được đọc bằng tiếng Anh. Phụ đề bằng tiếng Việt.",
+        noAudio: "Câu này không có âm thanh. Hãy đọc phụ đề.",
+      },
+    },
+    sound: {
+      ringing: "Điện thoại đang đổ chuông",
+      connected: "Cuộc gọi đã kết nối",
     },
     callPresentation: {
       name: "Cuộc gọi điện thoại",

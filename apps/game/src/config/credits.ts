@@ -1,5 +1,5 @@
 /** Stable IDs used for translation keys (`credits:groups.<id>.category`). */
-export type CreditGroupId = "environments" | "vehicles" | "music" | "project";
+export type CreditGroupId = "environments" | "vehicles" | "music" | "audio" | "project";
 
 /** Stable IDs used for translation keys (`credits:items.<id>.notes`). */
 export type CreditItemId =
@@ -11,6 +11,7 @@ export type CreditItemId =
   | "muaHaThu18"
   | "neuNgayMai"
   | "callPhone"
+  | "chapter1Voices"
   | "coreArchitecture";
 
 /**
@@ -113,6 +114,20 @@ export const GAME_CREDITS: CreditGroup[] = [
         sourceUrl: "https://open.spotify.com/track/2AkPSNohBGtrZMGeTtwV12",
         license: "All rights reserved. Used in SCAMMAZE with the author's permission",
         notes: "Song played in the UEH courtyard (flame tree blossom theme), performed with Hồ Đá Chà Gươm. Not covered by the project's MIT License.",
+      },
+    ],
+  },
+  {
+    id: "audio",
+    category: "Voice & Audio",
+    items: [
+      {
+        id: "chapter1Voices",
+        name: "Chapter 1 voice clips",
+        creator: "Windows built-in speech voices (Microsoft David, Microsoft Mark, Microsoft Zira, Microsoft An), generated locally by the SCAMMAZE Team",
+        sourceUrl: "apps/game/scripts/generate-chapter1-voice.mjs",
+        license: "Terms of use not verified (see docs/PROJECT_PROGRESS.md)",
+        notes: "Synthetic voices for Chapter 1 dialogue: Microsoft David, Mark and Zira (en-US) and Microsoft An (vi-VN). No real person's voice was cloned. Redistribution terms for the generated audio have not been verified.",
       },
     ],
   },

@@ -173,6 +173,7 @@ describe("App language", () => {
 
   it("keeps every other settings field when the language changes", () => {
     const stored = {
+      ...DEFAULT_SETTINGS,
       graphicsQuality: "high",
       soundEnabled: false,
       musicVolume: 0.35,

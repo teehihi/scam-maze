@@ -31,6 +31,28 @@ const settings = {
     muted: "MUTED",
     masterVolume: "Master Volume",
   },
+  voice: {
+    heading: "Voice and comfort",
+    volume: "Voice volume",
+    captions: "Captions",
+    phoneFilter: "Phone speaker effect",
+    englishFallback: "Use the English voice when Vietnamese audio is missing",
+  },
+  comfort: {
+    reducedStress: "Reduced-stress mode",
+    reducedStressHint:
+      "Softer sounds, no ring vibration and longer pauses before tense lines. The story does not change.",
+    motion: {
+      heading: "Reduce motion",
+      system: "Follow the system",
+      on: "On",
+      off: "Off",
+    },
+  },
+  toggle: {
+    on: "On",
+    off: "Off",
+  },
 };
 
 export default settings;

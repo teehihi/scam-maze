@@ -16,6 +16,16 @@ export type RestoreProgressResult =
   | { ok: true; state: ChapterState; pose: SavedPlayerPose | null }
   | { ok: false; reason: string };
 
+/** Result of a lenient restore: the state after the last accepted action, plus a trimmed flag. */
+export type LenientRestoreProgressResult =
+  | { ok: true; state: ChapterState; pose: SavedPlayerPose | null; trimmed: boolean; acceptedActions: number }
+  | { ok: false; reason: string };
+
+export interface RestoreProgressOptions {
+  /** Stop at the first rejected action instead of failing the whole save. */
+  readonly lenient?: boolean;
+}
+
 export const RESTORE_REASONS = {
   tooManyActions: "Saved data has too many actions.",
   actionRejected: "Saved progress could not be replayed.",
@@ -57,14 +67,27 @@ export function encodeProgress(
 
 /**
  * Rebuilds the Chapter_State by replaying the saved actions from the initial Chapter_State
- * (Requirement 15.5). Any rejected action makes the save invalid (Requirement 15.6). A pose with a
- * non-finite number makes the save invalid (Requirement 15.7); a finite pose is clamped to the
- * Play_Area bounds.
+ * (Requirement 15.5). By default any rejected action makes the save invalid (Requirement 15.6).
+ * With `{ lenient: true }` replay stops at the first rejected action and returns the state after
+ * the last accepted action with `trimmed: true` and `acceptedActions`; a fully accepted log
+ * returns `trimmed: false`. More than `SAVE_MAX_ACTIONS` actions or a non-finite pose stay hard
+ * failures in both modes (Requirement 15.7); a finite pose is clamped to the Play_Area bounds.
  */
 export function restoreProgress(
   progress: ChapterProgressV2,
+  scenario?: ScenarioDefinition,
+  options?: { readonly lenient?: false },
+): RestoreProgressResult;
+export function restoreProgress(
+  progress: ChapterProgressV2,
+  scenario: ScenarioDefinition | undefined,
+  options: { readonly lenient: true },
+): LenientRestoreProgressResult;
+export function restoreProgress(
+  progress: ChapterProgressV2,
   scenario: ScenarioDefinition = CHAPTER_1_SCENARIO,
-): RestoreProgressResult {
+  options: RestoreProgressOptions = {},
+): RestoreProgressResult | LenientRestoreProgressResult {
   if (progress.actions.length > SAVE_MAX_ACTIONS) {
     return { ok: false, reason: RESTORE_REASONS.tooManyActions };
   }
@@ -73,13 +96,24 @@ export function restoreProgress(
   if (pose !== null && !isFinitePose(pose)) {
     return { ok: false, reason: RESTORE_REASONS.invalidPose };
   }
+  const restoredPose = pose === null ? null : clampPose(pose);
 
   let state = createInitialState(scenario);
+  let accepted = 0;
   for (const action of progress.actions) {
     const result = chapterReducer(state, action, scenario);
-    if (!result.accepted) return { ok: false, reason: RESTORE_REASONS.actionRejected };
+    if (!result.accepted) {
+      if (options.lenient === true) {
+        return { ok: true, state, pose: restoredPose, trimmed: true, acceptedActions: accepted };
+      }
+      return { ok: false, reason: RESTORE_REASONS.actionRejected };
+    }
     state = result.state;
+    accepted += 1;
   }
 
-  return { ok: true, state, pose: pose === null ? null : clampPose(pose) };
+  if (options.lenient === true) {
+    return { ok: true, state, pose: restoredPose, trimmed: false, acceptedActions: accepted };
+  }
+  return { ok: true, state, pose: restoredPose };
 }

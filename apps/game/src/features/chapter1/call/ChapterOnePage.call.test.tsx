@@ -64,6 +64,12 @@ const SETTINGS: GameSettings = {
   sfxVolume: 0,
   fov: 75,
   language: "en",
+  voiceVolume: 1,
+  subtitlesEnabled: true,
+  reducedStress: false,
+  reducedMotion: "system",
+  phoneVoiceFilter: true,
+  englishVoiceFallback: false,
 };
 
 /** A projected screen rectangle, as the 3D phone publishes it every frame. */
@@ -372,23 +378,28 @@ describe("ChapterOnePage call presentation", () => {
     expect(store().getState().call.status).toBe("active");
   });
 
-  it("wraps Tab and Shift+Tab inside the call dialog: call buttons first, then the options (7.2)", () => {
+  it("wraps Tab and Shift+Tab inside the call dialog: voice controls and Hang up first, then the options (7.2)", () => {
     renderPage();
     beginChapter();
     ring();
     fireEvent.click(screen.getByTestId("incoming-call-accept"));
 
     const dialog = screen.getByRole("dialog", { name: "Phone call" });
+    const mute = screen.getByTestId("call-screen-mute");
+    const replay = screen.getByTestId("call-screen-replay") as HTMLButtonElement;
     const hangUp = screen.getByTestId("call-screen-hang-up");
     const options = optionButtons();
     expect(options.length).toBeGreaterThan(0);
-    expect(getTabbable(dialog)).toEqual([hangUp, ...options]);
+    // Designed order: Mute, Replay, Hang up, then the options. A disabled Replay is not tabbable.
+    const callControls = replay.disabled ? [mute, hangUp] : [mute, replay, hangUp];
+    expect(getTabbable(dialog)).toEqual([...callControls, ...options]);
 
+    const first = callControls[0];
     const last = options[options.length - 1];
     last.focus();
     fireEvent.keyDown(last, { key: "Tab", code: "Tab" });
-    expect(document.activeElement).toBe(hangUp);
-    fireEvent.keyDown(hangUp, { key: "Tab", code: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "Tab", code: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(last);
   });
 
