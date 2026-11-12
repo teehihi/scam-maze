@@ -26,6 +26,7 @@ import viStory from "../../i18n/locales/vi/chapter1/story";
 import { getDisplayPrompts, getDisplayScenario } from "../../i18n/narrative";
 import { mockReducedMotion, restoreMatchMedia } from "../../test/loadingRuns";
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
+import { SettingsModal } from "../menu/SettingsModal";
 import { ChapterOnePage } from "./ChapterOnePage";
 import { DebriefScreen } from "./debrief/DebriefScreen";
 import { EndingTransition } from "./ending/EndingTransition";
@@ -547,6 +548,159 @@ describe("Chapter 1 accessibility", () => {
       fireEvent.click(within(dialog(VI_WALLET.label)).getByRole("button", { name: viStory.inspection.close }));
       waitForRing();
     }
+  });
+
+  // Voice narrative (chapter-01-voice-narrative task 23.6).
+  describe("voice controls", () => {
+    /** Elements Tab reaches, in document order (jsdom has no real Tab navigation). */
+    function tabbables(root: HTMLElement): HTMLElement[] {
+      return Array.from(root.querySelectorAll<HTMLElement>("button, input, select, textarea, a[href], [tabindex]")).filter(
+        (element) => !element.hasAttribute("disabled") && element.tabIndex >= 0,
+      );
+    }
+
+    function answerFirstCall(): HTMLElement {
+      renderPage();
+      beginChapter();
+      ringFirstCall();
+      fireEvent.click(screen.getByTestId("incoming-call-accept"));
+      return dialog("Phone call");
+    }
+
+    it("answers, mutes, replays and chooses an option with the keyboard, in the documented tab order", () => {
+      renderPage();
+      beginChapter();
+      ringFirstCall();
+
+      // Answer: focus starts on Accept; Enter or Space on a button is a native click.
+      const accept = screen.getByTestId("incoming-call-accept");
+      expect(document.activeElement).toBe(accept);
+      fireEvent.click(accept);
+      const call = dialog("Phone call");
+      expectFocusInside(call);
+
+      // Tab order: Mute, Replay (only when enabled), Hang up, then the options.
+      const mute = within(call).getByTestId("call-screen-mute");
+      const replay = within(call).getByTestId("call-screen-replay");
+      const hangUp = within(call).getByTestId("call-screen-hang-up");
+      const options = within(within(call).getByRole("list")).getAllByRole("button");
+      expect(options.length).toBeGreaterThan(0);
+      const order = tabbables(call);
+      const expected = [mute, ...(replay.hasAttribute("disabled") ? [] : [replay]), hangUp, ...options];
+      expect(order).toEqual(expected);
+
+      // Mute: named, toggles with aria-pressed and flips its label; keyboard focus is kept.
+      mute.focus();
+      expect(accessibleName(mute)).toBe("Mute");
+      expect(mute.getAttribute("aria-pressed")).toBe("false");
+      fireEvent.click(mute);
+      expect(mute.getAttribute("aria-pressed")).toBe("true");
+      expect(accessibleName(mute)).toBe("Unmute");
+      expect(document.activeElement).toBe(mute);
+      fireEvent.click(mute);
+      expect(mute.getAttribute("aria-pressed")).toBe("false");
+      expect(accessibleName(mute)).toBe("Mute");
+
+      // Replay: named; a disabled Replay is not a Tab stop, an enabled one keeps focus on click.
+      expect(accessibleName(replay)).toBe("Replay");
+      if (replay.hasAttribute("disabled")) {
+        expect(order).not.toContain(replay);
+      } else {
+        replay.focus();
+        fireEvent.click(replay);
+        expect(document.activeElement).toBe(replay);
+      }
+
+      // Choose an option with a number key on the focused option.
+      const lineBefore = within(call).getByTestId("dialogue-line").textContent;
+      options[0].focus();
+      pressKey({ key: "1", code: "Digit1" });
+      expectFocusInside(dialog("Phone call"));
+      expect(screen.queryByTestId(options[0].getAttribute("data-testid") ?? "")).toBeNull();
+      expect(within(dialog("Phone call")).getByTestId("dialogue-line").textContent).not.toBe(lineBefore);
+    });
+
+    it("keeps Tab inside the call dialog from Hang up and from the last option", () => {
+      const call = answerFirstCall();
+      const order = tabbables(call);
+      const first = order[0];
+      const last = order[order.length - 1];
+      last.focus();
+      pressTab();
+      expect(document.activeElement).toBe(first);
+      first.focus();
+      pressTab(true);
+      expect(document.activeElement).toBe(last);
+    });
+
+    it("gives the new call controls accessible names, hidden icons and visible focus classes", () => {
+      const call = answerFirstCall();
+      expectAccessibleDom("voice call");
+      for (const id of ["call-screen-mute", "call-screen-replay", "call-screen-hang-up"]) {
+        const button = within(call).getByTestId(id);
+        expect(accessibleName(button), id).not.toBe("");
+        expect(button.className, id).toContain("focus-visible:outline");
+        for (const icon of button.querySelectorAll("svg")) expect(icon.getAttribute("aria-hidden")).toBe("true");
+      }
+      // The notice and caption are polite live regions, not Tab stops.
+      expect(within(call).getByTestId("call-notice").getAttribute("aria-live")).toBe("polite");
+      expect(within(call).getByTestId("call-line-region").getAttribute("aria-live")).toBe("polite");
+      expect(within(call).getByTestId("call-line-region").tabIndex).toBe(-1);
+    });
+
+    it("gives the face-to-face Replay a name, a hidden icon and a visible focus class", () => {
+      // Source check: the dialogue panel's Replay uses the shared secondary button with focus-visible.
+      const source = readFileSync(join(CHAPTER1_DIR, "dialogue", "DialoguePanel.tsx"), "utf8");
+      expect(source).toMatch(/data-testid="dialogue-replay"/);
+      expect(source).toMatch(/aria-hidden="true"/);
+      const theme = readFileSync(join(CHAPTER1_DIR, "theme.ts"), "utf8");
+      expect(theme).toMatch(/buttonSecondary:\s*\n?\s*"[^"]*focus-visible:outline/);
+    });
+
+    it("lets the keyboard read the whole debrief and reach both actions", () => {
+      const view = riskyDebrief();
+      const onReplay = vi.fn();
+      const onReturnToMenu = vi.fn();
+      render(<DebriefScreen view={view} onReplay={onReplay} onReturnToMenu={onReturnToMenu} />);
+      const debrief = screen.getByRole("dialog");
+      // Focus starts on the heading; the sections are named headings in reading order.
+      expect(document.activeElement).toBe(screen.getByRole("heading", { name: view.outcome.title }));
+      const sections = within(debrief).getAllByRole("region");
+      expect(sections.length).toBeGreaterThanOrEqual(7);
+      for (const section of sections) expect(accessibleName(section)).not.toBe("");
+      // Only the two actions are Tab stops, both named and with a focus-visible class.
+      const stops = tabbables(debrief).filter((element) => element.tagName === "BUTTON");
+      expect(stops.map(accessibleName)).toEqual(["Return to menu", "Replay chapter"]);
+      for (const stop of stops) expect(stop.className).toContain("focus-visible:outline");
+      stops[1].focus();
+      fireEvent.click(stops[1]);
+      expect(onReplay).toHaveBeenCalledTimes(1);
+      stops[0].focus();
+      fireEvent.click(stops[0]);
+      expect(onReturnToMenu).toHaveBeenCalledTimes(1);
+    });
+
+    it("labels the Settings voice controls", () => {
+      render(
+        <SettingsModal
+          isOpen
+          onClose={() => {}}
+          settings={{ ...SETTINGS, soundEnabled: true, language: "vi", musicVolume: 0.5, sfxVolume: 0.5 }}
+          onUpdateSettings={() => {}}
+        />,
+      );
+      const volume = document.getElementById("settings-voice-volume");
+      expect(volume).not.toBeNull();
+      expect(volume?.getAttribute("type")).toBe("range");
+      expect(document.querySelector('label[for="settings-voice-volume"]')?.textContent?.trim()).toBeTruthy();
+      for (const id of ["settings-captions", "settings-phone-filter", "settings-english-fallback"]) {
+        const control = document.getElementById(id);
+        expect(control, id).not.toBeNull();
+        const name = accessibleName(control as HTMLElement) || document.querySelector(`label[for="${id}"]`)?.textContent;
+        expect(name?.trim(), id).toBeTruthy();
+        expect((control as HTMLElement).tabIndex, id).toBeGreaterThanOrEqual(0);
+      }
+    });
   });
 
   it("uses no emoji anywhere in the features/chapter1 source", () => {

@@ -380,4 +380,173 @@ describe("Chapter 1 scripted playthroughs", () => {
     expect(missed).toEqual(hintedEvidenceExcept(["ev.caller-number"]));
     expect(missed).toEqual(expect.arrayContaining(["ev.bank-card", "ev.official-confirmation"]));
   });
+
+  it("investigator: checks, collects evidence and files a report", () => {
+    const actions: CoreAction[] = [
+      START,
+      { type: "INTERACT_OBJECT", objectId: "obj.wallet" },
+      { type: "INTERACT_OBJECT", objectId: "obj.mailbox" },
+      { type: "INTERACT_OBJECT", objectId: "obj.shop-poster" },
+      { type: "INTERACT_OBJECT", objectId: "obj.notice-board" },
+      { type: "RING_CALL", callId: "call.scam-1", reason: "first-interaction" },
+      ANSWER,
+      option("opt.scam.open.ask-proof"),
+      option("opt.scam.knows.verify"),
+      OPEN_PHONE,
+      { type: "INSPECT_EVIDENCE", evidenceId: "ev.caller-number" },
+      { type: "VERIFY_CLAIM", claimId: "claim.account-suspended", method: "bank-app" },
+      CLOSE_PHONE,
+      { type: "TALK_TO_NPC", npcId: "npc.sam" },
+      option("opt.sam.ask.yes-called"),
+      option("opt.sam.story.what-did-you-do"),
+      option("opt.sam.advice.bye"),
+      { type: "VERIFY_CLAIM", claimId: "claim.caller-identity", method: "official-line" },
+      option("opt.official.greeting.wait"),
+      option("opt.official.agent.report"),
+      option("opt.official.confirm.anything-else"),
+      option("opt.official.hub.transfer"),
+      option("opt.official.transfer.back"),
+      option("opt.official.hub.report"),
+      option("opt.official.report-intro.number"),
+      option("opt.official.report-filed.back"),
+      option("opt.official.hub.all-done"),
+      { type: "MAKE_DECISION", decision: "verify-independently" },
+      FINISH,
+    ];
+    const state = playthrough(actions);
+
+    expect(state.flags.report_filed).toBe(true);
+    expect(state.flags.code_shared).toBe(false);
+    expect(state.flags.money_moved).toBe(false);
+    // 10 of the 11 listed items (all but ev.second-number): at least the 8 the ending needs.
+    const listed: EvidenceId[] = [
+      "ev.caller-number",
+      "ev.bank-card",
+      "ev.bank-letter",
+      "ev.bank-app",
+      "ev.shop-poster",
+      "ev.community-alert",
+      "ev.sam-testimony",
+      "ev.official-confirmation",
+      "ev.transfer-check",
+      "ev.second-number",
+      "ev.partial-info",
+    ];
+    expect(listed.filter((id) => state.discovered.includes(id)).length).toBeGreaterThanOrEqual(8);
+    expect(state.claims["claim.caller-identity"]).toBe("contradicted");
+    expect(state.decision).toBe("verify-independently");
+    expect(state.outcome).toBe("investigator");
+    expect(state.status).toBe("finished");
+    expect(selectConsequenceVariant(state, CHAPTER_1_SCENARIO)?.id).toBe("investigator.report");
+
+    const debrief = requireDebrief(state);
+    expect(debrief.outcome.id).toBe("investigator");
+    expect(debrief.outcome.simulationLabel).toBe(SIMULATION_LABEL);
+    expectDecisionsMatchLog(state, debrief);
+    expect(debrief.decisions.map((decision) => decision.tag)).toContain("reported-details");
+  });
+
+  it("callback exposed: the player tells the caller the bank said no after the official line", () => {
+    const actions: CoreAction[] = [
+      START,
+      { type: "INTERACT_OBJECT", objectId: "obj.wallet" },
+      { type: "RING_CALL", callId: "call.scam-1", reason: "exploration-timer" },
+      ANSWER,
+      option("opt.scam.open.verify"),
+      { type: "VERIFY_CLAIM", claimId: "claim.caller-identity", method: "official-line" },
+      option("opt.official.greeting.wait"),
+      option("opt.official.agent.report"),
+      option("opt.official.confirm.block"),
+      { type: "RING_CALL", callId: "call.callback", reason: "callback" },
+      ANSWER,
+      option("opt.callback.open.i-called-bank"),
+      option("opt.callback.exposed.hang-up"),
+      { type: "MAKE_DECISION", decision: "verify-independently" },
+      FINISH,
+    ];
+    const state = playthrough(actions);
+
+    const callbackRecord = state.call.log.find((record) => record.callId === "call.callback");
+    expect(callbackRecord?.status).toBe("ended");
+    expect(state.flags.secrecy_heard).toBe(true);
+    expect(state.flags.code_shared).toBe(false);
+    expect(state.flags.money_moved).toBe(false);
+    expect(state.discovered).toContain("ev.official-confirmation");
+    expect(state.outcome).toBe("verified");
+    expect(state.status).toBe("finished");
+
+    const debrief = requireDebrief(state);
+    expect(debrief.decisions.map((decision) => decision.tag)).toEqual(
+      expect.arrayContaining(["told-caller-bank-said-no", "hung-up-on-callback"]),
+    );
+    expectDecisionsMatchLog(state, debrief);
+  });
+
+  it("follow-up: money is moved on the case desk call (risky)", () => {
+    const actions: CoreAction[] = [
+      START,
+      { type: "RING_CALL", callId: "call.scam-1", reason: "exploration-timer" },
+      ANSWER,
+      END_CALL,
+      { type: "RING_CALL", callId: "call.callback", reason: "callback" },
+      END_CALL, // decline: the callback is closed, so the follow-up may ring
+      { type: "RING_CALL", callId: "call.followup", reason: "follow-up" },
+      ANSWER,
+      option("opt.followup.open.who"),
+      option("opt.followup.badge.callback-number"),
+      option("opt.followup.case-details.okay"),
+      option("opt.followup.final.move-money"),
+      FINISH,
+    ];
+    const state = playthrough(actions);
+
+    expect(state.flags.followup_rang).toBe(true);
+    expect(state.flags.case_sms_sent).toBe(true);
+    expect(state.flags.money_moved).toBe(true);
+    expect(state.decision).toBe("follow-request");
+    expect(state.outcome).toBe("risky");
+    expect(state.status).toBe("finished");
+    expect(selectConsequenceVariant(state, CHAPTER_1_SCENARIO)?.id).toBe("risky.money-moved");
+
+    const debrief = requireDebrief(state);
+    expect(debrief.outcome.id).toBe("risky");
+    expect(debrief.outcome.simulationLabel).toBe(SIMULATION_LABEL);
+    expect(debrief.decisions.map((decision) => decision.tag)).toContain("moved-money");
+    expectDecisionsMatchLog(state, debrief);
+  });
+
+  it("follow-up: the player hangs up on the case desk", () => {
+    const actions: CoreAction[] = [
+      START,
+      { type: "RING_CALL", callId: "call.scam-1", reason: "exploration-timer" },
+      ANSWER,
+      END_CALL,
+      { type: "RING_CALL", callId: "call.callback", reason: "callback" },
+      END_CALL,
+      { type: "RING_CALL", callId: "call.followup", reason: "follow-up" },
+      ANSWER,
+      option("opt.followup.open.hang-up"),
+      OPEN_PHONE,
+      { type: "INSPECT_EVIDENCE", evidenceId: "ev.second-number" },
+      CLOSE_PHONE,
+      { type: "MAKE_DECISION", decision: "stop-and-wait" },
+      FINISH,
+    ];
+    const state = playthrough(actions);
+
+    const record = state.call.log.find((entry) => entry.callId === "call.followup");
+    expect(record?.status).toBe("ended");
+    expect(record?.number).toBe("+000 555 0177");
+    expect(state.flags.followup_rang).toBe(true);
+    expect(state.flags.money_moved).toBe(false);
+    expect(state.flags.code_shared).toBe(false);
+    expect(state.discovered).toContain("ev.second-number");
+    expect(state.decision).toBe("stop-and-wait");
+    expect(state.outcome).toBe("uncertain");
+    expect(state.status).toBe("finished");
+
+    const debrief = requireDebrief(state);
+    expect(debrief.decisions.map((decision) => decision.tag)).toContain("hung-up-on-followup");
+    expectDecisionsMatchLog(state, debrief);
+  });
 });

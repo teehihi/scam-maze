@@ -42,9 +42,11 @@ import { createLocalStorageSaveSource, type SaveGameSource } from "../../game/sa
 import { getDisplayPrompts, useDisplayScenario } from "../../i18n/narrative";
 import { useGameLocale } from "../../i18n/useGameLocale";
 import { usePlayerControls } from "../player";
+import { createWebAudioEngine, type WebAudioEngine } from "../../game/voice/webAudioEngine";
 import { CallPresentation } from "./call/CallPresentation";
 import { hasPhoneModelFailed, reportPhoneModelFailure } from "./call/phoneModelStatus";
 import { createPhoneScreenSink } from "./call/phoneScreenSink";
+import { ComfortProvider, effectiveReducedMotion } from "./comfort/ComfortProvider";
 import { ChapterOneCanvas, type ChapterOneCallPhone, type ChapterOnePlayerPose } from "./ChapterOneCanvas";
 import { EvidenceNotice } from "./hud/EvidenceNotice";
 import { HudButtons } from "./hud/HudButtons";
@@ -52,12 +54,13 @@ import { InteractionPrompt } from "./hud/InteractionPrompt";
 import { ObjectiveToast, type ObjectiveChangeKind } from "./hud/ObjectiveToast";
 import { ObjectiveTracker } from "./hud/ObjectiveTracker";
 import { ResumePrompt } from "./hud/ResumePrompt";
+import { SaveTrimmedNotice } from "./hud/SaveTrimmedNotice";
 import { SaveFailureNotice } from "./hud/SaveFailureNotice";
 import { interactionToAction } from "./interaction/interactionToAction";
 import { ChapterTitleCard } from "./intro/ChapterTitleCard";
 import { DebriefScreen } from "./debrief/DebriefScreen";
 import { DecisionPanel } from "./decision/DecisionPanel";
-import { DialoguePanel } from "./dialogue/DialoguePanel";
+import { DialoguePanel, type DialoguePanelVoice } from "./dialogue/DialoguePanel";
 import { EndingTransition } from "./ending/EndingTransition";
 import { focusDialogStart, topDialog, trapTabKey } from "./focusTrap";
 import { EvidenceJournal } from "./journal/EvidenceJournal";
@@ -68,6 +71,9 @@ import { PhoneOverlay } from "./phone/PhoneOverlay";
 import { UI } from "./theme";
 import { useCallTriggers } from "./useCallTriggers";
 import { useChapterState } from "./useChapterState";
+import { useCallAudio } from "./voice/useCallAudio";
+import { useCallDuration } from "./voice/useCallDuration";
+import { useVoicePlayback, type VoiceController } from "./voice/useVoicePlayback";
 import { useCheckpointSaver } from "./useCheckpointSaver";
 
 export interface ChapterOnePageProps {
@@ -122,6 +128,19 @@ function endOverlayFor(state: ChapterState): Overlay | null {
 /** True while a face-to-face conversation (no linked Call) is running. */
 function faceToFaceInProgress(state: ChapterState): boolean {
   return state.conversation !== null && state.conversation.callId === null;
+}
+
+/** Notice line under the face-to-face voice controls; mirrors the phone call screen. */
+function dialogueVoiceFor(voice: VoiceController): DialoguePanelVoice {
+  const { snapshot } = voice;
+  let notice: DialoguePanelVoice["notice"] = "none";
+  if (snapshot.reason === "autoplay-blocked" || snapshot.phase === "blocked") notice = "autoplay-blocked";
+  else if (snapshot.label === "dev-preview") notice = "dev-preview";
+  else if (snapshot.label === "english-voice") notice = "english-voice";
+  else if (snapshot.source === "none" && (snapshot.phase === "unavailable" || snapshot.phase === "failed")) {
+    notice = "no-audio";
+  }
+  return { replayEnabled: snapshot.source !== "none", notice, onReplay: voice.replay };
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -274,10 +293,56 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   const [phoneModelFailed, setPhoneModelFailed] = useState(() => hasPhoneModelFailed());
   const [phoneScreenSink] = useState(createPhoneScreenSink);
   const callOpenedAtRef = useRef(0);
-  const reducedMotion = usePrefersReducedMotion();
+  // Effective reduced motion: the setting, or the OS query when the setting is "system".
+  const reducedMotion = effectiveReducedMotion(settings.reducedMotion, usePrefersReducedMotion());
   const modelAllowed = webglAvailable && !webglLost && !phoneModelFailed;
   const phoneModelEnabled = webglAvailable && !phoneModelFailed;
   const paused = top(overlays)?.kind === "pause";
+
+  // --- Voice and call audio (chapter-01-voice-narrative task 23.1) ------------------------------
+  // One Web Audio engine per page, shared by the voice player and the call sounds. It is created
+  // in an effect (so a development double mount gets a live engine) and disposed on unmount. The
+  // voice hook reads it through `createPort`; without AudioContext (jsdom) it reports
+  // `supported: false` and the UI degrades to captions. Audio never dispatches to the store.
+  const engineRef = useRef<WebAudioEngine | null>(null);
+  const [engine, setEngine] = useState<WebAudioEngine | null>(null);
+  useEffect(() => {
+    const created = (engineRef.current ??= createWebAudioEngine());
+    setEngine(created);
+    return () => {
+      created.dispose();
+      if (engineRef.current === created) engineRef.current = null;
+      setEngine((current) => (current === created ? null : current));
+    };
+  }, []);
+  const voiceDeps = useMemo(
+    () => ({ createPort: () => (engineRef.current ??= createWebAudioEngine()) }),
+    [],
+  );
+  const voice = useVoicePlayback({
+    store,
+    scenario,
+    settings: {
+      soundEnabled: settings.soundEnabled,
+      sfxVolume: settings.sfxVolume,
+      voiceVolume: settings.voiceVolume,
+      phoneVoiceFilter: settings.phoneVoiceFilter,
+      englishVoiceFallback: settings.englishVoiceFallback,
+      reducedStress: settings.reducedStress,
+    },
+    paused,
+    deps: voiceDeps,
+  });
+  useCallAudio({
+    store,
+    engine,
+    paused,
+    reducedStress: settings.reducedStress,
+    masterGain: settings.soundEnabled ? settings.sfxVolume : 0,
+  });
+  const durationSeconds = useCallDuration(call.status === "active", paused, call.current);
+  const [saveTrimmedOpen, setSaveTrimmedOpen] = useState(() => session.saveTrimmed === true);
+  const dismissSaveTrimmed = useCallback(() => setSaveTrimmedOpen(false), []);
   const callOverlayOpen = isOpen(overlays, "call");
   const callRinging = call.status === "ringing";
   const callPhone = useMemo<ChapterOneCallPhone | null>(
@@ -535,8 +600,10 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
       const result = store.dispatch({ type: "START_CHAPTER" });
       if (!result.accepted) return;
     }
+    // Unlock audio inside the click gesture; a failure never blocks the chapter.
+    void voice.unlock().catch(() => undefined);
     setTitleCardOpen(false);
-  }, [sceneReady, store]);
+  }, [sceneReady, store, voice]);
 
   const handleSceneReady = useCallback(() => setSceneReady(true), []);
 
@@ -576,7 +643,11 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
     [store],
   );
 
-  const handleAnswerCall = useCallback(() => store.dispatch({ type: "ANSWER_CALL" }), [store]);
+  const handleAnswerCall = useCallback(() => {
+    // Inside the Answer click (a user gesture); a failure never blocks the call.
+    void voice.unlock().catch(() => undefined);
+    return store.dispatch({ type: "ANSWER_CALL" });
+  }, [store, voice]);
 
   /** Declines a ringing call or hangs up an active one. */
   const handleEndCall = useCallback(() => store.dispatch({ type: "END_CALL" }), [store]);
@@ -680,6 +751,9 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
             onAnswer={handleAnswerCall}
             onEnd={handleEndCall}
             onSelectOption={handleSelectOption}
+            voice={voice}
+            durationSeconds={durationSeconds}
+            subtitlesEnabled={settings.subtitlesEnabled}
           />
         );
       case "inspection": {
@@ -738,7 +812,13 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
                   {persona.name}
                 </h2>
               </div>
-              <DialoguePanel view={dialogueView} onSelectOption={handleSelectOption} />
+              <DialoguePanel
+                view={dialogueView}
+                onSelectOption={handleSelectOption}
+                voice={dialogueVoiceFor(voice)}
+                waiting={voice.optionsWaiting}
+                onSkipWait={voice.skipWait}
+              />
             </div>
           </div>
         );
@@ -779,6 +859,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   const journalUnread = Math.max(0, discovered.length - journalSeen);
 
   return (
+    <ComfortProvider settings={settings}>
     <div className="relative w-screen h-screen overflow-hidden bg-[#171521] select-none">
       <div
         ref={gameViewRef}
@@ -815,6 +896,8 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
           <div className="pointer-events-none absolute left-4 top-4 z-10">
             <ObjectiveTracker
               objectives={activeObjectives}
+              store={store}
+              scenario={scenario}
               announcement={
                 announcement === null
                   ? null
@@ -871,6 +954,12 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
         </div>
       )}
 
+      {saveTrimmedOpen && !titleCardOpen && (
+        <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2" onMouseDown={stopMouseDown}>
+          <SaveTrimmedNotice onDismiss={dismissSaveTrimmed} />
+        </div>
+      )}
+
       {titleCardOpen && (
         <ChapterTitleCard
           chapterNumber={chapter?.number ?? session.chapterNumber}
@@ -882,5 +971,6 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
         />
       )}
     </div>
+    </ComfortProvider>
   );
 };
