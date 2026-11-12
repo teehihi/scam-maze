@@ -4,7 +4,6 @@
 // `selectDialogueView`), in English and in the Vietnamese display scenario, so the overlay is
 // tested with the same data the Chapter_Page passes to it.
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CHAPTER_1_SCENARIO } from "../../../game/narrative/chapter1/scenario";
 import { chapterReducer, createInitialState } from "../../../game/narrative/reducer";
