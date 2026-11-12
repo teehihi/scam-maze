@@ -415,7 +415,8 @@ export function MemoryFrames({ id, accent }: { id: TrackId; accent: string }) {
 
 export function useWorldUniforms() {
   const camPos = useThree((s) => s.camera.position)
-  useFrame((s) => {
+  useFrame((s, dt) => {
+    music.stepAudio(Math.min(dt, 0.1))
     WU.uTime.value = s.clock.elapsedTime
     WU.uMus.value.set(music.bass, music.mid, music.high, music.kick)
     WU.uProg.value = music.progress

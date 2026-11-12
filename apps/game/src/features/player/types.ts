@@ -34,6 +34,9 @@ export interface PlayerStats {
   carGear?: "P" | "D" | "R";
   carPosition?: [number, number, number];
   isEngineStarting?: boolean;
+  /** Seat interaction (maps that pass `seats`). */
+  isNearSeat?: boolean;
+  isSitting?: boolean;
 }
 
 export interface FirstPersonPlayerProps {
@@ -60,4 +63,8 @@ export interface FirstPersonPlayerProps {
   carPivotRef?: MutableRefObject<any>;
   /** Driving limits for this map; defaults to the street in `DEFAULT_VEHICLE_CONFIG`. */
   vehicleConfig?: import("../vehicle/types").VehiclePhysicsConfig;
+  /** Seats the player can sit on with E; see `seating.ts`. */
+  seats?: readonly import("./seating").Seat[];
+  /** Solid oriented boxes on the ground (furniture etc.) the player cannot walk through. */
+  obstacles?: readonly import("../vehicle/types").BoxCollider[];
 }

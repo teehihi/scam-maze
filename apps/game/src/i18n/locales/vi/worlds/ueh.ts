@@ -13,6 +13,10 @@ const ueh: LocaleShape<typeof en> = {
       locked: "MOUSE LOCKED (Ctrl: mở)",
       unlocked: "MOUSE UNLOCKED (Click: khoá)",
     },
+    seat: {
+      sitDown: "Ngồi xuống",
+      standUp: "Đứng dậy",
+    },
     guitar: {
       title: "Gảy Đàn Guitar · Đổi Giai Điệu",
       switchTo: "Đổi sang: <strong>{{track}}</strong>",
@@ -33,7 +37,7 @@ const ueh: LocaleShape<typeof en> = {
       jump: "Nhảy",
       punch: "Đấm",
       block: "Đỡ đòn (Block)",
-      interact: "Tương tác (Đàn)",
+      interact: "Tương tác (Đàn / Ngồi)",
       viewHands: "Xem tay",
       toggleCursor: "Ẩn / Hiện chuột",
       togglePanels: "Ẩn / Hiện bảng thông tin",

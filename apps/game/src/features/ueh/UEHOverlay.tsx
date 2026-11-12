@@ -23,6 +23,8 @@ interface UEHOverlayProps {
     /** While driving, the vehicle HUD replaces the on-foot reticle, prompts and footer. */
     isDriving?: boolean;
     isNearCar?: boolean;
+    isNearSeat?: boolean;
+    isSitting?: boolean;
   };
   /** False hides the whole HUD (H key) except the interaction prompts and the click-to-lock prompt. */
   panelsVisible?: boolean;
@@ -102,7 +104,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
       )}
 
       {/* Interactive Prompt: [E] Strum Guitar on Bench */}
-      {isNearGuitar && isLocked && !isDriving && !stats.isNearCar && (
+      {isNearGuitar && isLocked && !isDriving && !stats.isNearCar && !stats.isSitting && !stats.isNearSeat && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-12 pointer-events-none flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#071a26]/95 border border-[#00a896] text-white shadow-2xl backdrop-blur-md animate-bounce-subtle z-40">
           <kbd className="px-2.5 py-1 rounded-lg bg-[#005f69] text-amber-300 font-extrabold font-mono text-sm border border-[#00a896] shadow-md">
             E
@@ -118,6 +120,23 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
               />
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Seat prompts: [E] sit down / [E] stand up */}
+      {isLocked && !isDriving && (stats.isNearSeat || stats.isSitting) && (
+        <div
+          role="status"
+          className={`absolute left-1/2 -translate-x-1/2 pointer-events-none flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-[#071a26]/95 border border-[#00a896] text-white shadow-2xl backdrop-blur-md z-40 ${
+            stats.isSitting ? "bottom-24" : "top-1/2 translate-y-12"
+          }`}
+        >
+          <kbd className="px-2.5 py-1 rounded-lg bg-[#005f69] text-amber-300 font-extrabold font-mono text-sm border border-[#00a896] shadow-md">
+            E
+          </kbd>
+          <span className="text-xs font-bold text-emerald-200">
+            {stats.isSitting ? t("ueh.seat.standUp") : t("ueh.seat.sitDown")}
+          </span>
         </div>
       )}
 
