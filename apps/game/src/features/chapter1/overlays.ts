@@ -13,7 +13,9 @@ export type Overlay =
   | { kind: "decision" }
   | { kind: "pause" }
   | { kind: "ending" }
-  | { kind: "debrief" };
+  | { kind: "debrief" }
+  /** Busy phone call shown as the 3D call presentation. Escape never closes it (Requirement 7.5). */
+  | { kind: "call" };
 
 export type OverlayKind = Overlay["kind"];
 

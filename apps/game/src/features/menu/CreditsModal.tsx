@@ -12,6 +12,11 @@ interface CreditsModalProps {
 /** License name kept verbatim in every language (legal text, not translated). */
 const CC_BY_LICENSE = "Creative Commons Attribution (CC-BY 4.0)";
 
+/** Only `https://` sources become links; any other source text stays plain text. */
+function isWebSource(sourceUrl: string): boolean {
+  return sourceUrl.startsWith("https://");
+}
+
 export const CreditsModal: React.FC<CreditsModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation("credits");
 
@@ -52,7 +57,12 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({ isOpen, onClose }) =
                   <p className="text-xs text-zinc-400 leading-relaxed">
                     {t(`items.${item.id}.notes`, { defaultValue: item.notes })}
                   </p>
-                  {item.sourceUrl && (
+                  {item.sourceUrl && !isWebSource(item.sourceUrl) && (
+                    <div className="text-xs text-zinc-400 pt-1">
+                      {t("sourceLabel")} <span className="text-zinc-200">{item.sourceUrl}</span>
+                    </div>
+                  )}
+                  {isWebSource(item.sourceUrl) && (
                     <a
                       href={item.sourceUrl}
                       target="_blank"

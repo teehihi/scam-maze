@@ -54,8 +54,29 @@ describe("CreditsModal localization", () => {
     expect(enContent.names.every(Boolean)).toBe(true);
     expect(enContent.creators.every(Boolean)).toBe(true);
     expect(enContent.licenses.every((count) => count > 0)).toBe(true);
-    expect(enContent.hrefs).toEqual(GAME_CREDITS.flatMap((g) => g.items.map((i) => i.sourceUrl)));
+    expect(enContent.hrefs).toEqual(
+      GAME_CREDITS.flatMap((g) =>
+        g.items.filter((i) => i.sourceUrl.startsWith("https://")).map((i) => i.sourceUrl),
+      ),
+    );
     expect(viContent).toEqual(enContent);
+  });
+
+  it("links only https sources and shows every other source as plain text", () => {
+    const { container } = renderCredits("en");
+    const items = GAME_CREDITS.flatMap((g) => g.items);
+    const plainSources = items.filter((i) => !i.sourceUrl.startsWith("https://"));
+    expect(plainSources.map((i) => i.id)).toEqual(
+      expect.arrayContaining(["menuStreetScene", "callPhone"]),
+    );
+    for (const anchor of Array.from(container.querySelectorAll("a"))) {
+      expect(anchor.getAttribute("href")).toMatch(/^https:\/\//);
+    }
+    for (const item of plainSources) {
+      const node = screen.getByText(item.sourceUrl);
+      expect(node.closest("a"), item.id).toBeNull();
+      expect(node.parentElement?.textContent).toContain(resources.en.credits.sourceLabel);
+    }
   });
 
   it("has a category key for every group id and a notes key for every item id in both locales", () => {

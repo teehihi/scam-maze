@@ -10,6 +10,8 @@ const credits = {
     "SCAMMAZE strictly verifies third-party creative licenses. All 3D environment and vehicle assets used in the game street scene are published under {{license}} or permissive open-source licenses with attribution.",
   creatorLabel: "Creator:",
   viewSource: "View Source on Sketchfab",
+  /** Label for a source that is plain text, not a web address. */
+  sourceLabel: "Source:",
   groups: {
     environments: { category: "3D World Environments & Architecture" },
     vehicles: { category: "3D Vehicles & Street Props" },
@@ -33,6 +35,10 @@ const credits = {
     },
     lowPolyCarsPack: {
       notes: "Low-poly vehicles, sedans, utility vans, and neighborhood parked cars.",
+    },
+    callPhone: {
+      notes:
+        "Handheld phone model used for phone calls. Optimized copy with the wallpaper removed and no visible brand marks.",
     },
     coreArchitecture: {
       notes: "First-person 3D scam investigation simulation built for Kiroween 2026.",

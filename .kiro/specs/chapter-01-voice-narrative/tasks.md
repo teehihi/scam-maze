@@ -1,0 +1,738 @@
+# Implementation Plan: Chapter 1 Voice Narrative
+
+## Overview
+
+This plan turns the approved `requirements.md` and `design.md` into small coding tasks. It extends the
+Chapter 1 scenario (schema, engine, content, Vietnamese overlay), adds the voice module (manifest,
+generator, player, Web Audio graph), settings, the phone call UI changes, the follow-up call, the new
+endings, lenient save restore, tests and documentation. Every task can be executed alone by a sub-agent
+that reads the named design.md sections. The implementation language is TypeScript (design.md uses
+TypeScript), with one PowerShell script and one Node `.mjs` script for the voice generator.
+
+Path shorthand used in every task: `SRC` = `apps/game/src`. `NARR` = `SRC/game/narrative`.
+`C1` = `SRC/game/narrative/chapter1`. `VOICE` = `SRC/game/voice`. `OVL` = `SRC/i18n/narrative/chapter1.vi`.
+`F1` = `SRC/features/chapter1`. All paths are relative to `d:\scam-maze`.
+
+## Execution Rules (apply to every task)
+
+Git and branch
+- The first task creates branch `feat/chapter-01-voice-narrative` from the current tip of `feat/game-3d-phone-call-ui` (`8c93d27`) and confirms it with `git branch --show-current`. Never merge anything, never merge `main`, never rebase onto `main`.
+- Commits are local, one per phase, made only by the commit tasks. The final task pushes with `git push -u origin feat/chapter-01-voice-narrative` and no force option.
+- Commit format: Conventional Commits. Stage named files only (never `git add .` or `git add -A`). Never stage the `iphone` source GLBs or any unrelated or untracked file. Add this trailer to every commit with a third `-m`: `Co-authored-by: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>`. Do not skip hooks.
+
+Commands (PowerShell)
+- Never use `&&` in PowerShell. Run commands as separate calls, or use `;` only when a failure of the first command does not matter.
+- Targeted tests: `pnpm --filter @scammaze/game exec vitest run <paths>`.
+- Typecheck: `pnpm --filter @scammaze/game exec tsc --noEmit -p tsconfig.app.json` and then `pnpm --filter @scammaze/game exec tsc --noEmit -p tsconfig.test.json`.
+- Never run tests and typecheck in parallel. Checkpoints run `pnpm test`, then `pnpm typecheck`, then `pnpm build`, one after the other, from `d:\scam-maze`.
+- Intermediate tasks inside one phase can leave `tsc` errors in files that a later task of the same phase owns (for example, new IDs are added before the data that uses them). Only checkpoints require a clean typecheck.
+
+Tests
+- Test sub-tasks are required. They are not optional and carry no `*` postfix.
+- Property tests use `SRC/test/seededRandom.ts`, `SRC/test/chapterRuns.ts` and `SRC/test/callStates.ts`, at least 100 cases (use the existing `CORE_PROPERTY_RUNS`, which is 200, where it fits), `const PROPERTY_TIMEOUT_MS = 60_000` as the test timeout, and the comment `// Feature: chapter-01-voice-narrative, Property N: <title>` above the test. Failures print the seed, the case index and the shortest failing prefix.
+- No new dev dependency. No new runtime dependency (default none; if one seems needed, stop and justify it in design.md first).
+- Tests use no network, no WebGL, no real audio device, no microphone and no AI provider. Use `SRC/test/fakeAudioPort.ts` (task 14.2) for audio.
+- Do not delete, skip or weaken an existing assertion. Update an existing test only for a reason listed in design.md "Known test updates", and record each update (file, reason) in the "Baseline Record" section at the end of this file so task 27.1 can copy it into the progress doc.
+
+Repository rules
+- All repository content is English. UI text goes through i18n keys in both `SRC/i18n/locales/en/**` and `SRC/i18n/locales/vi/**` (English first, Vietnamese typed against it). Vietnamese narrative goes only in the overlay under `OVL`, keyed by stable IDs. One complete string per sentence, no concatenation.
+- No emoji anywhere. Icons come from `lucide-react` and carry `aria-hidden="true"` when decorative.
+- Never write "safe" in English game text, never "an toàn" as a safety claim in Vietnamese. Say "matches the official record", "does not match", "protected", "secure" or "trusted channel".
+- Fictional companies, reserved domains (`.test`, `.example`, `.invalid`) and `+000` phone numbers only. No real brand, currency or country-specific payment method. No instruction that could be used for real fraud.
+- `NARR/**` must not import React, Three.js, i18n, `game/voice` or any audio API (`NARR/boundaries.test.ts` must stay green with no allowlist change).
+- The core game must stay playable with AI off, offline and without a microphone. Voice, captions and sound never change state, evidence, decisions or outcomes.
+- Update `docs/PROJECT_PROGRESS.md` at the end (task 27.1) with the nine mandatory items of AGENTS.md section 6.
+
+Honesty rules
+- Never mark an audio clip `present` unless the MP3 file exists, is non-empty and was produced by `apps/game/scripts/generate-chapter1-voice.mjs` in this feature.
+- Never label English audio as Vietnamese. If a Vietnamese voice is unavailable, the Vietnamese clips stay `missing`.
+- Report real test, typecheck and build results only. Report no playtime unless a human measured it. Say "not verified" for anything a test cannot prove (sound quality, browser playback, redistribution terms).
+
+## Tasks
+
+- [ ] 1. Branch, baseline and audit
+  - [ ] 1.1 Create the branch and record the baseline counts
+    - Run `git status --short` and keep any uncommitted work untouched. Run `git switch -c feat/chapter-01-voice-narrative feat/game-3d-phone-call-ui`. Run `git branch --show-current` and confirm the output is `feat/chapter-01-voice-narrative`. Run `git rev-parse --short HEAD` and confirm it is `8c93d27`; if not, stop and report.
+    - From `d:\scam-maze`, run `pnpm test`, then `pnpm typecheck`, then `pnpm build`, one after the other. Record the exit status and the test file, test passed, failed and skipped counts in the "Baseline Record" section at the end of this file.
+    - Record the dialogue node count per graph, Spoken_Node count and option count with the design.md audit values (4 graphs, 26 nodes, 18 Spoken_Nodes, 39 options, 11 evidence items, 5 objectives) only if you can re-confirm them by reading `NARR/chapter1/dialogues/*.ts`; otherwise record the real counts you found.
+    - Edit only this tasks.md file.
+    - _Requirements: 1.2, 18.1_
+  - [ ] 1.2 Audit the items the requirements left unconfirmed
+    - Read `SRC/features/chapter1/call/PhoneScreenUI.tsx`, `SRC/app/settingsStorage.ts`, `NARR/chapter1/playthroughs.test.ts`, `NARR/chapter1/content.test.ts`, `SRC/i18n/narrative.test.ts`, `SRC/game/saves/chapterProgress.ts` and `SRC/game/loading/chapterLoader.ts`.
+    - In the "Baseline Record" section record, for each audit table row of design.md ("Audit findings"), whether it is confirmed, plus: how the caller line is rendered today, whether stored settings are merged with defaults, which option IDs and event indices the playthroughs hard-code, and where `WARNING_SIGN_IDS` definitions and the `startNodeWhen` field live. If a finding contradicts design.md, write the correction there and tell the owner in the final message.
+    - Edit only this tasks.md file. Make no code change.
+    - _Requirements: 1.1, 1.3, 1.4_
+
+- [ ] 2. Scenario schema and engine extension
+  - [ ] 2.1 Append new IDs to `NARR/chapter1/ids.ts`
+    - Read design.md "Components and Interfaces" section 1 and "Data Models" "New IDs".
+    - Append (never reorder or remove) to the end of each list: `SPEAKER_IDS`, `TONE_IDS`, `ACT_IDS` (new lists with their types), `OBJECTIVE_IDS` (`obj.call-bank`, `obj.hold-firm`, `obj.file-report`), `EVIDENCE_IDS` (`ev.transfer-check`, `ev.second-number`, `ev.case-sms`, `ev.shifting-story`), `FLAG_IDS` (`asked_details`, `asked_time`, `heard_deadline`, `link_questioned`, `secrecy_heard`, `case_sms_sent`, `followup_rang`, `report_filed`), `WARNING_SIGN_IDS` (`ws.secrecy`, `ws.inconsistent-story`, `ws.changing-numbers`), `CALL_IDS` (`call.followup`), `DIALOGUE_GRAPH_IDS` (`dlg.followup`), `MESSAGE_IDS` (`msg.case-sms`), `OUTCOME_IDS` (`investigator`).
+    - Edit only `ids.ts`.
+    - _Requirements: 2.1, 2.9, 16.4_
+  - [ ] 2.2 Extend the scenario types in `NARR/types.ts`
+    - Read design.md "Components and Interfaces" section 1.
+    - Add only optional or additive members: `DialogueNode.tone`, `speakerId`, `pauseBeforeMs`, `waitForVoice`; `DialogueGraph.persona.speakerId`; the four `Condition` kinds (`callRang`, `objectiveCompleted`, `outcomeSet`, `evidenceCountAtLeast`); `EndingDef.unlockWhen`; `ActDef`; `ScenarioDefinition.acts`; `RingReason` value `"follow-up"`.
+    - Edit only `types.ts`.
+    - _Requirements: 2.1, 9.2, 15.5, 16.4_
+  - [ ] 2.3 Add the four condition kinds in `NARR/conditions.ts`
+    - Add the four `case` branches to `evaluateCondition` exactly as in design.md section 2 table row `conditions.ts`. Keep `assertNever` exhaustive.
+    - Edit only `conditions.ts`.
+    - _Requirements: 9.3, 14.2_
+  - [ ] 2.4 Add the follow-up ring to `NARR/reducer.ts`
+    - Read design.md section 2 row `reducer.ts`. Add `call.followup` to `INCOMING_CALL_IDS`, `"follow-up"` to `RING_REASONS`, a third `RING_CALL` branch (reject if it has a record, if a decision exists, or if the callback is not `ended` or `declined`; on accept set flag `followup_rang`), the reasons `followupNotYet` and `followupAlreadyRang`, and the `hangUpTag` mapping to `hung-up-on-followup`. Change nothing else.
+    - Edit only `reducer.ts`.
+    - _Requirements: 2.5, 10.6, 10.7_
+  - [ ] 2.5 Add the investigator outcome in `NARR/outcome.ts`
+    - Change `selectOutcome(state, scenario = CHAPTER_1_SCENARIO)` with the order in design.md "Decisions and endings": risky flags first, then investigator (decision `verify-independently`, caller identity contradicted, and `evaluateConditions(scenario.endings.investigator.unlockWhen)`), then verified, then uncertain. Keep it pure and deterministic. If importing `CHAPTER_1_SCENARIO` as a default creates a cycle, take the scenario as a required argument and update the callers instead.
+    - Edit only `outcome.ts` (and callers if a signature change forces it; list them in the final message).
+    - _Requirements: 14.2, 14.3, 14.5_
+  - [ ] 2.6 Update `NARR/selectors.ts`
+    - Add `CALL_LOG_EVIDENCE["call.followup"] = "ev.second-number"`, the follow-up ring candidate in `enumerateCandidateActions`, and `selectCurrentAct(state, scenario): ActDef` (the last act whose `enterWhen` holds).
+    - Edit only `selectors.ts`.
+    - _Requirements: 2.1, 2.5_
+  - [ ] 2.7 Add three objective rules in `NARR/objectives.ts`
+    - Append rules for `obj.call-bank`, `obj.hold-firm`, `obj.file-report` to `OBJECTIVE_RULES` using the "Activates when" and "Completes when" columns of design.md "Objectives per act". Existing rules do not change.
+    - Edit only `objectives.ts`.
+    - _Requirements: 2.1, 10.5, 3.3_
+  - [ ] 2.8 Extend the localization walker in `NARR/localize.ts`
+    - Make the walker visit `acts[i].title` (key `acts/<id>/title`). Check that new optional node fields add no translatable text. Keep the key scheme unchanged.
+    - Edit only `localize.ts`.
+    - _Requirements: 12.2_
+
+- [ ] 3. Chapter 1 narrative content in English
+  - [ ] 3.1 Create `C1/acts.ts`
+    - Export `CHAPTER_1_ACTS: ActDef[]` with the six acts, titles, `enterWhen`, `exitWhen` and objective lists from design.md "Acts". Act 1 title is "An ordinary morning" (gap G1).
+    - Create only `acts.ts`.
+    - _Requirements: 2.1, 2.2, 2.8_
+  - [ ] 3.2 Add the three objectives in `C1/objectives.ts`
+    - Add `obj.call-bank`, `obj.hold-firm`, `obj.file-report` with the English texts of design.md "Objectives per act".
+    - Edit only `objectives.ts`.
+    - _Requirements: 3.3, 10.1_
+  - [ ] 3.3 Add four evidence items and warning signs in `C1/evidence.ts`
+    - Add `ev.transfer-check`, `ev.second-number`, `ev.case-sms`, `ev.shifting-story` with source, discovery method, claim stance, meaning, warning signs and debrief hint per design.md "Evidence". Add the three warning signs `ws.secrecy`, `ws.inconsistent-story`, `ws.changing-numbers` where `WARNING_SIGN_IDS` definitions live (found in task 1.2). Wording: "matches the official record" or "does not match", never "safe". URLs are plain text on `.invalid` or `.example`.
+    - Edit only `evidence.ts` (and the file that holds warning sign definitions if different, naming it in the final message).
+    - _Requirements: 10.1, 10.2, 10.8, 10.9_
+  - [ ] 3.4 Add the follow-up call and case message in `C1/phone.ts`
+    - Add `call.followup` (incoming, display name "Northgate Case Desk", number `+000 555 0177`), message `msg.case-sms` (from "Northgate Bank", a case reference and the look-alike address `northgate-case-review.invalid`), and the contact entry for the new number.
+    - Edit only `phone.ts`.
+    - _Requirements: 2.5, 10.2, 12.2_
+  - [ ] 3.5 Extend `C1/dialogues/scamCall.ts`
+    - Read design.md "Dialogue graphs" table for `dlg.scam-call`. Keep every existing node ID, option ID, target and condition. Add `tone` and `speakerId` to every caller node, `waitForVoice` on `scam.open`, `persona.speakerId = "spk.alex"`, the nine new nodes, the new options on existing nodes, the new effects (flags, evidence, debrief tags) and the pressure markers. At most four options are available at once at every node.
+    - Edit only `scamCall.ts`.
+    - _Requirements: 2.3, 9.1, 9.2, 9.4, 9.5, 9.6, 9.7, 9.8_
+  - [ ] 3.6 Extend `C1/dialogues/officialLine.ts`
+    - Read the `dlg.official-line` table. Keep `official.greeting` as a `system` node. Add tones, `persona.speakerId = "spk.northgate-agent"`, the new hub, transfer, numbers, advice and report nodes, and the `confirm` and `locked` option additions. Only this graph sets claim statuses.
+    - Edit only `officialLine.ts`.
+    - _Requirements: 2.4, 10.2, 10.5, 14.2_
+  - [ ] 3.7 Extend `C1/dialogues/callback.ts`
+    - Read the `dlg.callback` table. Add tones, `persona.speakerId = "spk.alex"`, `waitForVoice` on `callback.open`, the new nodes, the new options on `callback.open`, and `startNodeWhen` for `callback.time-up` when flag `asked_time` is set.
+    - Edit only `callback.ts`.
+    - _Requirements: 2.5, 9.4, 9.5, 9.6_
+  - [ ] 3.8 Create `C1/dialogues/followup.ts`
+    - Read the `dlg.followup` table. Create graph `dlg.followup` (persona "Morgan Hale", `spk.case-officer`) with seven Spoken_Nodes, the two end nodes (`followup.end.hung-up`, `followup.end.money-moved`), `waitForVoice` on `followup.open` and `followup.code-used`, and `startNodeWhen` for `followup.code-used` when `code_shared`.
+    - Create only `followup.ts`.
+    - _Requirements: 2.5, 9.6, 10.7_
+  - [ ] 3.9 Extend `C1/dialogues/shopkeeper.ts`
+    - Read the `dlg.shopkeeper` table. Add tones, `persona.speakerId = "spk.sam"`, the four Act 1 small-talk nodes and `sam.after-call.numbers`, and the new options. Existing IDs and targets stay.
+    - Edit only `shopkeeper.ts`.
+    - _Requirements: 2.2, 7.11_
+  - [ ] 3.10 Add the investigator ending and debrief text in `C1/endings.ts` and `C1/debrief.ts`
+    - Add `endings.investigator` with the `unlockWhen` conditions of design.md "Decisions and endings" (flag `report_filed` and `evidenceCountAtLeast` 8 of the 11 listed items), title "Checked, reported and documented", simulation label, neutral wording. In `debrief.ts` add the `investigator` outcome summary and `decisionNotes` for the 11 new debrief tags. No text uses "safe" or blames the player.
+    - Edit only `endings.ts` and `debrief.ts`.
+    - _Requirements: 14.1, 14.2, 14.4, 14.5, 14.6_
+  - [ ] 3.11 Wire the new data in `C1/scenario.ts`
+    - Add `acts: CHAPTER_1_ACTS`, the `dlg.followup` graph, the new call, message, objectives and evidence to `CHAPTER_1_SCENARIO`. Confirm `createInitialState` includes the new flags and that the four old playthrough logs still produce accepted actions (run `NARR/chapter1/playthroughs.test.ts` and note failures that are only objective timeline changes).
+    - Edit only `scenario.ts`.
+    - _Requirements: 2.1, 2.9, 13.7_
+  - [ ] 3.12 Update `SRC/test/chapterRuns.ts` for the new call and reason
+    - Add `call.followup` and reason `follow-up` to the incoming call and ring reason lists, the random action generator, the guided policy and `assertInvariants` (investigator needs no risky flag; `investigator` and `verified` never co-occur with `code_shared` or `money_moved`).
+    - Edit only `chapterRuns.ts`.
+    - _Requirements: 17.5, 13.7_
+
+- [ ] 4. Vietnamese narrative overlay
+  - [ ] 4.1 Add Vietnamese text for `dlg.scam-call` in `OVL/dialogues.ts`
+    - For every new and every existing line ID of the graph add `dialogues/dlg.scam-call/lines/<lineId>` text and option texts. Natural speech, not word-for-word. Use gender-neutral "tôi" and "quý khách" where a male voice must not contradict the text. Keep "Northgate Bank" untranslated. No "an toàn" as a safety claim.
+    - Edit only `dialogues.ts` (this task owns the scam-call block).
+    - _Requirements: 12.2, 9.8_
+  - [ ] 4.2 Add Vietnamese text for `dlg.official-line` and `dlg.callback` in `OVL/dialogues.ts`
+    - Same rules as 4.1 for the two graphs.
+    - Edit only `dialogues.ts` (these two blocks).
+    - _Requirements: 12.2_
+  - [ ] 4.3 Add Vietnamese text for `dlg.followup` and `dlg.shopkeeper` in `OVL/dialogues.ts`
+    - Same rules as 4.1, including the persona name and role of `dlg.followup`.
+    - Edit only `dialogues.ts` (these two blocks).
+    - _Requirements: 12.2_
+  - [ ] 4.4 Add acts, objectives and world text in `OVL/core.ts`
+    - Add `acts/<id>/title` for six acts and `objectives/<id>/text` for the three new objectives. Touch `OVL/world.ts` only if the walker now reports missing keys there.
+    - Edit only `core.ts` (and `world.ts` if required).
+    - _Requirements: 12.2_
+  - [ ] 4.5 Add evidence text in `OVL/evidence.ts`
+    - Add Vietnamese title, meaning, relation notes, warning sign texts and hints for the four new evidence items and three new warning signs.
+    - Edit only `evidence.ts`.
+    - _Requirements: 12.2_
+  - [ ] 4.6 Add phone text in `OVL/phone.ts`
+    - Add `phone/messages/msg.case-sms/*`, `phone/contacts/+000 555 0177/name` and `calls/call.followup/displayName`.
+    - Edit only `phone.ts`.
+    - _Requirements: 12.2_
+  - [ ] 4.7 Add ending and debrief text in `OVL/decisions.ts`
+    - Add `endings/investigator/*`, `debrief/outcomeSummaries/investigator` and `debrief/decisionNotes/<tag>` for the 11 new tags.
+    - Edit only `decisions.ts`.
+    - _Requirements: 12.2, 14.6_
+
+- [ ] 5. Keep existing tests green
+  - [ ] 5.1 Update `NARR/chapter1/playthroughs.test.ts` for the new objectives
+    - Update only the exact `objectiveTimeline` arrays and the `state.objectives.active` expectations of the four runs (design.md "Known test updates" item 1). Option IDs, claim statuses, evidence lists, outcomes and event indices must remain valid; if one does not, stop and investigate before editing. Record each change and its reason in the Baseline Record.
+    - Edit only `playthroughs.test.ts`.
+    - _Requirements: 13.7_
+  - [ ] 5.2 Update `NARR/objectives.test.ts`
+    - Add the three new objectives and rules to its expectations. Do not weaken any assertion.
+    - Edit only `objectives.test.ts`.
+    - _Requirements: 13.7_
+  - [ ] 5.3 Update the lint walker in `NARR/chapter1/content.test.ts`
+    - Add `speakerId`, `objectiveId` and `objectives` to the identifier-valued property list so `spk.alex` is not read as a domain. Keep every rule (reserved domains, `+000`, no currency, no "safe", no blaming phrases, no emoji, no other bank name) and confirm the new content passes them.
+    - Edit only `content.test.ts`.
+    - _Requirements: 13.7, 10.8_
+  - [ ] 5.4 Update the lint walker copy in `SRC/i18n/narrative.test.ts`
+    - Same property-name additions as 5.3. Confirm every Narrative_Text_Key has non-empty Vietnamese text. Fix any missing overlay key in the owning overlay file only by reporting it (do not edit overlay files in this task).
+    - Edit only `narrative.test.ts`.
+    - _Requirements: 12.2, 12.7, 13.7_
+  - [ ] 5.5 Fix `ScenarioDefinition` fixture literals in other tests
+    - Run `rg "persona:" SRC --glob "*.test.ts*"` and `rg "ScenarioDefinition" SRC --glob "*.test.ts*"` to find fixtures that build scenario literals. Add `acts: []` and `speakerId` to each persona. Do not touch `validateScenario.test.ts` (task 8.3), `playthroughs.test.ts`, `objectives.test.ts`, `content.test.ts` or `narrative.test.ts`.
+    - List the edited files in the final message and in the Baseline Record.
+    - _Requirements: 13.7_
+
+- [ ] 6. Checkpoint A - narrative content builds and existing tests pass
+  - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures in the owning files. Record real counts in the Baseline Record. Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Commit: schema, engine and content
+  - [ ] 7.1 Create the local commit for tasks 2 to 5
+    - Run `git status --short`. Stage by name only the files edited by tasks 2.1 to 5.5 (`NARR/types.ts`, `conditions.ts`, `reducer.ts`, `outcome.ts`, `selectors.ts`, `objectives.ts`, `localize.ts`, `C1/**` data files, `OVL/**` files, `SRC/test/chapterRuns.ts`, the test files of tasks 5.1 to 5.5, and any caller fixed in 2.5). Do not stage `iphone` GLBs or anything else.
+    - Commit: `git commit -m "feat(game): extend Chapter 1 scenario schema, engine and content" -m "<body listing node, option and evidence counts you measured>" -m "Co-authored-by: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>"`.
+    - _Requirements: 18.2_
+
+- [ ] 8. Engine and content-validator tests
+  - [ ] 8.1 Extend `NARR/validateScenario.ts` (checks V1, V3 static, V4 static)
+    - Read design.md "Content validator". Add: node IDs unique across all graphs; tone required on every Spoken_Node (`speaker` is `caller` or `npc`); `speakerId` exists; `pauseBeforeMs` is 0 to 3000; act references; no more than four unconditional options per node; every pressure node reaches an end within three option steps; no cycle without an exit; conditions that can never be true (flag no effect sets, evidence with no discovery, claim status no effect produces, `callEnded` or `callRang` for a call without a graph). Return issues as `{ check, where, message }`. Reuse existing checks; never throw on bad input.
+    - Edit only `validateScenario.ts`.
+    - _Requirements: 13.1, 13.2, 9.2_
+  - [ ] 8.2 Create `NARR/reachability.ts` (check V2 and measured V3/V4)
+    - Implement the pure solver of design.md "Reachability solver": state key, moves from `enumerateCandidateActions` applied by the real `chapterReducer`, free-action saturation, `maxStates` default 100000 with `truncated`, reverse-edge soft-lock check, outputs `{ states, truncated, outcomesReached, unreachableNodes, unreachableOptions, softLocks, maxAvailableOptions, minAvailableOptions }`. Import only inside `NARR`.
+    - Create only `reachability.ts`. Record the explored state count in the Baseline Record when task 8.4 runs.
+    - _Requirements: 13.3_
+  - [ ] 8.3 Extend `NARR/validateScenario.test.ts`
+    - Example tests: the real scenario returns no issue; one broken fixture per new check returns an issue naming the item.
+    - Edit only `validateScenario.test.ts`.
+    - _Requirements: 13.1, 17.1_
+  - [ ] 8.4 Write `NARR/reachability.test.ts` and Property 3, Property 4
+    - **Property 3: Every ending is reachable and no state is a soft lock**
+    - **Property 4: Available options stay within bounds**
+    - **Validates: Requirements 2.6, 2.7, 9.6, 10.6, 10.7, 13.3, 14.1, 8.2**
+    - Example tests: `truncated` is false; `verified`, `investigator`, `risky`, `uncertain` are all reached; no unreachable node or option; no soft lock. Seeded tests: from random reachable states `END_CALL` is accepted with a live call, `stop-and-wait` is accepted after the first call ends, and option counts are at most four (and at least two except single-continuation nodes).
+    - Create only `reachability.test.ts`.
+    - _Requirements: 13.3, 14.1, 17.1_
+  - [ ] 8.5 Write Property 5 in `NARR/properties/conditionedOptions.property.test.ts`
+    - **Property 5: Evidence-conditioned options are deterministic and local**
+    - **Validates: Requirements 9.3, 9.4**
+    - Include a case for each link of design.md "Where earlier choices change later dialogue" (at least eleven): adding the named evidence or flag changes available options or the start node.
+    - Create only this file.
+    - _Requirements: 9.3, 9.4, 9.5, 17.1_
+  - [ ] 8.6 Write `C1/acts.test.ts`
+    - Example tests: six acts in order; `exitWhen` equals the next act's `enterWhen`; each objective belongs to exactly one act; Act 1 uses only existing interactables.
+    - Create only this file.
+    - _Requirements: 2.1, 2.2_
+  - [ ] 8.7 Write Property 1 in `NARR/properties/acts.property.test.ts`
+    - **Property 1: Act progression is monotonic**
+    - **Validates: Requirements 2.1**
+    - Create only this file.
+    - _Requirements: 2.1_
+  - [ ] 8.8 Write Property 6 in `NARR/properties/outcome.investigator.property.test.ts`
+    - **Property 6: Outcomes are deterministic, exact and never reward a dangerous action**
+    - **Validates: Requirements 14.2, 14.3, 14.5**
+    - Create only this file.
+    - _Requirements: 14.2, 14.3, 14.5_
+  - [ ] 8.9 Extend `NARR/conditions.test.ts`
+    - Add example tests for `callRang`, `objectiveCompleted`, `outcomeSet`, `evidenceCountAtLeast` (true, false, boundary count).
+    - Edit only `conditions.test.ts`.
+    - _Requirements: 9.3_
+  - [ ] 8.10 Write `NARR/reducer.followup.test.ts`
+    - Example tests: `RING_CALL` for `call.followup` is rejected before the callback closes, after a decision, and when already rung; accepted otherwise; sets `followup_rang`; hanging up tags `hung-up-on-followup`; `ev.second-number` is discoverable after the ring.
+    - Create only this file.
+    - _Requirements: 2.5, 10.7_
+
+- [ ] 9. Audio manifest contract and generator script
+  - [ ] 9.1 Create `VOICE/manifestTypes.ts`, `VOICE/hash.ts` and the asset path constant
+    - `manifestTypes.ts`: `VOICE_MANIFEST_SCHEMA_VERSION`, `ClipStatus`, `VoiceClipEntry`, `VoiceManifest` exactly as design.md section 4. `hash.ts`: `fnv1a32(text): string` (8 hex digits). Add `CHAPTER1_VOICE_BASE = "/audio/chapter01"` to `SRC/config/assetPaths.ts`. These modules import only types from `NARR`.
+    - Create `manifestTypes.ts`, `hash.ts`; edit `assetPaths.ts`.
+    - _Requirements: 4.1, 4.2, 4.3, 4.4_
+  - [ ] 9.2 Create `VOICE/selectClip.ts`
+    - Implement `ClipChoice` and `selectClip` with the rules of design.md section 4 (present only; `english-voice` label only for a non-`en` locale when the setting is on and the English entry is present).
+    - Create only this file.
+    - _Requirements: 4.5, 12.4, 12.5_
+  - [ ] 9.3 Create `VOICE/renderManifest.ts`
+    - `renderManifest(manifest): string` produces deterministic TypeScript source with the header comment "Generated by `scripts/generate-chapter1-voice.mjs`. Do not edit by hand.", sorted by `clipId` then locale, stable key order, `\n` line ends. Export a `parseManifestSource` helper for tests (evaluate the exported const safely without `eval` of untrusted input; the test helper may use a small literal parser or `new Function` only inside the test file).
+    - Create only this file.
+    - _Requirements: 4.1, 4.2_
+  - [ ] 9.4 Create `VOICE/voiceReport.ts`
+    - `buildVoiceReport(manifest, lineTextFor)` returns counts per locale, status and origin and the list of `missing` entries with `clipId`, locale, speaker and line text. A dev preview line is never counted as `present`.
+    - Create only this file.
+    - _Requirements: 4.8, 6.7, 6.8_
+  - [ ] 9.5 Create `VOICE/buildVoiceJobs.ts`
+    - `buildVoiceJobs(scenario, overlays, cast)` returns one job per Spoken_Node and locale: `{ clipId, graphId, speakerId, tone, locale, text, textHash, voice, rate, pitch, outWav, outMp3 }` with the cast table and tone rate multipliers of design.md section 10. Include the `VoiceJob` and `VoiceJobResult` JSON shapes that the PowerShell worker reads and writes, as exported types.
+    - Create only this file.
+    - _Requirements: 4.7, 4.9_
+  - [ ] 9.6 Write Property 9 in `VOICE/selectClip.property.test.ts`
+    - **Property 9: Clip selection respects availability and labels**
+    - **Validates: Requirements 4.4, 4.5, 5.1, 12.1, 12.4, 12.5**
+    - Create only this file.
+    - _Requirements: 4.5, 12.4, 12.5, 17.3_
+  - [ ] 9.7 Write Property 20 in `VOICE/renderManifest.property.test.ts`
+    - **Property 20: Manifest source round trip**
+    - **Validates: Requirements 4.1, 4.2**
+    - Create only this file.
+    - _Requirements: 4.1, 4.2_
+  - [ ] 9.8 Write Property 17 in `VOICE/voiceReport.property.test.ts`
+    - **Property 17: The missing-clip report is exact**
+    - **Validates: Requirements 4.8, 6.7, 6.8**
+    - Create only this file.
+    - _Requirements: 4.8, 6.8_
+  - [ ] 9.9 Write `VOICE/buildVoiceJobs.test.ts`
+    - Example tests: job count equals Spoken_Nodes times 2; `system` nodes are skipped; `textHash` equals `fnv1a32(text)`; cast voices, rates and tone multipliers match the design; the Vietnamese text comes from the overlay.
+    - Create only this file.
+    - _Requirements: 4.7_
+  - [ ] 9.10 Create `apps/game/scripts/generate-chapter1-voice.ps1`
+    - Read design.md section 10 step 4. Windows only. Reads a JSON job file; for each job creates a `Windows.Media.SpeechSynthesis.SpeechSynthesizer`, selects the voice by display name, sets `Options.SpeakingRate` and `Options.AudioPitch`, writes a 16 kHz mono WAV into `apps/game/.voice-cache/`, normalizes the peak to -3 dBFS in a small compiled C# helper (`Add-Type`), measures duration and RMS, encodes MP3 with `MediaTranscoder` (mono, 16000 Hz, 48000 bps, retry at 32000 bps if refused), and prints a JSON result list. No network call. Exit with a clear message before changing any file if the platform or speech API is missing; if a voice is not installed, return an error result for those jobs only.
+    - Create only this file.
+    - _Requirements: 4.7, 4.9, 4.10_
+  - [ ] 9.11 Create `apps/game/scripts/generate-chapter1-voice.mjs`, package scripts and `.gitignore` entry
+    - Implement the steps of design.md section 10 (Vite `createServer` in middleware mode and `ssrLoadModule` to load scenario, overlay and `buildVoiceJobs`; skip fresh work by `sourceTextHash`, cast values and file existence; run the `.ps1` worker; verify MP3 frame sync, size limits and duration within 120 ms; write the manifest with `renderManifest`; print counts and every missing clip). Flags: `--locale`, `--only`, `--force`, `--dry-run`, `--print-script`, `--report`, `--strict`. Failed jobs become `missing`, `origin: "none"`, `credit: "not provided"`. Never write `present` for a file that was not verified. Add the three scripts `voice:chapter1`, `voice:script`, `voice:report` to `apps/game/package.json` and `apps/game/.voice-cache/` to the root `.gitignore`.
+    - Create the `.mjs`; edit `apps/game/package.json` and `.gitignore`.
+    - _Requirements: 4.6, 4.8, 4.10, 16.5_
+
+- [ ] 10. Generate the real voice clips
+  - [ ] 10.1 Probe the voices and dry-run the generator
+    - From `d:\scam-maze` on Windows run `pnpm --filter @scammaze/game voice:script` and `pnpm --filter @scammaze/game voice:chapter1 -- --dry-run`. Confirm that Microsoft David, Mark, Zira (`en-US`) and Microsoft An (`vi-VN`) are installed (list the OneCore voices in a one-line PowerShell command). Record the probe result and the dry-run job count in the Baseline Record. If Microsoft An is absent, record that all Vietnamese clips will stay `missing`.
+    - Edit only this tasks.md file.
+    - _Requirements: 4.9, 4.6_
+  - [ ] 10.2 Run the generator for real
+    - Run `pnpm --filter @scammaze/game voice:chapter1`. It writes `apps/game/src/game/voice/chapter1.manifest.ts` and `apps/game/public/audio/chapter01/<locale>/<nodeId>.mp3`. If the Vietnamese voice is missing, run `-- --locale en` and let the Vietnamese entries be written as `missing`. Do not hand-edit the manifest or fabricate any file.
+    - Creates only generator output.
+    - _Requirements: 4.4, 4.6, 4.9_
+  - [ ] 10.3 Verify and record the generated clips
+    - Check with `Get-ChildItem apps/game/public/audio/chapter01 -Recurse -File` that every `present` manifest entry has an existing, non-empty `.mp3`, that no `.wav` file is in `public/`, and that `apps/game/.voice-cache/` is not tracked. Run `pnpm --filter @scammaze/game voice:report`. Record in the Baseline Record the count of `present`, `missing` and `placeholder-tts` clips per locale, total bytes per locale and the failures. State that sound quality and browser playback are not verified.
+    - Edit only this tasks.md file.
+    - _Requirements: 4.6, 4.8, 6.8_
+
+- [ ] 11. Content validator for subtitles, manifest and files
+  - [ ] 11.1 Create `SRC/game/content/validateChapterContent.ts` (checks V5, V6, V7)
+    - Pure TypeScript, no Node import. Implement V5 (non-empty English line and Vietnamese overlay text for every Spoken_Node), V6 (manifest coverage, `clipId === nodeId`, `speakerId`, `sourceTextHash` freshness, known statuses, `present` has `sources`, `durationMs` and `bytes`, `missing` has none) and V7 (injected `fileInfo(publicPath)`: file exists, path under `/audio/chapter01/<locale>/`, MIME `audio/mpeg`, bytes equal, at most 150 KB per clip and 6 MB per locale, duration 0.5 to 25 s). Issues are `{ check, where, message }`.
+    - Create only this file.
+    - _Requirements: 13.1, 13.2, 4.5_
+  - [ ] 11.2 Write `SRC/game/content/validateChapterContent.test.ts`
+    - Example tests on the real scenario, overlay and committed manifest, with `fileInfo` supplied from `node:fs` over `apps/game/public`. Expect no issue. Add broken-fixture examples for each of V5, V6, V7.
+    - Create only this file.
+    - _Requirements: 13.1, 17.1, 17.3_
+  - [ ] 11.3 Write Property 2 in `SRC/game/content/validateChapterContent.faults.property.test.ts`
+    - **Property 2: The content validator detects injected faults**
+    - **Validates: Requirements 4.2, 4.6, 9.2, 11.7, 13.1**
+    - Apply one mutation from the 24-item catalogue of design.md section 3 to a deep copy; assert at least one issue naming the mutated item; assert the unmutated inputs return none.
+    - Create only this file.
+    - _Requirements: 13.1, 17.1_
+
+- [ ] 12. Checkpoint B - validator, manifest and generator
+  - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. If `validateChapterContent.test.ts` reports a stale hash, rerun task 10.2 for the affected clips. Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 13. Commits: validator, voice contracts, clips
+  - [ ] 13.1 Commit the validator, solver and engine tests
+    - Stage by name the files of tasks 8.1 to 8.10. Commit `test(game): add scenario validator, reachability solver and engine tests` with the trailer.
+    - _Requirements: 18.2_
+  - [ ] 13.2 Commit the voice contracts, generator scripts and content validator
+    - Stage by name: the files of tasks 9.1 to 9.11 and 11.1 to 11.3 (including `apps/game/package.json`, `.gitignore`, `SRC/config/assetPaths.ts`), but not `chapter1.manifest.ts` and not `public/audio/**`. Commit `feat(game): add voice manifest contract, TTS generator script and content validator` with the trailer.
+    - _Requirements: 18.2_
+  - [ ] 13.3 Commit the generated manifest and clips
+    - Stage `VOICE/chapter1.manifest.ts` and each `.mp3` listed as `present` in it (enumerate them with `Get-ChildItem` and pass explicit paths to `git add`). Commit `feat(game): add generated Chapter 1 voice clips and manifest` with a body stating the real counts per locale and that the redistribution terms are not verified, plus the trailer.
+    - _Requirements: 4.9, 18.2_
+
+- [ ] 14. Voice player and Web Audio graph
+  - [ ] 14.1 Create `VOICE/audioPort.ts` and `VOICE/mixPlan.ts`
+    - `audioPort.ts`: `LoadedClip`, `PlaybackHandle`, `AudioPort`, `PreviewPort` and `StopReason` types only (design.md section 4). `mixPlan.ts`: the constants of the mix table and pure functions `voiceGain`, `effectivePauseMs`, `tensionGain`, `ringtoneGain`, `ambienceGain`, all within the 0.2 linear peak cap. Neither imports React or Three.js.
+    - Create these two files.
+    - _Requirements: 5.13, 11.3, 11.10_
+  - [ ] 14.2 Create the test double `SRC/test/fakeAudioPort.ts`
+    - Implement `AudioPort` with manual control: completion of `load`, `fireEnded(id)`, `failLoad(url)`, `refuseResume()`, counters of live handles, timers and listeners, a fake clock and fake `setTimer`/`clearTimer`, and a fake `speechSynthesis` for `PreviewPort`.
+    - Create only this file.
+    - _Requirements: 17.2, 17.6_
+  - [ ] 14.3 Create the pure choice gate `VOICE/optionsGate.ts`
+    - Implement the gate rule of design.md section 5 as a pure function of a minimal input type it defines itself (`phase`, `audible`, `durationMs`, `endedAt`, node `waitForVoice`, elapsed times, skip), so it does not import `VoiceDialoguePlayer.ts`. This extracts the gate from `useOptionsGate` so Property 14 can test it; record this small deviation in the Baseline Record.
+    - Create only this file.
+    - _Requirements: 5.9, 5.10_
+  - [ ] 14.4 Create `VOICE/VoiceDialoguePlayer.ts`
+    - Implement `createVoiceDialoguePlayer` with the state machine, `playId` stale-callback rule, synchronous `stop`, `dispose`, `LATE_CLIP_MS`, prefetch cache (8 buffers, LRU, concurrency 2), once-per-clip failure log, mute flag, `replay` unmuting first, `pause`/`resume` with offset, gain rules, `selectClip` use, dev preview hand-off. It never throws and never touches the narrative store.
+    - Create only this file.
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.7, 5.8, 5.11, 5.12, 5.13_
+  - [ ] 14.5 Create `VOICE/devSpeechPreview.ts`
+    - `PreviewPort` over `speechSynthesis`, created only when `import.meta.env.DEV` or `import.meta.env.VITE_DEV_VOICE_PREVIEW === "true"`. A pure `pickPreviewVoice(voices, locale)` returns a voice whose `lang` starts with the locale tag or `null`. Silent when none matches. Follows stop, mute and dispose.
+    - Create only this file.
+    - _Requirements: 6.2, 6.3, 6.5, 6.6_
+  - [ ] 14.6 Create `VOICE/webAudioEngine.ts`
+    - Real `AudioPort` plus ringtone, connect click, ambience and tension, one lazily created `AudioContext`, the graph of design.md "Web Audio graph" (phone filter high-pass 300 Hz and low-pass 3400 Hz Q 0.707, master gain, `DynamicsCompressor` limiter, all gains capped by `PEAK_CAP`). `supported` is false when the constructor is missing. `dispose` closes only the context it created.
+    - Create only this file.
+    - _Requirements: 5.5, 11.10, 15.1, 15.3, 15.4, 15.6_
+  - [ ] 14.7 Write Property 19 in `VOICE/mixPlan.property.test.ts`
+    - **Property 19: The mix plan stays inside its caps**
+    - **Validates: Requirements 11.3, 11.10, 15.4, 15.5**
+    - Create only this file.
+    - _Requirements: 11.3, 11.10, 15.4_
+  - [ ] 14.8 Write Property 10 and Property 11 in `VOICE/VoiceDialoguePlayer.property.test.ts`
+    - **Property 10: At most one clip is audible**
+    - **Property 11: Stopping is immediate and releases everything**
+    - **Validates: Requirements 5.3, 5.4, 6.6, 15.6**
+    - Use `fakeAudioPort`; load and ended callbacks complete in random order, including stale ones; also run with the dev preview port.
+    - Create only this file.
+    - _Requirements: 5.3, 5.4, 6.6, 15.6_
+  - [ ] 14.9 Write Property 12 and Property 13 in `VOICE/VoiceDialoguePlayer.failures.property.test.ts`
+    - **Property 12: Failures fall back to captions and are logged once**
+    - **Property 13: Audibility, gain and caption visibility are consistent**
+    - **Validates: Requirements 5.5, 5.7, 5.11, 7.3, 7.6, 15.3**
+    - Create only this file.
+    - _Requirements: 5.5, 5.7, 5.11, 7.3, 7.6, 15.3_
+  - [ ] 14.10 Write Property 14 in `VOICE/optionsGate.property.test.ts`
+    - **Property 14: The choice gate always opens**
+    - **Validates: Requirements 5.9**
+    - Create only this file.
+    - _Requirements: 5.9_
+  - [ ] 14.11 Write Property 18 in `VOICE/devSpeechPreview.property.test.ts`
+    - **Property 18: The dev preview never speaks with the wrong language**
+    - **Validates: Requirements 6.5**
+    - Create only this file.
+    - _Requirements: 6.5_
+  - [ ] 14.12 Write example tests in `VOICE/VoiceDialoguePlayer.test.ts`
+    - Cover: correct clip per node and locale; quick node changes never overlap; replay restarts the latest line and changes no state; hang-up and dispose stop within the same call and remove listeners; mute and volume 0; blocked autoplay shows `blocked` and Replay works after unlock; missing and failing clips fall back; late clip (over 1500 ms) is skipped; English clip is labeled `english-voice` and never as Vietnamese; pause and resume.
+    - Create only this file.
+    - _Requirements: 17.2, 17.3_
+  - [ ] 14.13 Write `VOICE/webAudioEngine.test.ts`
+    - With a minimal stub `AudioContext` on `globalThis`, check: graph creation is lazy, `supported` is false without the constructor, gains never exceed the cap, `dispose` closes the context. No real audio device.
+    - Create only this file.
+    - _Requirements: 15.1, 17.6_
+  - [ ] 14.14 Write `VOICE/boundaries.test.ts`
+    - Scan every `.ts` file under `VOICE` (same scanner approach as `NARR/boundaries.test.ts`) and fail on imports of React, `react-dom`, Three.js, R3F, Drei, i18next, Zustand or Dexie. Allow `game/narrative` and `@scammaze/shared-types`.
+    - Create only this file.
+    - _Requirements: 5.13, 16.3_
+
+- [ ] 15. Settings, migration and Settings screen
+  - [ ] 15.1 Extend `GameSettings` in `packages/shared-types/src/index.ts`
+    - Add `ReducedMotionSetting` and the six fields `voiceVolume`, `subtitlesEnabled`, `reducedStress`, `reducedMotion`, `phoneVoiceFilter`, `englishVoiceFallback`. Keep the six existing fields unchanged.
+    - Edit only this file.
+    - _Requirements: 11.1_
+  - [ ] 15.2 Update `SRC/app/settingsStorage.ts`
+    - Add the defaults (`1.0`, `true`, `false`, `"system"`, `true`, `false`) to `DEFAULT_SETTINGS`. After the legacy merge, run `sanitizeNewFields`: `voiceVolume` finite and clamped to 0..1 (else 1.0), booleans must be booleans, `reducedMotion` one of three strings, else defaults. Legacy fields keep their behavior. Storage key stays `scammaze_settings_v1`.
+    - Edit only this file.
+    - _Requirements: 11.1, 11.2_
+  - [ ] 15.3 Write Property 15 (parsing) in `SRC/app/settingsStorage.property.test.ts`
+    - **Property 15: Settings parsing is total, bounded and idempotent**
+    - **Validates: Requirements 11.2, 11.4**
+    - Add the seeded property for random stored JSON, plus examples: an old stored object (five legacy fields only) loads with defaults for the six new fields and keeps its values.
+    - Edit only this file.
+    - _Requirements: 11.2_
+  - [ ] 15.4 Add the six fields to `GameSettings` fixtures in other tests
+    - In `SRC/app/App.i18n.test.tsx`, `SRC/features/chapter1/accessibility.test.tsx`, `SRC/features/chapter1/call/ChapterOnePage.call.test.tsx`, `SRC/features/chapter1/ChapterOnePage.test.tsx`, `SRC/features/chapter1/ChapterOnePage.restore.test.tsx` and the test that holds `applyLocale` properties (find it with `rg "applyLocale" SRC --glob "*.test.*"`), spread `DEFAULT_SETTINGS` into each `GameSettings` literal. Do not touch `settingsStorage.property.test.ts` or `SettingsModal.test.tsx`.
+    - _Requirements: 13.7_
+  - [ ] 15.5 Create `SRC/components/ui/useReducedMotion.ts` and `F1/comfort/ComfortProvider.tsx`
+    - `useReducedMotion()` reads the provider and falls back to the OS query when there is no provider (leave `usePrefersReducedMotion.ts` unchanged). `ComfortProvider` publishes `{ reducedMotion, reducedStress, subtitlesEnabled }`, where effective reduced motion is `on`, or `system` and the OS query matches. Export a pure `effectiveReducedMotion(setting, osQuery)`.
+    - Create these two files.
+    - _Requirements: 11.4, 11.3_
+  - [ ] 15.6 Write the motion part of Property 15 in `F1/comfort/comfort.property.test.ts`
+    - **Property 15: Settings parsing is total, bounded and idempotent**
+    - **Validates: Requirements 11.2, 11.4**
+    - Test `effectiveReducedMotion` over all setting and OS combinations, and that a component outside the provider keeps the OS behavior.
+    - Create only this file.
+    - _Requirements: 11.4_
+  - [ ] 15.7 Add settings and prologue strings in `SRC/i18n/locales/{en,vi}/settings.ts` and `menu.ts`
+    - Add every `settings:*` key of design.md section 8 table (voice heading, voice volume, captions, phone filter, English fallback, reduced stress and hint, motion heading and three options, toggle on and off) and change `menu:prologue.location` to "A city street · Morning" / "Một con phố trong thành phố · Buổi sáng". Edit en first, then vi.
+    - Edit those four files only.
+    - _Requirements: 11.1, 12.3, 12.8_
+  - [ ] 15.8 Add the "Voice and comfort" section to `SRC/features/menu/SettingsModal.tsx`
+    - Controls: Voice volume slider (only when sound is on), Captions toggle, Phone speaker effect toggle, English voice fallback toggle (only when the language is Vietnamese), Reduced-stress toggle with hint, three-option radio group for reduced motion. Native elements, existing classes, all text through i18n keys. Master volume for chapter audio remains `sfxVolume`.
+    - Edit only this file.
+    - _Requirements: 11.1, 11.8, 11.9_
+  - [ ] 15.9 Extend `SRC/features/menu/SettingsModal.test.tsx`
+    - Example tests: each new control renders, is keyboard operable, writes the right field, and conditional controls appear only in their condition; labels exist in both locales.
+    - Edit only this file.
+    - _Requirements: 11.1, 11.8_
+
+- [ ] 16. Checkpoint C - voice player and settings
+  - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 17. Commits: voice player, settings
+  - [ ] 17.1 Commit the voice player and audio engine
+    - Stage by name the files of tasks 14.1 to 14.14 (including `SRC/test/fakeAudioPort.ts`). Commit `feat(game): add voice dialogue player, choice gate and Web Audio engine` with the trailer.
+    - _Requirements: 18.2_
+  - [ ] 17.2 Commit settings and migration
+    - Stage by name the files of tasks 15.1 to 15.9. Commit `feat(game): add voice, caption, reduced-stress and reduced-motion settings` with the trailer.
+    - _Requirements: 18.2_
+
+- [ ] 18. Phone call UI updates
+  - [ ] 18.1 Add phone UI strings in `SRC/i18n/locales/{en,vi}/chapter1/phone.ts`
+    - Add the `phone.call.*` and `phone.sound.*` keys of design.md section 8 (duration, mute, unmute, replay, listening, showReplies, the four notices, ringing, connected). English first, then Vietnamese.
+    - Edit those two files only.
+    - _Requirements: 7.8, 11.6, 12.3_
+  - [ ] 18.2 Add HUD strings in `SRC/i18n/locales/{en,vi}/chapter1/hud.ts`
+    - Add `hud.act.label` ("Act {{number}}: {{title}}"), `hud.saveTrimmed.message` and `hud.saveTrimmed.dismiss`. English first, then Vietnamese. No concatenation.
+    - Edit those two files only.
+    - _Requirements: 12.3, 13.5_
+  - [ ] 18.3 Create `F1/voice/useCallDuration.ts`
+    - Whole seconds since the call became `active`, from a presentation clock (`performance.now()`), frozen while paused, reset per call, never stored in the store or saves.
+    - Create only this file.
+    - _Requirements: 7.5_
+  - [ ] 18.4 Update `F1/call/PhoneScreenUI.tsx`
+    - Add only optional props `controls?: CallControlsView`, `onToggleMute`, `onReplay` (design.md section 6). Active layout: avatar (hidden when `compact`), name, number (`dir="ltr"`, plain text), status, duration as `<time role="timer">`, notice line, existing caption region, Mute (`aria-pressed`, `Volume2`/`VolumeX`), Replay (`RotateCcw`, never remounted), Hang up. Without the new props the output must be identical to today.
+    - Edit only this file.
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.6, 7.7, 7.8, 7.9, 7.10, 11.9_
+  - [ ] 18.5 Update `F1/call/PlayerChoiceOverlay.tsx`
+    - Add optional `waiting` and `onSkipWait`. While waiting: a status line, one "Show replies now" button that takes focus, number keys off. When waiting ends the first option is focused. Layout, region and keyboard logic unchanged.
+    - Edit only this file.
+    - _Requirements: 5.9, 8.1, 8.3, 8.6, 8.9_
+  - [ ] 18.6 Create `F1/voice/useVoicePlayback.ts`
+    - Create one player per mount (disposed on unmount) over `webAudioEngine`, build `VoiceTarget` from `selectDialogueView` and `state.call` (phone or face-to-face), call `show`/`stop` with the right reason, `configure` on settings and locale changes (locale change stops the clip and starts none), `pause`/`resume` with the pause overlay, prefetch Act 1 and Act 2 nodes and the next nodes, and return `{ snapshot, muted, unlock, replay, setMuted, optionsWaiting, skipWait }`. Use `optionsGate.ts`. Mute resets per call.
+    - Create only this file.
+    - _Requirements: 5.1, 5.2, 5.4, 5.5, 5.9, 12.1, 12.6, 4.11_
+  - [ ] 18.7 Create `F1/voice/useCallAudio.ts`
+    - Ringtone while the call is `ringing`, connect click on `active`, tension level from `state.pressure` while a call is active, with reduced-stress factors; stop all on call end, pause menu and unmount.
+    - Create only this file.
+    - _Requirements: 11.3, 15.1, 15.4, 15.6_
+  - [ ] 18.8 Update `F1/call/CallPresentation.tsx`
+    - Pass the controller state to `PhoneScreenUI` (`controls`, notice, mute, replay) and `PlayerChoiceOverlay` (`waiting`, `onSkipWait`), show the non-speech captions ("Phone ringing", "Call connected") through the notice line, keep the single dispatch guard, and call `voice.unlock()` inside the Answer click handler. Props for voice are optional so existing tests still pass.
+    - Edit only this file.
+    - _Requirements: 7.1, 7.2, 8.4, 11.6, 5.5_
+  - [ ] 18.9 Update `F1/dialogue/DialoguePanel.tsx`
+    - Add an optional `voice` prop with a Replay button and the notice line. The text card is always visible (the Subtitles setting affects only the phone caption).
+    - Edit only this file.
+    - _Requirements: 7.11_
+  - [ ] 18.10 Write Property 21 in `F1/voice/useCallDuration.property.test.tsx`
+    - **Property 21: The call duration is whole seconds and presentation only**
+    - **Validates: Requirements 7.5**
+    - Create only this file.
+    - _Requirements: 7.5_
+  - [ ] 18.11 Write `F1/call/PhoneScreenUI.controls.test.tsx`
+    - Example tests: ringing and active content; duration element; Mute `aria-pressed` and label change; Replay disabled states; caption hidden only when `captionVisible` is false; no player option inside the phone tree; number as plain text with `dir="ltr"`; no emoji; the compact layout keeps two caption lines at `layout.screen.height` 288 using `computeCallLayout` numbers; absent props render as before.
+    - Create only this file.
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.9, 11.9_
+  - [ ] 18.12 Write `F1/call/PlayerChoiceOverlay.gate.test.tsx`
+    - Example tests: waiting state hides options and shows one Skip button with focus; number keys off while waiting; focus moves to the first option when waiting ends; no change when `waiting` is absent.
+    - Create only this file.
+    - _Requirements: 5.9, 8.3_
+  - [ ] 18.13 Write `F1/dialogue/DialoguePanel.voice.test.tsx`
+    - Example tests: Replay calls the controller; notice text appears for `english-voice` and `no-audio`; text card always visible; keyboard focus stays on Replay after activation.
+    - Create only this file.
+    - _Requirements: 7.11, 8.6_
+
+- [ ] 19. Evidence, follow-up call, endings and credits
+  - [ ] 19.1 Add the follow-up trigger to `F1/useCallTriggers.ts`
+    - Add a second pure function `stepFollowupTrigger` (45 s after the callback is `ended` or `declined`, only while no decision exists and the phone is free; once only). Leave `stepCallTriggers` untouched.
+    - Edit only this file.
+    - _Requirements: 2.5, 10.7_
+  - [ ] 19.2 Write `F1/useCallTriggers.followup.test.ts`
+    - Example tests: no ring before 45 s, rings once at 45 s, never with a live call, a conversation or a decision, never twice.
+    - Create only this file.
+    - _Requirements: 2.5_
+  - [ ] 19.3 Write `C1/evidenceCoverage.test.ts`
+    - Check that each of the 15 evidence items has a discovery that maps to an existing interactable, device screen or dialogue node, that no new interactable or 3D object was added by this feature, that each evidence type of requirement 10.2 is covered, and that no evidence needs a long exchange with a scammer for the investigator set.
+    - Create only this file.
+    - _Requirements: 10.2, 10.3, 14.5_
+  - [ ] 19.4 Show the act label in `F1/hud/ObjectiveTracker.tsx`
+    - Show `hud.act.label` from `selectCurrentAct`. Keep existing behavior and accessible names.
+    - Edit only this file.
+    - _Requirements: 2.1, 2.8_
+  - [ ] 19.5 Add the investigator icon in `F1/ending/EndingTransition.tsx`
+    - Add `FileCheck` (lucide-react) to the outcome icon map for `investigator`, decorative with `aria-hidden="true"`, paired with text.
+    - Edit only this file.
+    - _Requirements: 14.1, 14.6_
+  - [ ] 19.6 Add the voice credits entry
+    - In `SRC/config/credits.ts` add group `audio` and item `chapter1Voices` (name "Chapter 1 voice clips", creator text, source `apps/game/scripts/generate-chapter1-voice.ps1`, license "Terms of use not verified (see docs/PROJECT_PROGRESS.md)"). Add `groups.audio.category` and `items.chapter1Voices.notes` to `SRC/i18n/locales/{en,vi}/credits.ts`, English first. Do not add credits for pre-existing audio (flag it as gap G16 in the Baseline Record).
+    - Edit those three files only.
+    - _Requirements: 4.10_
+  - [ ] 19.7 Create `F1/hud/SaveTrimmedNotice.tsx`
+    - A dismissible, localized, polite notice using `hud.saveTrimmed.*`, native button, visible focus, no emoji.
+    - Create only this file.
+    - _Requirements: 13.5_
+  - [ ] 19.8 Update credit and chapter dictionary tests
+    - Find tests that enumerate credit group and item IDs (`rg "CreditGroupId|CreditItemId|credits" SRC --glob "*.test.*"`) and add the new IDs, keeping en and vi parity.
+    - Edit only those test files; list them in the Baseline Record.
+    - _Requirements: 12.3, 13.7_
+
+- [ ] 20. Save restore leniency
+  - [ ] 20.1 Add lenient restore to `SRC/game/saves/chapterProgress.ts`
+    - `restoreProgress(..., { lenient: true })` replays the actions in order, stops at the first rejected action, and returns the state after the last accepted action with `trimmed: true` and `acceptedActions: n`. More than 1000 actions or a non-finite pose stay hard failures. A fully accepted log returns `trimmed: false`. `encodeProgress` stays unchanged.
+    - Edit only this file.
+    - _Requirements: 13.4, 13.5, 13.6_
+  - [ ] 20.2 Use lenient restore in `SRC/game/loading/chapterLoader.ts` and `SRC/game/chapters/chapterSession.ts`
+    - A trimmed restore is a success that carries a notice flag; zero accepted actions starts the chapter at the beginning with the same notice. Keep `invalid-save` only for damaged data (too many actions, non-finite pose).
+    - Edit only these two files.
+    - _Requirements: 13.5_
+  - [ ] 20.3 Write Property 16 in `SRC/game/saves/chapterProgress.lenient.property.test.ts`
+    - **Property 16: Lenient restore returns the longest accepted prefix**
+    - **Validates: Requirements 13.4, 13.5**
+    - Create only this file.
+    - _Requirements: 13.4, 13.5_
+  - [ ] 20.4 Extend `SRC/game/saves/chapterProgress.test.ts` and `SRC/game/loading/chapterLoader.test.ts`
+    - Add: `encodeProgress` output has exactly `checkpointId`, `actions`, `playerPose` (no audio, duration, caption or locale); the loader returns a success with the trimmed notice for a drifted log, and `invalid-save` only for damaged data.
+    - Edit only these two files.
+    - _Requirements: 13.5, 13.6_
+  - [ ] 20.5 Write `C1/savedPathsStillReplay.test.ts`
+    - Copy the four action logs of `playthroughs.test.ts` as frozen fixtures (read that file; do not edit it) and assert that each is fully accepted by the new scenario and restored with `trimmed: false`.
+    - Create only this file.
+    - _Requirements: 13.4, 13.7_
+
+- [ ] 21. Checkpoint D - phone UI, follow-up, endings, saves
+  - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 22. Commits: phone UI, follow-up and endings, saves
+  - [ ] 22.1 Commit the phone call UI
+    - Stage by name the files of tasks 18.1 to 18.13. Commit `feat(game): add voice-call controls, captions and choice gate to the phone UI` with the trailer.
+    - _Requirements: 18.2_
+  - [ ] 22.2 Commit follow-up call, endings, act label and credits
+    - Stage by name the files of tasks 19.1 to 19.8. Commit `feat(game): add follow-up call trigger, investigator ending icon, act label and voice credits` with the trailer.
+    - _Requirements: 18.2_
+  - [ ] 22.3 Commit lenient save restore
+    - Stage by name the files of tasks 20.1 to 20.5. Commit `feat(game): restore old saves to the last accepted action with a notice` with the trailer.
+    - _Requirements: 18.2_
+
+- [ ] 23. Page integration and new tests
+  - [ ] 23.1 Wire everything in `F1/ChapterOnePage.tsx`
+    - Create the voice controller (`useVoicePlayback`, `useCallAudio`, `useCallDuration`), call `voice.unlock()` inside `handleBegin` and `handleAnswerCall`, pass `voice` and settings to `CallPresentation` and the dialogue overlay, wrap the content in `ComfortProvider`, apply the follow-up trigger, show `SaveTrimmedNotice` from the loader result, and keep `pause`/`resume` tied to the pause overlay. Verify `ChapterOneCanvas.tsx` already receives the effective `reducedMotion` and change it only if it does not.
+    - Edit only `ChapterOnePage.tsx` (and `ChapterOneCanvas.tsx` only if required, naming it in the final message).
+    - _Requirements: 5.5, 11.3, 11.4, 13.5, 16.3_
+  - [ ] 23.2 Write `F1/ChapterOnePage.voice.test.tsx`
+    - With `fakeAudioPort` injected: pressing Begin and Answer unlock audio; a full run reaches an ending and the debrief with AI off and no microphone; the caption and replay work with sound off; a language switch keeps the state and stops the clip; the trimmed notice appears for a drifted save; the 3D phone UI is used and choices render outside the phone.
+    - Create only this file.
+    - _Requirements: 17.2, 17.3, 17.4, 16.6_
+  - [ ] 23.3 Write Property 7 in the existing equivalence test `F1/call/callPresentation.voiceEquivalence.property.test.tsx`
+    - **Property 7: Presentation equivalence**
+    - **Validates: Requirements 8.1, 8.4, 8.8**
+    - At least 100 seeded cases per call graph, each with `PROPERTY_TIMEOUT_MS = 60_000`. Create this new file next to the existing equivalence tests and leave those untouched.
+    - Create only this file.
+    - _Requirements: 8.1, 8.4, 8.8, 17.5_
+  - [ ] 23.4 Write Property 8 in `NARR/properties/audioIndependence.property.test.ts`
+    - **Property 8: The core is independent of audio, locale and settings**
+    - **Validates: Requirements 5.8, 5.10, 7.7, 8.5, 12.6, 13.6**
+    - Create only this file.
+    - _Requirements: 5.8, 5.10, 12.6, 13.6_
+  - [ ] 23.5 Add new playthrough runs to `NARR/chapter1/playthroughs.test.ts`
+    - Add four runs: investigator ending (report filed, 8 of 11 evidence items), callback exposed after the official line, follow-up with money moved (risky), follow-up hang-up. Use real option IDs; do not edit the existing four runs.
+    - Edit only this file.
+    - _Requirements: 14.1, 17.1_
+  - [ ] 23.6 Extend `F1/accessibility.test.tsx`
+    - Add: keyboard-only flow for answering, muting, replaying, choosing an option and reading the debrief; the new controls have accessible names and visible focus classes; Settings voice controls are labeled.
+    - Edit only this file.
+    - _Requirements: 11.8, 11.9, 17.4_
+  - [ ] 23.7 Write `F1/noAuthoredText.test.ts`
+    - Scan the new and changed components (`PhoneScreenUI.tsx`, `PlayerChoiceOverlay.tsx`, `CallPresentation.tsx`, `DialoguePanel.tsx`, `SaveTrimmedNotice.tsx`, `useVoicePlayback.ts`, `useCallAudio.ts`) and fail on string literals that look like authored dialogue or user-facing sentences outside i18n calls; also fail on emoji and on the word "safe" in UI strings.
+    - Create only this file.
+    - _Requirements: 16.1, 12.3_
+
+- [ ] 24. Missing-clips report and counts
+  - [ ] 24.1 Produce the missing-clips report and the content counts
+    - Run `pnpm --filter @scammaze/game voice:report` and record in the Baseline Record the counts per locale and status and origin, the full list of `missing` clips (clipId, locale, speaker, line text), and the number of voice clips implemented vs missing. Measure node, Spoken_Node, option, evidence, objective, call and ending counts with a temporary script under `apps/game/scripts/tmp-count.mjs` (load the scenario with Vite `ssrLoadModule`), record them, then delete the script. State that playtime is not measured.
+    - Edit only this tasks.md file (and create then delete the temporary script).
+    - _Requirements: 3.1, 3.5, 4.8, 18.6_
+
+- [ ] 25. Architecture and accessibility documentation
+  - [ ] 25.1 Update `docs/architecture/OVERVIEW.md`
+    - In sections 4.2 and 4.3 describe the voice module, the audio graph, the manifest, the generator and lenient restore with status labels (`IMPLEMENTED` only for what was verified in this feature, `PLANNED` otherwise). In section 9 keep the seeded-generator deviation note. Record the optionsGate extraction. No cost change: no new service was added.
+    - Edit only this file.
+    - _Requirements: 18.7_
+  - [ ] 25.2 Update `ACCESSIBILITY.md`
+    - Document captions, mute, replay, reduced-stress, reduced motion and the keyboard flow, and list what is not verified (screen reader behavior, sound quality).
+    - Edit only this file.
+    - _Requirements: 11.5, 11.8, 18.7_
+
+- [ ] 26. Checkpoint E - final verification
+  - Run, one after the other, from `d:\scam-maze`: `pnpm test`, then `pnpm typecheck`, then `pnpm build`, and then the two `tsc --noEmit` commands (`tsconfig.app.json`, `tsconfig.test.json`). Record exit status and counts. Run `pnpm --filter @scammaze/game voice:report` once more. Fix failures; do not describe the feature as complete if any command fails. Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 27. Progress document
+  - [ ] 27.1 Update `docs/PROJECT_PROGRESS.md`
+    - Add one entry (newest first) with the nine mandatory items of AGENTS.md section 6: date and title; objective; completed work (voice clips implemented vs missing per locale, node counts, option count against the 80 to 120 target, evidence, objectives, endings); files created, modified, deleted; validation commands; real baseline and final test, typecheck and build counts from the Baseline Record and checkpoint E; unresolved issues (redistribution terms not verified, one male Vietnamese voice, quality not judged, MP3 playback not verified in browsers, playtime not measured, option count above target, `apartment` scene absent, credits missing for older audio); deviations (MP3 not Opus, `/audio/chapter01/` path, `placeholder-tts` unused, extracted `optionsGate.ts`, seeded generator instead of a property library, Act 1 in the street, lenient restore, Act 1 title "morning"); follow-ups.
+    - Inside the same entry add a "Manual playtest checklist" subsection with these unchecked items: play start to end and time it with the ending reached; listen to every English and Vietnamese clip for clarity; confirm MP3 playback in Chrome, Firefox, Safari and on a phone; test autoplay in a fresh browser profile; test the blocked-autoplay notice; test screen reader behavior on the caption and notice lines; confirm keyboard-only play; run the generator once with the network off; owner check of the redistribution terms of the generated audio before any public release.
+    - Also record: the update list of existing tests with reasons, the audit results of task 1.2, and the missing-clips report from task 24.1. Mark nothing complete that was not verified. Chapter 1 is not "complete" until a human has played it.
+    - Edit only `docs/PROJECT_PROGRESS.md`.
+    - _Requirements: 1.1, 1.3, 1.4, 13.7, 14.8, 14.9, 17.7, 17.8, 18.5, 18.6_
+
+- [ ] 28. Commits: integration and documentation
+  - [ ] 28.1 Commit page integration and new tests
+    - Stage by name the files of tasks 23.1 to 23.7 (plus `ChapterOneCanvas.tsx` only if 23.1 changed it). Commit `feat(game): wire Chapter 1 voice playback into the chapter page and add integration tests` with the trailer.
+    - _Requirements: 18.2_
+  - [ ] 28.2 Commit documentation
+    - Stage by name `docs/architecture/OVERVIEW.md`, `ACCESSIBILITY.md`, `docs/PROJECT_PROGRESS.md` and this `tasks.md` (only if `git ls-files .kiro/specs` shows the specs are tracked). Commit `docs: record Chapter 1 voice narrative results and architecture` with the trailer.
+    - _Requirements: 18.2, 18.5_
+
+- [ ] 29. Push
+  - [ ] 29.1 Push the branch without force
+    - Run `git branch --show-current` (must be `feat/chapter-01-voice-narrative`), `git status --short` (nothing of this feature left unstaged) and `git log --oneline -15`. Then `git push -u origin feat/chapter-01-voice-narrative`. No force option, no merge, no pull request merge, no push to `main`. Report the pushed commit list. The owner or another person merges.
+    - _Requirements: 18.3_
+
+## Notes
+
+- Test sub-tasks are required in this plan (no `*` optional marker), as the owner decided.
+- Order deviation, on purpose: the "keep existing tests green" updates (task 5) and `chapterRuns.ts` (task 3.12) come right after the content and overlay, before the validator, so every checkpoint and commit is green. The commit tasks sit after their checkpoints.
+- Checkpoints (tasks 6, 12, 16, 21, 26) are not in the dependency graph. Each runs after the wave named below and before the next wave starts: A after wave 8, B after wave 16, C after wave 19, D after wave 23, E after wave 26.
+- A wave may contain one commit task at most. Commit tasks stage only named files, so other tasks in the same wave may keep working on files that the commit does not stage.
+- Tasks in the same wave edit different files. Tasks 4.1, 4.2 and 4.3 share `OVL/dialogues.ts`, so they are in different waves. Tasks 1.1, 1.2, 10.1, 10.3 and 24.1 write to the Baseline Record in this file, so they are also in different waves.
+- If a task changes English line text after clips were generated, rerun task 10.2 for the affected clips; the validator (V6) reports stale hashes.
+- Each property test file carries the tag comment `// Feature: chapter-01-voice-narrative, Property N: <title>`, uses at least 100 seeded cases and `PROPERTY_TIMEOUT_MS = 60_000`.
+- The sub-agent must not start the dev server or any watcher. Use `vitest run` only.
+
+## Baseline Record
+
+Filled in by tasks 1.1, 1.2, 5.x, 8.2, 10.1, 10.3, 14.3, 19.6, 24.1 and copied into the progress doc by task 27.1.
+
+- Branch and base commit: (not recorded yet)
+- Baseline `pnpm test`: (not recorded yet)
+- Baseline `pnpm typecheck`: (not recorded yet)
+- Baseline `pnpm build`: (not recorded yet)
+- Baseline node, option and evidence counts: (not recorded yet)
+- Audit results and corrections: (not recorded yet)
+- Existing test updates and reasons: (not recorded yet)
+- Reachability solver explored states: (not recorded yet)
+- Voice probe result: (not recorded yet)
+- Generated clips per locale (present, missing, placeholder-tts), bytes: (not recorded yet)
+- Missing-clips report: (not recorded yet)
+- Final content counts: (not recorded yet)
+- Deviations: (not recorded yet)
+
+## Task Dependency Graph
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1.1"] },
+    { "id": 1, "tasks": ["1.2"] },
+    { "id": 2, "tasks": ["2.1", "2.2"] },
+    { "id": 3, "tasks": ["2.3", "2.4", "2.5", "2.6", "2.7", "2.8"] },
+    { "id": 4, "tasks": ["3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"] },
+    { "id": 5, "tasks": ["3.11", "4.1", "4.4", "4.5", "4.6", "4.7"] },
+    { "id": 6, "tasks": ["3.12", "4.2", "5.1", "5.2", "5.3"] },
+    { "id": 7, "tasks": ["4.3", "5.5"] },
+    { "id": 8, "tasks": ["5.4"] },
+    { "id": 9, "tasks": ["7.1", "8.1", "8.2", "8.6", "8.7", "8.8", "8.9", "8.10", "9.1"] },
+    { "id": 10, "tasks": ["8.3", "8.4", "8.5", "9.2", "9.3", "9.4", "9.5"] },
+    { "id": 11, "tasks": ["9.6", "9.7", "9.8", "9.9", "9.10", "11.1"] },
+    { "id": 12, "tasks": ["9.11", "11.3"] },
+    { "id": 13, "tasks": ["10.1"] },
+    { "id": 14, "tasks": ["10.2"] },
+    { "id": 15, "tasks": ["10.3"] },
+    { "id": 16, "tasks": ["11.2"] },
+    { "id": 17, "tasks": ["13.1", "14.1", "14.3", "15.1", "15.7"] },
+    { "id": 18, "tasks": ["13.2", "14.2", "14.4", "14.5", "14.6", "14.7", "14.10", "15.2", "15.5", "15.8"] },
+    { "id": 19, "tasks": ["13.3", "14.8", "14.9", "14.11", "14.12", "14.13", "14.14", "15.3", "15.4", "15.6", "15.9"] },
+    { "id": 20, "tasks": ["17.1", "18.1", "18.2", "18.3", "19.1", "19.3", "19.5", "19.6", "20.1"] },
+    { "id": 21, "tasks": ["17.2", "18.4", "18.5", "18.6", "18.7", "18.10", "19.2", "19.4", "19.7", "19.8", "20.2", "20.3", "20.5"] },
+    { "id": 22, "tasks": ["18.8", "18.9", "18.11", "18.12"] },
+    { "id": 23, "tasks": ["18.13", "20.4"] },
+    { "id": 24, "tasks": ["22.1", "23.1", "23.3", "23.4", "23.5", "23.7", "25.1", "25.2"] },
+    { "id": 25, "tasks": ["22.2", "23.2", "23.6", "24.1"] },
+    { "id": 26, "tasks": ["22.3"] },
+    { "id": 27, "tasks": ["27.1", "28.1"] },
+    { "id": 28, "tasks": ["28.2"] },
+    { "id": 29, "tasks": ["29.1"] }
+  ]
+}
+```

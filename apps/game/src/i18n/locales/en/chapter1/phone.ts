@@ -5,7 +5,6 @@ const phone = {
       name: "Phone",
       close: "Close phone",
       closeLabel: "Close",
-      callInProgress: "Call",
       decidePrompt: "You can decide what to do about the call now.",
       decide: "Decide",
     },
@@ -58,6 +57,10 @@ const phone = {
       status: "Call in progress",
       hangUp: "Hang up",
       connecting: "Connected. Waiting for the caller to speak.",
+    },
+    callPresentation: {
+      name: "Phone call",
+      screenLabel: "Phone screen",
     },
   },
 };

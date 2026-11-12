@@ -1,0 +1,976 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Create the branch and record the baseline counts": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475108597
+      },
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475133271
+      }
+    ],
+    "1.2 Audit the items the requirements left unconfirmed": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475108671
+      }
+    ],
+    "2.1 Append new IDs to `NARR/chapter1/ids.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475108768
+      }
+    ],
+    "2.2 Extend the scenario types in `NARR/types.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475108855
+      }
+    ],
+    "2.3 Add the four condition kinds in `NARR/conditions.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475108927
+      }
+    ],
+    "2.4 Add the follow-up ring to `NARR/reducer.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475108996
+      }
+    ],
+    "2.5 Add the investigator outcome in `NARR/outcome.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109066
+      }
+    ],
+    "2.6 Update `NARR/selectors.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109193
+      }
+    ],
+    "2.7 Add three objective rules in `NARR/objectives.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109307
+      }
+    ],
+    "2.8 Extend the localization walker in `NARR/localize.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109408
+      }
+    ],
+    "3.1 Create `C1/acts.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109493
+      }
+    ],
+    "3.2 Add the three objectives in `C1/objectives.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109634
+      }
+    ],
+    "3.3 Add four evidence items and warning signs in `C1/evidence.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109738
+      }
+    ],
+    "3.4 Add the follow-up call and case message in `C1/phone.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109812
+      }
+    ],
+    "3.5 Extend `C1/dialogues/scamCall.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109888
+      }
+    ],
+    "3.6 Extend `C1/dialogues/officialLine.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475109961
+      }
+    ],
+    "3.7 Extend `C1/dialogues/callback.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110033
+      }
+    ],
+    "3.8 Create `C1/dialogues/followup.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110139
+      }
+    ],
+    "3.9 Extend `C1/dialogues/shopkeeper.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110221
+      }
+    ],
+    "3.10 Add the investigator ending and debrief text in `C1/endings.ts` and `C1/debrief.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110304
+      }
+    ],
+    "3.11 Wire the new data in `C1/scenario.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110380
+      }
+    ],
+    "3.12 Update `SRC/test/chapterRuns.ts` for the new call and reason": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110457
+      }
+    ],
+    "4.1 Add Vietnamese text for `dlg.scam-call` in `OVL/dialogues.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110530
+      }
+    ],
+    "4.2 Add Vietnamese text for `dlg.official-line` and `dlg.callback` in `OVL/dialogues.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110600
+      }
+    ],
+    "4.3 Add Vietnamese text for `dlg.followup` and `dlg.shopkeeper` in `OVL/dialogues.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110672
+      }
+    ],
+    "4.4 Add acts, objectives and world text in `OVL/core.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110773
+      }
+    ],
+    "4.5 Add evidence text in `OVL/evidence.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475110916
+      }
+    ],
+    "4.6 Add phone text in `OVL/phone.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111040
+      }
+    ],
+    "4.7 Add ending and debrief text in `OVL/decisions.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111110
+      }
+    ],
+    "5.1 Update `NARR/chapter1/playthroughs.test.ts` for the new objectives": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111176
+      }
+    ],
+    "5.2 Update `NARR/objectives.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111243
+      }
+    ],
+    "5.3 Update the lint walker in `NARR/chapter1/content.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111317
+      }
+    ],
+    "5.4 Update the lint walker copy in `SRC/i18n/narrative.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111395
+      }
+    ],
+    "5.5 Fix `ScenarioDefinition` fixture literals in other tests": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111478
+      }
+    ],
+    "6. Checkpoint A - narrative content builds and existing tests pass": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111548
+      }
+    ],
+    "7.1 Create the local commit for tasks 2 to 5": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111617
+      }
+    ],
+    "8.1 Extend `NARR/validateScenario.ts` (checks V1, V3 static, V4 static)": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111693
+      }
+    ],
+    "8.2 Create `NARR/reachability.ts` (check V2 and measured V3/V4)": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111816
+      }
+    ],
+    "8.3 Extend `NARR/validateScenario.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475111911
+      }
+    ],
+    "8.4 Write `NARR/reachability.test.ts` and Property 3, Property 4": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112002
+      }
+    ],
+    "8.5 Write Property 5 in `NARR/properties/conditionedOptions.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112079
+      }
+    ],
+    "8.6 Write `C1/acts.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112157
+      }
+    ],
+    "8.7 Write Property 1 in `NARR/properties/acts.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112243
+      }
+    ],
+    "8.8 Write Property 6 in `NARR/properties/outcome.investigator.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112359
+      }
+    ],
+    "8.9 Extend `NARR/conditions.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112425
+      }
+    ],
+    "8.10 Write `NARR/reducer.followup.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112496
+      }
+    ],
+    "9.1 Create `VOICE/manifestTypes.ts`, `VOICE/hash.ts` and the asset path constant": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112571
+      }
+    ],
+    "9.2 Create `VOICE/selectClip.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112649
+      }
+    ],
+    "9.3 Create `VOICE/renderManifest.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112733
+      }
+    ],
+    "9.4 Create `VOICE/voiceReport.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112822
+      }
+    ],
+    "9.5 Create `VOICE/buildVoiceJobs.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475112910
+      }
+    ],
+    "9.6 Write Property 9 in `VOICE/selectClip.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113000
+      }
+    ],
+    "9.7 Write Property 20 in `VOICE/renderManifest.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113087
+      }
+    ],
+    "9.8 Write Property 17 in `VOICE/voiceReport.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113171
+      }
+    ],
+    "9.9 Write `VOICE/buildVoiceJobs.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113251
+      }
+    ],
+    "9.10 Create `apps/game/scripts/generate-chapter1-voice.ps1`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113324
+      }
+    ],
+    "9.11 Create `apps/game/scripts/generate-chapter1-voice.mjs`, package scripts and `.gitignore` entry": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113403
+      }
+    ],
+    "10.1 Probe the voices and dry-run the generator": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113483
+      }
+    ],
+    "10.2 Run the generator for real": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113563
+      }
+    ],
+    "10.3 Verify and record the generated clips": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113642
+      }
+    ],
+    "11.1 Create `SRC/game/content/validateChapterContent.ts` (checks V5, V6, V7)": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113719
+      }
+    ],
+    "11.2 Write `SRC/game/content/validateChapterContent.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113797
+      }
+    ],
+    "11.3 Write Property 2 in `SRC/game/content/validateChapterContent.faults.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113869
+      }
+    ],
+    "12. Checkpoint B - validator, manifest and generator": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475113942
+      }
+    ],
+    "13.1 Commit the validator, solver and engine tests": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114013
+      }
+    ],
+    "13.2 Commit the voice contracts, generator scripts and content validator": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114084
+      }
+    ],
+    "13.3 Commit the generated manifest and clips": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114162
+      }
+    ],
+    "14.1 Create `VOICE/audioPort.ts` and `VOICE/mixPlan.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114248
+      }
+    ],
+    "14.2 Create the test double `SRC/test/fakeAudioPort.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114340
+      }
+    ],
+    "14.3 Create the pure choice gate `VOICE/optionsGate.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114428
+      }
+    ],
+    "14.4 Create `VOICE/VoiceDialoguePlayer.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114510
+      }
+    ],
+    "14.5 Create `VOICE/devSpeechPreview.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114592
+      }
+    ],
+    "14.6 Create `VOICE/webAudioEngine.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114760
+      }
+    ],
+    "14.7 Write Property 19 in `VOICE/mixPlan.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114847
+      }
+    ],
+    "14.8 Write Property 10 and Property 11 in `VOICE/VoiceDialoguePlayer.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475114956
+      }
+    ],
+    "14.9 Write Property 12 and Property 13 in `VOICE/VoiceDialoguePlayer.failures.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115041
+      }
+    ],
+    "14.10 Write Property 14 in `VOICE/optionsGate.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115122
+      }
+    ],
+    "14.11 Write Property 18 in `VOICE/devSpeechPreview.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115198
+      }
+    ],
+    "14.12 Write example tests in `VOICE/VoiceDialoguePlayer.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115280
+      }
+    ],
+    "14.13 Write `VOICE/webAudioEngine.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115363
+      }
+    ],
+    "14.14 Write `VOICE/boundaries.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115444
+      }
+    ],
+    "15.1 Extend `GameSettings` in `packages/shared-types/src/index.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115537
+      }
+    ],
+    "15.2 Update `SRC/app/settingsStorage.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115641
+      }
+    ],
+    "15.3 Write Property 15 (parsing) in `SRC/app/settingsStorage.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115717
+      }
+    ],
+    "15.4 Add the six fields to `GameSettings` fixtures in other tests": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115783
+      }
+    ],
+    "15.5 Create `SRC/components/ui/useReducedMotion.ts` and `F1/comfort/ComfortProvider.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115850
+      }
+    ],
+    "15.6 Write the motion part of Property 15 in `F1/comfort/comfort.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475115930
+      }
+    ],
+    "15.7 Add settings and prologue strings in `SRC/i18n/locales/{en,vi}/settings.ts` and `menu.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116042
+      }
+    ],
+    "15.8 Add the \"Voice and comfort\" section to `SRC/features/menu/SettingsModal.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116116
+      }
+    ],
+    "15.9 Extend `SRC/features/menu/SettingsModal.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116191
+      }
+    ],
+    "16. Checkpoint C - voice player and settings": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116268
+      }
+    ],
+    "17.1 Commit the voice player and audio engine": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116346
+      }
+    ],
+    "17.2 Commit settings and migration": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116422
+      }
+    ],
+    "18.1 Add phone UI strings in `SRC/i18n/locales/{en,vi}/chapter1/phone.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116496
+      }
+    ],
+    "18.2 Add HUD strings in `SRC/i18n/locales/{en,vi}/chapter1/hud.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116577
+      }
+    ],
+    "18.3 Create `F1/voice/useCallDuration.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116661
+      }
+    ],
+    "18.4 Update `F1/call/PhoneScreenUI.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116754
+      }
+    ],
+    "18.5 Update `F1/call/PlayerChoiceOverlay.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116841
+      }
+    ],
+    "18.6 Create `F1/voice/useVoicePlayback.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475116929
+      }
+    ],
+    "18.7 Create `F1/voice/useCallAudio.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117007
+      }
+    ],
+    "18.8 Update `F1/call/CallPresentation.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117084
+      }
+    ],
+    "18.9 Update `F1/dialogue/DialoguePanel.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117157
+      }
+    ],
+    "18.10 Write Property 21 in `F1/voice/useCallDuration.property.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117257
+      }
+    ],
+    "18.11 Write `F1/call/PhoneScreenUI.controls.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117368
+      }
+    ],
+    "18.12 Write `F1/call/PlayerChoiceOverlay.gate.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117433
+      }
+    ],
+    "18.13 Write `F1/dialogue/DialoguePanel.voice.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117505
+      }
+    ],
+    "19.1 Add the follow-up trigger to `F1/useCallTriggers.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117572
+      }
+    ],
+    "19.2 Write `F1/useCallTriggers.followup.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117647
+      }
+    ],
+    "19.3 Write `C1/evidenceCoverage.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117723
+      }
+    ],
+    "19.4 Show the act label in `F1/hud/ObjectiveTracker.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117806
+      }
+    ],
+    "19.5 Add the investigator icon in `F1/ending/EndingTransition.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117891
+      }
+    ],
+    "19.6 Add the voice credits entry": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475117970
+      }
+    ],
+    "19.7 Create `F1/hud/SaveTrimmedNotice.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118051
+      }
+    ],
+    "19.8 Update credit and chapter dictionary tests": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118138
+      }
+    ],
+    "20.1 Add lenient restore to `SRC/game/saves/chapterProgress.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118215
+      }
+    ],
+    "20.2 Use lenient restore in `SRC/game/loading/chapterLoader.ts` and `SRC/game/chapters/chapterSession.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118307
+      }
+    ],
+    "20.3 Write Property 16 in `SRC/game/saves/chapterProgress.lenient.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118392
+      }
+    ],
+    "20.4 Extend `SRC/game/saves/chapterProgress.test.ts` and `SRC/game/loading/chapterLoader.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118470
+      }
+    ],
+    "20.5 Write `C1/savedPathsStillReplay.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118550
+      }
+    ],
+    "21. Checkpoint D - phone UI, follow-up, endings, saves": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118623
+      }
+    ],
+    "22.1 Commit the phone call UI": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118699
+      }
+    ],
+    "22.2 Commit follow-up call, endings, act label and credits": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118779
+      }
+    ],
+    "22.3 Commit lenient save restore": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118861
+      }
+    ],
+    "23.1 Wire everything in `F1/ChapterOnePage.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475118941
+      }
+    ],
+    "23.2 Write `F1/ChapterOnePage.voice.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119078
+      }
+    ],
+    "23.3 Write Property 7 in the existing equivalence test `F1/call/callPresentation.voiceEquivalence.property.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119155
+      }
+    ],
+    "23.4 Write Property 8 in `NARR/properties/audioIndependence.property.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119227
+      }
+    ],
+    "23.5 Add new playthrough runs to `NARR/chapter1/playthroughs.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119307
+      }
+    ],
+    "23.6 Extend `F1/accessibility.test.tsx`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119384
+      }
+    ],
+    "23.7 Write `F1/noAuthoredText.test.ts`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119461
+      }
+    ],
+    "24.1 Produce the missing-clips report and the content counts": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119534
+      }
+    ],
+    "25.1 Update `docs/architecture/OVERVIEW.md`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119620
+      }
+    ],
+    "25.2 Update `ACCESSIBILITY.md`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119704
+      }
+    ],
+    "26. Checkpoint E - final verification": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119785
+      }
+    ],
+    "27.1 Update `docs/PROJECT_PROGRESS.md`": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119864
+      }
+    ],
+    "28.1 Commit page integration and new tests": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475119945
+      }
+    ],
+    "28.2 Commit documentation": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475120029
+      }
+    ],
+    "29.1 Push the branch without force": [
+      {
+        "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475120116
+      }
+    ]
+  }
+}

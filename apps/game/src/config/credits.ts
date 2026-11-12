@@ -8,6 +8,7 @@ export type CreditItemId =
   | "lowPolyCityGameReady"
   | "lowPolyCityAssetPack"
   | "lowPolyCarsPack"
+  | "callPhone"
   | "coreArchitecture";
 
 /**
@@ -80,6 +81,14 @@ export const GAME_CREDITS: CreditGroup[] = [
         sourceUrl: "https://sketchfab.com/3d-models/low-poly-cars-pack-1d942e1a2f564690a5d703fdc08657b3",
         license: "Creative Commons Attribution (CC-BY 4.0)",
         notes: "Low-poly vehicles, sedans, utility vans, and neighborhood parked cars.",
+      },
+      {
+        id: "callPhone",
+        name: "call-phone.optimized.glb",
+        creator: "not stated",
+        sourceUrl: "Owner-provided file iphone-17-pro.glb (source URL not provided)",
+        license: "Free to use (owner statement, 2026-11-12)",
+        notes: "Handheld phone model used for phone calls. Optimized copy with the wallpaper removed and no visible brand marks.",
       },
     ],
   },

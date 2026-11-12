@@ -2,8 +2,8 @@
 // Below 640 CSS pixels the frame fills the viewport width; at 640 px and wider it is a phone
 // frame at most 380 px wide (Tailwind `sm` breakpoint = 640 px).
 // The overlay holds no game state: it renders selector views and reports intent through callbacks.
-// Escape is handled by the page through the overlay stack. While `callSlot` is set (a call is
-// ringing or active), the call screen replaces the apps and the phone cannot be closed here.
+// Escape is handled by the page through the overlay stack. Calls are shown on the 3D phone in
+// the world, not in this overlay.
 
 import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,8 +32,6 @@ export interface PhoneOverlayProps {
   onVerifyBankApp: () => void;
   /** Dispatch CLOSE_PHONE (and pop the overlay). */
   onClose: () => void;
-  /** Incoming or active call screen; rendered instead of the apps when set. */
-  callSlot?: ReactNode;
   /** App shown when the phone opens. Defaults to the home screen (Requirement 7.1). */
   initialRoute?: PhoneRoute;
   /**
@@ -50,33 +48,25 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
   onInspectEvidence,
   onVerifyBankApp,
   onClose,
-  callSlot,
   initialRoute = "home",
   onDecide,
 }) => {
   const { t } = useTranslation("chapter1");
   const [route, setRoute] = useState<PhoneRoute>(initialRoute);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const inCall = callSlot !== undefined && callSlot !== null && callSlot !== false;
 
   // Move focus into the phone when it opens and when the screen changes, for keyboard users.
   useEffect(() => {
     headingRef.current?.focus();
-  }, [route, inCall]);
+  }, [route]);
 
   const unreadCount = messages.filter((message) => message.unread).length;
   const goHome = () => setRoute("home");
   // The bank app title is narrative content from the display scenario, not UI chrome.
-  const title = inCall
-    ? t("phone.overlay.callInProgress")
-    : route === "bank"
-      ? bankApp.title
-      : t(`phone.routes.${route}`);
+  const title = route === "bank" ? bankApp.title : t(`phone.routes.${route}`);
 
   let content: ReactNode;
-  if (inCall) {
-    content = callSlot;
-  } else if (route === "messages") {
+  if (route === "messages") {
     content = <MessagesApp messages={messages} onInspectEvidence={onInspectEvidence} onBack={goHome} />;
   } else if (route === "calls") {
     content = <CallHistoryApp calls={callLog} onInspectEvidence={onInspectEvidence} onBack={goHome} />;
@@ -113,17 +103,15 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
           <h2 ref={headingRef} tabIndex={-1} className={UI.heading}>
             {title}
           </h2>
-          {!inCall && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t("phone.overlay.close")}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-[#a9a4c4] motion-safe:transition-colors hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-              <span aria-hidden="true">{t("phone.overlay.closeLabel")}</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("phone.overlay.close")}
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-[#a9a4c4] motion-safe:transition-colors hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+            <span aria-hidden="true">{t("phone.overlay.closeLabel")}</span>
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">{content}</div>
       </div>

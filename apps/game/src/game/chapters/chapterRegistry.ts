@@ -1,5 +1,5 @@
 import type { SceneId } from "@scammaze/shared-types";
-import { SKY_TEXTURE, STREET_ENVIRONMENT_GLB } from "../../config/assetPaths";
+import { CALL_PHONE_GLB, SKY_TEXTURE, STREET_ENVIRONMENT_GLB } from "../../config/assetPaths";
 
 export type ChapterAssetKind = "gltf" | "image";
 
@@ -14,6 +14,12 @@ export interface ChapterAsset {
    * `chapters:<chapterId>.assets.<assetId>` and falls back to this text.
    */
   loadingText: string;
+  /**
+   * When true, a failed download or verification of this file does not block the chapter: the
+   * loader marks the asset as skipped and continues. Required assets (the default) still fail the
+   * chapter.
+   */
+  optional?: boolean;
 }
 
 export interface ChapterDefinition {
@@ -54,6 +60,13 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
         url: SKY_TEXTURE,
         kind: "image",
         loadingText: "Loading the sky",
+      },
+      {
+        id: "call-phone",
+        url: CALL_PHONE_GLB,
+        kind: "gltf",
+        loadingText: "Loading the phone",
+        optional: true,
       },
     ],
     // Playable: the App shell renders features/chapter1/ChapterOnePage after loading.

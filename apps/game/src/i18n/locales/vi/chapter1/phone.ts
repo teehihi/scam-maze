@@ -6,7 +6,6 @@ const phone: LocaleShape<typeof en> = {
       name: "Điện thoại",
       close: "Đóng điện thoại",
       closeLabel: "Đóng",
-      callInProgress: "Cuộc gọi",
       decidePrompt: "Bây giờ bạn có thể quyết định cách xử lý cuộc gọi.",
       decide: "Quyết định",
     },
@@ -58,6 +57,10 @@ const phone: LocaleShape<typeof en> = {
       status: "Đang trong cuộc gọi",
       hangUp: "Cúp máy",
       connecting: "Đã kết nối. Đang chờ người gọi lên tiếng.",
+    },
+    callPresentation: {
+      name: "Cuộc gọi điện thoại",
+      screenLabel: "Màn hình điện thoại",
     },
   },
 };

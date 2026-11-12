@@ -7,11 +7,13 @@
 //
 // Keyboard: options are buttons in a list (Tab and Shift+Tab), Arrow Up/Down and Home/End move
 // between them, and number keys 1-9 select the matching option when `numberKeys` is on.
-import React, { useEffect, useRef } from "react";
+// The keyboard logic lives in `useDialogueOptionKeys`.
+import React from "react";
 import { MessageCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { DialogueView } from "../../../game/narrative/selectors";
 import { UI } from "../theme";
+import { useDialogueOptionKeys } from "./useDialogueOptionKeys";
 
 export interface DialoguePanelProps {
   /** Current conversation from `selectDialogueView`. */
@@ -27,12 +29,6 @@ export interface DialoguePanelProps {
   className?: string;
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
-}
-
 export const DialoguePanel: React.FC<DialoguePanelProps> = ({
   view,
   onSelectOption,
@@ -42,50 +38,15 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
   className = "",
 }) => {
   const { t } = useTranslation("chapter1");
-  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const options = view.options;
-
-  // Latest values for the window listener without re-subscribing on every render.
-  const latest = useRef({ options, onSelectOption, disabled });
-  useEffect(() => {
-    latest.current = { options, onSelectOption, disabled };
-  }, [options, onSelectOption, disabled]);
-
-  // Focus the first option when a new node is shown, so keyboard players can answer at once.
-  useEffect(() => {
-    if (!autoFocus || disabled) return;
-    optionRefs.current[0]?.focus();
-  }, [autoFocus, disabled, view.graphId, view.nodeId]);
-
-  useEffect(() => {
-    if (!numberKeys) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
-      if (isTypingTarget(event.target)) return;
-      if (!/^[1-9]$/.test(event.key)) return;
-      const { options: current, onSelectOption: select, disabled: off } = latest.current;
-      if (off) return;
-      const option = current[Number(event.key) - 1];
-      if (!option) return;
-      event.preventDefault();
-      select(option.id);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [numberKeys]);
-
-  const onOptionKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const count = options.length;
-    if (count === 0) return;
-    let next: number | null = null;
-    if (event.key === "ArrowDown") next = (index + 1) % count;
-    else if (event.key === "ArrowUp") next = (index - 1 + count) % count;
-    else if (event.key === "Home") next = 0;
-    else if (event.key === "End") next = count - 1;
-    if (next === null) return;
-    event.preventDefault();
-    optionRefs.current[next]?.focus();
-  };
+  const { setOptionRef, onOptionKeyDown } = useDialogueOptionKeys({
+    options,
+    onSelectOption,
+    disabled,
+    numberKeys,
+    autoFocus,
+    nodeKey: `${view.graphId}:${view.nodeId}`,
+  });
 
   // Speaker by code: the core's "You" is not shown; caller and NPC names come from the scenario.
   const speakerLabel =
@@ -118,9 +79,7 @@ export const DialoguePanel: React.FC<DialoguePanelProps> = ({
               <li key={option.id}>
                 <button
                   type="button"
-                  ref={(element) => {
-                    optionRefs.current[index] = element;
-                  }}
+                  ref={setOptionRef(index)}
                   data-testid={`dialogue-option-${option.id}`}
                   className={`${UI.buttonSecondary} w-full justify-start text-left`}
                   disabled={disabled}

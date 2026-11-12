@@ -6,4 +6,5 @@ game build or downloaded by players. `.glb` files are stored in Git LFS.
 | File | Used for |
 |---|---|
 | `environments/MenuBG.glb` | Input of `scripts/optimize-environment.cjs`, which writes `public/assets/3d/optimized/MenuBG.optimized.glb` |
-| `props/phone/*.glb` | Phone models, not used by the game yet (see `props/phone/SOURCE.md`) |
+| `props/phone/iphone-17-pro.glb` | Input of `scripts/optimize-call-phone.cjs`, which writes `public/assets/3d/optimized/call-phone.optimized.glb` (see `props/phone/SOURCE.md`) |
+| `props/phone/phone-17-pro-max.glb` | Alternative phone model, not used by the game |

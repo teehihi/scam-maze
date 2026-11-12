@@ -9,6 +9,7 @@ const chapters: LocaleShape<typeof en> = {
     assets: {
       "street-environment": "Đang tải con phố",
       sky: "Đang tải bầu trời",
+      "call-phone": "Đang tải điện thoại",
     },
   },
   scenes: {
