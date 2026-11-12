@@ -28,10 +28,10 @@ const sharp = require("sharp");
 async function optimizeMenuBG() {
   let inputPath = "/Users/tee/UTE/Kiroween/Asset3D/MenuBG2.glb";
   if (!fs.existsSync(inputPath)) {
-    inputPath = path.resolve(__dirname, "../public/assets/3d/environments/MenuBG2.glb");
+    inputPath = path.resolve(__dirname, "../assets-src/environments/MenuBG2.glb");
   }
   if (!fs.existsSync(inputPath)) {
-    inputPath = path.resolve(__dirname, "../public/assets/3d/environments/MenuBG.glb");
+    inputPath = path.resolve(__dirname, "../assets-src/environments/MenuBG.glb");
   }
 
   const outputDir = path.resolve(__dirname, "../public/assets/3d/optimized");

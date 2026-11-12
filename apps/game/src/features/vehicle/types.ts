@@ -34,6 +34,12 @@ export interface VehiclePhysicsConfig {
     minZ: number;
     maxZ: number;
   };
+  /** Optional circular drivable area (e.g. a round courtyard), applied after `roadBounds`. */
+  roundBounds?: {
+    centerX: number;
+    centerZ: number;
+    radius: number;
+  };
 }
 
 export const DEFAULT_VEHICLE_CONFIG: VehiclePhysicsConfig = {

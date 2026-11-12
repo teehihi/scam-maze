@@ -23,7 +23,6 @@ vi.mock("../game/core/GameCanvas", () => ({
 vi.mock("../features/loading/MenuStartupLoading", () => ({ MenuStartupLoading: () => null }));
 vi.mock("../features/loading/ChapterLoadingFlow", () => ({ ChapterLoadingFlow: () => null }));
 vi.mock("../features/chapter1/ChapterOnePage", () => ({ ChapterOnePage: () => null }));
-vi.mock("../features/hochiminh", () => ({ HCMPage: () => null }));
 vi.mock("../features/testmove", () => ({ TestMovePage: () => null }));
 vi.mock("../features/ueh", () => ({ UEHPage: () => null }));
 vi.mock("../features/hue", () => ({ HuePage: () => null }));

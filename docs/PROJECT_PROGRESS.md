@@ -181,6 +181,42 @@ Resolved:
 
 ## Task History
 
+### 2026-11-12 — Drivable Lexus on the UEH map, louder vehicle audio, H toggles UEH panels
+
+- **Objective:** Put the drivable Lexus GX 550 on `/ueh`; make the vehicle sounds louder; add a shortcut to hide/show the UEH information panels.
+- **Completed work:**
+  - Extracted the Lexus from `MenuBG.optimized.glb` into `public/assets/3d/vehicles/lexus-gx550.glb` (2.56 MB, ≈132k triangles, Meshopt + WebP kept), so `/ueh` does not download the 25 MB street.
+  - `features/vehicle/lexusRig.ts`: shared `buildLexusPivot` (pivot, flipped-texture fix, steering-wheel pivot), now also used by `StreetEnvironment.tsx` (behaviour-preserving refactor). `LexusVehicle.tsx` places the car in any map and resets it to its parking spot on mount.
+  - `FirstPersonPlayer`: the car state now starts from the pivot's position and heading (the street is unchanged: same coordinates, heading 0); new `vehicleConfig` prop. Vehicle physics gained optional `roundBounds` (with a unit test).
+  - UEH: car parked at (0, 0, 42) facing the courtyard centre, driving limited to a 54 m radius. Shared `VehicleHud` (enter prompt, driving controls, speedometer) reuses the `worlds:testmove` driving strings.
+  - Vehicle audio (both maps): gains were capped at 1.0, so the volume setting could not make them louder. Boosted by ×1.8 (about +5 dB, maximum gain 2.0) through a limiter (`DynamicsCompressor`) to avoid clipping.
+  - Automatic turn signal (both maps): `features/vehicle/turnSignal.ts` (pure, 5 unit tests). Holding A/D for 0.35 s starts `assets/audio/indicator.mp3` (owner-supplied, renamed from `Indicator.mp3`) as a loop; it stops 1.5 s after steering ends, on exit, and on unmount. Short taps never trigger it.
+  - UEH: `H` hides/shows the whole HUD (header with back button and mouse-lock pill, controls guide, telemetry, driving HUD). Only the `E` interaction prompts and the click-to-lock prompt stay. New `ueh.controls.togglePanels` string in en and vi.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 63 files, 597/597 passed; `pnpm build` passed. Owner play-tested driving on `/ueh`. Headless Chrome: `H` toggles the panels, no console errors.
+- **Unresolved issues and known limitations:** The new loudness was not listened to by the agent. The car can drive through UEH exhibits and trees, as the player can walk through them (no UEH collision adapter).
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Owner listening test of the vehicle volume; optional UEH collision for the car.
+
+### 2026-11-12 — Game asset size reduction and removal of the `/hochiminh` route
+
+- **Objective:** Reduce `apps/game/public` (560 MB) without lowering quality; remove the unused Ho Chi Minh City map (owner decision, backup kept by the owner).
+- **Completed work:**
+  - Moved source-only files out of `public/` into `apps/game/assets-src/` (not shipped by Vite, stored in Git LFS): `MenuBG.glb` (420 MB, input of `scripts/optimize-environment.cjs`, whose paths were updated) and the two unused phone models (48.6 MB, now LFS).
+  - `first_person_animations.glb`: 14.01 MB → 7.42 MB. Redundant keyframes removed (`resample`, tolerance 1e-7) and textures re-encoded as lossless WebP. Verified against the original: 16/16 animations, 13,103/13,103 channels, 1,053 joints, identical durations, maximum pose difference at float32 rounding level (≈1e-7; rotation ≤ 0.0001°), texture pixels identical.
+  - Vehicle audio: `closedoorlx`, `stop`, `stopCar` → MP3 (LAME V0); `drive.wav` (looped) kept as WAV but 32-bit float → 16-bit PCM so the loop stays gapless. 10.9 MB → 1.8 MB.
+  - `sky.png` → `sky.webp` and `logo.png` → `logo.webp` (lossless, pixel-identical). Deleted unreferenced PNGs that already had WebP versions (`menu_panel_frame.png`, `btn_primary.png`, `btn_secondary.png`) and `game-title-logo_jo.png`. `game-title-logo.png` kept as the `<picture>` fallback.
+  - Removed `/hochiminh` (`/hcm`): `features/hochiminh/`, `hochiminh.glb`, `saigon_sky.png`, the `worlds.hcm` locale files and the related tests and mocks.
+- **Files:** `.gitattributes`, `apps/game/assets-src/**`, `apps/game/scripts/optimize-environment.cjs`, `apps/game/public/**` (assets above), `src/app/App.tsx`, `src/features/menu/MainMenuOverlay.tsx`, `src/features/vehicle/useVehicleAudio.ts`, `src/config/assetPaths.ts`, `src/components/ui/BrandLogo.tsx`, `src/i18n/locales/{en,vi}/worlds/index.ts`, `src/features/worlds.i18n.test.tsx`, `src/app/App.{i18n,chapter}.test.tsx`.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 63 files, 596/596 passed (two HCM tests removed); `pnpm build` passed. Game build 579 MB → 57 MB; `public/` 560 MB → 53 MB. Headless Chrome on `vite preview`: all four vehicle sounds decode with `decodeAudioData` with the original durations, both WebP images decode, menu and `/testmove` load with no console errors and no 404s.
+- **Unresolved issues and known limitations:** The arms animations and the driving sounds were not checked by playing in a browser (pointer lock is needed); only loading, decoding and the numeric comparison were verified. `optimize-environment.cjs` dependencies (`@gltf-transform/*`, `meshoptimizer`, `sharp`) are still not declared in `package.json` (pre-existing).
+- **Deviations from the documented architecture:** None. S3/CloudFront remain `PLANNED`.
+- **Follow-up tasks:** Play-test the arms and driving audio; consider declaring the optimizer script's dev dependencies.
+
+### 2026-11-12 — Merge `main` (PRs #17, #18, #19) into the 3D call phone branch
+
+- **Objective:** Resolve the pull request conflicts of `feat/game-3d-phone-call-ui` against `main`.
+- **Completed work:** Merged `origin/main` (507988a). Conflicts: `docs/PROJECT_PROGRESS.md` (kept both sides) and the phone `SOURCE.md`, which `main` moved to `apps/game/assets-src/props/phone/`. The phone source models now live in `assets-src/` (Git LFS, not shipped), which also resolves the earlier follow-up about the unused ~51 MB candidates in `public/`. `scripts/optimize-call-phone.cjs` now reads `assets-src/props/phone/iphone-17-pro.glb`; `assets-src/README.md` and `SOURCE.md` updated. The optimized `call-phone.optimized.glb` stays in `public/assets/3d/optimized/`.
+- **Validation:** after the merge, `pnpm test` passed (82 files, 756 tests), `pnpm typecheck` passed, `pnpm build` passed (game JS 1,894.05 kB, gzip 538.88 kB). Not checked in a browser after the merge.
 ### 2026-11-12 — More realistic 3D call phone
 
 - **Objective:** Owner request: make the 3D call phone look closer to a real phone.

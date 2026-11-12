@@ -1,7 +1,7 @@
 /**
  * SCAMMAZE call phone optimization pipeline (spec `game-3d-phone-call-ui`, task 2.1).
  *
- * Input:  apps/game/public/assets/3d/props/phone/iphone-17-pro.glb (never modified)
+ * Input:  apps/game/assets-src/props/phone/iphone-17-pro.glb (never modified)
  * Output: apps/game/public/assets/3d/optimized/call-phone.optimized.glb
  *
  * Steps:
@@ -26,7 +26,7 @@ const { prune, dedup, weld, reorder, quantize, meshopt } = require("@gltf-transf
 const { MeshoptEncoder, MeshoptDecoder } = require("meshoptimizer");
 const sharp = require("sharp");
 
-const INPUT_PATH = path.resolve(__dirname, "../public/assets/3d/props/phone/iphone-17-pro.glb");
+const INPUT_PATH = path.resolve(__dirname, "../assets-src/props/phone/iphone-17-pro.glb");
 const OUTPUT_DIR = path.resolve(__dirname, "../public/assets/3d/optimized");
 const OUTPUT_PATH = path.resolve(OUTPUT_DIR, "call-phone.optimized.glb");
 

@@ -16,7 +16,6 @@ const harness = vi.hoisted(() => ({
 
 vi.mock("../game/core/GameCanvas", () => ({ GameCanvas: () => <div data-testid="menu-canvas" /> }));
 vi.mock("../features/loading/MenuStartupLoading", () => ({ MenuStartupLoading: () => null }));
-vi.mock("../features/hochiminh", () => ({ HCMPage: () => null }));
 vi.mock("../features/testmove", () => ({ TestMovePage: () => null }));
 vi.mock("../features/ueh", () => ({ UEHPage: () => null }));
 vi.mock("../features/hue", () => ({ HuePage: () => null }));

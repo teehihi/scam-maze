@@ -195,6 +195,17 @@ export function stepVehiclePhysics(
     hitCurb = true;
   }
 
+  const r = config.roundBounds;
+  if (r) {
+    const dx = posX - r.centerX;
+    const dz = posZ - r.centerZ;
+    const dist = Math.hypot(dx, dz);
+    if (dist > r.radius) {
+      posX = r.centerX + (dx / dist) * r.radius;
+      posZ = r.centerZ + (dz / dist) * r.radius;
+      hitCurb = true;
+    }
+  }
   if (hitCurb) {
     speed *= -0.2; // Slight bumper rebound
   }

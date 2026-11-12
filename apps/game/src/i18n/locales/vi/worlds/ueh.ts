@@ -36,6 +36,7 @@ const ueh: LocaleShape<typeof en> = {
       interact: "Tương tác (Đàn)",
       viewHands: "Xem tay",
       toggleCursor: "Ẩn / Hiện chuột",
+      togglePanels: "Ẩn / Hiện bảng thông tin",
       tip: "Tiến lại ghế đá dưới tán phượng và bấm phím <strong>E</strong> để gảy đàn guitar & đổi giai điệu / thời tiết.",
     },
     hud: {

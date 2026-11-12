@@ -36,6 +36,7 @@ const ueh = {
       interact: "Interact (Guitar)",
       viewHands: "View hands",
       toggleCursor: "Hide / Show cursor",
+      togglePanels: "Hide / Show panels",
       tip: "Walk to the stone bench under the flame tree and press <strong>E</strong> to strum the guitar and change the melody / weather.",
     },
     hud: {

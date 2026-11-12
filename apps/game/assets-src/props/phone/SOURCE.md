@@ -5,9 +5,7 @@
 | `phone-17-pro-max.glb` | Ranguel | Owner statement (2026-11-12): free to use |
 - Added by the project owner from an external download (Blender glTF exporter, textures embedded).
   The original source URL and license text were not provided.
-- The game must not load these source files. The 3D phone call uses only the optimized copy
-  described below (credits entry: `callPhone` in `apps/game/src/config/credits.ts`).
-  `phone-17-pro-max.glb` is not used.
+- The game must not load these source files. They live in `assets-src/` and are not shipped in the build. The 3D phone call uses only the optimized copy described below (credits entry: `callPhone` in `apps/game/src/config/credits.ts`). `phone-17-pro-max.glb` is not used.
 - The models depict a real-world phone product. In-game, do not show real brand names or logos.
 
 ## Call phone (spec `game-3d-phone-call-ui`)
