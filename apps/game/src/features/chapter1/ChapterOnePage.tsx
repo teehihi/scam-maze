@@ -319,6 +319,12 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
     () => ({ createPort: () => (engineRef.current ??= createWebAudioEngine()) }),
     [],
   );
+  // Session-only Speaker override. It never writes the saved setting and resets on each new call.
+  const [speakerOverride, setSpeakerOverride] = useState<boolean | null>(null);
+  const speakerOn = speakerOverride ?? settings.phoneVoiceFilter;
+  useEffect(() => {
+    setSpeakerOverride(null);
+  }, [call.current]);
   const voice = useVoicePlayback({
     store,
     scenario,
@@ -326,7 +332,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
       soundEnabled: settings.soundEnabled,
       sfxVolume: settings.sfxVolume,
       voiceVolume: settings.voiceVolume,
-      phoneVoiceFilter: settings.phoneVoiceFilter,
+      phoneVoiceFilter: speakerOn,
       englishVoiceFallback: settings.englishVoiceFallback,
       reducedStress: settings.reducedStress,
     },
@@ -754,6 +760,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
             voice={voice}
             durationSeconds={durationSeconds}
             subtitlesEnabled={settings.subtitlesEnabled}
+            speaker={{ on: speakerOn, onToggle: () => setSpeakerOverride(!speakerOn) }}
           />
         );
       case "inspection": {

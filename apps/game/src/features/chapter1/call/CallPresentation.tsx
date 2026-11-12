@@ -1,7 +1,7 @@
 // Call presentation wiring for the `call` overlay (design.md, "`CallPresentation.tsx` (wiring)").
 // DOM only: no three, React Three Fiber or Drei imports. The 3D phone is rendered by
 // `ChapterOneCanvas`; this component reads its projected screen rectangle through the
-// `PhoneScreenSink` and places the single `PhoneScreenUI` instance in `PhoneScreenHost`.
+// `PhoneScreenSink` and places the single `PhoneCallScreen` instance in `PhoneScreenHost`.
 //
 // - Reads `state.call` and `selectDialogueView(state, scenario)` through `useChapterState`. It
 //   creates no store and holds no dialogue state (Req 4.8, 11.8); every change goes through the
@@ -20,11 +20,13 @@ import type { ChapterStore } from "../../../game/narrative/store";
 import type { ChapterState, ScenarioDefinition } from "../../../game/narrative/types";
 import type { VoiceSnapshot } from "../../../game/voice/VoiceDialoguePlayer";
 import { useChapterState } from "../useChapterState";
+import { deriveCallDialogueView, isSubtitleVisible } from "./callDialogueView";
 import { computeCallLayout } from "./callLayout";
 import type { Rect } from "./callLayout";
+import { CallSubtitleOverlay } from "./CallSubtitleOverlay";
+import { PhoneCallScreen } from "./PhoneCallScreen";
+import type { CallControlsView } from "./PhoneCallScreen";
 import { PhoneScreenHost } from "./PhoneScreenHost";
-import { PhoneScreenUI } from "./PhoneScreenUI";
-import type { CallControlsView, CallScreenView } from "./PhoneScreenUI";
 import type { PhoneScreenSink } from "./phoneScreenSink";
 import { PlayerChoiceOverlay } from "./PlayerChoiceOverlay";
 import { useViewport } from "./useViewport";
@@ -54,6 +56,8 @@ export interface CallPresentationProps {
   durationSeconds?: number;
   /** The Subtitles setting. Captions also show whenever nothing is audible. */
   subtitlesEnabled?: boolean;
+  /** Speaker toggle state. Absent: the Speaker button is off and does nothing. */
+  speaker?: { on: boolean; onToggle: () => void };
 }
 
 /** The pieces of the `VoiceController` this component needs. */
@@ -71,7 +75,9 @@ export interface CallVoiceProps {
 /** Height below which the phone screen uses the compact layout (design.md, section 6). */
 const COMPACT_SCREEN_HEIGHT = 360;
 
-function voiceNotice(snapshot: VoiceSnapshot): CallControlsView["notice"] {
+type VoiceNotice = "none" | "autoplay-blocked" | "dev-preview" | "english-voice" | "no-audio";
+
+function voiceNotice(snapshot: VoiceSnapshot): VoiceNotice {
   if (snapshot.reason === "autoplay-blocked" || snapshot.phase === "blocked") return "autoplay-blocked";
   if (snapshot.label === "dev-preview") return "dev-preview";
   if (snapshot.label === "english-voice") return "english-voice";
@@ -98,6 +104,7 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
   voice,
   durationSeconds = 0,
   subtitlesEnabled = true,
+  speaker,
 }) => {
   const { t } = useTranslation("chapter1");
   const call = useChapterState(store, callSelector);
@@ -147,30 +154,15 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
 
   // --- Derived view --------------------------------------------------------------------------
   const callDef = call.current !== null ? scenario.calls[call.current] : undefined;
+  const { screen: screenView, subtitle, narration } = deriveCallDialogueView({
+    call,
+    callDef,
+    dialogueView,
+  });
   const linkedView =
     dialogueView !== null && call.current !== null && dialogueView.callId === call.current
       ? dialogueView
       : null;
-  const callerLine =
-    linkedView !== null && (linkedView.speaker === "caller" || linkedView.speaker === "npc");
-  const narration = linkedView !== null && !callerLine ? linkedView.line : null;
-
-  let screenView: CallScreenView | null = null;
-  if (callDef !== undefined && call.status === "ringing") {
-    screenView = { status: "ringing", callerName: callDef.displayName, number: callDef.number };
-  } else if (callDef !== undefined && call.status === "active") {
-    screenView = {
-      status: "active",
-      callerName: callDef.displayName,
-      number: callDef.number,
-      line:
-        linkedView === null
-          ? "connecting"
-          : callerLine
-            ? { speakerName: linkedView.speakerName ?? callDef.displayName, text: linkedView.line }
-            : null,
-    };
-  }
 
   // --- Single dispatch guard -----------------------------------------------------------------
   const callKey = `${call.current}:${call.status}`;
@@ -207,11 +199,15 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
           durationSeconds,
           muted: voice.muted,
           replayEnabled: voice.snapshot.source !== "none",
-          captionVisible: subtitlesEnabled || !voice.snapshot.audible,
-          notice: voiceNotice(voice.snapshot),
+          speakerOn: speaker?.on ?? false,
           compact: layout.screen.height < COMPACT_SCREEN_HEIGHT,
         }
       : undefined;
+
+  const subtitleVisible = isSubtitleVisible({
+    subtitlesEnabled,
+    audible: voice?.snapshot.audible,
+  });
 
   if (screenView === null) return null;
 
@@ -226,12 +222,13 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
     >
       {mode !== "model" && <div className="absolute inset-0 bg-[#171521]/70" aria-hidden="true" />}
       <PhoneScreenHost mode={mode} layout={layout} screenSink={screenSink}>
-        <PhoneScreenUI
+        <PhoneCallScreen
           view={screenView}
           disabled={paused}
           vibrateIcon={mode === "fallback"}
           controls={controls}
           onToggleMute={voice ? () => voice.setMuted(!voice.muted) : undefined}
+          onToggleSpeaker={speaker?.onToggle}
           onReplay={voice ? voice.replay : undefined}
           onAccept={guarded(() => {
             // Unlock audio inside the click gesture; failure never blocks the call.
@@ -244,6 +241,14 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
           hangUpRef={hangUpRef}
         />
       </PhoneScreenHost>
+      {call.status === "active" ? (
+        <CallSubtitleOverlay
+          content={subtitle}
+          visible={subtitleVisible}
+          notice={voice !== undefined ? voiceNotice(voice.snapshot) : "none"}
+          region={layout.subtitle}
+        />
+      ) : null}
       {call.status === "active" && linkedView !== null ? (
         <PlayerChoiceOverlay
           view={linkedView}

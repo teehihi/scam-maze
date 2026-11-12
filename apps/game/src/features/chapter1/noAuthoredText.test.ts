@@ -12,7 +12,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 /** Files under the scan, relative to `features/chapter1`. */
 const SCANNED_FILES = [
-  "call/PhoneScreenUI.tsx",
+  "call/PhoneCallScreen.tsx",
+  "call/CallSubtitleOverlay.tsx",
   "call/PlayerChoiceOverlay.tsx",
   "call/CallPresentation.tsx",
   "dialogue/DialoguePanel.tsx",
@@ -67,7 +68,8 @@ export function scanSource(fileName: string, source: string): Violation[] {
 
   const check = (node: ts.Node, value: string) => {
     if (EMOJI.test(value)) violations.push({ kind: "emoji", line: lineOf(node), text: value });
-    if (SAFE_WORD.test(value)) violations.push({ kind: "safe-word", line: lineOf(node), text: value });
+    // The Tailwind variant `motion-safe:` is a class name, not UI wording.
+    if (SAFE_WORD.test(value.replace(/\bmotion-safe:/g, ""))) violations.push({ kind: "safe-word", line: lineOf(node), text: value });
     if (looksLikeSentence(value)) {
       violations.push({ kind: "authored-text", line: lineOf(node), text: value });
     }

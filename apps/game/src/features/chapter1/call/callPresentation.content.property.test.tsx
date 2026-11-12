@@ -1,4 +1,4 @@
-// Feature: game-3d-phone-call-ui, Property 2: The phone screen holds only phone-owned content
+// Feature: game-phone-call-ui-redesign, Property 1: The phone screen holds only call content
 // Feature: game-3d-phone-call-ui, Property 3: The choice overlay mirrors the dialogue options
 //
 // Content properties of `CallPresentation` (tasks 11.2 and 11.3; design.md, "Correctness
@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { GameLocale } from "@scammaze/shared-types";
 import { selectDialogueView } from "../../../game/narrative/selectors";
 import { createChapterStore } from "../../../game/narrative/store";
+import type { VoiceSnapshot } from "../../../game/voice/VoiceDialoguePlayer";
 import { applyLocale } from "../../../i18n";
 import enPhone from "../../../i18n/locales/en/chapter1/phone";
 import viPhone from "../../../i18n/locales/vi/chapter1/phone";
@@ -27,12 +28,14 @@ import {
 } from "../../../test/callStates";
 import { createLcg } from "../../../test/seededRandom";
 import { CallPresentation } from "./CallPresentation";
+import type { CallVoiceProps } from "./CallPresentation";
+import { isSubtitleVisible } from "./callDialogueView";
 import { createPhoneScreenSink } from "./phoneScreenSink";
 
 /** Seeded property runs can exceed Vitest's 5 s default when the machine is loaded. */
 const PROPERTY_TIMEOUT_MS = 60_000;
 const PROPERTY_RUNS = 100;
-const PROPERTY_2_SEED = (CALL_STATE_SEED ^ 0x0c0a0002) >>> 0;
+const PROPERTY_1_SEED = (CALL_STATE_SEED ^ 0x0c0a0002) >>> 0;
 const PROPERTY_3_SEED = (CALL_STATE_SEED ^ 0x0c0a0003) >>> 0;
 
 const PHONE_TEXT = { en: enPhone.phone, vi: viPhone.phone } as const;
@@ -46,10 +49,18 @@ interface RenderedCase {
   generated: GeneratedCallState;
   mode: PresentationCaseMode;
   container: HTMLElement;
+  /** Voice controls state; `null`: no `voice` prop. */
+  voice: { muted: boolean; audible: boolean } | null;
+  subtitlesEnabled: boolean;
 }
 
 /** Renders `CallPresentation` for a generated state, locale and mode. */
-function renderCase(generated: GeneratedCallState, mode: PresentationCaseMode): RenderedCase {
+function renderCase(
+  generated: GeneratedCallState,
+  mode: PresentationCaseMode,
+  voice: RenderedCase["voice"] = null,
+  subtitlesEnabled = true,
+): RenderedCase {
   act(() => {
     applyLocale(generated.locale);
   });
@@ -57,6 +68,28 @@ function renderCase(generated: GeneratedCallState, mode: PresentationCaseMode): 
   const screenSink = createPhoneScreenSink();
   if (mode === "model") screenSink.publish(MODEL_RECT);
   const noop = () => undefined;
+  const voiceProps: CallVoiceProps | undefined =
+    voice === null
+      ? undefined
+      : {
+          snapshot: {
+            phase: "playing",
+            source: "clip",
+            label: "none",
+            reason: null,
+            targetKey: null,
+            muted: voice.muted,
+            audible: voice.audible,
+            durationMs: null,
+            endedCount: 0,
+          } as unknown as VoiceSnapshot,
+          muted: voice.muted,
+          unlock: () => Promise.resolve(),
+          replay: noop,
+          setMuted: noop,
+          optionsWaiting: false,
+          skipWait: noop,
+        };
   const { container } = render(
     <CallPresentation
       store={store}
@@ -67,9 +100,12 @@ function renderCase(generated: GeneratedCallState, mode: PresentationCaseMode): 
       onAnswer={noop}
       onEnd={noop}
       onSelectOption={noop}
+      voice={voiceProps}
+      subtitlesEnabled={subtitlesEnabled}
+      speaker={voice === null ? undefined : { on: false, onToggle: noop }}
     />,
   );
-  return { generated, mode, container };
+  return { generated, mode, container, voice, subtitlesEnabled };
 }
 
 /** Accessible name of a button: its visible text (icons are `aria-hidden`). */
@@ -87,9 +123,9 @@ function countTextNodes(root: Node, text: string): number {
   return count;
 }
 
-/** Checks Property 2 for one rendered case. */
-function checkPhoneScreenContent({ generated, mode, container }: RenderedCase): void {
-  const label = `${describeCallState(generated)} (mode ${mode})`;
+/** Checks Property 1 for one rendered case. */
+function checkPhoneScreenContent({ generated, mode, container, voice, subtitlesEnabled }: RenderedCase): void {
+  const label = `${describeCallState(generated)} (mode ${mode}, voice ${voice === null ? "none" : "on"}, subtitles ${subtitlesEnabled})`;
   const { state, locale, callId } = generated;
   const scenario = getDisplayScenario(locale);
   const callDef = scenario.calls[callId];
@@ -113,7 +149,9 @@ function checkPhoneScreenContent({ generated, mode, container }: RenderedCase): 
     expect(frame.querySelector('[data-testid="player-choice-overlay"]'), label).toBeNull();
   }
 
-  // Call buttons: exactly Decline and Accept while ringing, exactly Hang up while active.
+  // Buttons: Decline and Accept while ringing; Mute, Speaker, Replay and End call while active
+  // with voice controls; End call only while active without voice controls.
+  // The Decline button shows the "Decline" text (`phone.incomingCall.decline`).
   const buttonNames = within(host)
     .queryAllByRole("button", { hidden: true })
     .map(buttonName);
@@ -121,7 +159,16 @@ function checkPhoneScreenContent({ generated, mode, container }: RenderedCase): 
     expect(buttonNames, label).toEqual([text.incomingCall.decline, text.incomingCall.accept]);
   } else {
     expect(state.call.status, label).toBe("active");
-    expect(buttonNames, label).toEqual([text.call.hangUp]);
+    const expected =
+      voice === null
+        ? [text.call.hangUp]
+        : [
+            voice.muted ? text.call.unmute : text.call.mute,
+            text.call.speaker,
+            text.call.replayAria,
+            text.call.hangUp,
+          ];
+    expect(buttonNames, label).toEqual(expected);
   }
 
   // Caller name and number from the display scenario; the number is the same in both locales,
@@ -134,27 +181,40 @@ function checkPhoneScreenContent({ generated, mode, container }: RenderedCase): 
   expect(numberNodes[0].closest("a"), label).toBeNull();
   expect(countTextNodes(doc.body, callDef.number), label).toBe(1);
 
-  // Line text only for a linked caller or NPC line, and then exactly that line.
+  // The phone holds no sentences and no options.
+  const hostText = host.textContent ?? "";
+  expect(host.querySelector('[data-testid^="dialogue-option-"]'), label).toBeNull();
+  expect(host.querySelector('[data-testid="dialogue-line"]'), label).toBeNull();
+  expect(host.querySelector('[data-testid="call-line-region"]'), label).toBeNull();
+  expect(host.querySelector('[data-testid="call-notice"]'), label).toBeNull();
+  expect(hostText, label).not.toContain(text.call.connecting);
+  for (const notice of Object.values(text.call.notice)) expect(hostText, label).not.toContain(notice);
+
   const view = selectDialogueView(state, scenario);
   const linked = view !== null && view.callId === callId ? view : null;
-  const lineCards = within(host).queryAllByTestId("dialogue-line");
-  if (state.call.status === "ringing") {
-    expect(lineCards.length, label).toBe(0);
-    expect(within(host).queryByTestId("call-line-region"), label).toBeNull();
-  } else if (linked !== null && (linked.speaker === "caller" || linked.speaker === "npc")) {
-    expect(lineCards.length, label).toBe(1);
-    const paragraphs = Array.from(lineCards[0].querySelectorAll("p")).map((p) => p.textContent);
-    expect(paragraphs, label).toEqual([linked.speakerName ?? callDef.displayName, linked.line]);
+  if (linked !== null && linked.line.trim().length > 0) {
+    expect(hostText, label).not.toContain(linked.line);
+  }
+  for (const option of linked?.options ?? []) {
+    if (!option.fallback && option.text.trim().length > 0) expect(hostText, label).not.toContain(option.text);
+  }
+
+  // The caller line is in the subtitle overlay (outside the phone host) when it applies.
+  const lines = Array.from(doc.querySelectorAll('[data-testid="call-subtitle-line"]'));
+  const callerLine =
+    state.call.status === "active" &&
+    linked !== null &&
+    (linked.speaker === "caller" || linked.speaker === "npc");
+  const visible = isSubtitleVisible({ subtitlesEnabled, audible: voice?.audible });
+  if (callerLine && visible) {
+    expect(lines.length, label).toBe(1);
+    expect(lines[0].textContent, label).toBe(linked.line);
+    expect(host.contains(lines[0]), label).toBe(false);
+    expect(lines[0].closest('[data-testid="call-subtitle-overlay"]'), label).not.toBeNull();
   } else {
-    expect(lineCards.length, label).toBe(0);
-    const region = within(host).getByTestId("call-line-region");
-    expect((region.textContent ?? "").trim(), label).toBe(linked === null ? text.call.connecting : "");
-    if (linked !== null && linked.line.trim().length > 0) {
-      expect(host.textContent ?? "", label).not.toContain(linked.line);
-    }
+    expect(lines.length, label).toBe(0);
   }
 }
-
 /** Accessible name from visible text, leaving out `aria-hidden` parts (for example the key hint). */
 function visibleName(element: Element): string {
   const label = element.getAttribute("aria-label");
@@ -241,18 +301,21 @@ describe("call presentation content properties", () => {
   });
 
   it(
-    "Property 2: the phone screen holds only phone-owned content (Requirements 1.2, 2.1, 2.2, 2.3, 2.4, 2.6, 12.6, 13.1, 13.2)",
+    "Property 1: the phone screen holds only call content (Requirements 1.1, 1.2, 2.1, 2.2, 2.3, 2.4, 3.1, 7.1)",
     () => {
-      const seen = { ringing: 0, callerLine: 0, otherLine: 0, connecting: 0 };
+      const seen = { ringing: 0, callerLine: 0, withVoice: 0, hiddenLine: 0 };
       const locales = new Set<GameLocale>();
       for (let index = 0; index < PROPERTY_RUNS; index += 1) {
-        const { generated, mode } = propertyCase(PROPERTY_2_SEED, index);
-        const rendered = renderCase(generated, mode);
+        const { generated, mode } = propertyCase(PROPERTY_1_SEED, index);
+        const next = createLcg(caseSeed(PROPERTY_1_SEED, index) ^ 0x70ce);
+        const voice = next() < 0.6 ? { muted: next() < 0.3, audible: next() < 0.6 } : null;
+        const subtitlesEnabled = next() < 0.5;
+        const rendered = renderCase(generated, mode, voice, subtitlesEnabled);
         try {
           checkPhoneScreenContent(rendered);
         } catch (error) {
           throw new Error(
-            `Property 2 failed for case ${index} (seed 0x${generated.seed.toString(16)}): ${describeCallState(generated)}, mode ${mode}\n${String(error)}`,
+            `Property 1 failed for case ${index} (seed 0x${generated.seed.toString(16)}): ${describeCallState(generated)}, mode ${mode}\n${String(error)}`,
           );
         } finally {
           cleanup();
@@ -261,20 +324,22 @@ describe("call presentation content properties", () => {
         if (generated.state.call.status === "ringing") {
           seen.ringing += 1;
         } else {
+          if (voice !== null) seen.withVoice += 1;
           const view = selectDialogueView(generated.state, getDisplayScenario(generated.locale));
-          if (view === null || view.callId !== generated.callId) seen.connecting += 1;
-          else if (view.speaker === "caller" || view.speaker === "npc") seen.callerLine += 1;
-          else seen.otherLine += 1;
+          if (view !== null && view.callId === generated.callId && (view.speaker === "caller" || view.speaker === "npc")) {
+            if (isSubtitleVisible({ subtitlesEnabled, audible: voice?.audible })) seen.callerLine += 1;
+            else seen.hiddenLine += 1;
+          }
         }
       }
-      // The generator reaches both locales, ringing calls and active calls with a Caller_Line.
+      // The generator reaches both locales, ringing calls, voice controls and visible caller lines.
       expect([...locales].sort()).toEqual(["en", "vi"]);
       expect(seen.ringing).toBeGreaterThan(0);
+      expect(seen.withVoice).toBeGreaterThan(0);
       expect(seen.callerLine).toBeGreaterThan(0);
     },
     PROPERTY_TIMEOUT_MS,
   );
-
   it(
     "Property 3: the choice overlay mirrors the dialogue options (Requirements 3.1, 3.2, 3.6, 3.10, 7.10, 13.2)",
     () => {

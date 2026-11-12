@@ -10,7 +10,7 @@ import type { PhoneScreenHostMode } from "./PhoneScreenHost";
 
 const LAYOUT = computeCallLayout({ width: 1280, height: 800 });
 
-/** Child that counts its own renders, standing in for the single `PhoneScreenUI`. */
+/** Child that counts its own renders, standing in for the single `PhoneCallScreen`. */
 function makeCountingChild(): { Child: React.FC; renders: () => number } {
   let count = 0;
   const Child: React.FC = () => {

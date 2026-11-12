@@ -1,4 +1,5 @@
 // Feature: game-3d-phone-call-ui, Property 9: Call buttons dispatch once and always end the call
+// (Phone_Call_Screen redesign: the Hang up button is now labeled "End call", key phone.call.hangUp.)
 //
 // **Validates: Requirements 5.3, 5.7**
 //
@@ -71,7 +72,7 @@ function generateButtonCase(next: () => number, state: ChapterState): ButtonCase
 
 describe("CallPresentation call buttons (Property 9)", () => {
   it(
-    "dispatch at most once per call status, match one direct dispatch, and Hang up ends the call",
+    "dispatch at most once per call status, match one direct dispatch, and End call ends the call",
     () => {
       const generated = generateCallStates(CASES, SEED);
       const next = createLcg(SEED);
@@ -123,6 +124,15 @@ describe("CallPresentation call buttons (Property 9)", () => {
         try {
           const button = view.getByTestId(BUTTON_TEST_ID[c.button]) as HTMLButtonElement;
           expect(button.disabled).toBe(c.paused);
+          if (c.button !== "accept") {
+            // Decline uses phone.incomingCall.decline; End call uses phone.call.hangUp.
+            const isDecline = c.button === "decline";
+            const expectedLabel =
+              callState.locale === "vi"
+                ? isDecline ? "Từ chối" : "Kết thúc cuộc gọi"
+                : isDecline ? "Decline" : "End call";
+            expect(button.textContent?.trim()).toBe(expectedLabel);
+          }
 
           if (c.batching === "one-batch") {
             act(() => {

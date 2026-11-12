@@ -55,7 +55,9 @@ const phone = {
     },
     call: {
       status: "Call in progress",
-      hangUp: "Hang up",
+      hangUp: "End call",
+      speaker: "Speaker",
+      replayAria: "Replay last line",
       connecting: "Connected. Waiting for the caller to speak.",
       duration: "Call duration",
       mute: "Mute",
@@ -69,6 +71,9 @@ const phone = {
         englishVoice: "This line is spoken in English. The caption is in Vietnamese.",
         noAudio: "There is no audio for this line. Read the caption.",
       },
+    },
+    subtitle: {
+      label: "Caller subtitles",
     },
     sound: {
       ringing: "Phone ringing",
