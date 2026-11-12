@@ -44,7 +44,7 @@ Verified on `feat/chapter-01-playable` (11 Nov 2026):
 | Loading screens | Startup screen for the menu scene and a chapter loading pipeline with byte-measured progress, asset verification, error recovery and fade transitions. Loading ends in the playable Chapter 1 page (`ChapterOnePage`); a chapter with `gameplayAvailable: false` still ends on the "in development" screen. See [section 4.2.1](#421-chapter-loading-implemented). |
 | Chapter 1 "The Urgent Call" | Playable from start to debrief on the menu street scene (`features/chapter1/`): first-person movement, in-world interactables with a focus probe, a scam phone call and three other dialogues, evidence journal, objectives, a final decision, three outcome groups (verified, risky, uncertain) with variants, and a debrief. Play time and frame rate have not been measured. Story and content: [`docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md`](../gameplay/CHAPTER_01_THE_URGENT_CALL.md). |
 | Game core (deterministic) | `game/narrative/`: pure TypeScript reducer `chapterReducer(state, action, scenario)` with dialogue engine, evidence, objectives, outcome and debrief modules; Chapter 1 content in `game/narrative/chapter1/`; hand-written scenario validation (`validateScenario.ts`); a framework-free `ChapterStore` read through `useSyncExternalStore`; a pure `localize.ts` for display-only translated copies of the scenario. No React, Three.js, Zustand, Dexie or i18n imports. See [section 4.3](#43-deterministic-core-narrative-engine-and-scam-intelligence-engine-implemented-for-chapter-1). |
-| In-game phone | 2D React overlay in `features/chapter1/phone/`: home screen, incoming call and call screens, call history, messages and a fictional bank app. Phone actions are dispatched to the core as Core_Actions. |
+| In-game phone | 2D React overlay in `features/chapter1/phone/`: home screen, call history, messages and a fictional bank app. Phone calls (ringing and active) are shown on a 3D phone in the chapter canvas, with a DOM screen and a separate choice panel, and fall back to a 2D phone screen when the 3D phone cannot be shown (`features/chapter1/call/`, see [section 4.2](#42-game-client-implemented-for-the-menu-and-chapter-1-later-chapters-planned)). Phone actions are dispatched to the core as Core_Actions. |
 | Local saves (format v2) | `game/saves/saveGame.ts` behind the `SaveGameSource` interface, stored in `localStorage` (key `scammaze_save_v2`). A save holds the accepted Core_Actions (at most 1000), a checkpoint ID and the player pose. Restore replays the actions through the core (`game/saves/chapterProgress.ts`) and rejects saves that do not replay. Version 1 saves are migrated to a chapter-start checkpoint. Checkpoints are written by `features/chapter1/useCheckpointSaver.ts`. |
 | Game localization (English, Vietnamese) | `apps/game/src/i18n/`: i18next 27.1.1 and react-i18next 18.0.1 with bundled dictionaries, English as default and fallback, Vietnamese as second locale. The choice is stored in `GameSettings.language` (`localStorage` key `scammaze_settings_v1`) and `<html lang>` follows it. Chapter 1 narrative text is translated through a display-only overlay; the chapter core, its state and saves do not depend on the language. The landing app stays English-only. See [section 4.2.2](#422-localization-implemented). |
 | Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings (including `language: GameLocale`), and scenario metadata. |
@@ -80,7 +80,7 @@ proxying, persistence and server-side operations.
 | 3D rendering | **Three.js r174** (primary 3D engine) via **React Three Fiber v9**, with **Drei v10** utilities; WebGL 2 baseline | `IMPLEMENTED` |
 | Physics | **Rapier** | `PROPOSED`; prototype required |
 | Gameplay state | **Zustand** stores | `PLANNED`; Chapter 1 uses a framework-free store with `useSyncExternalStore` instead (`IMPLEMENTED`, deviation, section 4.3) |
-| In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `IMPLEMENTED` as an overlay for Chapter 1; in-world surface `PLANNED` |
+| In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `IMPLEMENTED` for Chapter 1: phone apps as a 2D overlay; phone calls on a 3D phone in the chapter canvas with a projected DOM screen and a 2D fallback. In-world surface for the other apps `PLANNED` |
 | Narrative engine + scam intelligence engine (deterministic core) | Pure **TypeScript** chapter state machines, evidence and tactic definitions, versioned scenario files validated with **Zod** | `IMPLEMENTED` for Chapter 1 as a pure TypeScript reducer with hand-written validation; Zod not used (deviation); downloaded scenario files `PLANNED` |
 | Local progress store | **IndexedDB** through **Dexie** | `PLANNED`; today `localStorage` save v2 behind `SaveGameSource` (`IMPLEMENTED`, deviation) |
 | Game UI localization | **i18next** + **react-i18next** with bundled dictionaries; English source and fallback, Vietnamese second locale (section 4.2.2) | `IMPLEMENTED` in `apps/game`; landing page English-only |
@@ -105,7 +105,7 @@ flowchart TB
         L["Landing page<br/>IMPLEMENTED on GitHub Pages<br/>Vercel PLANNED"]
         G["Game client<br/>first-person 3D, IMPLEMENTED<br/>(menu + Chapter 1)"]
         W3["3D world<br/>Three.js + R3F + Drei, IMPLEMENTED (street)<br/>Rapier physics PROPOSED"]
-        PHONE["In-game smartphone UI<br/>IMPLEMENTED (overlay, Chapter 1)"]
+        PHONE["In-game smartphone UI<br/>IMPLEMENTED (overlay + 3D call phone, Chapter 1)"]
         LOCAL["Deterministic core<br/>TypeScript reducer + store, IMPLEMENTED (Chapter 1)<br/>Zod, Zustand PLANNED"]
         IDB[("Local save<br/>localStorage v2, IMPLEMENTED<br/>IndexedDB via Dexie PLANNED")]
     end
@@ -179,7 +179,7 @@ stack (section 2) and is not changed by this decision.
 | Deterministic scenario engine | **TypeScript** (pure functions) | Chapter state machines, evidence, tactics, consequences, scoring; no React, Three.js or network imports | `IMPLEMENTED` for Chapter 1 (`game/narrative/`) |
 | Runtime schema validation | **Zod** | Validates scenario files, saved state on load, and AI proposals before the engine sees them | `PLANNED`; not installed. Chapter 1 uses hand-written validation (section 4.3) |
 | Local persistence | **IndexedDB** via **Dexie** | Local saves with versioned schema; clear-data support | `PLANNED`; not installed. Chapter 1 saves to `localStorage` (section 4.3) |
-| In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief | `IMPLEMENTED` for Chapter 1 |
+| In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief; the call screen and choice panel are DOM placed over the 3D call phone | `IMPLEMENTED` for Chapter 1 |
 | Localization | **i18next** + **react-i18next** | UI text per language from bundled dictionaries; display only, never read by the deterministic core | `IMPLEMENTED` (i18next 27.1.1, react-i18next 18.0.1; section 4.2.2) |
 | Entity Component System (ECS) | Not chosen | Option for future evaluation only if prototype profiling shows a need (for example many NPCs or props with shared behaviour) | `PROPOSED` (not approved) |
 
@@ -246,10 +246,46 @@ Components inside the game client (paths relative to `apps/game/src/`):
     released, look and trigger input are drained and ignored, and the probe stops, so input does
     not leak into the world or fire on resume.
   - `PLANNED`: NPC characters, area-based loading, the apartment, physics.
-- **In-game smartphone UI** (`IMPLEMENTED` for Chapter 1): 2D React overlay in
-  `features/chapter1/phone/` (home, incoming call, call screen, call history, messages, bank).
-  Phone actions are sent to the core as Core_Actions; it does not change state itself. An
-  in-world phone surface is `PLANNED`.
+- **In-game smartphone UI** (`IMPLEMENTED` for Chapter 1): 2D React overlay `PhoneOverlay` in
+  `features/chapter1/phone/` (home, call history, messages, bank). Phone calls are not shown in
+  this overlay; they use the call UI below. Phone actions are sent to the core as Core_Actions;
+  the phone does not change state itself. An in-world surface for the other phone apps is
+  `PLANNED`.
+- **Chapter 1 call UI** (`IMPLEMENTED`; verified by unit, component and property tests,
+  typecheck and build; not checked in a browser, and frame rate not measured). Files in
+  `features/chapter1/call/`:
+  - Overlay entry: a ringing or active call pushes a locked `call` entry on the page overlay
+    stack (`overlays.ts`). Escape, P and J do nothing while it is on top, and player input stays
+    disabled. Hang up or Decline removes the entry and returns to the previous stack.
+  - `CallPresentation.tsx` (DOM wiring, no Three.js imports): reads `state.call` and
+    `selectDialogueView` through `useChapterState`, holds no dialogue state of its own, and sends
+    every change through the page handlers (answer, end, select option) to the core. It places
+    one `PhoneScreenUI` instance in `PhoneScreenHost` and renders `PlayerChoiceOverlay` beside it.
+    Layout comes from `callLayout.ts` (`computeCallLayout`) and the window size (`useViewport.ts`).
+  - 3D phone: `PhoneModel3D.tsx` renders the optimized phone model inside the existing
+    `ChapterOneCanvas` (no second canvas, no added lights, environment map or post-processing),
+    placed in front of the camera. It reads the camera pose and field of view but never writes to
+    the camera. Ringing vibration and the entry slide come from `phoneMotion.ts`; both respect
+    reduced motion. The file imports nothing from the narrative store or selectors.
+  - Projected screen: every frame, `PhoneModel3D` projects the four corners of the screen anchor
+    with the camera matrices and publishes the resulting rectangle to a per-page
+    `PhoneScreenSink` (`phoneScreenSink.ts`, created in `ChapterOnePage`). `PhoneScreenHost`
+    subscribes and writes the position and size directly on its element, so the DOM screen
+    follows the 3D screen without a React render per frame.
+  - `PhoneScreenUI.tsx`: phone-owned content only. Ringing shows the caller, number, Decline and
+    Accept; active shows the caller, status, the caller's line and Hang up. The number is plain
+    text (no link). Player choices are never shown on the phone screen.
+  - `PlayerChoiceOverlay.tsx`: the player's dialogue options as a labelled list of buttons on
+    the opaque `UI.choicePanel` surface, beside the phone. Long options wrap; the panel scrolls
+    vertically. Options work by click, Enter or Space and are disabled while paused.
+  - 2D fallback: `PhoneScreenHost` shows the same `PhoneScreenUI` instance on a 2D bezel when
+    WebGL is not available, the model has not published a rectangle after 200 ms (still
+    loading), the model failed to load (`phoneModelStatus.ts`, one console warning with the asset
+    path, no error alert), or the WebGL context is lost (`ChapterOneCanvas` reports
+    `webglcontextlost`). Switching between the 3D and the 2D screen keeps the same content,
+    controls and call state.
+  - Asset: `call-phone` (`/assets/3d/optimized/call-phone.optimized.glb`, `CALL_PHONE_GLB`) is an
+    optional asset in the Chapter 1 manifest. See section 4.2.1.
 - **Chapter page and UI** (`IMPLEMENTED`): `features/chapter1/ChapterOnePage.tsx` owns the
   chapter store (created from the initial state, or from the state the loader already rebuilt
   during `validating-save`), computes the controls `enabled` flag, writes checkpoints (`useCheckpointSaver.ts`),
@@ -304,6 +340,13 @@ reuse them; cached files finish without any delay. Each file is then checked (GL
 length, required extensions; image signature), which also catches the SPA fallback page that
 `vercel.json` returns for missing files. Geometry decoding and shader compilation are not part of
 this step; they belong to the future chapter scene.
+
+Optional assets. A manifest file can be marked `optional: true` (Chapter 1: the call phone
+`call-phone`). If an optional file fails to download or verify, the loader skips it without an
+error or console output, counts only the bytes it received so progress can still reach 100%, and
+loading still reaches `ready`; a stall with only optional files pending does not fail loading.
+The chapter then shows calls on the 2D fallback screen. A failed required file still ends in an
+error.
 
 Errors (`game/loading/loadingErrors.ts`): invalid chapter, missing file, invalid file, network,
 stalled download (no bytes for 30 s), unsupported device, WebGL start failure, invalid save. Each
@@ -596,7 +639,7 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 | Schema validation | Zod/JSON Schema | Zod | Hand-written validation `IMPLEMENTED` (`validateScenario.ts`, `isCoreAction`, save parsers); Zod `PLANNED`, not installed (deviation, section 4.3) |
 | Local persistence | IndexedDB/Dexie | IndexedDB/Dexie | `localStorage` save format v2 behind `SaveGameSource`, with replay validation and v1 migration, `IMPLEMENTED` (deviation, section 4.3); IndexedDB via Dexie `PLANNED`, not installed |
 | Visual system | "Cyber-noir detective lab", dark and light modes (section 3.5) | Game: stylized realism / stylized low-poly, not Halloween | Landing page: dark cinematic theme `IMPLEMENTED` (PR #7, replaced the flat theme of PR #2); game art `PLANNED`; plan 3.5 amended |
-| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | Vitest + Testing Library (jsdom) `IMPLEMENTED` for the loading pipeline, the Chapter 1 core, saves and chapter UI: 48 files, 392 tests passed on 11 Nov 2026. Property tests use a seeded generator instead of fast-check (deviation). Playwright and a coverage target not added (`PLANNED`) |
+| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | Vitest + Testing Library (jsdom) `IMPLEMENTED` for the loading pipeline, the Chapter 1 core, saves, chapter UI and the call UI: 80 files, 747 tests passed at the game-3d-phone-call-ui checkpoint (task 12). Property tests use a seeded generator instead of fast-check (deviation). Playwright and a coverage target not added (`PLANNED`) |
 
 ## 10. Known inaccuracies on the live landing page
 

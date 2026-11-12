@@ -30,6 +30,7 @@ import { getDisplayPrompts, getDisplayScenario } from "../../i18n/narrative";
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
 import { DialoguePanel } from "./dialogue/DialoguePanel";
+import { FIRST_INTERACTION_RING_DELAY_MS } from "./useCallTriggers";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -379,6 +380,45 @@ describe("ChapterOnePage", () => {
     fireEvent.click(gameView);
     expect(document.body.requestPointerLock).toHaveBeenCalledTimes(2);
     expect(screen.queryByText("Click to resume")).toBeNull();
+  });
+
+  it("shows a ringing call as the Phone call dialog and gives control back with Click to resume", () => {
+    renderPage();
+    beginChapter();
+    const gameView = screen.getByTestId("canvas-stub").parentElement as HTMLElement;
+    fireEvent.click(gameView);
+    expect(document.pointerLockElement).toBe(document.body);
+
+    // The first interaction starts the ring delay; closing the panel lets the clock run.
+    focus("obj.wallet");
+    interact();
+    fireEvent.click(within(screen.getByRole("dialog", { name: WALLET.label })).getByRole("button", { name: "Close" }));
+    fireEvent.click(gameView);
+    act(() => vi.advanceTimersByTime(FIRST_INTERACTION_RING_DELAY_MS + 1_000));
+    expect(store().getState().call.status).toBe("ringing");
+
+    // Requirements 1.1, 6.1, 6.2: one "Phone call" dialog, no 2D phone and no OPEN_PHONE,
+    // player input off and pointer lock released.
+    expect(screen.getAllByRole("dialog")).toEqual([screen.getByRole("dialog", { name: "Phone call" })]);
+    expect(queryDialog("Phone")).toBeNull();
+    expect(dispatched("OPEN_PHONE")).toHaveLength(0);
+    expect(canvas().enabled).toBe(false);
+    expect(document.pointerLockElement).toBeNull();
+
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+    expect(dispatched("ANSWER_CALL")).toHaveLength(1);
+    expect(queryDialog("Phone call")).not.toBeNull();
+    fireEvent.click(screen.getByTestId("call-screen-hang-up"));
+    expect(dispatched("END_CALL")).toHaveLength(1);
+
+    // Requirement 6.8: empty stack, input back on, Click to resume, no lock until a click.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(dispatched("CLOSE_PHONE")).toHaveLength(0);
+    expect(canvas().enabled).toBe(true);
+    expect(screen.getByText("Click to resume")).not.toBeNull();
+    expect(document.pointerLockElement).toBeNull();
+    fireEvent.click(gameView);
+    expect(document.pointerLockElement).toBe(document.body);
   });
 });
 

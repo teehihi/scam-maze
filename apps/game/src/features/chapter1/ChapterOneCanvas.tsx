@@ -10,7 +10,7 @@
  * callbacks; the page decides what they mean.
  */
 
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { GameSettings } from "@scammaze/shared-types";
@@ -26,6 +26,17 @@ import { FirstPersonPlayer, type PlayerControlsState, type PlayerStats } from ".
 import type { InteractableId } from "../../game/narrative/chapter1/ids";
 import { InteractableProps } from "./world/InteractableProps";
 import { InteractionProbe } from "./world/InteractionProbe";
+import { PhoneModel3D, PhoneModelBoundary, PhoneModelWarmup } from "./call/PhoneModel3D";
+import type { PhoneScreenSink } from "./call/phoneScreenSink";
+
+/** Props of the 3D call phone while it is shown. */
+export interface ChapterOneCallPhone {
+  ringing: boolean;
+  reducedMotion: boolean;
+  /** `performance.now()` when the call overlay opened. */
+  openedAt: number;
+  screenSink: PhoneScreenSink;
+}
 
 /** Camera pose used by saves: eye position and yaw in radians. */
 export interface ChapterOnePlayerPose {
@@ -61,6 +72,13 @@ export interface ChapterOneCanvasProps {
    * a per-frame React update. Reset to `null` on unmount.
    */
   poseGetterRef?: React.MutableRefObject<(() => ChapterOnePlayerPose) | null>;
+  /** Set while the call overlay is open and the 3D phone is allowed; null otherwise. */
+  callPhone?: ChapterOneCallPhone | null;
+  /** False once the phone model failed in this session; no warmup or model is mounted then. */
+  phoneModelEnabled?: boolean;
+  onPhoneModelError?: (error: unknown) => void;
+  /** Called with true on webglcontextlost and false on webglcontextrestored. */
+  onWebGLContextChange?: (lost: boolean) => void;
 }
 
 /** Keeps the camera field of view in sync with the settings after the canvas is created. */
@@ -113,7 +131,29 @@ export const ChapterOneCanvas: React.FC<ChapterOneCanvasProps> = ({
   keysRef,
   onStatsUpdate,
   poseGetterRef,
+  callPhone = null,
+  phoneModelEnabled = false,
+  onPhoneModelError,
+  onWebGLContextChange,
 }) => {
+  // Latest callback props, read by stable wrappers so listeners and effects are not re-created.
+  const onSceneReadyRef = useRef(onSceneReady);
+  onSceneReadyRef.current = onSceneReady;
+  const onPhoneModelErrorRef = useRef(onPhoneModelError);
+  onPhoneModelErrorRef.current = onPhoneModelError;
+  const onWebGLContextChangeRef = useRef(onWebGLContextChange);
+  onWebGLContextChangeRef.current = onWebGLContextChange;
+
+  // The phone warmup waits for the street, so the street loads first.
+  const [sceneReady, setSceneReady] = useState(false);
+  const handleSceneReady = useCallback(() => {
+    setSceneReady(true);
+    onSceneReadyRef.current?.();
+  }, []);
+  const handlePhoneModelError = useCallback((error: unknown) => {
+    onPhoneModelErrorRef.current?.(error);
+  }, []);
+
   const shadows = settings.graphicsQuality === "high";
   const maxDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
   const dpr =
@@ -146,6 +186,7 @@ export const ChapterOneCanvas: React.FC<ChapterOneCanvasProps> = ({
           (event) => {
             event.preventDefault();
             console.warn("WebGL context temporarily lost. Waiting for browser GPU restoration...");
+            onWebGLContextChangeRef.current?.(true);
           },
           false,
         );
@@ -153,11 +194,13 @@ export const ChapterOneCanvas: React.FC<ChapterOneCanvasProps> = ({
           "webglcontextrestored",
           () => {
             console.info("WebGL context restored successfully.");
+            onWebGLContextChangeRef.current?.(false);
           },
           false,
         );
       }}
       className="w-full h-full"
+      aria-hidden="true"
     >
       <CameraFov fov={settings.fov} />
       {poseGetterRef && <PoseGetter getterRef={poseGetterRef} />}
@@ -169,7 +212,7 @@ export const ChapterOneCanvas: React.FC<ChapterOneCanvasProps> = ({
       <EnvironmentLighting graphicsQuality={settings.graphicsQuality} />
 
       <Suspense fallback={null}>
-        <StreetEnvironment shadows={shadows} onReady={onSceneReady} />
+        <StreetEnvironment shadows={shadows} onReady={handleSceneReady} />
       </Suspense>
 
       <InteractableProps focusedId={focusedId} />
@@ -192,6 +235,29 @@ export const ChapterOneCanvas: React.FC<ChapterOneCanvasProps> = ({
           sfxVolume={settings.sfxVolume}
         />
       </Suspense>
+
+      {sceneReady && phoneModelEnabled && (
+        <PhoneModelBoundary onError={handlePhoneModelError}>
+          <Suspense fallback={null}>
+            <PhoneModelWarmup />
+          </Suspense>
+        </PhoneModelBoundary>
+      )}
+
+      {/* Mounted at the scene root after the player, so its frame callback reads the camera
+          pose the player set in the same frame. Its Suspense wraps only the phone. */}
+      {callPhone && phoneModelEnabled && (
+        <PhoneModelBoundary onError={handlePhoneModelError}>
+          <Suspense fallback={null}>
+            <PhoneModel3D
+              ringing={callPhone.ringing}
+              reducedMotion={callPhone.reducedMotion}
+              openedAt={callPhone.openedAt}
+              screenSink={callPhone.screenSink}
+            />
+          </Suspense>
+        </PhoneModelBoundary>
+      )}
     </Canvas>
   );
 };

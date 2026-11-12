@@ -11,13 +11,18 @@
  * here (task 10.3, Requirements 4.9, 11.6, 13.1): the decision panel opens from the journal and
  * from the phone home screen while it is offered. The ending transition and the debrief are wired
  * here (task 11.2, Requirements 1.7, 14.1, 14.2). Checkpoint saves, the pause menu, Restart and
- * Replay are wired here (task 12.2, Requirements 15.12 to 15.14).
+ * Replay are wired here (task 12.2, Requirements 15.12 to 15.14). A ringing or active call is
+ * shown by `CallPresentation` on a locked `call` overlay entry, with the 3D phone in the canvas
+ * when WebGL and the phone model are available (game-3d-phone-call-ui task 10.4).
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameSettings } from "@scammaze/shared-types";
+import { usePrefersReducedMotion } from "../../components/ui/usePrefersReducedMotion";
+import { CALL_PHONE_GLB } from "../../config/assetPaths";
 import { getChapter } from "../../game/chapters/chapterRegistry";
+import { checkBasicWebGLSupport } from "../../game/loading/deviceCapabilities";
 import type { ChapterSession } from "../../game/chapters/chapterSession";
 import type { DecisionId, EvidenceId, InteractableId, ObjectiveId } from "../../game/narrative/chapter1/ids";
 import { buildDebrief } from "../../game/narrative/debrief";
@@ -37,7 +42,10 @@ import { createLocalStorageSaveSource, type SaveGameSource } from "../../game/sa
 import { getDisplayPrompts, useDisplayScenario } from "../../i18n/narrative";
 import { useGameLocale } from "../../i18n/useGameLocale";
 import { usePlayerControls } from "../player";
-import { ChapterOneCanvas, type ChapterOnePlayerPose } from "./ChapterOneCanvas";
+import { CallPresentation } from "./call/CallPresentation";
+import { hasPhoneModelFailed, reportPhoneModelFailure } from "./call/phoneModelStatus";
+import { createPhoneScreenSink } from "./call/phoneScreenSink";
+import { ChapterOneCanvas, type ChapterOneCallPhone, type ChapterOnePlayerPose } from "./ChapterOneCanvas";
 import { EvidenceNotice } from "./hud/EvidenceNotice";
 import { HudButtons } from "./hud/HudButtons";
 import { InteractionPrompt } from "./hud/InteractionPrompt";
@@ -56,8 +64,6 @@ import { EvidenceJournal } from "./journal/EvidenceJournal";
 import { EMPTY_OVERLAYS, isOpen, pop, push, top, type Overlay, type OverlayKind, type OverlayStack } from "./overlays";
 import { InspectionPanel } from "./panels/InspectionPanel";
 import { PauseMenu } from "./pause/PauseMenu";
-import { CallScreen } from "./phone/CallScreen";
-import { IncomingCallScreen } from "./phone/IncomingCallScreen";
 import { PhoneOverlay } from "./phone/PhoneOverlay";
 import { UI } from "./theme";
 import { useCallTriggers } from "./useCallTriggers";
@@ -80,8 +86,8 @@ interface SpawnPose {
 
 const DEFAULT_SPAWN: SpawnPose = Object.freeze({});
 
-/** Overlays that Escape never closes (Requirement 4.6). */
-const ESCAPE_LOCKED: ReadonlySet<OverlayKind> = new Set(["ending", "debrief"]);
+/** Overlays that Escape never closes (Requirement 4.6; `call`: 3D phone call Requirement 7.5). */
+const ESCAPE_LOCKED: ReadonlySet<OverlayKind> = new Set(["ending", "debrief", "call"]);
 
 /** Queued items keep IDs only; text is resolved at render, so a language switch updates them. */
 interface ToastItem {
@@ -258,7 +264,36 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   const [journalSeen, setJournalSeen] = useState(() => store.getState().discovered.length);
 
   const overlayOpen = titleCardOpen || overlays.length > 0;
+  // False while any overlay is open, including the `call` entry: the player is disabled for the
+  // whole call and `usePlayerControls` releases pointer lock (Requirements 6.1, 6.2).
   const inputEnabled = status === "playing" && !overlayOpen;
+
+  // --- 3D call phone (game-3d-phone-call-ui, Requirements 1.7, 8.1, 8.2, 8.7, 8.8) ------------
+  const [webglAvailable] = useState(() => checkBasicWebGLSupport());
+  const [webglLost, setWebglLost] = useState(false);
+  const [phoneModelFailed, setPhoneModelFailed] = useState(() => hasPhoneModelFailed());
+  const [phoneScreenSink] = useState(createPhoneScreenSink);
+  const callOpenedAtRef = useRef(0);
+  const reducedMotion = usePrefersReducedMotion();
+  const modelAllowed = webglAvailable && !webglLost && !phoneModelFailed;
+  const phoneModelEnabled = webglAvailable && !phoneModelFailed;
+  const paused = top(overlays)?.kind === "pause";
+  const callOverlayOpen = isOpen(overlays, "call");
+  const callRinging = call.status === "ringing";
+  const callPhone = useMemo<ChapterOneCallPhone | null>(
+    () =>
+      callOverlayOpen && callBusy && modelAllowed
+        ? { ringing: callRinging, reducedMotion, openedAt: callOpenedAtRef.current, screenSink: phoneScreenSink }
+        : null,
+    [callBusy, callOverlayOpen, callRinging, modelAllowed, phoneScreenSink, reducedMotion],
+  );
+
+  /** A model load failure is reported once per page session; the call falls back to 2D. */
+  const handlePhoneModelError = useCallback((error: unknown) => {
+    reportPhoneModelFailure(CALL_PHONE_GLB, error);
+    setPhoneModelFailed(true);
+  }, []);
+  const handleWebGLContextChange = useCallback((lost: boolean) => setWebglLost(lost), []);
 
   const gameViewRef = useRef<HTMLDivElement>(null);
   const { keysRef, isLocked, lockPointer, consumeMovement, consumePunchTrigger, consumeInspectTrigger, consumeInteractTrigger } =
@@ -383,11 +418,19 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   }, [canClose, removeOverlay]);
 
   // A ringing call, or an active call such as the official line started from the decision
-  // panel, brings the phone to the top (Requirements 8.3, 10.8).
+  // panel, pushes the locked `call` overlay (no OPEN_PHONE). When the call ends, the entry is
+  // removed wherever it is (also under a pause), so the stack equals the pre-call stack
+  // (game-3d-phone-call-ui Requirements 1.1, 6.8, 6.9, 7.5).
   useEffect(() => {
-    if (titleCardOpen || status !== "playing" || !callBusy) return;
-    if (top(overlays)?.kind !== "phone") openOverlay({ kind: "phone" });
-  }, [callBusy, openOverlay, overlays, status, titleCardOpen]);
+    if (titleCardOpen || status !== "playing") return;
+    const open = isOpen(overlays, "call");
+    if (callBusy && !open) {
+      callOpenedAtRef.current = performance.now();
+      openOverlay({ kind: "call" });
+    } else if (!callBusy && open) {
+      removeOverlay("call");
+    }
+  }, [callBusy, openOverlay, overlays, removeOverlay, status, titleCardOpen]);
 
   // The face-to-face dialogue overlay follows the conversation: it closes when the conversation
   // ends and reopens if one is running (for example after a restore).
@@ -401,7 +444,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
   }, [faceToFaceActive, openOverlay, overlays, removeOverlay, status, titleCardOpen]);
 
   // Chapter end (Requirements 1.7, 14.1, 14.2): once an Outcome is set, every other overlay
-  // closes, including a phone locked on a call (the money-moved path sets the Outcome during an
+  // closes, including the locked `call` overlay (the money-moved path sets the Outcome during an
   // active call; `callInProgress` is false from then on). The ending shows while `ended`, the
   // debrief once `finished`. No CLOSE_PHONE is dispatched: the core accepts only FINISH_CHAPTER now.
   useEffect(() => {
@@ -553,8 +596,8 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
 
   /**
    * Step 1 of the official route: call Northgate on the official number. The accepted action
-   * starts the official-line call, and the call effect above brings the phone to the top. The
-   * decision panel stays below it, so step 2 is shown when the player closes the phone.
+   * starts the official-line call, and the call effect above pushes the `call` overlay. The
+   * decision panel stays below it, so step 2 is shown when the call ends.
    */
   const handleStartOfficialCall = useCallback(
     () => store.dispatch({ type: "VERIFY_CLAIM", claimId: "claim.caller-identity", method: "official-line" }),
@@ -618,31 +661,27 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
 
   // --- Render --------------------------------------------------------------------------------
 
-  // Caller name and number come from the Call definition in Scenario_Data (plain text).
-  let callSlot: ReactNode = null;
-  if (callBusy && call.current !== null) {
-    const callDef = scenario.calls[call.current];
-    callSlot =
-      call.status === "ringing" ? (
-        <IncomingCallScreen
-          callerName={callDef.displayName}
-          number={callDef.number}
-          onAccept={handleAnswerCall}
-          onDecline={handleEndCall}
-        />
-      ) : (
-        <CallScreen
-          callerName={callDef.displayName}
-          number={callDef.number}
-          dialogue={dialogueView !== null && dialogueView.callId === call.current ? dialogueView : null}
-          onSelectOption={handleSelectOption}
-          onHangUp={handleEndCall}
-        />
-      );
-  }
+  // Overlays below a `call` entry stay mounted (they keep their state) but hidden, so they are
+  // not drawn over the phone and Tab skips them.
+  const callIndex = overlays.findIndex((overlay) => overlay.kind === "call");
 
   const renderOverlay = (overlay: Overlay) => {
     switch (overlay.kind) {
+      case "call":
+        // Caller name and number come from the Call definition in Scenario_Data (plain text).
+        return (
+          <CallPresentation
+            key="call"
+            store={store}
+            scenario={scenario}
+            paused={paused}
+            modelAllowed={modelAllowed}
+            screenSink={phoneScreenSink}
+            onAnswer={handleAnswerCall}
+            onEnd={handleEndCall}
+            onSelectOption={handleSelectOption}
+          />
+        );
       case "inspection": {
         const def = scenario.interactables[overlay.objectId];
         const evidence = def.reveals
@@ -678,7 +717,6 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
             onInspectEvidence={handleInspectEvidence}
             onVerifyBankApp={handleVerifyBankApp}
             onClose={handleClosePhone}
-            callSlot={callSlot}
             onDecide={decisionPanel.offered ? handleOpenDecision : undefined}
           />
         );
@@ -765,6 +803,10 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
           consumeInteractTrigger={consumeInteractTrigger}
           keysRef={keysRef}
           poseGetterRef={poseGetterRef}
+          callPhone={callPhone}
+          phoneModelEnabled={phoneModelEnabled}
+          onPhoneModelError={handlePhoneModelError}
+          onWebGLContextChange={handleWebGLContextChange}
         />
       </div>
 
@@ -815,7 +857,11 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
 
       {overlays.length > 0 && (
         <div ref={overlayLayerRef} onMouseDown={stopMouseDown}>
-          {overlays.map(renderOverlay)}
+          {overlays.map((overlay, index) => (
+            <div key={overlay.kind} className="contents" hidden={callIndex !== -1 && index < callIndex}>
+              {renderOverlay(overlay)}
+            </div>
+          ))}
         </div>
       )}
 

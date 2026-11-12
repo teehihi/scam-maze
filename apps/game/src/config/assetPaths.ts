@@ -12,3 +12,6 @@ export const SKY_TEXTURE = "/assets/3d/textures/sky.webp";
 /** Static cinematic artwork shown behind loading and chapter screens. */
 export const LOADING_BACKGROUND_WEBP = "/assets/ui/loading_bg.webp";
 export const LOADING_BACKGROUND_JPG = "/assets/ui/loading_bg.jpg";
+
+/** Call phone (Meshopt + WebP, produced by scripts/optimize-call-phone.cjs). */
+export const CALL_PHONE_GLB = "/assets/3d/optimized/call-phone.optimized.glb";

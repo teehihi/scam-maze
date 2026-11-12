@@ -19,6 +19,9 @@
     (built on `feat/chapter-01-playable`, not merged). `pnpm typecheck`, `pnpm test` and
     `pnpm build` pass after the test-file type fixes in commit `5b1c785` (see the task history
     entry of 2026-11-12). Not yet checked in a browser.
+  - Chapter 1 calls on a 3D phone with a separate choice overlay, on branch
+    `feat/game-3d-phone-call-ui` (built on `feat/game-i18n-en-vi`, not merged). `pnpm test`
+    (80 files, 747 tests), `pnpm typecheck` and `pnpm build` pass. Not yet checked in a browser.
   - Shared contracts (`packages/shared-types`): pure TypeScript types.
 - **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
 - **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
@@ -69,6 +72,12 @@ Verified against merged pull requests on GitHub and local workspace builds.
       the language switch, and a
       native-speaker review of all Vietnamese text. The pull request depends on the Chapter 1
       pull request.
+- [ ] Chapter 1 calls on a 3D phone (spec `game-3d-phone-call-ui`, branch
+      `feat/game-3d-phone-call-ui`). Code and tests committed in 10 commits; automated checks
+      pass (80 files, 747 tests; typecheck; build). Docs commit pending (task 13.3). Still open:
+      browser check, 30 fps and 4 px alignment checks, back-render logo check, native-speaker
+      review of the new Vietnamese strings. Depends on the localization and Chapter 1 pull
+      requests.
 - [ ] Chapter 1 "The Urgent Call" documentation commit (spec task 16.5). Gameplay document,
       architecture overview update and the quality gate record (task 16.4: 48 files, 392 tests,
       typecheck and build passed) are done but not committed.
@@ -88,7 +97,10 @@ version on branch `feat/chapter-01-playable`.
       Still planned: Zod schemas, Zustand, Dexie/IndexedDB saves and persistent world state
       across chapters, if still needed.
 - [ ] In-game smartphone UI, partly done: calls, messages, call history and a bank app exist
-      for Chapter 1. Still planned: browser with fictional sites, parcel app.
+      for Chapter 1; ringing and active calls are shown on a 3D phone on branch
+      `feat/game-3d-phone-call-ui`. Still planned: browser with fictional sites, parcel app.
+- [ ] Move the unused candidate phone GLBs (about 51 MB) out of `apps/game/public/` so they are
+      not copied to `dist`.
 - [ ] Later chapter "The Missing Parcel" (positioning section 11; moved after Chapter 1 "The
       Urgent Call" by owner decision 2026-11-10/11).
 - [ ] Touch controls for the chapter page.
@@ -233,6 +245,102 @@ Resolved:
 - **Unresolved issues and known limitations:** The arms animations and the driving sounds were not checked by playing in a browser (pointer lock is needed); only loading, decoding and the numeric comparison were verified. `optimize-environment.cjs` dependencies (`@gltf-transform/*`, `meshoptimizer`, `sharp`) are still not declared in `package.json` (pre-existing).
 - **Deviations from the documented architecture:** None. S3/CloudFront remain `PLANNED`.
 - **Follow-up tasks:** Play-test the arms and driving audio; consider declaring the optimizer script's dev dependencies.
+
+### 2026-11-12 — Merge `main` (PRs #17, #18, #19) into the 3D call phone branch
+
+- **Objective:** Resolve the pull request conflicts of `feat/game-3d-phone-call-ui` against `main`.
+- **Completed work:** Merged `origin/main` (507988a). Conflicts: `docs/PROJECT_PROGRESS.md` (kept both sides) and the phone `SOURCE.md`, which `main` moved to `apps/game/assets-src/props/phone/`. The phone source models now live in `assets-src/` (Git LFS, not shipped), which also resolves the earlier follow-up about the unused ~51 MB candidates in `public/`. `scripts/optimize-call-phone.cjs` now reads `assets-src/props/phone/iphone-17-pro.glb`; `assets-src/README.md` and `SOURCE.md` updated. The optimized `call-phone.optimized.glb` stays in `public/assets/3d/optimized/`.
+- **Validation:** after the merge, `pnpm test` passed (82 files, 756 tests), `pnpm typecheck` passed, `pnpm build` passed (game JS 1,894.05 kB, gzip 538.88 kB). Not checked in a browser after the merge.
+### 2026-11-12 — More realistic 3D call phone
+
+- **Objective:** Owner request: make the 3D call phone look closer to a real phone.
+- **Completed work:** The phone's own materials now reflect a procedural studio map (`phoneReflections.ts`, three's `RoomEnvironment` + PMREM, generated locally, no file or network; materials are cloned so the cached model is unchanged; no scene-wide environment and no new light). The phone is turned slightly toward the player (about 9 degrees about Y, 4 degrees about X). The projected screen corners are published as a quad, and `PhoneScreenHost` maps the DOM screen onto it with a CSS `matrix3d` (`screenQuad.ts`), so text, focus and clicks stay on the tilted glass. The wide layout now uses 80% of the viewport height (was 90%, max 660 px instead of 720 px) so the whole body and frame are visible. Requirement 1.6 now allows a phone-only reflection map; the boundary test still rejects lights, Drei `<Environment>` and `scene.environment`.
+- **Files:** created `apps/game/src/features/chapter1/call/{phoneReflections.ts,screenQuad.ts,screenQuad.property.test.ts}`; modified `PhoneModel3D.tsx`, `PhoneScreenHost.tsx`, `PhoneScreenHost.test.tsx`, `phoneScreenSink.ts`, `phoneScreenSink.test.ts`, `callLayout.ts`, `importBoundaries.test.ts`, `.kiro/specs/game-3d-phone-call-ui/requirements.md`, this file.
+- **Validation:** `pnpm test` passed (81 files, 752 tests); `pnpm typecheck` passed; `pnpm build` passed (game JS 1,940.36 kB, gzip 553.54 kB, over the 1,500 kB warning).
+- **Limitations:** Not checked in a browser; the look, the 4 px screen alignment and the frame rate are not verified. The model itself (geometry and the 1024 px textures) is unchanged.
+- **Deviations:** Requirement 1.6 relaxed as above (owner request). **Follow-up:** browser check; if the textures look soft up close, re-run the optimizer with 2048 px normal maps and keep the 5 MB limit.
+
+### 2026-11-12 — Chapter 1 phone calls on a 3D phone (spec `game-3d-phone-call-ui`, task 13.2)
+
+- **Objective:** Show Chapter 1 ringing and active calls on a 3D phone in the existing chapter
+  canvas, with the player's reply options in a separate choice overlay, without changing the
+  deterministic narrative core. The other phone apps stay in the 2D `PhoneOverlay`.
+- **Completed work:** Branch `feat/game-3d-phone-call-ui`, commits `0610f65..HEAD` (10 commits:
+  `c09b1ce`, `7132814`, `2e94df7`, `ce06448`, `f7ac60d`, `0ad6748`, `2a3d994`, `67bea46`,
+  `187d360`, `2df840e`), plus the pending docs commit (task 13.3).
+  1. *Phone model:* selected candidate `apps/game/public/assets/3d/props/phone/iphone-17-pro.glb`
+     (creator not stated; source URL not provided; license per owner statement of 2026-11-12:
+     "free to use"). `apps/game/scripts/optimize-call-phone.cjs` renames nodes, removes the
+     wallpaper, converts textures to WebP at most 1024 px and applies Meshopt, giving
+     `apps/game/public/assets/3d/optimized/call-phone.optimized.glb` (2,108,832 bytes, under the
+     5 MB limit). Credits entry and `SOURCE.md` updated.
+  2. *Optional chapter asset:* new `optional` flag on chapter assets in the chapter loader; a
+     failed optional asset does not block the chapter, and the call falls back to a 2D frame at
+     the same screen position.
+  3. *Screen attachment:* a DOM overlay positioned each frame by projecting the phone's screen
+     rectangle (`PhoneModel3D` → `phoneScreenSink` → `PhoneScreenHost`). The phone only
+     translates (slide-in, horizontal ring vibration), so the screen stays an axis-aligned
+     rectangle. `computeCallLayout` gives one layout for the 3D and 2D modes.
+  4. *Choice overlay:* `PlayerChoiceOverlay` is an ordered list of buttons, using the
+     `useDialogueOptionKeys` hook now shared with `DialoguePanel`. It uses the opaque
+     `UI.choicePanel` surface (owner decision, 2026-11-12, after the contrast test failed on the
+     dim layer).
+  5. *Reused narrative core logic:* `selectDialogueView`, the existing call state and the
+     existing `ANSWER_CALL`, `SELECT_DIALOGUE_OPTION` and `END_CALL` handlers. No new store. A
+     locked `call` overlay entry keeps Escape a no-op during calls.
+  6. *Owner-accepted gap resolutions (design):* `caller` and `npc` lines of a linked call dialogue
+     count as caller lines; `system` narration is shown above the options in the choice overlay;
+     numeric targets other than the 5 MB file size are design targets, not tests; the original
+     candidate GLBs stay in `public/`.
+  7. *Bugs found and fixed:* the loader's optional-asset publish overwrote the `error` stage
+     (found by Property 10); an unused React import broke `pnpm typecheck` (`67bea46`);
+     `CreditsModal` rendered non-URL sources as broken "View Source on Sketchfab" links, now
+     plain text with the `credits.sourceLabel` key.
+  8. *Tests:* unit, component and property tests for the layout, motion, screen sink, screen UI,
+     choice overlay, call buttons, content, fallback parity and 3D/2D equivalence, contrast,
+     import boundaries and the optional loader.
+- **Files created:** `apps/game/public/assets/3d/optimized/call-phone.optimized.glb`,
+  `apps/game/scripts/optimize-call-phone.cjs`, `apps/game/src/config/credits.callPhone.test.ts`,
+  `apps/game/src/features/chapter1/call/` (`CallPresentation.tsx`, `PhoneModel3D.tsx`,
+  `PhoneScreenHost.tsx`, `PhoneScreenUI.tsx`, `PlayerChoiceOverlay.tsx`, `callLayout.ts`,
+  `phoneModelStatus.ts`, `phoneMotion.ts`, `phoneScreenSink.ts`, `useViewport.ts` and their
+  tests), `apps/game/src/features/chapter1/dialogue/useDialogueOptionKeys.ts` (and its property
+  test), `apps/game/src/game/loading/chapterLoader.optional.property.test.ts`,
+  `apps/game/src/test/callStates.ts`.
+- **Files modified:** `apps/game/public/assets/3d/props/phone/SOURCE.md`,
+  `apps/game/src/config/{assetPaths,credits}.ts`,
+  `apps/game/src/features/chapter1/{ChapterOneCanvas,ChapterOnePage}.tsx`,
+  `apps/game/src/features/chapter1/{overlays,theme}.ts`,
+  `apps/game/src/features/chapter1/dialogue/DialoguePanel.tsx`,
+  `apps/game/src/features/chapter1/phone/PhoneOverlay.tsx`,
+  `apps/game/src/features/menu/CreditsModal.tsx`,
+  `apps/game/src/game/chapters/chapterRegistry.ts`, `apps/game/src/game/loading/chapterLoader.ts`,
+  `apps/game/src/i18n/locales/{en,vi}/{chapters,credits}.ts`,
+  `apps/game/src/i18n/locales/{en,vi}/chapter1/phone.ts`, related existing tests,
+  `docs/PROJECT_PROGRESS.md`. `docs/architecture/OVERVIEW.md` is updated in task 13.1.
+- **Files deleted:** `apps/game/src/features/chapter1/phone/{CallScreen,IncomingCallScreen}.tsx`.
+- **Validation (task 12 checkpoint, run one after the other):** `pnpm test`, `pnpm typecheck`,
+  `pnpm build`.
+- **Results:** `pnpm test` passed: 80 files, 747 tests passed, 0 failed, 0 skipped.
+  `pnpm typecheck` passed. `pnpm build` passed; game JS chunk 1,936.45 kB (gzip 551.71 kB), over
+  the 1,500 kB Vite warning limit. `apps/landing` and the Chapter 1 narrative overlay are
+  unchanged since `0610f65`.
+- **Unresolved issues and limitations:**
+  - Not checked in a browser. The 30 fps target, the 4 px screen alignment, camera settling and
+    the back-render check for logos were not measured. The phone does not tilt (by design).
+  - About 51 MB of unused candidate GLBs in `props/phone/` are still copied to `dist`.
+  - Requirement 6.10, overlay stack `[call, pause]`, cannot be reached because Escape is locked
+    during calls; it is tested in the other order (`[pause, call]`).
+  - An active call with no linked dialogue node shows no choice overlay (design snippet
+    followed).
+  - The dialogue generator in the property tests never produces fallback options.
+  - The credits link label still says "Sketchfab" for the GitHub link.
+  - "iPhone" is a real brand name in the source file name; it is not shown in the game.
+  - Depends on the unmerged `feat/game-i18n-en-vi` and Chapter 1 pull requests.
+- **Deviations:** None from the documented architecture. New `optional` asset flag in the chapter
+  loader.
+- **Follow-up:** browser check of the call flow (and the manual checks above); move the unused
+  candidate GLBs out of `public/`; native-speaker review of the new Vietnamese strings.
 
 ### 2026-11-12 — Add phone 3D models
 

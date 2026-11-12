@@ -235,7 +235,7 @@ describe("ChapterLoadingFlow", () => {
 
 const CHAPTER_ONE = getChapter("chapter-1")!;
 const CHAPTER_ONE_REQUEST: ChapterLoadRequest = { kind: "new-game", chapterId: "chapter-1" };
-const [STREET, SKY] = CHAPTER_ONE.assets;
+const [STREET, SKY, PHONE] = CHAPTER_ONE.assets;
 
 /** Test deps that resolve the real Chapter 1 definition; its files are driven by the fake fetch. */
 function chapterOneDeps(fetchImpl: FetchLike) {
@@ -248,6 +248,7 @@ describe("ChapterLoadingFlow in Vietnamese", () => {
     const fake = createFakeFetch();
     fake.manual(STREET.url);
     fake.manual(SKY.url);
+    fake.manual(PHONE.url);
     renderFlow(chapterOneDeps(fake.fetchImpl), CHAPTER_ONE_REQUEST);
 
     expect(screen.getByRole("heading", { name: "Cuộc gọi khẩn cấp" })).toBeTruthy();
@@ -255,11 +256,26 @@ describe("ChapterLoadingFlow in Vietnamese", () => {
     expect(screen.getByText("Thông báo đến trước cả bữa sáng.")).toBeTruthy();
     // Asset text by asset ID; the first pending file is the street.
     expect(await screen.findByText("Đang tải con phố")).toBeTruthy();
-    expect(screen.getByText(/0 \/ 2 tệp/)).toBeTruthy();
-    expect(screen.queryByText(/of 2 files/)).toBeNull();
+    expect(screen.getByText(/0 \/ 3 tệp/)).toBeTruthy();
+    expect(screen.queryByText(/of 3 files/)).toBeNull();
     expect(screen.queryByText(STREET.loadingText)).toBeNull();
     expect(screen.getByRole("progressbar", { name: "Tiến trình tải" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Hủy" })).toBeTruthy();
+  });
+
+  it("shows the Vietnamese loading text for the optional phone once the street and sky are done", async () => {
+    applyLocale("vi");
+    const fake = createFakeFetch();
+    fake.serve(STREET.url, makeGlb());
+    fake.serve(SKY.url, makePng());
+    const phone = fake.manual(PHONE.url);
+    renderFlow(chapterOneDeps(fake.fetchImpl), CHAPTER_ONE_REQUEST);
+    await vi.waitFor(() => expect(phone.signal).not.toBeNull());
+
+    expect(PHONE.id).toBe("call-phone");
+    expect(await screen.findByText("Đang tải điện thoại")).toBeTruthy();
+    expect(screen.getByText(/2 \/ 3 tệp/)).toBeTruthy();
+    expect(screen.queryByText(PHONE.loadingText)).toBeNull();
   });
 
   it("shows a translated stage, the fallback chapter text and an Intl vi percentage", async () => {
@@ -325,6 +341,7 @@ describe("ChapterLoadingFlow in Vietnamese", () => {
     const fake = createFakeFetch();
     const street = fake.manual(STREET.url);
     fake.manual(SKY.url);
+    fake.manual(PHONE.url);
     const { onBackToMenu, onEnterChapter } = renderFlow(chapterOneDeps(fake.fetchImpl), CHAPTER_ONE_REQUEST);
     expect(await screen.findByText(STREET.loadingText)).toBeTruthy();
     await vi.waitFor(() => expect(street.signal).not.toBeNull());
@@ -339,7 +356,7 @@ describe("ChapterLoadingFlow in Vietnamese", () => {
     expect(screen.getByRole("progressbar")).toBe(bar);
     expect(screen.getByText("Chương 1")).toBeTruthy();
     expect(screen.getByText("Đang tải con phố")).toBeTruthy();
-    expect(screen.getByText(/0 \/ 2 tệp/)).toBeTruthy();
+    expect(screen.getByText(/0 \/ 3 tệp/)).toBeTruthy();
     // The loader kept its downloads: no new requests, nothing aborted, no callback.
     expect(fake.calls.length).toBe(callsBefore);
     expect(street.signal?.aborted).toBe(false);

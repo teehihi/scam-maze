@@ -10,6 +10,7 @@ export type CreditItemId =
   | "lowPolyCarsPack"
   | "muaHaThu18"
   | "neuNgayMai"
+  | "callPhone"
   | "coreArchitecture";
 
 /**
@@ -83,6 +84,14 @@ export const GAME_CREDITS: CreditGroup[] = [
         license: "Creative Commons Attribution (CC-BY 4.0)",
         notes: "Low-poly vehicles, sedans, utility vans, and neighborhood parked cars.",
       },
+      {
+        id: "callPhone",
+        name: "call-phone.optimized.glb",
+        creator: "not stated",
+        sourceUrl: "Owner-provided file iphone-17-pro.glb (source URL not provided)",
+        license: "Free to use (owner statement, 2026-11-12)",
+        notes: "Handheld phone model used for phone calls. Optimized copy with the wallpaper removed and no visible brand marks.",
+      },
     ],
   },
   {
@@ -93,7 +102,7 @@ export const GAME_CREDITS: CreditGroup[] = [
         id: "muaHaThu18",
         name: "Mùa Hạ Thứ 18",
         creator: "Lê Quốc Khánh (Men Le), SCAMMAZE contributor",
-        sourceUrl: "",
+        sourceUrl: "Recording provided by the author (not published online)",
         license: "All rights reserved. Used in SCAMMAZE with the author's permission",
         notes: "Song played in the UEH courtyard (summer rain theme). Not covered by the project's MIT License.",
       },

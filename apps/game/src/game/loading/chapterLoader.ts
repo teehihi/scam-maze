@@ -176,25 +176,43 @@ export function createChapterLoader(request: ChapterLoadRequest, deps: ChapterLo
       });
     };
 
+    // Set as soon as a required asset fails (error or stall). After that, downloads still settling
+    // must not publish again, or they would overwrite the "error" stage with "loading-assets".
+    let failed = false;
+
     publish();
     armStallTimer();
 
     await Promise.all(
       assets.map(async (asset, index) => {
-        const buffer = await fetchAssetBytes(asset.url, {
-          fetchImpl: deps.fetchImpl,
-          signal: abortController.signal,
-          onProgress: ({ loadedBytes, totalBytes }) => {
-            loaded[index] = loadedBytes;
-            totals[index] = totalBytes;
-            armStallTimer();
-            publish();
-          },
-        });
-        const verification = verifyAsset(asset.kind, buffer);
-        if (!verification.ok) {
-          throw new AssetLoadError("asset-invalid", `${asset.url}: ${verification.reason}`);
+        const optional = asset.optional === true;
+        try {
+          const buffer = await fetchAssetBytes(asset.url, {
+            fetchImpl: deps.fetchImpl,
+            signal: abortController.signal,
+            onProgress: ({ loadedBytes, totalBytes }) => {
+              if (failed) return;
+              loaded[index] = loadedBytes;
+              totals[index] = totalBytes;
+              armStallTimer();
+              publish();
+            },
+          });
+          const verification = verifyAsset(asset.kind, buffer);
+          if (!verification.ok) {
+            throw new AssetLoadError("asset-invalid", `${asset.url}: ${verification.reason}`);
+          }
+        } catch (error) {
+          if (!optional) {
+            failed = true;
+            throw error;
+          }
+          if (failed) return;
+          // Skip a failed optional asset silently (Req 9.12, 8.5): count only the bytes received,
+          // so the byte-based progress can still reach 1.
+          totals[index] = loaded[index];
         }
+        if (failed) return;
         done[index] = true;
         publish();
       }),

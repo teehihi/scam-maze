@@ -239,16 +239,34 @@ describe("Chapter 1 accessibility", () => {
     expect(document.activeElement).toBe(gameView());
   });
 
-  it("follows the call into the phone and returns focus to the opener in the overlay below", () => {
+  it("follows the call into the call presentation and returns focus to the opener in the overlay below", () => {
     renderPage();
     beginChapter();
     ringFirstCall();
 
-    // A ringing call opens the phone and focus moves into it.
-    expectFocusInside(dialog("Phone"));
+    // A ringing call opens the call presentation (not the 2D phone) with focus on Accept.
+    const ringing = dialog("Phone call");
+    expect(ringing).toBe(screen.getByTestId("call-presentation"));
+    expect(ringing.getAttribute("aria-modal")).toBe("true");
+    expect(screen.queryByRole("dialog", { name: "Phone" })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByTestId("incoming-call-accept"));
+
+    // Answering moves focus to the first choice, still inside the same dialog.
     fireEvent.click(screen.getByTestId("incoming-call-accept"));
-    expectFocusInside(dialog("Phone"));
+    const active = dialog("Phone call");
+    expectFocusInside(active);
+    const options = within(active).getByRole("list");
+    expect(document.activeElement).toBe(within(options).getAllByRole("button")[0]);
+
+    // Hanging up empties the stack: focus returns to the game view and the resume prompt shows.
     fireEvent.click(screen.getByTestId("call-screen-hang-up"));
+    expect(screen.queryByTestId("call-presentation")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(gameView());
+    expect(screen.getByTestId("resume-prompt")).not.toBeNull();
+
+    // The phone is closed after the call, so P opens it and P closes it again.
+    pressP();
     expectFocusInside(dialog("Phone"));
     pressP();
     expect(document.activeElement).toBe(gameView());
@@ -315,12 +333,16 @@ describe("Chapter 1 accessibility", () => {
 
     // The wallet was inspected above, so the first-interaction ring is due.
     waitForRing();
+    // Exactly one dialog while the call is open: the call presentation.
+    expect(screen.getAllByRole("dialog")).toEqual([dialog("Phone call")]);
     icons += expectAccessibleDom("incoming call");
     fireEvent.click(screen.getByTestId("incoming-call-accept"));
+    expect(screen.getAllByRole("dialog")).toEqual([dialog("Phone call")]);
     icons += expectAccessibleDom("active call");
     fireEvent.click(screen.getByTestId("call-screen-hang-up"));
-    icons += expectAccessibleDom("phone after call");
-    pressP();
+    // The call ended with an empty stack: no dialog is left open.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    icons += expectAccessibleDom("after call");
 
     pressJ();
     fireEvent.click(within(dialog("Journal")).getByRole("button", { name: "Decide" }));
@@ -443,16 +465,21 @@ describe("Chapter 1 accessibility", () => {
       pressJ();
 
       waitForRing();
-      expectFocusInside(dialog(viPhone.phone.overlay.name));
+      const ringing = dialog(viPhone.phone.callPresentation.name);
+      expect(ringing.getAttribute("aria-modal")).toBe("true");
+      expect(document.activeElement).toBe(screen.getByTestId("incoming-call-accept"));
       expect(screen.getByTestId("incoming-call-accept").textContent).toContain(viPhone.phone.incomingCall.accept);
-      expect(screen.getByRole("button", { name: viPhone.phone.incomingCall.decline })).not.toBeNull();
+      expect(within(ringing).getByRole("button", { name: viPhone.phone.incomingCall.decline })).not.toBeNull();
       expectAccessibleDom("vi incoming call");
       fireEvent.click(screen.getByTestId("incoming-call-accept"));
-      expect(screen.getByRole("button", { name: viPhone.phone.call.hangUp })).not.toBeNull();
+      const active = dialog(viPhone.phone.callPresentation.name);
+      expectFocusInside(active);
+      expect(within(active).getByRole("button", { name: viPhone.phone.call.hangUp })).not.toBeNull();
       expectAccessibleDom("vi active call");
       fireEvent.click(screen.getByTestId("call-screen-hang-up"));
-      expectAccessibleDom("vi phone after call");
-      pressP();
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(document.activeElement).toBe(gameView());
+      expectAccessibleDom("vi after call");
 
       pressJ();
       fireEvent.click(within(dialog(viStory.journal.title)).getByRole("button", { name: viStory.journal.decide }));
@@ -460,7 +487,7 @@ describe("Chapter 1 accessibility", () => {
       expectAccessibleDom("vi decision");
 
       // No English dialog name is left.
-      for (const english of ["Paused", "Phone", "Journal", "Decide how to respond", WALLET.label]) {
+      for (const english of ["Paused", "Phone", "Phone call", "Journal", "Decide how to respond", WALLET.label]) {
         expect(screen.queryByRole("dialog", { name: english })).toBeNull();
       }
     });
@@ -476,9 +503,11 @@ describe("Chapter 1 accessibility", () => {
       expect(liveRegion().textContent).toContain(`Đã hoàn thành mục tiêu: ${answered}`);
       expect(liveRegion().textContent).not.toContain("Objective completed");
 
-      // The call's dialogue line is a live region too, with the Vietnamese caller name.
-      const line = screen.getByTestId("dialogue-line");
+      // The caller's line on the phone screen is a live region too, with the Vietnamese caller
+      // name, inside the Vietnamese-named call presentation.
+      const line = within(dialog(viPhone.phone.callPresentation.name)).getByTestId("call-line-region");
       expect(line.getAttribute("aria-live")).toBe("polite");
+      expect(line.getAttribute("aria-atomic")).toBe("true");
       expect(line.textContent).toContain(VI_SCENARIO.dialogues["dlg.scam-call"].persona.name);
     });
 

@@ -53,6 +53,8 @@ const AFTER_SCAM_CALL: readonly CoreAction[] = [
   option("opt.scam.open.verify"),
 ];
 const ENDED: readonly CoreAction[] = [...AFTER_SCAM_CALL, { type: "MAKE_DECISION", decision: "stop-and-wait" }];
+/** Saved while the scam call is active, on the opening node (game-3d-phone-call-ui task 10.6). */
+const DURING_SCAM_CALL: readonly CoreAction[] = AFTER_SCAM_CALL.slice(0, 4);
 
 // --- Pointer lock stub (jsdom has no Pointer Lock API) ---------------------------------------
 
@@ -203,6 +205,33 @@ describe("ChapterOnePage restore", () => {
     fireEvent.click(within(screen.getByTestId("ending-transition")).getByRole("button", { name: "Continue" }));
     expect(saveSource.write).toHaveBeenCalledTimes(1);
     expect(saveSource.write.mock.calls[0][0].progress.checkpointId).toBe("debrief");
+  });
+
+  it("opens the call presentation for a restored active call after the title card", () => {
+    const { session, save, state } = savedRun(DURING_SCAM_CALL);
+    expect(state.call.status).toBe("active");
+    renderPage(session, createMemorySaveSource(save));
+
+    // Nothing opens behind the title card.
+    expect(screen.queryByTestId("call-presentation")).toBeNull();
+    continueChapter();
+
+    // The locked call presentation opens on its own, without the 2D phone.
+    const call = screen.getByRole("dialog", { name: "Phone call" });
+    expect(call).toBe(screen.getByTestId("call-presentation"));
+    expect(call.getAttribute("aria-modal")).toBe("true");
+    expect(screen.getAllByRole("dialog")).toEqual([call]);
+    expect(screen.queryByRole("dialog", { name: "Phone" })).toBeNull();
+    expect(within(call).getByTestId("call-screen")).not.toBeNull();
+    expect(canvas().enabled).toBe(false);
+
+    // Focus is on the first choice of the restored node; Escape leaves the call open.
+    const options = within(call).getAllByRole("button").filter((button) => button.closest("ol"));
+    expect(options.length).toBeGreaterThan(0);
+    expect(document.activeElement).toBe(options[0]);
+    pressKey({ key: "Escape", code: "Escape" });
+    expect(screen.getByRole("dialog", { name: "Phone call" })).toBe(call);
+    expect(screen.queryByRole("dialog", { name: "Paused" })).toBeNull();
   });
 
   it("Restart from the pause menu clears the save and returns to Begin", () => {
