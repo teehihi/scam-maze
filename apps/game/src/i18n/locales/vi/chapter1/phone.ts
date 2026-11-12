@@ -59,6 +59,10 @@ const phone: LocaleShape<typeof en> = {
       hangUp: "Cúp máy",
       connecting: "Đã kết nối. Đang chờ người gọi lên tiếng.",
     },
+    callPresentation: {
+      name: "Cuộc gọi điện thoại",
+      screenLabel: "Màn hình điện thoại",
+    },
   },
 };
 export default phone;

@@ -59,6 +59,10 @@ const phone = {
       hangUp: "Hang up",
       connecting: "Connected. Waiting for the caller to speak.",
     },
+    callPresentation: {
+      name: "Phone call",
+      screenLabel: "Phone screen",
+    },
   },
 };
 export default phone;
