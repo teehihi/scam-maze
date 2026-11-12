@@ -169,6 +169,22 @@ Resolved:
 
 ## Task History
 
+### 2026-11-12 — Drivable Lexus on the UEH map, louder vehicle audio, H toggles UEH panels
+
+- **Objective:** Put the drivable Lexus GX 550 on `/ueh`; make the vehicle sounds louder; add a shortcut to hide/show the UEH information panels.
+- **Completed work:**
+  - Extracted the Lexus from `MenuBG.optimized.glb` into `public/assets/3d/vehicles/lexus-gx550.glb` (2.56 MB, ≈132k triangles, Meshopt + WebP kept), so `/ueh` does not download the 25 MB street.
+  - `features/vehicle/lexusRig.ts`: shared `buildLexusPivot` (pivot, flipped-texture fix, steering-wheel pivot), now also used by `StreetEnvironment.tsx` (behaviour-preserving refactor). `LexusVehicle.tsx` places the car in any map and resets it to its parking spot on mount.
+  - `FirstPersonPlayer`: the car state now starts from the pivot's position and heading (the street is unchanged: same coordinates, heading 0); new `vehicleConfig` prop. Vehicle physics gained optional `roundBounds` (with a unit test).
+  - UEH: car parked at (0, 0, 42) facing the courtyard centre, driving limited to a 54 m radius. Shared `VehicleHud` (enter prompt, driving controls, speedometer) reuses the `worlds:testmove` driving strings.
+  - Vehicle audio (both maps): gains were capped at 1.0, so the volume setting could not make them louder. Boosted by ×1.8 (about +5 dB, maximum gain 2.0) through a limiter (`DynamicsCompressor`) to avoid clipping.
+  - Automatic turn signal (both maps): `features/vehicle/turnSignal.ts` (pure, 5 unit tests). Holding A/D for 0.35 s starts `assets/audio/indicator.mp3` (owner-supplied, renamed from `Indicator.mp3`) as a loop; it stops 1.5 s after steering ends, on exit, and on unmount. Short taps never trigger it.
+  - UEH: `H` hides/shows the whole HUD (header with back button and mouse-lock pill, controls guide, telemetry, driving HUD). Only the `E` interaction prompts and the click-to-lock prompt stay. New `ueh.controls.togglePanels` string in en and vi.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 63 files, 597/597 passed; `pnpm build` passed. Owner play-tested driving on `/ueh`. Headless Chrome: `H` toggles the panels, no console errors.
+- **Unresolved issues and known limitations:** The new loudness was not listened to by the agent. The car can drive through UEH exhibits and trees, as the player can walk through them (no UEH collision adapter).
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Owner listening test of the vehicle volume; optional UEH collision for the car.
+
 ### 2026-11-12 — Game asset size reduction and removal of the `/hochiminh` route
 
 - **Objective:** Reduce `apps/game/public` (560 MB) without lowering quality; remove the unused Ho Chi Minh City map (owner decision, backup kept by the owner).

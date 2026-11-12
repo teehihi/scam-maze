@@ -214,5 +214,19 @@ describe("vehiclePhysics", () => {
       state = stepVehiclePhysics(state, runOffRoad, DEFAULT_VEHICLE_CONFIG, 0.05);
       expect(state.position[0]).toBeGreaterThanOrEqual(DEFAULT_VEHICLE_CONFIG.roadBounds.minX);
     });
+
+    it("keeps the car inside optional round bounds", () => {
+      const config = {
+        ...DEFAULT_VEHICLE_CONFIG,
+        roadBounds: { minX: -1000, maxX: 1000, minZ: -1000, maxZ: 1000 },
+        roundBounds: { centerX: 0, centerZ: 0, radius: 20 },
+      };
+      let state: VehicleState = { ...initialState, position: [0, 0, 0], yaw: 0 };
+      const full = { forward: true, backward: false, left: false, right: false, handbrake: false };
+      for (let i = 0; i < 200; i++) {
+        state = stepVehiclePhysics(state, full, config, 0.05);
+        expect(Math.hypot(state.position[0], state.position[2])).toBeLessThanOrEqual(20 + 1e-9);
+      }
+    });
   });
 });
