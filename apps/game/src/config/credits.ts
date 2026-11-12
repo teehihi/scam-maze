@@ -1,5 +1,5 @@
 /** Stable IDs used for translation keys (`credits:groups.<id>.category`). */
-export type CreditGroupId = "environments" | "vehicles" | "project";
+export type CreditGroupId = "environments" | "vehicles" | "music" | "project";
 
 /** Stable IDs used for translation keys (`credits:items.<id>.notes`). */
 export type CreditItemId =
@@ -8,6 +8,8 @@ export type CreditItemId =
   | "lowPolyCityGameReady"
   | "lowPolyCityAssetPack"
   | "lowPolyCarsPack"
+  | "muaHaThu18"
+  | "neuNgayMai"
   | "coreArchitecture";
 
 /**
@@ -80,6 +82,28 @@ export const GAME_CREDITS: CreditGroup[] = [
         sourceUrl: "https://sketchfab.com/3d-models/low-poly-cars-pack-1d942e1a2f564690a5d703fdc08657b3",
         license: "Creative Commons Attribution (CC-BY 4.0)",
         notes: "Low-poly vehicles, sedans, utility vans, and neighborhood parked cars.",
+      },
+    ],
+  },
+  {
+    id: "music",
+    category: "Music",
+    items: [
+      {
+        id: "muaHaThu18",
+        name: "Mùa Hạ Thứ 18",
+        creator: "Lê Quốc Khánh (Men Le), SCAMMAZE contributor",
+        sourceUrl: "",
+        license: "All rights reserved. Used in SCAMMAZE with the author's permission",
+        notes: "Song played in the UEH courtyard (summer rain theme). Not covered by the project's MIT License.",
+      },
+      {
+        id: "neuNgayMai",
+        name: "Nếu ngày mai",
+        creator: "Lê Quốc Khánh (Men Le), SCAMMAZE contributor",
+        sourceUrl: "https://open.spotify.com/track/2AkPSNohBGtrZMGeTtwV12",
+        license: "All rights reserved. Used in SCAMMAZE with the author's permission",
+        notes: "Song played in the UEH courtyard (flame tree blossom theme), performed with Hồ Đá Chà Gươm. Not covered by the project's MIT License.",
       },
     ],
   },

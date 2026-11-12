@@ -54,7 +54,8 @@ describe("CreditsModal localization", () => {
     expect(enContent.names.every(Boolean)).toBe(true);
     expect(enContent.creators.every(Boolean)).toBe(true);
     expect(enContent.licenses.every((count) => count > 0)).toBe(true);
-    expect(enContent.hrefs).toEqual(GAME_CREDITS.flatMap((g) => g.items.map((i) => i.sourceUrl)));
+    // Items without a public source (empty sourceUrl) render no link.
+    expect(enContent.hrefs).toEqual(GAME_CREDITS.flatMap((g) => g.items.map((i) => i.sourceUrl)).filter(Boolean));
     expect(viContent).toEqual(enContent);
   });
 

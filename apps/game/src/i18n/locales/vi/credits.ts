@@ -8,10 +8,11 @@ const credits: LocaleShape<typeof en> = {
   licenseNotice:
     "SCAMMAZE kiểm tra kỹ giấy phép của các tác phẩm bên thứ ba. Mọi tài nguyên 3D về môi trường và xe cộ trong cảnh đường phố của trò chơi đều được phát hành theo giấy phép {{license}} hoặc các giấy phép mã nguồn mở cho phép sử dụng kèm ghi công.",
   creatorLabel: "Tác giả:",
-  viewSource: "Xem nguồn trên Sketchfab",
+  viewSource: "Xem nguồn",
   groups: {
     environments: { category: "Môi trường & kiến trúc thế giới 3D" },
     vehicles: { category: "Xe cộ & vật dụng đường phố 3D" },
+    music: { category: "Âm nhạc" },
     project: { category: "Thiết kế trò chơi, cốt truyện & kỹ thuật" },
   },
   items: {
@@ -32,6 +33,13 @@ const credits: LocaleShape<typeof en> = {
     },
     lowPolyCarsPack: {
       notes: "Xe low poly gồm xe sedan, xe tải nhỏ và ô tô đỗ trong khu phố.",
+    },
+    muaHaThu18: {
+      notes: "Bài hát phát trong sân trường UEH (chủ đề cơn mưa hạ). Không thuộc phạm vi giấy phép MIT của dự án.",
+    },
+    neuNgayMai: {
+      notes:
+        "Bài hát phát trong sân trường UEH (chủ đề hoa phượng bay), trình bày cùng Hồ Đá Chà Gươm. Không thuộc phạm vi giấy phép MIT của dự án.",
     },
     coreArchitecture: {
       notes: "Trò chơi mô phỏng điều tra lừa đảo 3D góc nhìn thứ nhất, xây dựng cho Kiroween 2026.",
