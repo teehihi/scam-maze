@@ -1,5 +1,5 @@
 // UEH Campus ambient sound & audio reactivity state
-import type { TrackId } from './tracks'
+import { TRACKS, type TrackId } from './tracks'
 
 export class UEHMusicEngine {
   trackId: TrackId | null = null
@@ -14,80 +14,90 @@ export class UEHMusicEngine {
   elapsed = 0
   dur = 295
 
+  /** One element per track, created on first play, so a song is only downloaded when it is used. */
+  private audioEls = new Map<TrackId, HTMLAudioElement>()
   private audioEl: HTMLAudioElement | null = null
   private ctx: AudioContext | null = null
   private analyser: AnalyserNode | null = null
   private gainNode: GainNode | null = null
   private dataArray: Uint8Array<ArrayBuffer> | null = null
-
-  private initAudio() {
-    if (this.audioEl || typeof window === 'undefined') return
-    const el = new Audio('/reality/neu-ngay-mai.mp3')
-    el.loop = true
-    el.crossOrigin = 'anonymous'
-    this.audioEl = el
-
+  private volume = 0.85
+  private initGraph() {
+    if (this.ctx || typeof window === 'undefined') return
     try {
       const AudioCtx =
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      if (AudioCtx) {
-        const ctx = new AudioCtx()
-        this.ctx = ctx
-        const src = ctx.createMediaElementSource(el)
-        const gain = ctx.createGain()
-        gain.gain.value = 0.85
-        const an = ctx.createAnalyser()
-        an.fftSize = 128
-        an.smoothingTimeConstant = 0.8
-
-        src.connect(gain)
-        gain.connect(an)
-        an.connect(ctx.destination)
-
-        this.gainNode = gain
-        this.analyser = an
-        this.dataArray = new Uint8Array(an.frequencyBinCount)
-      }
+      if (!AudioCtx) return
+      const ctx = new AudioCtx()
+      const gain = ctx.createGain()
+      gain.gain.value = this.volume
+      const an = ctx.createAnalyser()
+      an.fftSize = 128
+      an.smoothingTimeConstant = 0.8
+      gain.connect(an)
+      an.connect(ctx.destination)
+      this.ctx = ctx
+      this.gainNode = gain
+      this.analyser = an
+      this.dataArray = new Uint8Array(an.frequencyBinCount)
     } catch {
-      // AudioContext fallback: element plays directly
+      // AudioContext unavailable: elements play directly
     }
   }
-
+  private elementFor(id: TrackId): HTMLAudioElement | null {
+    const cached = this.audioEls.get(id)
+    if (cached) return cached
+    const src = TRACKS[id].audioSrc
+    if (!src || typeof window === 'undefined') return null
+    this.initGraph()
+    const el = new Audio(src)
+    el.loop = true
+    el.crossOrigin = 'anonymous'
+    el.preload = 'auto'
+    if (this.ctx && this.gainNode) {
+      try {
+        this.ctx.createMediaElementSource(el).connect(this.gainNode)
+      } catch {
+        el.volume = this.volume
+      }
+    } else {
+      el.volume = this.volume
+    }
+    this.audioEls.set(id, el)
+    return el
+  }
   setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol))
     if (this.gainNode && this.ctx) {
-      this.gainNode.gain.setValueAtTime(Math.max(0, Math.min(1, vol)), this.ctx.currentTime)
-    } else if (this.audioEl) {
-      this.audioEl.volume = Math.max(0, Math.min(1, vol))
+      this.gainNode.gain.setValueAtTime(this.volume, this.ctx.currentTime)
+    } else {
+      for (const el of this.audioEls.values()) el.volume = this.volume
     }
   }
-
   start(id: TrackId, _delay = 0, _crossfade = 0.08) {
-    this.initAudio()
     this.trackId = id
     this.playing = true
     this.ended = false
-
-    if (id === 'ngay-mai' && this.audioEl) {
-      if (this.ctx && this.ctx.state === 'suspended') {
-        this.ctx.resume().catch(() => {})
-      }
-      this.audioEl.play().catch((err) => {
-        console.warn('Audio play prevented or waiting for interaction:', err)
-      })
-    } else if (this.audioEl) {
-      this.audioEl.pause()
+    this.elapsed = 0
+    this.dur = TRACKS[id].highlight.dur
+    const next = this.elementFor(id)
+    // Only one song at a time.
+    for (const [otherId, el] of this.audioEls) if (otherId !== id) el.pause()
+    this.audioEl = next
+    if (!next) return
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {})
     }
+    next.play().catch((err) => {
+      console.warn('Audio play prevented or waiting for interaction:', err)
+    })
   }
-
   stop(_crossfade = 0.1) {
     this.playing = false
     this.trackId = null
-    if (this.audioEl) {
-      this.audioEl.pause()
-    }
+    for (const el of this.audioEls.values()) el.pause()
   }
-
   setRain(_vol: number) {
     // rain ambient volume hook
   }
@@ -96,7 +106,7 @@ export class UEHMusicEngine {
     if (!this.playing) return
     this.elapsed += dt
 
-    if (this.analyser && this.dataArray && this.trackId === 'ngay-mai') {
+    if (this.analyser && this.dataArray && this.audioEl && !this.audioEl.paused) {
       this.analyser.getByteFrequencyData(this.dataArray)
       const b = (this.dataArray[1] ?? 0) / 255
       const m = (this.dataArray[6] ?? 0) / 255
