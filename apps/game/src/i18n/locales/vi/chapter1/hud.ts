@@ -1,12 +1,28 @@
 import type en from "../../en/chapter1/hud";
 import type { LocaleShape } from "../../../types";
 const hud: LocaleShape<typeof en> = {
-  titleCard: {
-    eyebrow: "Chương {{number}}",
-    preparing: "Đang chuẩn bị con phố",
-    ready: "Con phố đã sẵn sàng",
-    begin: "Bắt đầu",
-    continue: "Tiếp tục",
+  intro: {
+    heading: "Chào mừng trở lại",
+    preparing: "Đang quay lại con phố",
+    welcome: {
+      p1: "Ơ, cậu đây rồi! Lâu lắm rồi không gặp. Mình còn tưởng cậu quên đường về con phố này luôn rồi chứ.",
+      p2: "Mọi thứ cũng không đổi mấy đâu. Xe máy vẫn chạy ngang qua, tiệm bánh mì ở góc phố đã thơm lừng từ sớm, mấy bác hàng xóm vẫn vẫy tay chào cậu như mọi khi. Cậu thuộc về nơi này mà, ai cũng quen mặt cậu.",
+      p3: "Nên hôm nay cứ thong thả nhé. Cậu muốn ngó nghiêng, đi dạo đâu cũng được, gặp ai thì cứ trò chuyện. Con phố này để cậu tự do khám phá.",
+    },
+    resume: "Chào mừng cậu quay lại! Mình đã giữ chỗ cho cậu rồi. Khi nào sẵn sàng, mình cùng tiếp tục từ chỗ cậu đã dừng nhé.",
+    skip: "Nhấn chuột để hiện toàn bộ chữ",
+    continue: "Nhấn chuột để tiếp tục",
+    controls: {
+      heading: "Điều khiển",
+      move: "Di chuyển",
+      look: "Nhìn quanh",
+      interact: "Tương tác",
+      phone: "Điện thoại",
+      journal: "Sổ ghi chép",
+      pause: "Tạm dừng",
+      mouse: "Chuột",
+    },
+    simulation: "Mọi thứ trong trò chơi này đều là mô phỏng.",
   },
   hud: {
     phone: "Điện thoại",

@@ -19,6 +19,10 @@ const loading = {
     preparingScene: "Preparing the street scene",
     ready: "Ready",
   },
+  // The chapter loading screen never names the chapter, so players are not told what is coming.
+  newGameEyebrow: "A new story",
+  newGameTitle: "Back on your street",
+  newGameSubtitle: "The neighborhood is waking up.",
   continueEyebrow: "Saved game",
   continueTitle: "Continue",
   continueSubtitle: "Picking up where you left off.",

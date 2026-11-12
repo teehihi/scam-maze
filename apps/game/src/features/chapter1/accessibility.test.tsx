@@ -31,6 +31,7 @@ import { ChapterOnePage } from "./ChapterOnePage";
 import { DebriefScreen } from "./debrief/DebriefScreen";
 import { EndingTransition } from "./ending/EndingTransition";
 import { FIRST_INTERACTION_RING_DELAY_MS } from "./useCallTriggers";
+import { INTRO_CONTINUE_EN, INTRO_CONTINUE_VI, passIntro } from "../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -91,9 +92,9 @@ function renderPage(settings: GameSettings = SETTINGS) {
   render(<ChapterOnePage session={createNewChapterSession(chapter)} settings={settings} onReturnToMenu={vi.fn()} />);
 }
 
-function beginChapter(beginLabel = "Begin") {
+function beginChapter(beginLabel = INTRO_CONTINUE_EN) {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: beginLabel }));
+  passIntro(beginLabel);
 }
 
 function inspectWallet() {
@@ -221,8 +222,9 @@ const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{1F1E6}-\u{1F1FF}]/gu;
 describe("Chapter 1 accessibility", () => {
   it("moves focus into each overlay when it opens and back to the game view when it closes", () => {
     renderPage();
-    // The title card moves focus to its heading.
-    expect(document.activeElement).toBe(screen.getByRole("heading", { name: CHAPTER_1_SCENARIO.title }));
+    // The intro overlay moves focus to its (visually hidden) heading and never names the chapter.
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Welcome back" }));
+    expect(screen.queryByText(CHAPTER_1_SCENARIO.title)).toBeNull();
     beginChapter();
 
     inspectWallet();
@@ -442,9 +444,9 @@ describe("Chapter 1 accessibility", () => {
 
     it("gives every dialog and button a Vietnamese accessible name", () => {
       renderVi();
-      expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Cuộc gọi khẩn cấp" }));
-      expectAccessibleDom("vi title card");
-      beginChapter(viHud.titleCard.begin);
+      expect(document.activeElement).toBe(screen.getByRole("heading", { name: viHud.intro.heading }));
+      expectAccessibleDom("vi intro");
+      beginChapter(INTRO_CONTINUE_VI);
       expectAccessibleDom("vi hud");
 
       inspectWallet();
@@ -476,7 +478,8 @@ describe("Chapter 1 accessibility", () => {
       expect(ringing.getAttribute("aria-modal")).toBe("true");
       expect(document.activeElement).toBe(screen.getByTestId("incoming-call-accept"));
       expect(screen.getByTestId("incoming-call-accept").textContent).toContain(viPhone.phone.incomingCall.accept);
-      expect(within(ringing).getByRole("button", { name: viPhone.phone.incomingCall.decline })).not.toBeNull();
+      // The Decline button is checked by test id only: its visible text may change.
+      expect(within(ringing).getByTestId("incoming-call-decline")).not.toBeNull();
       expectAccessibleDom("vi incoming call");
       fireEvent.click(screen.getByTestId("incoming-call-accept"));
       const active = dialog(viPhone.phone.callPresentation.name);
@@ -501,7 +504,7 @@ describe("Chapter 1 accessibility", () => {
 
     it("announces objectives in Vietnamese in the polite live region", () => {
       renderVi();
-      beginChapter(viHud.titleCard.begin);
+      beginChapter(INTRO_CONTINUE_VI);
       expect(within(liveRegion()).getByText(VI_SCENARIO.objectives["obj.look-around"].text)).not.toBeNull();
 
       ringFirstCallVi();
@@ -510,17 +513,30 @@ describe("Chapter 1 accessibility", () => {
       expect(liveRegion().textContent).toContain(`Đã hoàn thành mục tiêu: ${answered}`);
       expect(liveRegion().textContent).not.toContain("Objective completed");
 
-      // The caller's line on the phone screen is a live region too, with the Vietnamese caller
-      // name, inside the Vietnamese-named call presentation.
-      const line = within(dialog(viPhone.phone.callPresentation.name)).getByTestId("call-line-region");
+      // The caller's line is in the subtitle overlay, a polite live region with the Vietnamese
+      // caller name, inside the Vietnamese-named call presentation.
+      const line = within(dialog(viPhone.phone.callPresentation.name)).getByTestId("call-subtitle-region");
       expect(line.getAttribute("aria-live")).toBe("polite");
       expect(line.getAttribute("aria-atomic")).toBe("true");
       expect(line.textContent).toContain(VI_SCENARIO.dialogues["dlg.scam-call"].persona.name);
     });
 
+    it("names the Speaker and Replay buttons in Vietnamese", () => {
+      renderVi();
+      beginChapter(INTRO_CONTINUE_VI);
+      ringFirstCallVi();
+      fireEvent.click(screen.getByTestId("incoming-call-accept"));
+      const active = dialog(viPhone.phone.callPresentation.name);
+      const speaker = within(active).getByTestId("call-screen-speaker");
+      const replay = within(active).getByTestId("call-screen-replay");
+      expect(accessibleName(speaker)).toBe("Loa ngoài");
+      expect(accessibleName(replay)).toBe("Nghe lại câu vừa rồi");
+      expect(replay.parentElement?.textContent).toContain("Nghe lại");
+    });
+
     it("keeps the key hints E, P, J and Esc literal", () => {
       renderVi();
-      beginChapter(viHud.titleCard.begin);
+      beginChapter(INTRO_CONTINUE_VI);
       act(() => canvas().onFocusChange("obj.wallet"));
       expect(screen.getByTestId("interaction-prompt").textContent).toBe(getDisplayPrompts("vi")["obj.wallet"]);
       expect(screen.getByTestId("interaction-prompt").textContent).toMatch(/^Nhấn E /);
@@ -579,14 +595,15 @@ describe("Chapter 1 accessibility", () => {
       const call = dialog("Phone call");
       expectFocusInside(call);
 
-      // Tab order: Mute, Replay (only when enabled), Hang up, then the options.
+      // Tab order: Mute, Speaker, Replay (only when enabled), Hang up, then the options.
       const mute = within(call).getByTestId("call-screen-mute");
+      const speaker = within(call).getByTestId("call-screen-speaker");
       const replay = within(call).getByTestId("call-screen-replay");
       const hangUp = within(call).getByTestId("call-screen-hang-up");
       const options = within(within(call).getByRole("list")).getAllByRole("button");
       expect(options.length).toBeGreaterThan(0);
       const order = tabbables(call);
-      const expected = [mute, ...(replay.hasAttribute("disabled") ? [] : [replay]), hangUp, ...options];
+      const expected = [mute, speaker, ...(replay.hasAttribute("disabled") ? [] : [replay]), hangUp, ...options];
       expect(order).toEqual(expected);
 
       // Mute: named, toggles with aria-pressed and flips its label; keyboard focus is kept.
@@ -602,7 +619,7 @@ describe("Chapter 1 accessibility", () => {
       expect(accessibleName(mute)).toBe("Mute");
 
       // Replay: named; a disabled Replay is not a Tab stop, an enabled one keeps focus on click.
-      expect(accessibleName(replay)).toBe("Replay");
+      expect(accessibleName(replay)).toBe("Replay last line");
       if (replay.hasAttribute("disabled")) {
         expect(order).not.toContain(replay);
       } else {
@@ -612,12 +629,12 @@ describe("Chapter 1 accessibility", () => {
       }
 
       // Choose an option with a number key on the focused option.
-      const lineBefore = within(call).getByTestId("dialogue-line").textContent;
+      const lineBefore = within(call).getByTestId("call-subtitle-line").textContent;
       options[0].focus();
       pressKey({ key: "1", code: "Digit1" });
       expectFocusInside(dialog("Phone call"));
       expect(screen.queryByTestId(options[0].getAttribute("data-testid") ?? "")).toBeNull();
-      expect(within(dialog("Phone call")).getByTestId("dialogue-line").textContent).not.toBe(lineBefore);
+      expect(within(dialog("Phone call")).getByTestId("call-subtitle-line").textContent).not.toBe(lineBefore);
     });
 
     it("keeps Tab inside the call dialog from Hang up and from the last option", () => {
@@ -636,7 +653,7 @@ describe("Chapter 1 accessibility", () => {
     it("gives the new call controls accessible names, hidden icons and visible focus classes", () => {
       const call = answerFirstCall();
       expectAccessibleDom("voice call");
-      for (const id of ["call-screen-mute", "call-screen-replay", "call-screen-hang-up"]) {
+      for (const id of ["call-screen-mute", "call-screen-speaker", "call-screen-replay", "call-screen-hang-up"]) {
         const button = within(call).getByTestId(id);
         expect(accessibleName(button), id).not.toBe("");
         expect(button.className, id).toContain("focus-visible:outline");
@@ -644,8 +661,9 @@ describe("Chapter 1 accessibility", () => {
       }
       // The notice and caption are polite live regions, not Tab stops.
       expect(within(call).getByTestId("call-notice").getAttribute("aria-live")).toBe("polite");
-      expect(within(call).getByTestId("call-line-region").getAttribute("aria-live")).toBe("polite");
-      expect(within(call).getByTestId("call-line-region").tabIndex).toBe(-1);
+      expect(within(call).getByTestId("call-subtitle-region").getAttribute("aria-live")).toBe("polite");
+      expect(within(call).getByTestId("call-subtitle-region").tabIndex).toBe(-1);
+      expect(within(call).getByTestId("call-subtitle-overlay").tabIndex).toBe(-1);
     });
 
     it("gives the face-to-face Replay a name, a hidden icon and a visible focus class", () => {

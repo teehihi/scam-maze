@@ -23,6 +23,7 @@ import type { FakeAudioPort, FakeAudioPortOptions } from "../../test/fakeAudioPo
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
 import { resetPhoneModelStatusForTests } from "./call/phoneModelStatus";
+import { INTRO_CONTINUE_EN, passIntro } from "../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -207,9 +208,9 @@ function renderPage(settings: GameSettings, session?: ChapterSession) {
   );
 }
 
-function pressBegin(label = "Begin") {
+function pressBegin(label = INTRO_CONTINUE_EN) {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: label }));
+  passIntro(label);
 }
 
 function dispatchAccepted(action: CoreAction) {
@@ -259,7 +260,7 @@ function play(actions: readonly CoreAction[]): ChapterState {
   return state;
 }
 
-const queryCaption = () => screen.queryByTestId("dialogue-line");
+const queryCaption = () => screen.queryByTestId("call-subtitle-line");
 
 // --- Tests -----------------------------------------------------------------------------------
 
@@ -350,7 +351,10 @@ describe("ChapterOnePage voice integration", () => {
     // options stay available.
     expect(port().playbacks).toEqual([]);
     expect(queryCaption()).not.toBeNull();
-    expect(screen.getByTestId("call-notice").textContent).not.toBe("");
+    const notice = screen.getByTestId("call-notice");
+    expect(notice.textContent).not.toBe("");
+    expect(screen.getByTestId("call-subtitle-overlay").contains(notice)).toBe(true);
+    expect(screen.getByTestId("phone-screen-host").contains(notice)).toBe(false);
     const replay = screen.getByTestId("call-screen-replay") as HTMLButtonElement;
     expect(replay.disabled).toBe(false);
     expect(screen.getByTestId(`dialogue-option-${VERIFY_OPTION}`)).not.toBeNull();
@@ -368,6 +372,75 @@ describe("ChapterOnePage voice integration", () => {
     expect(port().liveHandles).toBe(1);
     expect(store().getState()).toBe(state);
     expect(store().dispatch.mock.calls.length).toBe(dispatches);
+  });
+
+  it("plays the Caller_Line, keeps the subtitle empty while the voice is audible, and End call stops it", async () => {
+    renderPage(SOUND_ON);
+    pressBegin();
+    ringScamCall();
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+    await playCurrentLine();
+
+    expect(port().playbacks).toHaveLength(1);
+    expect(port().liveHandles).toBe(1);
+    // Subtitles are off and the voice is audible: the subtitle stays empty.
+    expect(queryCaption()).toBeNull();
+
+    fireEvent.click(screen.getByTestId("call-screen-hang-up"));
+    await flush();
+    expect(dispatched("END_CALL")).toHaveLength(1);
+    expect(port().liveHandles).toBe(0);
+    expect(screen.queryByTestId("call-subtitle-overlay")).toBeNull();
+  });
+
+  it("Mute silences the voice and Replay plays the last line again", async () => {
+    renderPage(SOUND_ON);
+    pressBegin();
+    ringScamCall();
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+    await playCurrentLine();
+    expect(port().playbacks).toHaveLength(1);
+    expect(port().last()?.gain).toBeGreaterThan(0);
+
+    const mute = screen.getByTestId("call-screen-mute");
+    expect(mute.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(mute);
+    expect(mute.getAttribute("aria-pressed")).toBe("true");
+    expect(port().last()?.gain).toBe(0);
+
+    fireEvent.click(screen.getByTestId("call-screen-replay"));
+    await flush();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(port().playbacks).toHaveLength(2);
+    expect(port().liveHandles).toBe(1);
+    expect(port().playbacks[1].clip.id).toBe(port().playbacks[0].clip.id);
+  });
+
+  it("Speaker changes the phone filter from the next Replay, for this call only", async () => {
+    renderPage(SOUND_ON);
+    pressBegin();
+    ringScamCall();
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+    await playCurrentLine();
+    expect(port().playbacks).toHaveLength(1);
+    expect(port().playbacks[0].phoneFilter).toBe(true);
+
+    const speaker = screen.getByTestId("call-screen-speaker");
+    expect(speaker.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(speaker);
+    expect(speaker.getAttribute("aria-pressed")).toBe("false");
+    // The running line keeps its filter; the override applies from the next play.
+    expect(port().playbacks[0].phoneFilter).toBe(true);
+
+    fireEvent.click(screen.getByTestId("call-screen-replay"));
+    await flush();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(port().playbacks).toHaveLength(2);
+    expect(port().playbacks[1].phoneFilter).toBe(false);
   });
 
   it("keeps the state and stops the clip when the language is switched during a call", async () => {
@@ -412,7 +485,7 @@ describe("ChapterOnePage voice integration", () => {
     renderPage(SETTINGS, applied.session);
     // Hidden behind the title card until the player continues.
     expect(screen.queryByTestId("save-trimmed-notice")).toBeNull();
-    pressBegin("Continue");
+    pressBegin();
 
     const notice = screen.getByTestId("save-trimmed-notice");
     expect(notice.getAttribute("role")).toBe("status");

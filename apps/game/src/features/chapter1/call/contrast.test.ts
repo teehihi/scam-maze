@@ -1,6 +1,6 @@
 // WCAG 2.x contrast checks for the call presentation colors (Requirements 6.6, 7.7, 7.8).
 // Colors are read from the class strings in `theme.ts`, so a theme change is checked here.
-// Design reference: .kiro/specs/game-3d-phone-call-ui/design.md ("PhoneScreenUI.tsx",
+// Design reference: .kiro/specs/game-3d-phone-call-ui/design.md ("PhoneCallScreen.tsx",
 // "PlayerChoiceOverlay.tsx", "PhoneScreenHost", "CallPresentation.tsx", "PhoneModel3D.tsx").
 import { describe, expect, it } from "vitest";
 import { BRAND, UI } from "../theme";
@@ -71,7 +71,7 @@ const SCREEN_BG = BRAND.navy;
 /** Caller_Line card on the screen (`UI.card`). */
 const CARD_BG = stateColor(UI.card, "", "bg");
 
-/** Text styles that `PhoneScreenUI` uses, as in the current 2D call screens. */
+/** Text styles that `PhoneCallScreen` uses, as in the current 2D call screens. */
 const SCREEN_TEXT: Record<string, string> = {
   "caller name (ivory)": BRAND.ivory,
   "UI.heading": stateColor(UI.heading, "", "text"),
@@ -173,6 +173,19 @@ describe("call buttons (Req 7.7, 7.8)", () => {
     it(`${name} focus outline against the screen background`, () =>
       expectRatio(stateColor(classes, "focus-visible:", "outline"), SCREEN_BG, FOCUS_MIN));
   }
+});
+
+describe("End call button (Req 4.3)", () => {
+  // `UI.buttonEndCall` uses the Tailwind `text-white` keyword, so the label color is #ffffff.
+  const WHITE = "#ffffff";
+  it("white label on the default background", () =>
+    expectRatio(WHITE, stateColor(UI.buttonEndCall, "", "bg"), TEXT_MIN));
+  it("white label on the hover background", () =>
+    expectRatio(WHITE, stateColor(UI.buttonEndCall, "hover:", "bg"), TEXT_MIN));
+  it("white label on the disabled background", () =>
+    expectRatio(stateColor(UI.buttonEndCall, "disabled:", "text"), stateColor(UI.buttonEndCall, "disabled:", "bg"), TEXT_MIN));
+  it("focus outline against the screen background", () =>
+    expectRatio(stateColor(UI.buttonEndCall, "focus-visible:", "outline"), SCREEN_BG, FOCUS_MIN));
 });
 
 describe("Choice_Overlay options (Req 7.7, 7.8)", () => {

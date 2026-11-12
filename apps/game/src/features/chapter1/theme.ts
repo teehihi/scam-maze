@@ -54,6 +54,12 @@ export const UI = {
   buttonWarning:
     "flex items-center justify-center gap-2 rounded-xl bg-[#f2b24b] px-5 py-2.5 text-sm font-bold text-[#171521] motion-safe:transition-colors hover:bg-[#f5c36f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:bg-[#38344f] disabled:text-[#a9a4c4] cursor-pointer",
   /**
+   * End call and Decline action (red, white text). Disabled styles as for `buttonAccept`: solid
+   * colors, no opacity change. Requirement 4.3.
+   */
+  buttonEndCall:
+    "flex items-center justify-center gap-2 rounded-xl bg-[#c93c47] px-5 py-2.5 text-sm font-bold text-white motion-safe:transition-colors hover:bg-[#b3343e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:bg-[#38344f] disabled:text-[#a9a4c4] cursor-pointer",
+  /**
    * Dialogue option button in the call Choice_Overlay. Built only from `BRAND` colors and the
    * border color `#38344f`. States: default, hover, pressed (`active:`), keyboard focus
    * (`focus-visible:` 2 px outline, `#b9a5f5`) and disabled (no opacity change, so the text keeps

@@ -27,6 +27,7 @@ const MAX_HEIGHT = 1600;
 
 /** Written out here, not imported, so the test does not reuse the code under test. */
 const NARROW_MARGIN = 12;
+const WIDE_MARGIN = 24;
 const MIN_SCREEN_WIDTH = 132;
 /** Tolerance for floating-point edges, in CSS px. */
 const EPSILON = 1e-6;
@@ -109,6 +110,42 @@ describe("callLayout properties", () => {
       }
     }
     // Both layouts were generated at least once.
+    expect([...kinds].sort()).toEqual(["narrow", "wide"]);
+  }, PROPERTY_TIMEOUT_MS);
+
+  // Feature: game-phone-call-ui-redesign, Property 3: Subtitle rectangle is inside the viewport and apart from the phone and the choices
+  it("Property 3: subtitle rectangle is inside the viewport and apart from the phone and the choices (Requirements 6.1-6.7)", () => {
+    const seed = 0x5ab717e3;
+    const next = createLcg(seed);
+    const kinds = new Set<string>();
+    for (let index = 0; index < RUNS; index += 1) {
+      const viewport = generateViewport(next);
+      const layout = computeCallLayout(viewport);
+      const { screen, choice, subtitle } = layout;
+      const label = `seed ${seed.toString(16)} case ${index}, viewport ${JSON.stringify(viewport)}, layout ${JSON.stringify(layout)}`;
+      kinds.add(layout.kind);
+
+      expectInsideViewport(subtitle, viewport, `${label} (subtitle)`);
+      expect(rectsIntersectArea(subtitle, screen), `${label} (subtitle/screen)`).toBe(0);
+      expect(rectsIntersectArea(subtitle, choice), `${label} (subtitle/choice)`).toBe(0);
+      // Existing guarantees still hold with the subtitle present.
+      expect(Math.abs(screen.width / screen.height - SCREEN_ASPECT), label).toBeLessThanOrEqual(0.001);
+      expect(screen.width, label).toBeGreaterThanOrEqual(MIN_SCREEN_WIDTH);
+      expectInsideViewport(choice, viewport, `${label} (choice)`);
+
+      const subtitleBottom = subtitle.top + subtitle.height;
+      if (layout.kind === "narrow") {
+        // Below the screen and above the choice.
+        expect(subtitle.top, label).toBeGreaterThanOrEqual(screen.top + screen.height - EPSILON);
+        expect(subtitleBottom, label).toBeLessThanOrEqual(choice.top + EPSILON);
+      } else {
+        // Left column, directly above the choice: same left edge, bottom within one margin.
+        expect(subtitle.left, label).toBeGreaterThanOrEqual(choice.left - EPSILON);
+        expect(subtitle.left + subtitle.width, label).toBeLessThanOrEqual(choice.left + choice.width + EPSILON);
+        expect(subtitleBottom, label).toBeLessThanOrEqual(choice.top + EPSILON);
+        expect(choice.top - subtitleBottom, label).toBeLessThanOrEqual(WIDE_MARGIN + EPSILON);
+      }
+    }
     expect([...kinds].sort()).toEqual(["narrow", "wide"]);
   }, PROPERTY_TIMEOUT_MS);
 

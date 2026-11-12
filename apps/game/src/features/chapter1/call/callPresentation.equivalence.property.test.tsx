@@ -1,4 +1,5 @@
 // Feature: game-3d-phone-call-ui, Property 1: Presentation does not change game state
+// Feature: game-phone-call-ui-redesign, Property 5: Presentation equivalence across modes
 //
 // **Validates: Requirements 4.1, 4.6, 4.8, 11.8, 13.3, 13.10**
 //

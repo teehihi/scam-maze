@@ -57,7 +57,7 @@ import { ResumePrompt } from "./hud/ResumePrompt";
 import { SaveTrimmedNotice } from "./hud/SaveTrimmedNotice";
 import { SaveFailureNotice } from "./hud/SaveFailureNotice";
 import { interactionToAction } from "./interaction/interactionToAction";
-import { ChapterTitleCard } from "./intro/ChapterTitleCard";
+import { ChapterIntroOverlay } from "./intro/ChapterIntroOverlay";
 import { DebriefScreen } from "./debrief/DebriefScreen";
 import { DecisionPanel } from "./decision/DecisionPanel";
 import { DialoguePanel, type DialoguePanelVoice } from "./dialogue/DialoguePanel";
@@ -319,6 +319,12 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
     () => ({ createPort: () => (engineRef.current ??= createWebAudioEngine()) }),
     [],
   );
+  // Session-only Speaker override. It never writes the saved setting and resets on each new call.
+  const [speakerOverride, setSpeakerOverride] = useState<boolean | null>(null);
+  const speakerOn = speakerOverride ?? settings.phoneVoiceFilter;
+  useEffect(() => {
+    setSpeakerOverride(null);
+  }, [call.current]);
   const voice = useVoicePlayback({
     store,
     scenario,
@@ -326,7 +332,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
       soundEnabled: settings.soundEnabled,
       sfxVolume: settings.sfxVolume,
       voiceVolume: settings.voiceVolume,
-      phoneVoiceFilter: settings.phoneVoiceFilter,
+      phoneVoiceFilter: speakerOn,
       englishVoiceFallback: settings.englishVoiceFallback,
       reducedStress: settings.reducedStress,
     },
@@ -592,7 +598,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
     gameViewRef.current?.focus({ preventScroll: true });
   }, [overlays, titleCardOpen]);
 
-  // --- Title card ----------------------------------------------------------------------------
+  // --- Intro overlay ----------------------------------------------------------------------------
 
   const handleBegin = useCallback(() => {
     if (!sceneReady) return;
@@ -754,6 +760,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
             voice={voice}
             durationSeconds={durationSeconds}
             subtitlesEnabled={settings.subtitlesEnabled}
+            speaker={{ on: speakerOn, onToggle: () => setSpeakerOverride(!speakerOn) }}
           />
         );
       case "inspection": {
@@ -960,16 +967,7 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
         </div>
       )}
 
-      {titleCardOpen && (
-        <ChapterTitleCard
-          chapterNumber={chapter?.number ?? session.chapterNumber}
-          title={scenario.title}
-          subtitle={scenario.subtitle}
-          ready={sceneReady}
-          mode={titleMode}
-          onBegin={handleBegin}
-        />
-      )}
+      {titleCardOpen && <ChapterIntroOverlay ready={sceneReady} mode={titleMode} onBegin={handleBegin} />}
     </div>
     </ComfortProvider>
   );

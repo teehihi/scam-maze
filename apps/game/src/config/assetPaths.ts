@@ -16,5 +16,13 @@ export const LOADING_BACKGROUND_JPG = "/assets/ui/loading_bg.jpg";
 /** Call phone (Meshopt + WebP, produced by scripts/optimize-call-phone.cjs). */
 export const CALL_PHONE_GLB = "/assets/3d/optimized/call-phone.optimized.glb";
 
+/**
+ * Low-poly city backdrop (Meshopt + WebP, produced by scripts/optimize-city-packs.cjs):
+ * curated buildings from Low Poly City, Low Poly City Game-Ready and Low Poly City Asset Pack,
+ * and the single cars of Low Poly Cars Pack.
+ */
+export const CITY_DISTRICT_GLB = "/assets/3d/optimized/city-district.optimized.glb";
+export const CITY_CARS_GLB = "/assets/3d/optimized/city-cars.optimized.glb";
+
 /** Base URL of the Chapter 1 voice clips: `<base>/<locale>/<nodeId>.mp3` (locale is `en` or `vi`). */
 export const CHAPTER1_VOICE_BASE = "/audio/chapter01";

@@ -13,6 +13,8 @@ const chapters = {
       "street-environment": "Loading the street",
       sky: "Loading the sky",
       "call-phone": "Loading the phone",
+      "city-district": "Loading the neighborhood",
+      "city-cars": "Loading the parked cars",
     },
   },
   scenes: {

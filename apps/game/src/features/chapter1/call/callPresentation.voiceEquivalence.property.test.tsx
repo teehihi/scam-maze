@@ -1,4 +1,5 @@
 // Feature: chapter-01-voice-narrative, Property 7: Presentation equivalence
+// Feature: game-phone-call-ui-redesign, Property 5: Presentation equivalence across modes
 //
 // **Validates: Requirements 8.1, 8.4, 8.8**
 //
@@ -220,7 +221,7 @@ describe("CallPresentation with voice props, equivalence (Property 7)", () => {
             const before = dispatched.length;
             act(() => harness.setVoice(randomVoiceState(next)));
             if (store.getState().call.status === "active") {
-              for (const testId of ["call-screen-mute", "call-screen-replay"]) {
+              for (const testId of ["call-screen-mute", "call-screen-speaker", "call-screen-replay"]) {
                 const button = screen.queryByTestId<HTMLButtonElement>(testId);
                 if (button !== null && !button.disabled && next() < 0.4) fireEvent.click(button);
               }

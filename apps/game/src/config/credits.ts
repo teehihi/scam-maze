@@ -17,7 +17,7 @@ export type CreditItemId =
 
 /**
  * One credited asset. `name`, `creator`, `sourceUrl` and `license` are shown unchanged in every
- * language. `notes` is the English source; the UI reads `credits:items.<id>.notes`.
+ * language. An empty `sourceUrl` shows no source line. `notes` is the English source; the UI reads `credits:items.<id>.notes`.
  */
 export interface CreditItem {
   id: CreditItemId;
@@ -98,7 +98,7 @@ export const GAME_CREDITS: CreditGroup[] = [
         id: "callPhone",
         name: "call-phone.optimized.glb",
         creator: "not stated",
-        sourceUrl: "Owner-provided file iphone-17-pro.glb (source URL not provided)",
+        sourceUrl: "", // No source line is shown for this item.
         license: "Free to use (owner statement, 2026-11-12)",
         notes: "Handheld phone model used for phone calls. Optimized copy with the wallpaper removed and no visible brand marks.",
       },

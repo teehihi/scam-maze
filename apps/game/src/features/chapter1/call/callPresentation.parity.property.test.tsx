@@ -1,9 +1,10 @@
 // Feature: game-3d-phone-call-ui, Property 4: Fallback parity
+// Feature: game-phone-call-ui-redesign, Property 5: Presentation equivalence across modes
 //
 // For any generated call state (src/test/callStates.ts) and any seeded sequence of mode switches
 // between `pending`, `model` and `fallback`, `CallPresentation` keeps the same screen host and
-// `PhoneScreenUI` DOM nodes, the same screen text and button names in the same order, and the
-// same focused control across each switch; and activating the same call button or option gives
+// `PhoneCallScreen` DOM nodes, the same screen text, the same subtitle text and the same button
+// names in the same order, and the same focused control across each switch; and activating the same call button or option gives
 // the same dispatched action in every mode.
 //
 // Model mode is simulated without WebGL by publishing rectangles on the screen sink, the way
@@ -82,7 +83,7 @@ function currentMode(): string | undefined {
   return hostElement().dataset.mode;
 }
 
-/** The `PhoneScreenUI` root (`section`), the only child of the host. */
+/** The `PhoneCallScreen` root (`section`), the only child of the host. */
 function screenElement(): Element {
   const section = hostElement().firstElementChild;
   expect(section?.tagName).toBe("SECTION");
@@ -97,6 +98,15 @@ function screenText(): string {
   const clone = screenElement().cloneNode(true) as Element;
   for (const style of clone.querySelectorAll("style")) style.remove();
   return (clone.textContent ?? "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Text of the caller subtitle overlay (speaker name, line, connecting text and notice). It lives
+ * outside the phone host, so it is read separately and must not depend on the mode.
+ */
+function subtitleText(): string {
+  const overlay = screen.queryByTestId("call-subtitle-overlay");
+  return (overlay?.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
 /** Names of the screen buttons, in DOM order (icons are `aria-hidden` and carry no text). */
@@ -160,11 +170,12 @@ interface Snapshot {
   host: HTMLElement;
   screen: Element;
   text: string;
+  subtitle: string;
   buttons: string[];
 }
 
 function snapshot(): Snapshot {
-  return { host: hostElement(), screen: screenElement(), text: screenText(), buttons: screenButtonNames() };
+  return { host: hostElement(), screen: screenElement(), text: screenText(), subtitle: subtitleText(), buttons: screenButtonNames() };
 }
 
 beforeEach(() => {
@@ -218,8 +229,9 @@ describe("CallPresentation fallback parity", () => {
           expect(currentMode(), `${where} (mode)`).toBe(target);
           const after = snapshot();
           expect(after.host, `${where} (same host node)`).toBe(first.host);
-          expect(after.screen, `${where} (same PhoneScreenUI node)`).toBe(first.screen);
+          expect(after.screen, `${where} (same PhoneCallScreen node)`).toBe(first.screen);
           expect(after.text, `${where} (screen text)`).toBe(first.text);
+          expect(after.subtitle, `${where} (subtitle text)`).toBe(first.subtitle);
           expect(after.buttons, `${where} (screen buttons)`).toEqual(first.buttons);
           expect(document.activeElement, `${where} (focus kept)`).toBe(focused);
           seen[target] += 1;

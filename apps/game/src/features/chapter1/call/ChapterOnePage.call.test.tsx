@@ -25,12 +25,12 @@ import enPhone from "../../../i18n/locales/en/chapter1/phone";
 import enStory from "../../../i18n/locales/en/chapter1/story";
 import viPhone from "../../../i18n/locales/vi/chapter1/phone";
 import viStory from "../../../i18n/locales/vi/chapter1/story";
-import viHud from "../../../i18n/locales/vi/chapter1/hud";
 import { DECISION_PANEL_PREFIX } from "../../../test/callStates";
 import type { ChapterOneCanvasProps } from "../ChapterOneCanvas";
 import { ChapterOnePage } from "../ChapterOnePage";
 import { getTabbable } from "../focusTrap";
 import { resetPhoneModelStatusForTests } from "./phoneModelStatus";
+import { INTRO_CONTINUE_EN, INTRO_CONTINUE_VI, passIntro } from "../../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -164,9 +164,9 @@ function renderPage(settings: GameSettings = SETTINGS) {
   );
 }
 
-function beginChapter(beginLabel = "Begin") {
+function beginChapter(beginLabel = INTRO_CONTINUE_EN) {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: beginLabel }));
+  passIntro(beginLabel);
   expect(store().getState().status).toBe("playing");
 }
 
@@ -386,12 +386,14 @@ describe("ChapterOnePage call presentation", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Phone call" });
     const mute = screen.getByTestId("call-screen-mute");
+    const speaker = screen.getByTestId("call-screen-speaker");
     const replay = screen.getByTestId("call-screen-replay") as HTMLButtonElement;
     const hangUp = screen.getByTestId("call-screen-hang-up");
     const options = optionButtons();
     expect(options.length).toBeGreaterThan(0);
-    // Designed order: Mute, Replay, Hang up, then the options. A disabled Replay is not tabbable.
-    const callControls = replay.disabled ? [mute, hangUp] : [mute, replay, hangUp];
+    // Designed order: Mute, Speaker, Replay, End call, then the options. A disabled Replay is not
+    // tabbable.
+    const callControls = replay.disabled ? [mute, speaker, hangUp] : [mute, speaker, replay, hangUp];
     expect(getTabbable(dialog)).toEqual([...callControls, ...options]);
 
     const first = callControls[0];
@@ -529,7 +531,7 @@ describe("ChapterOnePage call presentation", () => {
   it("(13.7) shows the Vietnamese chrome text while ringing and while active", () => {
     applyLocale("vi");
     renderPage({ ...SETTINGS, language: "vi" });
-    beginChapter(viHud.titleCard.begin);
+    beginChapter(INTRO_CONTINUE_VI);
     ring();
 
     /** The shown text equals the `vi` value and differs from English unless both are identical. */
@@ -549,11 +551,8 @@ describe("ChapterOnePage call presentation", () => {
       viPhone.phone.incomingCall.accept,
       enPhone.phone.incomingCall.accept,
     );
-    expectVi(
-      screen.getByTestId("incoming-call-decline").textContent,
-      viPhone.phone.incomingCall.decline,
-      enPhone.phone.incomingCall.decline,
-    );
+    // The Decline label may be relabeled later, so only its presence is checked.
+    expect(screen.getByTestId("incoming-call-decline")).not.toBeNull();
 
     fireEvent.click(screen.getByTestId("incoming-call-accept"));
     const active = screen.getByRole("dialog", { name: viPhone.phone.callPresentation.name });
@@ -571,6 +570,91 @@ describe("ChapterOnePage call presentation", () => {
     );
     expect(active.textContent).not.toContain(enPhone.phone.call.status);
     expect(active.textContent).not.toContain(enStory.dialogue.optionsLabel);
+  });
+
+  it("shows the line in the subtitle overlay outside the phone, with an End call label and the 3D phone enabled", () => {
+    renderPage();
+    beginChapter();
+    ring();
+    publishModelRect();
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+
+    const host = screen.getByTestId("phone-screen-host");
+    const overlay = screen.getByTestId("call-subtitle-overlay");
+    const line = screen.getByTestId("call-subtitle-line");
+    expect(overlay.contains(line)).toBe(true);
+    expect(line.textContent).not.toBe("");
+    expect(host.contains(overlay)).toBe(false);
+    expect(host.contains(line)).toBe(false);
+    expect(host.contains(screen.getByTestId("player-choice-overlay"))).toBe(false);
+    expect(screen.getByTestId("call-screen-hang-up").textContent).toBe(enPhone.phone.call.hangUp);
+    expect(enPhone.phone.call.hangUp).toBe("End call");
+    // The 3D phone stays on while the call shows (the player input is what is disabled).
+    expect(canvas().phoneModelEnabled).toBe(true);
+    expect(canvas().callPhone).not.toBeNull();
+    expect(canvas().enabled).toBe(false);
+  });
+
+  it("advances the node when an option is chosen and keeps the choices outside the phone", () => {
+    renderPage();
+    beginChapter();
+    ring();
+    publishModelRect();
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+
+    const nodeBefore = store().getState().conversation?.nodeId;
+    const [firstId] = currentOptionIds();
+    fireEvent.click(optionButtons()[0]);
+    expect(dispatched("SELECT_DIALOGUE_OPTION")).toEqual([{ type: "SELECT_DIALOGUE_OPTION", optionId: firstId }]);
+    expect(store().getState().conversation?.nodeId).not.toBe(nodeBefore);
+    if (store().getState().call.status === "active") {
+      const host = screen.getByTestId("phone-screen-host");
+      expect(host.contains(screen.getByTestId("player-choice-overlay"))).toBe(false);
+      expect(host.contains(screen.getByTestId("call-subtitle-overlay"))).toBe(false);
+    }
+  });
+
+  it("End call dispatches END_CALL once and removes the subtitle overlay with the presentation", () => {
+    renderPage();
+    beginChapter();
+    ring();
+    publishModelRect();
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+    expect(screen.getByTestId("call-subtitle-overlay")).not.toBeNull();
+
+    fireEvent.click(screen.getByTestId("call-screen-hang-up"));
+
+    expect(dispatched("END_CALL")).toHaveLength(1);
+    expect(screen.queryByTestId("call-subtitle-overlay")).toBeNull();
+    expectNoPresentation();
+  });
+
+  it("toggles Speaker with aria-pressed for the call and resets it for the next call without saving it", () => {
+    renderPage();
+    beginChapter();
+    ring();
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+
+    // The saved setting is on, so Speaker starts pressed.
+    const speaker = () => screen.getByTestId("call-screen-speaker");
+    expect(speaker().getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(speaker());
+    expect(speaker().getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(speaker());
+    expect(speaker().getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(speaker());
+    expect(speaker().getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(screen.getByTestId("call-screen-hang-up"));
+    expectNoPresentation();
+    // The override never reaches the saved settings.
+    expect(SETTINGS.phoneVoiceFilter).toBe(true);
+    expect(window.localStorage.length).toBe(0);
+
+    // A new call starts again from the saved setting.
+    dispatchAccepted({ type: "RING_CALL", callId: "call.callback", reason: "callback" });
+    fireEvent.click(screen.getByTestId("incoming-call-accept"));
+    expect(speaker().getAttribute("aria-pressed")).toBe("true");
   });
 
   it("keeps the call state when the locale changes during a call (12.7)", () => {

@@ -1,6 +1,6 @@
 // Import-boundary test for the 3D phone call UI (task 11.7).
-// - The DOM call components (`PhoneScreenUI`, `PlayerChoiceOverlay`, `PhoneScreenHost`,
-//   `CallPresentation`) and the pure modules `callLayout` and `phoneMotion`, with every file they
+// - The DOM call components (`PhoneCallScreen`, `CallSubtitleOverlay`, `PlayerChoiceOverlay`,
+//   `PhoneScreenHost`, `CallPresentation`) and the pure modules `callLayout` and `phoneMotion`, with every file they
 //   reach through relative or `@/` imports, import no `three`, `@react-three/fiber` or
 //   `@react-three/drei` (Requirements 11.2, 11.9).
 // - `PhoneModel3D.tsx` imports no narrative store, selectors or `useChapterState`, adds no light,
@@ -19,12 +19,27 @@ const SRC_DIR = resolve(CALL_DIR, "../../..");
 
 /** Entry files of the DOM-only call UI, relative to this folder. */
 const DOM_ENTRIES = [
-  "PhoneScreenUI.tsx",
+  "PhoneCallScreen.tsx",
+  "CallSubtitleOverlay.tsx",
   "PlayerChoiceOverlay.tsx",
   "PhoneScreenHost.tsx",
   "CallPresentation.tsx",
   "callLayout.ts",
   "phoneMotion.ts",
+] as const;
+
+/** Pure call modules: no React, three, i18n or store imports (type-only imports are allowed). */
+const PURE_MODULES = ["callDialogueView.ts", "callTimer.ts"] as const;
+
+const PURE_FORBIDDEN_PACKAGES = [
+  "react",
+  "react-dom",
+  "i18next",
+  "react-i18next",
+  "zustand",
+  "three",
+  "@react-three/fiber",
+  "@react-three/drei",
 ] as const;
 
 /** Packages the DOM call UI must never import (exact name or with a subpath). */
@@ -309,6 +324,26 @@ describe("3D phone call UI import boundaries", () => {
     expect(visited).toContain("features/chapter1/useChapterState.ts");
     expect(visited).not.toContain("features/chapter1/call/PhoneModel3D.tsx");
     expect(violations).toEqual([]);
+  });
+
+  it("the pure call modules import no React, three, i18n or store at runtime", () => {
+    for (const name of PURE_MODULES) {
+      const file = join(CALL_DIR, name);
+      expect(existsSync(file), file).toBe(true);
+      // Type-only imports are erased at build time, so they are not runtime dependencies.
+      const code = stripComments(readFileSync(file, "utf8")).replace(
+        /\b(?:import|export)\s+type\b[^'"`;]*?\bfrom\s*(['"])[^'"]+\1;?/g,
+        "",
+      );
+      const offenders = extractSpecifiers(code).filter((specifier) => {
+        if (PURE_FORBIDDEN_PACKAGES.some((pkg) => specifier === pkg || specifier.startsWith(`${pkg}/`))) {
+          return true;
+        }
+        const target = resolveLocal(file, specifier, SRC_DIR, diskHost);
+        return typeof target === "string" && /(?:^|\/)(?:store|i18n)(?:\/|\.|$)/.test(toSrcPath(target));
+      });
+      expect(offenders, name).toEqual([]);
+    }
   });
 
   it("PhoneModel3D reads no narrative state, adds no light or post-processing and never writes the camera", () => {

@@ -28,6 +28,8 @@ export interface CallLayout {
   screen: Rect;
   /** Region for the choice overlay (its maximum size). */
   choice: Rect;
+  /** Region for the caller subtitle overlay (its maximum size), apart from screen and choice. */
+  subtitle: Rect;
   /** Screen corner radius in CSS pixels: `SCREEN_CORNER_RATIO * screen.width`. */
   screenCornerRadius: number;
 }
@@ -53,6 +55,12 @@ export const NARROW_BREAKPOINT = 640;
 export const MAX_SCREEN_HEIGHT = 660;
 /** The wide layout keeps at least this width for the choice region, in CSS pixels. */
 export const MIN_CHOICE_WIDTH = 280;
+/** The subtitle region is never taller than this, in CSS pixels. */
+export const SUBTITLE_MAX_HEIGHT = 104;
+/** The narrow layout gives the subtitle at least this height when room allows, in CSS pixels. */
+export const SUBTITLE_MIN_HEIGHT = 56;
+/** Share of the space below the screen that the narrow layout offers to the subtitle. */
+export const SUBTITLE_NARROW_SHARE = 0.35;
 
 const NARROW_MARGIN = 12;
 const WIDE_MARGIN = 24;
@@ -82,7 +90,21 @@ export function computeCallLayout(viewport: Viewport): CallLayout {
     );
     const width = height * SCREEN_ASPECT;
     const screen = screenRectOfHeight(height, (W - width) / 2, m);
-    const choiceTop = screen.top + screen.height + m;
+    const screenBottom = screen.top + screen.height;
+    // Space for subtitle + gap + choice, below the screen.
+    const remaining = Math.max(0, H - screenBottom - 2 * m);
+    const subtitleHeight = Math.min(
+      remaining,
+      SUBTITLE_MAX_HEIGHT,
+      Math.max(SUBTITLE_MIN_HEIGHT, Math.round(SUBTITLE_NARROW_SHARE * remaining)),
+    );
+    const subtitle: Rect = {
+      left: m,
+      top: screenBottom + m,
+      width: W - 2 * m,
+      height: subtitleHeight,
+    };
+    const choiceTop = subtitle.top + subtitleHeight + (subtitleHeight > 0 ? m : 0);
     const choice: Rect = {
       left: m,
       top: choiceTop,
@@ -93,6 +115,7 @@ export function computeCallLayout(viewport: Viewport): CallLayout {
       kind: "narrow",
       screen,
       choice,
+      subtitle,
       screenCornerRadius: SCREEN_CORNER_RATIO * screen.width,
     };
   }
@@ -111,6 +134,14 @@ export function computeCallLayout(viewport: Viewport): CallLayout {
     width: choiceWidth,
     height: H / 2 - m,
   };
+  // The subtitle sits in the left column directly above the choice region.
+  const subtitleHeight = Math.min(SUBTITLE_MAX_HEIGHT, Math.max(0, H / 2 - 2 * m));
+  const subtitle: Rect = {
+    left: m,
+    top: H / 2 - m - subtitleHeight,
+    width: choice.width,
+    height: subtitleHeight,
+  };
   // Center the screen in the space right of the choice region (between its right edge plus
   // one margin and the viewport right edge minus one margin), and vertically in the viewport.
   const spaceLeft = choice.left + choice.width + m;
@@ -124,6 +155,7 @@ export function computeCallLayout(viewport: Viewport): CallLayout {
     kind: "wide",
     screen,
     choice,
+    subtitle,
     screenCornerRadius: SCREEN_CORNER_RATIO * screen.width,
   };
 }

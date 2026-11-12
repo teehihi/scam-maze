@@ -7,7 +7,6 @@ import type { ChapterLoaderDeps, ChapterLoadRequest } from "../../game/loading/c
 import { useTranslation } from "react-i18next";
 import {
   describeChapterStage,
-  formatChapterLabel,
   formatFileCount,
   type LoadingTextContext,
 } from "../../game/loading/loadingStrings";
@@ -65,19 +64,13 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
     else if (session) onEnterChapter(session);
   }, [leavingToMenu, session, onBackToMenu, onEnterChapter]);
 
-  // Before the loader reports a chapter, show what was requested (or a generic "Continue").
-  const requested = request.kind === "new-game" ? getChapter(request.chapterId) : undefined;
-  const chapter = snapshot.chapter ?? requested ?? null;
-
-  // Chapter text by chapter ID and asset ID. The registry's English text is the fallback for a
-  // chapter or asset without a dictionary key.
-  const eyebrow = chapter ? formatChapterLabel(chapter.number, text) : t("loading:continueEyebrow");
-  const title = chapter
-    ? tChapters(`${chapter.id}.title`, { defaultValue: chapter.title })
-    : t("loading:continueTitle");
-  const subtitle = chapter
-    ? tChapters(`${chapter.id}.subtitle`, { defaultValue: chapter.subtitle })
-    : t("loading:continueSubtitle");
+  // The loading screen never names the chapter (no number, title or subtitle), so the player is
+  // not told in advance what the story is about. Chapter data is still used for asset text.
+  const chapter = snapshot.chapter ?? (request.kind === "new-game" ? getChapter(request.chapterId) : undefined) ?? null;
+  const isNewGame = request.kind === "new-game";
+  const eyebrow = isNewGame ? t("loading:newGameEyebrow") : t("loading:continueEyebrow");
+  const title = isNewGame ? t("loading:newGameTitle") : t("loading:continueTitle");
+  const subtitle = isNewGame ? t("loading:newGameSubtitle") : t("loading:continueSubtitle");
   const stageText =
     snapshot.stage === "loading-assets" && chapter && snapshot.currentAssetId && snapshot.currentAssetText
       ? tChapters(`${chapter.id}.assets.${snapshot.currentAssetId}`, { defaultValue: snapshot.currentAssetText })

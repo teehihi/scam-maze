@@ -55,7 +55,9 @@ const phone: LocaleShape<typeof en> = {
     },
     call: {
       status: "Đang trong cuộc gọi",
-      hangUp: "Cúp máy",
+      hangUp: "Kết thúc cuộc gọi",
+      speaker: "Loa ngoài",
+      replayAria: "Nghe lại câu vừa rồi",
       connecting: "Đã kết nối. Đang chờ người gọi lên tiếng.",
       duration: "Thời lượng cuộc gọi",
       mute: "Tắt tiếng",
@@ -69,6 +71,9 @@ const phone: LocaleShape<typeof en> = {
         englishVoice: "Câu này được đọc bằng tiếng Anh. Phụ đề bằng tiếng Việt.",
         noAudio: "Câu này không có âm thanh. Hãy đọc phụ đề.",
       },
+    },
+    subtitle: {
+      label: "Phụ đề cuộc gọi",
     },
     sound: {
       ringing: "Điện thoại đang đổ chuông",

@@ -44,7 +44,7 @@ Verified on `feat/chapter-01-playable` (11 Nov 2026):
 | Loading screens | Startup screen for the menu scene and a chapter loading pipeline with byte-measured progress, asset verification, error recovery and fade transitions. Loading ends in the playable Chapter 1 page (`ChapterOnePage`); a chapter with `gameplayAvailable: false` still ends on the "in development" screen. See [section 4.2.1](#421-chapter-loading-implemented). |
 | Chapter 1 "The Urgent Call" | Playable from start to debrief on the menu street scene (`features/chapter1/`): first-person movement, in-world interactables with a focus probe, a scam phone call and three other dialogues, evidence journal, objectives, a final decision, three outcome groups (verified, risky, uncertain) with variants, and a debrief. Play time and frame rate have not been measured. Story and content: [`docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md`](../gameplay/CHAPTER_01_THE_URGENT_CALL.md). |
 | Game core (deterministic) | `game/narrative/`: pure TypeScript reducer `chapterReducer(state, action, scenario)` with dialogue engine, evidence, objectives, outcome and debrief modules; Chapter 1 content in `game/narrative/chapter1/`; hand-written scenario validation (`validateScenario.ts`); a framework-free `ChapterStore` read through `useSyncExternalStore`; a pure `localize.ts` for display-only translated copies of the scenario. No React, Three.js, Zustand, Dexie or i18n imports. See [section 4.3](#43-deterministic-core-narrative-engine-and-scam-intelligence-engine-implemented-for-chapter-1). |
-| In-game phone | 2D React overlay in `features/chapter1/phone/`: home screen, call history, messages and a fictional bank app. Phone calls (ringing and active) are shown on a 3D phone in the chapter canvas, with a DOM screen and a separate choice panel, and fall back to a 2D phone screen when the 3D phone cannot be shown (`features/chapter1/call/`, see [section 4.2](#42-game-client-implemented-for-the-menu-and-chapter-1-later-chapters-planned)). Phone actions are dispatched to the core as Core_Actions. |
+| In-game phone | 2D React overlay in `features/chapter1/phone/`: home screen, call history, messages and a fictional bank app. Phone calls (ringing and active) are shown on a 3D phone in the chapter canvas, with a DOM device screen (avatar, name, number, status, timer and controls only), caller text in a separate subtitle overlay and a separate choice panel, and fall back to a 2D phone screen when the 3D phone cannot be shown (`features/chapter1/call/`, see [section 4.2](#42-game-client-implemented-for-the-menu-and-chapter-1-later-chapters-planned)). Phone actions are dispatched to the core as Core_Actions. |
 | Local saves (format v2) | `game/saves/saveGame.ts` behind the `SaveGameSource` interface, stored in `localStorage` (key `scammaze_save_v2`). A save holds the accepted Core_Actions (at most 1000), a checkpoint ID and the player pose. Restore replays the actions through the core (`game/saves/chapterProgress.ts`) and rejects saves that do not replay. Version 1 saves are migrated to a chapter-start checkpoint. Checkpoints are written by `features/chapter1/useCheckpointSaver.ts`. |
 | Game localization (English, Vietnamese) | `apps/game/src/i18n/`: i18next 27.1.1 and react-i18next 18.0.1 with bundled dictionaries, English as default and fallback, Vietnamese as second locale. The choice is stored in `GameSettings.language` (`localStorage` key `scammaze_settings_v1`) and `<html lang>` follows it. Chapter 1 narrative text is translated through a display-only overlay; the chapter core, its state and saves do not depend on the language. The landing app stays English-only. See [section 4.2.2](#422-localization-implemented). |
 | Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings (including `language: GameLocale`), and scenario metadata. |
@@ -179,7 +179,7 @@ stack (section 2) and is not changed by this decision.
 | Deterministic scenario engine | **TypeScript** (pure functions) | Chapter state machines, evidence, tactics, consequences, scoring; no React, Three.js or network imports | `IMPLEMENTED` for Chapter 1 (`game/narrative/`) |
 | Runtime schema validation | **Zod** | Validates scenario files, saved state on load, and AI proposals before the engine sees them | `PLANNED`; not installed. Chapter 1 uses hand-written validation (section 4.3) |
 | Local persistence | **IndexedDB** via **Dexie** | Local saves with versioned schema; clear-data support | `PLANNED`; not installed. Chapter 1 saves to `localStorage` (section 4.3) |
-| In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief; the call screen and choice panel are DOM placed over the 3D call phone | `IMPLEMENTED` for Chapter 1 |
+| In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief; the call screen is a DOM device UI placed over the 3D call phone; caller text (subtitle overlay) and the choice panel are DOM beside it | `IMPLEMENTED` for Chapter 1 |
 | Localization | **i18next** + **react-i18next** | UI text per language from bundled dictionaries; display only, never read by the deterministic core | `IMPLEMENTED` (i18next 27.1.1, react-i18next 18.0.1; section 4.2.2) |
 | Entity Component System (ECS) | Not chosen | Option for future evaluation only if prototype profiling shows a need (for example many NPCs or props with shared behaviour) | `PROPOSED` (not approved) |
 
@@ -256,12 +256,16 @@ Components inside the game client (paths relative to `apps/game/src/`):
   `features/chapter1/call/`:
   - Overlay entry: a ringing or active call pushes a locked `call` entry on the page overlay
     stack (`overlays.ts`). Escape, P and J do nothing while it is on top, and player input stays
-    disabled. Hang up or Decline removes the entry and returns to the previous stack.
+    disabled. End call or Decline removes the entry and returns to the previous stack.
   - `CallPresentation.tsx` (DOM wiring, no Three.js imports): reads `state.call` and
     `selectDialogueView` through `useChapterState`, holds no dialogue state of its own, and sends
     every change through the page handlers (answer, end, select option) to the core. It places
-    one `PhoneScreenUI` instance in `PhoneScreenHost` and renders `PlayerChoiceOverlay` beside it.
-    Layout comes from `callLayout.ts` (`computeCallLayout`) and the window size (`useViewport.ts`).
+    one `PhoneCallScreen` instance in `PhoneScreenHost`, then renders `CallSubtitleOverlay` and
+    `PlayerChoiceOverlay` beside it (in that DOM order). Layout comes from `callLayout.ts`
+    (`computeCallLayout`, which returns `screen`, `subtitle` and `choice` rectangles) and the
+    window size (`useViewport.ts`). What to show is derived by the pure `callDialogueView.ts`
+    (`deriveCallDialogueView`, `isSubtitleVisible`); `callTimer.ts` formats the `mm:ss` timer.
+    The page keeps a per-call Speaker override that never writes the saved setting.
   - 3D phone: `PhoneModel3D.tsx` renders the optimized phone model inside the existing
     `ChapterOneCanvas` (no second canvas, no added lights, environment map or post-processing),
     placed in front of the camera. It reads the camera pose and field of view but never writes to
@@ -272,13 +276,20 @@ Components inside the game client (paths relative to `apps/game/src/`):
     `PhoneScreenSink` (`phoneScreenSink.ts`, created in `ChapterOnePage`). `PhoneScreenHost`
     subscribes and writes the position and size directly on its element, so the DOM screen
     follows the 3D screen without a React render per frame.
-  - `PhoneScreenUI.tsx`: phone-owned content only. Ringing shows the caller, number, Decline and
-    Accept; active shows the caller, status, the caller's line and Hang up. The number is plain
-    text (no link). Player choices are never shown on the phone screen.
+  - `PhoneCallScreen.tsx`: a device UI only, with no sentences. Ringing shows the avatar, the
+    status "Incoming call", the caller name and number, Decline and Accept. Active shows the
+    avatar, the status "Call in progress", name, number, the `mm:ss` timer, round Mute, Speaker
+    and Replay buttons with visible labels, and a red End call button. The number is plain text
+    (no link). The caller line, the connecting text, the voice notices and the player choices
+    are never shown on the phone screen.
+  - `CallSubtitleOverlay.tsx`: the current caller line, the connecting text and the voice
+    notice, outside the phone in the `subtitle` rectangle. The line is shown when the Captions
+    setting is on or when nothing is audible; the notice is always shown. Polite live regions,
+    not focusable, no pointer events.
   - `PlayerChoiceOverlay.tsx`: the player's dialogue options as a labelled list of buttons on
     the opaque `UI.choicePanel` surface, beside the phone. Long options wrap; the panel scrolls
     vertically. Options work by click, Enter or Space and are disabled while paused.
-  - 2D fallback: `PhoneScreenHost` shows the same `PhoneScreenUI` instance on a 2D bezel when
+  - 2D fallback: `PhoneScreenHost` shows the same `PhoneCallScreen` instance on a 2D bezel when
     WebGL is not available, the model has not published a rectangle after 200 ms (still
     loading), the model failed to load (`phoneModelStatus.ts`, one console warning with the asset
     path, no error alert), or the WebGL context is lost (`ChapterOneCanvas` reports
