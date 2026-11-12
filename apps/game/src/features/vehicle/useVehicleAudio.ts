@@ -7,7 +7,16 @@ interface VehicleAudioProps {
   driveSoundPath?: string;
   stopSoundPath?: string;
   stopCarSoundPath?: string;
+  indicatorSoundPath?: string;
 }
+
+/**
+ * Loudness of the vehicle sounds relative to the SFX volume setting (about +5 dB).
+ * Gains may exceed 1; the output limiter below keeps the mix from clipping.
+ */
+const VEHICLE_GAIN_BOOST = 1.8;
+const MAX_VEHICLE_GAIN = 2.0;
+const vehicleGain = (base: number, volume: number) => Math.min(MAX_VEHICLE_GAIN, base * volume * VEHICLE_GAIN_BOOST);
 
 export function useVehicleAudio({
   enabled = true,
@@ -16,14 +25,18 @@ export function useVehicleAudio({
   driveSoundPath = "/assets/audio/drive.wav",
   stopSoundPath = "/assets/audio/stop.mp3",
   stopCarSoundPath = "/assets/audio/stopCar.mp3",
+  indicatorSoundPath = "/assets/audio/indicator.mp3",
 }: VehicleAudioProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
+  /** Every vehicle sound goes through this limiter before reaching the speakers. */
+  const outputRef = useRef<AudioNode | null>(null);
 
   // Audio buffers pre-decoded in memory
   const doorBufferRef = useRef<AudioBuffer | null>(null);
   const driveBufferRef = useRef<AudioBuffer | null>(null);
   const stopBufferRef = useRef<AudioBuffer | null>(null);
   const stopCarBufferRef = useRef<AudioBuffer | null>(null);
+  const indicatorBufferRef = useRef<AudioBuffer | null>(null);
 
   // Active audio source nodes
   const doorSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -34,6 +47,8 @@ export function useVehicleAudio({
   const driveGainRef = useRef<GainNode | null>(null);
   const stopSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const stopGainRef = useRef<GainNode | null>(null);
+  const indicatorSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const indicatorGainRef = useRef<GainNode | null>(null);
 
   // Track state to avoid redundant restarts
   const isDrivingSoundActiveRef = useRef(false);
@@ -44,7 +59,16 @@ export function useVehicleAudio({
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return;
-    audioCtxRef.current = new AudioCtx();
+    const ctx = new AudioCtx();
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -3;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
+    limiter.connect(ctx.destination);
+    audioCtxRef.current = ctx;
+    outputRef.current = limiter;
   }, []);
 
   // Pre-load and decode all sound files on mount
@@ -84,12 +108,22 @@ export function useVehicleAudio({
         stopCarBufferRef.current = decoded;
       })
       .catch((err) => console.warn("Failed to load car stopCar sound:", err));
+    fetch(indicatorSoundPath)
+      .then((res) => res.arrayBuffer())
+      .then((buf) => ctx.decodeAudioData(buf))
+      .then((decoded) => {
+        indicatorBufferRef.current = decoded;
+      })
+      .catch((err) => console.warn("Failed to load turn signal sound:", err));
 
     return () => {
       ctx.close().catch(() => {});
       audioCtxRef.current = null;
+      outputRef.current = null;
+      indicatorSourceRef.current = null;
+      indicatorGainRef.current = null;
     };
-  }, [doorSoundPath, driveSoundPath, stopSoundPath, stopCarSoundPath, initAudio]);
+  }, [doorSoundPath, driveSoundPath, stopSoundPath, stopCarSoundPath, indicatorSoundPath, initAudio]);
 
   /** Play car door close sound on enter. Calls onEnded when complete */
   const playDoorSound = useCallback(
@@ -114,10 +148,10 @@ export function useVehicleAudio({
       source.buffer = buffer;
 
       const gain = ctx.createGain();
-      gain.gain.setValueAtTime(Math.min(1.0, 0.9 * volume), ctx.currentTime);
+      gain.gain.setValueAtTime(vehicleGain(0.9, volume), ctx.currentTime);
 
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(outputRef.current ?? ctx.destination);
 
       let endedCalled = false;
       const handleEnded = () => {
@@ -174,10 +208,10 @@ export function useVehicleAudio({
       source.playbackRate.setValueAtTime(1.0, ctx.currentTime);
 
       const gain = ctx.createGain();
-      gain.gain.setValueAtTime(Math.min(1.0, 0.9 * volume), ctx.currentTime);
+      gain.gain.setValueAtTime(vehicleGain(0.9, volume), ctx.currentTime);
 
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(outputRef.current ?? ctx.destination);
 
       let endedCalled = false;
       const handleEnded = () => {
@@ -216,10 +250,10 @@ export function useVehicleAudio({
     source.buffer = buffer;
 
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(Math.min(1.0, 0.95 * volume), ctx.currentTime);
+    gain.gain.setValueAtTime(vehicleGain(0.95, volume), ctx.currentTime);
 
     source.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(outputRef.current ?? ctx.destination);
     source.start(0);
   }, [enabled, volume, initAudio]);
 
@@ -267,10 +301,10 @@ export function useVehicleAudio({
 
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.001, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(Math.min(1.0, 0.85 * volume), ctx.currentTime + 0.15);
+      gain.gain.linearRampToValueAtTime(vehicleGain(0.85, volume), ctx.currentTime + 0.15);
 
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(outputRef.current ?? ctx.destination);
       source.start(0);
 
       driveSourceRef.current = source;
@@ -315,19 +349,63 @@ export function useVehicleAudio({
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(Math.min(1.0, 0.85 * volume), ctx.currentTime + 0.12);
+    gain.gain.linearRampToValueAtTime(vehicleGain(0.85, volume), ctx.currentTime + 0.12);
 
     source.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(outputRef.current ?? ctx.destination);
     source.start(0);
 
     stopSourceRef.current = source;
     stopGainRef.current = gain;
   }, [enabled, volume, initAudio]);
 
+  /** Turn signal ticking: loops from the start while on, fades out when switched off. */
+  const setIndicator = useCallback(
+    (on: boolean) => {
+      const ctx = audioCtxRef.current;
+      if (!on) {
+        const source = indicatorSourceRef.current;
+        const gain = indicatorGainRef.current;
+        indicatorSourceRef.current = null;
+        indicatorGainRef.current = null;
+        if (ctx && source && gain) {
+          gain.gain.cancelScheduledValues(ctx.currentTime);
+          gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+          setTimeout(() => {
+            try {
+              source.stop();
+              source.disconnect();
+            } catch {}
+          }, 120);
+        }
+        return;
+      }
+      if (!enabled || indicatorSourceRef.current) return;
+      initAudio();
+      const buffer = indicatorBufferRef.current;
+      const liveCtx = audioCtxRef.current;
+      if (!liveCtx || !buffer) return;
+      if (liveCtx.state === "suspended") liveCtx.resume().catch(() => {});
+      const source = liveCtx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      const gain = liveCtx.createGain();
+      gain.gain.setValueAtTime(0.001, liveCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(vehicleGain(0.7, volume), liveCtx.currentTime + 0.05);
+      source.connect(gain);
+      gain.connect(outputRef.current ?? liveCtx.destination);
+      source.start(0);
+      indicatorSourceRef.current = source;
+      indicatorGainRef.current = gain;
+    },
+    [enabled, volume, initAudio],
+  );
+
   /** Stop all driving/stop audio loops (called on exit) */
   const stopAll = useCallback(() => {
     isDrivingSoundActiveRef.current = false;
+    setIndicator(false);
     const ctx = audioCtxRef.current;
     if (ctx) {
       const now = ctx.currentTime;
@@ -364,7 +442,7 @@ export function useVehicleAudio({
         stopGainRef.current = null;
       }, 100);
     }
-  }, []);
+  }, [setIndicator]);
 
   return {
     playDoorSound,
@@ -372,6 +450,7 @@ export function useVehicleAudio({
     playDriveSound,
     playStopSound,
     playStopCarSound,
+    setIndicator,
     stopAll,
   };
 }

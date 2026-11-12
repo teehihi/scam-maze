@@ -20,7 +20,12 @@ interface UEHOverlayProps {
     speed: number;
     isSprinting: boolean;
     isGrounded: boolean;
+    /** While driving, the vehicle HUD replaces the on-foot reticle, prompts and footer. */
+    isDriving?: boolean;
+    isNearCar?: boolean;
   };
+  /** False hides the whole HUD (H key) except the interaction prompts and the click-to-lock prompt. */
+  panelsVisible?: boolean;
 }
 
 export const UEHOverlay: React.FC<UEHOverlayProps> = ({
@@ -31,8 +36,10 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
   currentTrack = "mua-ha",
   activeToast = null,
   stats,
+  panelsVisible = true,
 }) => {
   const { t } = useTranslation("worlds");
+  const isDriving = Boolean(stats.isDriving);
   const isMuaHa = currentTrack === "mua-ha";
   const headerTrack = isMuaHa
     ? t("ueh.header.muaHa", { title: UEH_TRACK_TITLES["mua-ha"].toUpperCase() })
@@ -44,7 +51,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
   return (
     <div className="absolute inset-0 pointer-events-none select-none z-30 flex flex-col justify-between p-6 sm:p-8">
       {/* Top Header Bar */}
-      <header className="flex items-center justify-between w-full">
+      <header className={`flex items-center justify-between w-full ${panelsVisible ? "" : "invisible"}`}>
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -55,7 +62,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             <span>{t("ueh.backToMenu")}</span>
           </button>
 
-          <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#005f69]/40 border border-[#00a896]/30 text-xs font-medium text-emerald-100 backdrop-blur-md">
+          <div className={`${panelsVisible ? "hidden sm:flex" : "hidden"} items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#005f69]/40 border border-[#00a896]/30 text-xs font-medium text-emerald-100 backdrop-blur-md`}>
             <Sparkles className="w-3.5 h-3.5 text-[#f26f33]" />
             <span>
               {t("ueh.header.campus")} · {headerTrack}
@@ -84,16 +91,18 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
         </div>
       )}
 
-      {/* Center Reticle / Crosshair */}
+      {/* Center Reticle / Crosshair (hidden while driving) */}
+      {!isDriving && (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="relative flex items-center justify-center">
           <div className="w-1.5 h-1.5 rounded-full bg-white/85 shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
           <div className="absolute w-6 h-6 border border-white/35 rounded-full" />
         </div>
       </div>
+      )}
 
       {/* Interactive Prompt: [E] Strum Guitar on Bench */}
-      {isNearGuitar && isLocked && (
+      {isNearGuitar && isLocked && !isDriving && !stats.isNearCar && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-12 pointer-events-none flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#071a26]/95 border border-[#00a896] text-white shadow-2xl backdrop-blur-md animate-bounce-subtle z-40">
           <kbd className="px-2.5 py-1 rounded-lg bg-[#005f69] text-amber-300 font-extrabold font-mono text-sm border border-[#00a896] shadow-md">
             E
@@ -143,7 +152,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
       )}
 
       {/* Bottom Status & Controls Guide */}
-      <footer className="flex flex-col sm:flex-row items-end sm:items-end justify-between gap-4 w-full">
+      <footer className={`flex flex-col sm:flex-row items-end sm:items-end justify-between gap-4 w-full ${(isDriving && isLocked) || !panelsVisible ? "invisible" : ""}`}>
         {/* Controls cheat sheet */}
         <div className="p-3.5 rounded-2xl bg-[#091b26]/85 backdrop-blur-md border border-[#1e4659]/80 text-[11px] text-zinc-300 shadow-xl max-w-md">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#4dd8ff] uppercase tracking-wider mb-2">
@@ -178,9 +187,13 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
               <span className="text-amber-300 font-semibold">T / I</span>
               <span className="text-zinc-400"> : {t("ueh.controls.viewHands")}</span>
             </div>
-            <div className="col-span-2">
+            <div>
               <span className="text-amber-300 font-semibold">Ctrl</span>
               <span className="text-zinc-400"> : {t("ueh.controls.toggleCursor")}</span>
+            </div>
+            <div>
+              <span className="text-amber-300 font-semibold">H</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.togglePanels")}</span>
             </div>
           </div>
           <div className="mt-2 pt-2 border-t border-zinc-800 text-[10px] text-zinc-400">
