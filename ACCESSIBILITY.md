@@ -36,19 +36,40 @@ modal, under "Voice and comfort", and stored with the other settings. Voice,
 captions and sound never change the game state, the evidence, the decisions or
 the outcome. The chapter is fully playable with sound off.
 
-- **Captions.** Every spoken line is also shown as text on the phone screen.
-  The "Captions" setting is on by default. If you turn it off, the caption still
+- **Captions (subtitles).** Every spoken caller line is also shown as text in
+  the subtitle overlay (`CallSubtitleOverlay`). The overlay sits outside the
+  phone, on the game screen; the phone itself shows no sentences. The
+  "Captions" setting is on by default. If you turn it off, the caption still
   appears whenever the line is not audible (muted, sound off, volume 0, blocked
   by the browser, or no audio for that line), so no line is ever silent and
-  invisible. Caption changes are announced through a polite `aria-live` region.
+  invisible. The overlay shows one caller line at a time. A long line scrolls
+  inside the overlay and is never cut. The caption and the notices are in
+  polite `aria-live` regions that stay mounted, so the same line is not
+  announced twice. The overlay is not focusable and does not take pointer
+  events, so it never blocks the phone or the reply buttons. The caption fades
+  in over 150 ms; with reduced motion there is no fade.
 - **Mute.** The phone screen has a Mute / Unmute button. It is a real button
   with `aria-pressed` and a text label that changes with the state. Mute applies
   to the call voice only, and it is reset to "not muted" when a new call starts.
   Master sound, sound volume and voice volume are separate settings.
+- **Speaker.** The phone screen has a Speaker toggle (`aria-pressed`). It turns
+  the phone-speaker sound effect on or off for the current call only. It does
+  not route audio to another device and does not make the voice louder. A
+  change applies from the next line or from Replay, not to a line that is
+  already playing. It never changes the saved "Phone speaker effect" setting,
+  and it goes back to the saved setting when the next call starts.
 - **Replay.** The phone screen has a Replay button that plays the current line
-  again. It is disabled when there is nothing to play (sound off, volume 0, or
+  again. Its visible label is "Replay" and its accessible name is "Replay last
+  line". It is disabled when there is nothing to play (sound off, volume 0, or
   no clip and no preview voice).
-- **Notices.** A short text notice explains when sound is blocked by the
+- **Call buttons and names.** While a call is active, the keyboard order is
+  Mute, Speaker, Replay, End call, then the reply options. While the phone
+  rings, the order is Decline, then Accept. The visible label of each button is
+  contained in its accessible name. End call and Decline are red (`#c93c47`)
+  with white text, a contrast of about 4.98:1 (calculated from the colors, not
+  measured on a screen); the hover color is `#b3343e`. The state of Mute and
+  Speaker is not shown by color alone: `aria-pressed` is set, and Mute also
+  changes its icon and label.- **Notices.** A short text notice explains when sound is blocked by the
   browser, when a line is a development preview voice (not a recording), when a
   line is spoken in English while the caption is in Vietnamese, and when a line
   has no audio. Notices are in a polite `aria-live` region.
@@ -61,15 +82,16 @@ the outcome. The chapter is fully playable with sound off.
   default) uses the operating system "reduce motion" setting. "On" always
   reduces motion. "Off" never reduces motion, even if the system asks for it.
   For the 3D phone call, reduced motion removes the slide-in and the ringing
-  vibration.
+  vibration. On the call screen it also removes the 150 ms caption fade and the
+  ringing wobble of the avatar.
 - **Keyboard flow for a call.** The call is a modal dialog. Focus starts on
   "Accept" while the phone rings, on the first reply while replies are shown,
-  and on "Hang up" when there are no replies. Tab moves between the call
+  and on "End call" when there are no replies. Tab moves between the call
   buttons. Arrow Down and Arrow Up move between replies and wrap around. Home
   and End jump to the first and last reply. Keys 1 to 9 choose the reply at that
   position (they are ignored with Alt, Ctrl or Meta, while typing in a field,
   while the game is paused, and while replies are held back). Escape does not
-  close an active call; use "Hang up".
+  close an active call; use "End call".
 - **Choice gate ("Show replies now").** On some lines the replies appear only
   after the caller has finished speaking, so you can listen first. The gate is
   only used while the voice is audible. While it waits, a status message says
@@ -93,7 +115,7 @@ following, and no one has checked them yet:
   effect, the ringtone and the tension sound.
 - Playback of the MP3 voice clips in real browsers, including autoplay rules on
   each browser and device.
-- Known gap: on the 2D fallback phone screen, the ringing icon wobble follows
+- Known gap: on the 2D fallback phone screen, the ringing avatar wobble follows
   the operating system "reduce motion" setting only, not the in-game "Reduce
   motion" setting. Choose "On" in the game and also check your system setting if
   you want to avoid it there.
