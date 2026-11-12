@@ -13,6 +13,7 @@ const credits: LocaleShape<typeof en> = {
   groups: {
     environments: { category: "Môi trường & kiến trúc thế giới 3D" },
     vehicles: { category: "Xe cộ & vật dụng đường phố 3D" },
+    audio: { category: "Giọng nói & âm thanh" },
     project: { category: "Thiết kế trò chơi, cốt truyện & kỹ thuật" },
   },
   items: {
@@ -37,6 +38,10 @@ const credits: LocaleShape<typeof en> = {
     callPhone: {
       notes:
         "Mô hình điện thoại cầm tay dùng cho các cuộc gọi. Bản đã tối ưu, đã bỏ hình nền và không có dấu hiệu thương hiệu nào.",
+    },
+    chapter1Voices: {
+      notes:
+        "Giọng tổng hợp cho lời thoại Chương 1: Microsoft David, Mark và Zira (en-US) và Microsoft An (vi-VN). Không sao chép giọng của người thật nào. Điều khoản phân phối lại cho âm thanh được tạo ra chưa được xác minh.",
     },
     coreArchitecture: {
       notes: "Trò chơi mô phỏng điều tra lừa đảo 3D góc nhìn thứ nhất, xây dựng cho Kiroween 2026.",
