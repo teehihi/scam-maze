@@ -502,7 +502,7 @@ The owner accepted the design's answers to "Requirements gaps found during desig
     failing or skipped check as passing. Ensure all tests pass, ask the user if questions arise.
   - _Requirements: 13.8, 13.9, 14.5_
 
-- [ ] 13. Documentation
+- [x] 13. Documentation
   - [x] 13.1 Update the architecture overview
     - In `docs/architecture/OVERVIEW.md`, describe the Chapter 1 call UI as implemented: the
       locked `call` overlay entry, `CallPresentation` with the 3D phone in the existing canvas,
@@ -524,15 +524,15 @@ The owner accepted the design's answers to "Requirements gaps found during desig
     - Update "Project status", "Completed", "In progress" and "Planned". If any check failed or
       could not run, say so and do not describe the feature as completed or verified.
     - _Requirements: 13.8, 14.4, 14.5, 14.6_
-  - [-] 13.3 Commit the docs and spec files
+  - [x] 13.3 Commit the docs and spec files
     - Stage `docs/architecture/OVERVIEW.md`, `docs/PROJECT_PROGRESS.md` and
       `.kiro/specs/game-3d-phone-call-ui/requirements.md`, `design.md`, `tasks.md` and
       `.config.kiro` by name; commit
       `docs(game): record the 3D phone call UI` with the trailer.
     - _Requirements: 14.1, 14.2_
 
-- [ ] 14. Push the branch
-  - [~] 14.1 Push without force
+- [x] 14. Push the branch
+  - [x] 14.1 Push without force
     - Confirm `git branch --show-current` is `feat/game-3d-phone-call-ui` and `git status --short`
       shows no staged changes left over.
     - Run `git push -u origin feat/game-3d-phone-call-ui` with no `--force`,
