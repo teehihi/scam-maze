@@ -234,6 +234,100 @@ describe("createChapterLoader", () => {
     expect(fake.calls).toEqual([MODEL.url, TEXTURE.url]);
   });
 
+  describe("optional assets", () => {
+    const OPTIONAL = {
+      id: "extra",
+      url: "/test/extra.glb",
+      kind: "gltf",
+      loadingText: "Loading the extra model",
+      optional: true,
+    } as const;
+    const WITH_OPTIONAL = { ...TEST_CHAPTER, assets: [...TEST_CHAPTER.assets, OPTIONAL] };
+    const optionalDeps = (fetchImpl: ReturnType<typeof createFakeFetch>["fetchImpl"], stallTimeoutMs = 30_000) =>
+      createTestDeps(fetchImpl, {
+        getChapter: (id) => (id === WITH_OPTIONAL.id ? WITH_OPTIONAL : undefined),
+        stallTimeoutMs,
+      });
+    const CONSOLE_METHODS = ["log", "info", "warn", "error", "debug"] as const;
+
+    function spyOnConsole() {
+      return CONSOLE_METHODS.map((method) => vi.spyOn(console, method).mockImplementation(() => {}));
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("skips a failing optional asset silently and progress reaches 1", async () => {
+      const spies = spyOnConsole();
+      const fake = createFakeFetch();
+      fake.serve(MODEL.url, makeGlb());
+      fake.serve(TEXTURE.url, makePng());
+      // OPTIONAL.url is not registered, so the fake answers 404.
+      const loader = createChapterLoader(NEW_GAME, optionalDeps(fake.fetchImpl));
+      loader.start();
+      await waitForStage(loader, "ready");
+      const snapshot = loader.getSnapshot();
+      expect(snapshot.progress).toBe(1);
+      expect(snapshot.filesCompleted).toBe(3);
+      expect(snapshot.filesTotal).toBe(3);
+      expect(snapshot.error).toBeNull();
+      expect(snapshot.session).not.toBeNull();
+      expect(fake.calls).toContain(OPTIONAL.url);
+      spies.forEach((spy) => expect(spy).not.toHaveBeenCalled());
+    });
+
+    it("skips an optional asset that fails verification", async () => {
+      const spies = spyOnConsole();
+      const fake = createFakeFetch();
+      fake.serve(MODEL.url, makeGlb());
+      fake.serve(TEXTURE.url, makePng());
+      fake.serve(OPTIONAL.url, new TextEncoder().encode("<!doctype html><html></html>"), { contentType: "text/html" });
+      const loader = createChapterLoader(NEW_GAME, optionalDeps(fake.fetchImpl));
+      loader.start();
+      await waitForStage(loader, "ready");
+      expect(loader.getSnapshot().progress).toBe(1);
+      spies.forEach((spy) => expect(spy).not.toHaveBeenCalled());
+    });
+
+    it("reaches ready when only optional downloads are pending at a stall", async () => {
+      vi.useFakeTimers();
+      const spies = spyOnConsole();
+      const fake = createFakeFetch();
+      fake.serve(MODEL.url, makeGlb());
+      fake.serve(TEXTURE.url, makePng());
+      const extra = fake.manual(OPTIONAL.url);
+      const loader = createChapterLoader(NEW_GAME, optionalDeps(fake.fetchImpl, 1000));
+      loader.start();
+      await vi.advanceTimersByTimeAsync(0);
+      extra.respond({ contentLength: 1000 });
+      extra.push(new Uint8Array(10));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(loader.getSnapshot().stage).toBe("loading-assets");
+      expect(loader.getSnapshot().filesCompleted).toBe(2);
+
+      await vi.advanceTimersByTimeAsync(1005);
+      const snapshot = loader.getSnapshot();
+      expect(snapshot.stage).toBe("ready");
+      expect(snapshot.error).toBeNull();
+      expect(snapshot.progress).toBe(1);
+      expect(extra.signal?.aborted).toBe(true);
+      spies.forEach((spy) => expect(spy).not.toHaveBeenCalled());
+    });
+
+    it("still ends in error when a required asset fails", async () => {
+      const fake = createFakeFetch();
+      fake.serve(TEXTURE.url, makePng());
+      fake.serve(OPTIONAL.url, makeGlb());
+      // MODEL.url is required and not registered, so the fake answers 404.
+      const loader = createChapterLoader(NEW_GAME, optionalDeps(fake.fetchImpl));
+      loader.start();
+      await waitForStage(loader, "error");
+      expect(loader.getSnapshot().error?.code).toBe("asset-missing");
+      expect(loader.getSnapshot().session).toBeNull();
+    });
+  });
+
   describe("continue", () => {
     const validSave = {
       status: "valid",

@@ -12,6 +12,7 @@ const chapters = {
     assets: {
       "street-environment": "Loading the street",
       sky: "Loading the sky",
+      "call-phone": "Loading the phone",
     },
   },
   scenes: {
