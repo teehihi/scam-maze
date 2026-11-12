@@ -32,6 +32,8 @@ const outcome = {
     callAlreadyRinging: "A call is already ringing.",
     callbackNotYet: "The caller cannot call back yet.",
     callbackAlreadyRang: "The caller has already called back.",
+    followupNotYet: "The case desk cannot call yet.",
+    followupAlreadyRang: "The case desk has already called.",
     decisionAlreadyMade: "A decision has already been made.",
     noCallRinging: "No call is ringing.",
     noCallToEnd: "There is no call to end.",

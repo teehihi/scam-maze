@@ -32,6 +32,8 @@ const outcome: LocaleShape<typeof en> = {
     callAlreadyRinging: "Đang có một cuộc gọi đổ chuông.",
     callbackNotYet: "Người gọi chưa thể gọi lại.",
     callbackAlreadyRang: "Người gọi đã gọi lại rồi.",
+    followupNotYet: "Bộ phận xử lý hồ sơ chưa thể gọi.",
+    followupAlreadyRang: "Bộ phận xử lý hồ sơ đã gọi rồi.",
     decisionAlreadyMade: "Bạn đã đưa ra quyết định.",
     noCallRinging: "Không có cuộc gọi nào đang đổ chuông.",
     noCallToEnd: "Không có cuộc gọi nào để kết thúc.",

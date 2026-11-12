@@ -144,4 +144,52 @@ export const EVIDENCE_VI: NarrativeOverlay = {
     "Tự gọi cho ngân hàng theo số bạn đã tin cậy từ trước là cách đáng tin nhất để kiểm tra một cuộc gọi hoặc tin nhắn.",
   "evidence/ev.official-confirmation/debriefHint":
     "Nếu gọi cho Northgate theo số trên thẻ hoặc trong thư, bạn sẽ biết chắc rằng ngân hàng không hề gọi cho bạn.",
+
+  // ev.transfer-check
+  "evidence/ev.transfer-check/title": "Không có giao dịch chuyển tiền nào đang chờ",
+  "evidence/ev.transfer-check/description":
+    "Bạn đã hỏi đường dây chính thức về khoản chuyển tiền lớn mà người gọi nhắc đến. Northgate cho biết không có giao dịch nào đang chờ và không có khoản nào bị giữ trong tài khoản của bạn. Điều này không khớp với câu chuyện của người gọi.",
+  "evidence/ev.transfer-check/location": "Điện thoại · cuộc gọi chính thức",
+  "evidence/ev.transfer-check/relations/claim.account-suspended/note":
+    "Ghi nhận của chính ngân hàng cho thấy không có giao dịch và không có khoản bị giữ, điều này không khớp với lời người gọi nói.",
+  "evidence/ev.transfer-check/relevance":
+    "Hỏi thêm một câu trên kênh bạn tin cậy có thể cho thấy chi tiết của người gọi có khớp với ghi nhận chính thức hay không.",
+  "evidence/ev.transfer-check/debriefHint":
+    "Khi hỏi Northgate về khoản chuyển tiền, bạn biết rằng ngân hàng không có ghi nhận nào về nó, nên câu chuyện của người gọi không khớp.",
+
+  // ev.second-number
+  "evidence/ev.second-number/title": "Số thứ ba mang tên \"Northgate\"",
+  "evidence/ev.second-number/description":
+    "Lịch sử cuộc gọi cho thấy \"Northgate Case Desk\" gọi từ số +000 555 0177. Đây là một số khác với người gọi đầu tiên (+000 555 0142) và với số chính thức (+000 555 0100).",
+  "evidence/ev.second-number/location": "Điện thoại · Cuộc gọi",
+  "evidence/ev.second-number/relations/claim.caller-identity/note":
+    "Số này không trùng với số chính thức trên thẻ hoặc trong thư của bạn.",
+  "evidence/ev.second-number/relevance":
+    "Khi một số mới dùng tên ngân hàng, hãy so nó với một số bạn đã tin cậy từ trước. Bạn không cần nghe máy để làm việc này.",
+  "evidence/ev.second-number/debriefHint":
+    "Cuộc gọi tiếp theo đến từ +000 555 0177, một số thứ ba không trùng với số chính thức +000 555 0100.",
+
+  // ev.case-sms
+  "evidence/ev.case-sms/title": "Tin nhắn hồ sơ có địa chỉ giống thật",
+  "evidence/ev.case-sms/description":
+    "Một tin nhắn từ \"Northgate Bank\" nêu mã hồ sơ và yêu cầu bạn xem lại hồ sơ tại northgate-case-review.invalid. Địa chỉ này không trùng với trang web chính thức northgate.example.",
+  "evidence/ev.case-sms/location": "Điện thoại · Tin nhắn",
+  "evidence/ev.case-sms/relations/claim.caller-identity/note":
+    "Đường link không trùng với trang web chính thức của ngân hàng.",
+  "evidence/ev.case-sms/relevance":
+    "Mã hồ sơ khiến tin nhắn trông có vẻ chính thức, nhưng địa chỉ web vẫn phải trùng với trang web thật của ngân hàng. Đừng mở link do người gọi gửi.",
+  "evidence/ev.case-sms/debriefHint":
+    "Tin nhắn hồ sơ dẫn đến northgate-case-review.invalid, địa chỉ không trùng với trang web chính thức northgate.example.",
+
+  // ev.shifting-story
+  "evidence/ev.shifting-story/title": "Thời hạn đã thay đổi",
+  "evidence/ev.shifting-story/description":
+    "Trong cuộc gọi đầu, người gọi nói bạn chỉ có vài phút. Khi gọi lại, người gọi kể về thời hạn theo cách khác. Hai lời kể này không khớp nhau.",
+  "evidence/ev.shifting-story/location": "Cuộc gọi lại",
+  "evidence/ev.shifting-story/relations/claim.caller-identity/note":
+    "Một vấn đề thật với tài khoản chỉ có một ghi nhận rõ ràng. Câu chuyện thay đổi giữa các cuộc gọi là một dấu hiệu cảnh báo.",
+  "evidence/ev.shifting-story/relevance":
+    "Hãy nhớ những gì người gọi đã nói trước đó. Khi chi tiết thay đổi, hãy hỏi về điểm khác biệt hoặc kết thúc cuộc gọi và tự kiểm tra.",
+  "evidence/ev.shifting-story/debriefHint":
+    "Việc nhắc lại câu \"vài phút\" lúc trước cho thấy câu chuyện về thời hạn của người gọi đã thay đổi.",
 };

@@ -18,6 +18,18 @@ export const CHAPTER_1_OBJECTIVES: Record<ObjectiveId, Objective> = {
     id: "obj.check-claims",
     text: "Check what the caller told you.",
   },
+  "obj.call-bank": {
+    id: "obj.call-bank",
+    text: "Call Northgate on a number you already trust.",
+  },
+  "obj.hold-firm": {
+    id: "obj.hold-firm",
+    text: "Stay calm. You can end any call or ask for time.",
+  },
+  "obj.file-report": {
+    id: "obj.file-report",
+    text: "Tell Northgate what happened. This step is optional.",
+  },
   "obj.decide": {
     id: "obj.decide",
     text: "Decide what to do about the caller's request.",

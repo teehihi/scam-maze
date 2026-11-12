@@ -43,7 +43,11 @@ describe("Sam's start node (Requirements 9.2, 10.7)", () => {
   it("starts at the greeting before the scam call", () => {
     const state = play(started(), [TALK_TO_SAM]);
     expect(state.conversation?.nodeId).toBe("sam.before.greet");
-    expect(optionIds(state)).toEqual(["opt.sam.greet.ask-notice", "opt.sam.greet.bye"]);
+    expect(optionIds(state)).toEqual([
+      "opt.sam.greet.ask-notice",
+      "opt.sam.greet.bye",
+      "opt.sam.greet.chat",
+    ]);
   });
 
   it("still starts at the greeting when the call was only declined", () => {

@@ -57,22 +57,23 @@ describe("objective order", () => {
       ["-obj.look-around"],
       ["+obj.answer-call"],
       ["-obj.answer-call"],
-      ["+obj.check-claims", "+obj.decide"],
+      ["+obj.check-claims", "+obj.decide", "+obj.call-bank"],
       ["-obj.check-claims"],
       [],
       [],
-      [],
+      ["+obj.file-report", "-obj.call-bank"],
       [],
       ["+obj.review", "-obj.decide"],
       ["-obj.review"],
     ]);
-    expect(state.objectives.active).toEqual([]);
+    expect(state.objectives.active).toEqual(["obj.file-report"]);
     expect(state.objectives.completed).toEqual([
       "obj.look-around",
       "obj.answer-call",
       "obj.check-claims",
       "obj.decide",
       "obj.review",
+      "obj.call-bank",
     ]);
   });
 
@@ -166,5 +167,68 @@ describe("canCompleteObjective", () => {
     expect(canCompleteObjective(crafted, "obj.look-around")).toBe(true);
     const inactive: ObjectiveId[] = ["obj.answer-call", "obj.check-claims", "obj.decide", "obj.review"];
     for (const id of inactive) expect(canCompleteObjective(crafted, id)).toBe(false);
+  });
+});
+
+describe("call-bank, hold-firm and file-report objectives", () => {
+  const afterVerifyCall = (): ChapterState =>
+    play(createInitialState(), [
+      { type: "START_CHAPTER" },
+      { type: "RING_CALL", callId: "call.scam-1", reason: "exploration-timer" },
+      { type: "ANSWER_CALL" },
+      option("opt.scam.open.verify"),
+    ]);
+
+  it("activates call-bank when the scam call ends after being answered, not when only declined", () => {
+    expect(afterVerifyCall().objectives.active).toContain("obj.call-bank");
+    const declined = play(createInitialState(), [
+      { type: "START_CHAPTER" },
+      { type: "RING_CALL", callId: "call.scam-1", reason: "exploration-timer" },
+      { type: "END_CALL" },
+    ]);
+    expect(declined.objectives.active).not.toContain("obj.call-bank");
+  });
+
+  it("completes call-bank only when the official confirmation is discovered", () => {
+    const state = afterVerifyCall();
+    expect(canCompleteObjective(state, "obj.call-bank")).toBe(false);
+    const confirmed: ChapterState = { ...state, discovered: [...state.discovered, "ev.official-confirmation"] };
+    expect(canCompleteObjective(confirmed, "obj.call-bank")).toBe(true);
+  });
+
+  it("activates hold-firm when the callback has a log record and completes it when the call is closed", () => {
+    const before = afterVerifyCall();
+    expect(before.objectives.active).not.toContain("obj.hold-firm");
+    const ringing = play(before, [{ type: "RING_CALL", callId: "call.callback", reason: "callback" }]);
+    expect(ringing.objectives.active).toContain("obj.hold-firm");
+    expect(canCompleteObjective(ringing, "obj.hold-firm")).toBe(false);
+    const closed = play(ringing, [{ type: "END_CALL" }]);
+    expect(closed.objectives.completed).toContain("obj.hold-firm");
+    expect(closed.objectives.active).not.toContain("obj.hold-firm");
+  });
+
+  it("does not complete hold-firm after a code was shared or money moved", () => {
+    const ringing = play(afterVerifyCall(), [{ type: "RING_CALL", callId: "call.callback", reason: "callback" }]);
+    const closedLog = ringing.call.log.map((record) =>
+      record.callId === "call.callback" ? { ...record, status: "ended" as const } : record,
+    );
+    const closedState: ChapterState = { ...ringing, call: { ...ringing.call, current: null, log: closedLog } };
+    expect(canCompleteObjective(closedState, "obj.hold-firm")).toBe(true);
+    for (const flag of ["code_shared", "money_moved"] as const) {
+      const risky: ChapterState = { ...closedState, flags: { ...closedState.flags, [flag]: true } };
+      expect(canCompleteObjective(risky, "obj.hold-firm")).toBe(false);
+    }
+  });
+
+  it("activates file-report with the official confirmation and completes it with the report_filed flag", () => {
+    const base = afterVerifyCall();
+    expect(base.objectives.active).not.toContain("obj.file-report");
+    const prev = base;
+    const next: ChapterState = { ...base, discovered: [...base.discovered, "ev.official-confirmation"] };
+    const activated = runObjectiveManager(prev, next, { type: "INSPECT_EVIDENCE", evidenceId: "ev.official-confirmation" });
+    expect(activated.activated).toContain("obj.file-report");
+    expect(canCompleteObjective(activated.state, "obj.file-report")).toBe(false);
+    const filed: ChapterState = { ...activated.state, flags: { ...activated.state.flags, report_filed: true } };
+    expect(canCompleteObjective(filed, "obj.file-report")).toBe(true);
   });
 });

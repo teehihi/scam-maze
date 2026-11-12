@@ -8,6 +8,8 @@ import type { CallId } from "./ids";
 
 /** Number the scam caller uses (shown as "Northgate Bank Security"). */
 export const SCAM_CALLER_NUMBER = "+000 555 0142";
+/** Second number used by the follow-up call (shown as "Northgate Case Desk"). */
+export const FOLLOWUP_CALLER_NUMBER = "+000 555 0177";
 /** Official Northgate Bank number printed on the card and the letter. */
 export const OFFICIAL_BANK_NUMBER = "+000 555 0100";
 /** Official website printed on the letter. */
@@ -31,9 +33,17 @@ export const CHAPTER_1_PHONE: PhoneContent = {
       evidenceId: "ev.otp-sms",
       deliveredAtStart: false,
     },
+    "msg.case-sms": {
+      id: "msg.case-sms",
+      from: "Northgate Bank",
+      body: "Northgate Bank: Case reference NG-0417. Your case is open. Review it at northgate-case-review.invalid and keep this reference ready for the case officer.",
+      evidenceId: "ev.case-sms",
+      deliveredAtStart: false,
+    },
   },
   contacts: [
     { name: "Northgate Bank Security", number: SCAM_CALLER_NUMBER },
+    { name: "Northgate Case Desk", number: FOLLOWUP_CALLER_NUMBER },
     { name: "Northgate Bank customer support", number: OFFICIAL_BANK_NUMBER },
   ],
   officialWebsite: OFFICIAL_BANK_WEBSITE,
@@ -73,6 +83,13 @@ export const CHAPTER_1_CALLS: Record<CallId, CallDef> = {
     displayName: "Northgate Bank Security",
     number: SCAM_CALLER_NUMBER,
     graphId: "dlg.callback",
+  },
+  "call.followup": {
+    id: "call.followup",
+    direction: "incoming",
+    displayName: "Northgate Case Desk",
+    number: FOLLOWUP_CALLER_NUMBER,
+    graphId: "dlg.followup",
   },
   "call.official": {
     id: "call.official",

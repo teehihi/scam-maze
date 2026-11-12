@@ -4,6 +4,7 @@
 // and Requirements 13.7, 13.9, 13.10.
 
 import type { OutcomeId } from "./chapter1/ids";
+import { CHAPTER_1_SCENARIO } from "./chapter1/scenario";
 import { evaluateConditions } from "./conditions";
 import type { ChapterState, EndingDef, ScenarioDefinition } from "./types";
 
@@ -13,16 +14,29 @@ export type ConsequenceVariant = EndingDef["variants"][number];
 /**
  * Maps the state to an Outcome, exactly as the design's outcome table:
  * - a risky flag (`code_shared` or `money_moved`) gives `risky`, but only once a Decision exists;
+ * - `verify-independently` with the caller identity Claim contradicted and the investigator
+ *   ending's `unlockWhen` conditions holding gives `investigator`;
  * - `verify-independently` with the caller identity Claim contradicted gives `verified`;
  * - `stop-and-wait` gives `uncertain`;
  * - anything else gives `null`.
+ * Risky flags are checked first, so `investigator` never occurs with a shared code or moved money.
  */
-export function selectOutcome(state: ChapterState): OutcomeId | null {
+export function selectOutcome(
+  state: ChapterState,
+  scenario: ScenarioDefinition = CHAPTER_1_SCENARIO,
+): OutcomeId | null {
   if (state.flags.code_shared || state.flags.money_moved) return state.decision ? "risky" : null;
   if (
     state.decision === "verify-independently" &&
     state.claims["claim.caller-identity"] === "contradicted"
   ) {
+    // The ending may be absent until the content task adds it; treat that as "not unlocked".
+    const investigator = Object.hasOwn(scenario.endings, "investigator")
+      ? scenario.endings.investigator
+      : undefined;
+    if (investigator?.unlockWhen && evaluateConditions(investigator.unlockWhen, state, scenario)) {
+      return "investigator";
+    }
     return "verified";
   }
   if (state.decision === "stop-and-wait") return "uncertain";

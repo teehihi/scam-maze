@@ -11,6 +11,11 @@ export const PHONE_VI: NarrativeOverlay = {
   "phone/messages/msg.otp-sms/from": "Northgate Bank",
   "phone/messages/msg.otp-sms/body":
     "Northgate Bank: Đây là mã xác thực một lần để duyệt đăng nhập trên thiết bị mới. Mã hết hạn sau 5 phút. Không chia sẻ mã này với bất kỳ ai, kể cả nhân viên ngân hàng.",
+  "phone/messages/msg.case-sms/from": "Northgate Bank",
+  "phone/messages/msg.case-sms/body":
+    "Northgate Bank: Mã tham chiếu hồ sơ NG-0417. Hồ sơ của bạn đang được mở. Hãy xem hồ sơ tại northgate-case-review.invalid và chuẩn bị sẵn mã tham chiếu này cho cán bộ phụ trách hồ sơ.",
+  "phone/contacts/+000 555 0177/name": "Bộ phận Hồ sơ Northgate",
+  "calls/call.followup/displayName": "Bộ phận Hồ sơ Northgate",
   "phone/contacts/+000 555 0142/name": "Bộ phận Bảo mật Northgate Bank",
   "phone/contacts/+000 555 0100/name": "Chăm sóc khách hàng Northgate Bank",
   "phone/bankApp/title": "Northgate Bank",

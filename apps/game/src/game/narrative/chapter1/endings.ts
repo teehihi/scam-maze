@@ -25,6 +25,40 @@ export const CHAPTER_1_ENDINGS: Record<OutcomeId, EndingDef> = {
     ],
     simulationLabel: SIMULATION_LABEL,
   },
+  investigator: {
+    id: "investigator",
+    title: "Checked, reported and documented",
+    variants: [
+      {
+        id: "investigator.report",
+        when: [],
+        text: "You checked the story through channels you already trusted, kept the evidence together and filed a report. Northgate has the details of the call and can warn other customers. Your simulated account stays active.",
+      },
+    ],
+    // Only reachable with a report on file and at least 8 of these 11 items. The set leaves out
+    // items that need a long exchange with the caller, so staying on a suspicious call earns nothing.
+    unlockWhen: [
+      { kind: "flag", flag: "report_filed" },
+      {
+        kind: "evidenceCountAtLeast",
+        count: 8,
+        evidenceIds: [
+          "ev.caller-number",
+          "ev.bank-card",
+          "ev.bank-letter",
+          "ev.bank-app",
+          "ev.shop-poster",
+          "ev.community-alert",
+          "ev.sam-testimony",
+          "ev.official-confirmation",
+          "ev.transfer-check",
+          "ev.second-number",
+          "ev.partial-info",
+        ],
+      },
+    ],
+    simulationLabel: SIMULATION_LABEL,
+  },
   risky: {
     id: "risky",
     title: "Followed the caller's request",

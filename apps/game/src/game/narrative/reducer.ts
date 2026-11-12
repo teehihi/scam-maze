@@ -75,6 +75,8 @@ export const REASONS = {
   callAlreadyRinging: "A call is already ringing.",
   callbackNotYet: "The caller cannot call back yet.",
   callbackAlreadyRang: "The caller has already called back.",
+  followupNotYet: "The case desk cannot call yet.",
+  followupAlreadyRang: "The case desk has already called.",
   decisionAlreadyMade: "A decision has already been made.",
   noCallRinging: "No call is ringing.",
   noCallToEnd: "There is no call to end.",
@@ -94,8 +96,8 @@ export type ReasonCode = keyof typeof REASONS;
 // Shape check
 // ---------------------------------------------------------------------------
 
-const RING_REASONS: readonly RingReason[] = ["first-interaction", "exploration-timer", "re-ring", "callback"];
-const INCOMING_CALL_IDS: readonly IncomingCallId[] = ["call.scam-1", "call.callback"];
+const RING_REASONS: readonly RingReason[] = ["first-interaction", "exploration-timer", "re-ring", "callback", "follow-up"];
+const INCOMING_CALL_IDS: readonly IncomingCallId[] = ["call.scam-1", "call.callback", "call.followup"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -255,6 +257,7 @@ function discoverByTrigger(
 function hangUpTag(callId: CallId | null): string | null {
   if (callId === "call.scam-1") return "hung-up";
   if (callId === "call.callback") return "hung-up-on-callback";
+  if (callId === "call.followup") return "hung-up-on-followup";
   return null;
 }
 
@@ -333,6 +336,12 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       if (action.callId === "call.scam-1") {
         // Unlimited re-ring until the player answers (Requirement 8.4).
         if (scam1Answered(state)) return reject(REASONS.scamCallAlreadyAnswered);
+      } else if (action.callId === "call.followup") {
+        if (hasRecord(state, "call.followup")) return reject(REASONS.followupAlreadyRang);
+        if (state.decision !== null) return reject(REASONS.decisionAlreadyMade);
+        const callbackIndex = findRecordIndex(state, "call.callback");
+        const callbackStatus = callbackIndex === -1 ? null : state.call.log[callbackIndex].status;
+        if (callbackStatus !== "ended" && callbackStatus !== "declined") return reject(REASONS.followupNotYet);
       } else {
         if (hasRecord(state, "call.callback")) return reject(REASONS.callbackAlreadyRang);
         if (state.decision !== null) return reject(REASONS.decisionAlreadyMade);
@@ -352,6 +361,7 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
         },
       };
       if (callId === "call.scam-1") next = applyEffect(next, { kind: "setFlag", flag: "scam1_rang" }, scenario);
+      if (callId === "call.followup") next = applyEffect(next, { kind: "setFlag", flag: "followup_rang" }, scenario);
       return accept(next);
     }
 

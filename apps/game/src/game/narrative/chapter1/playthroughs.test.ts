@@ -141,12 +141,16 @@ describe("Chapter 1 scripted playthroughs", () => {
       "complete obj.answer-call",
       "activate obj.check-claims",
       "activate obj.decide",
+      "activate obj.call-bank",
       "complete obj.check-claims",
+      "activate obj.file-report",
+      "complete obj.call-bank",
       "activate obj.review",
       "complete obj.decide",
       "complete obj.review",
     ]);
-    expect(state.objectives.active).toEqual([]);
+    // obj.file-report is optional and stays active: the flag report_filed is not set in this run.
+    expect(state.objectives.active).toEqual(["obj.file-report"]);
 
     expect(state.claims).toEqual(
       claims({
@@ -211,11 +215,12 @@ describe("Chapter 1 scripted playthroughs", () => {
       "activate obj.check-claims",
       "activate obj.decide",
       "activate obj.review",
+      "activate obj.call-bank",
       "complete obj.decide",
       "complete obj.review",
     ]);
     // The player never looked around or checked the claims.
-    expect(state.objectives.active).toEqual(["obj.look-around", "obj.check-claims"]);
+    expect(state.objectives.active).toEqual(["obj.look-around", "obj.check-claims", "obj.call-bank"]);
 
     expect(state.claims).toEqual(claims({}));
     expect(state.flags.code_shared).toBe(true);
@@ -270,7 +275,10 @@ describe("Chapter 1 scripted playthroughs", () => {
       "complete obj.answer-call",
       "activate obj.check-claims",
       "activate obj.decide",
+      "activate obj.call-bank",
       "complete obj.check-claims",
+      "activate obj.file-report",
+      "complete obj.call-bank",
       "activate obj.review",
       "complete obj.decide",
       "complete obj.review",
@@ -337,7 +345,7 @@ describe("Chapter 1 scripted playthroughs", () => {
     expect(scamRecords[0].status).toBe("ended");
     // Declining does not end the call for the objectives; hanging up after answering does.
     expect(state.events[2].derived.objectivesActivated).toEqual([]);
-    expect(state.events[5].derived.objectivesActivated).toEqual(["obj.check-claims", "obj.decide"]);
+    expect(state.events[5].derived.objectivesActivated).toEqual(["obj.check-claims", "obj.decide", "obj.call-bank"]);
 
     expect(objectiveTimeline(state)).toEqual([
       "activate obj.look-around",
@@ -345,11 +353,12 @@ describe("Chapter 1 scripted playthroughs", () => {
       "complete obj.answer-call",
       "activate obj.check-claims",
       "activate obj.decide",
+      "activate obj.call-bank",
       "activate obj.review",
       "complete obj.decide",
       "complete obj.review",
     ]);
-    expect(state.objectives.active).toEqual(["obj.look-around", "obj.check-claims"]);
+    expect(state.objectives.active).toEqual(["obj.look-around", "obj.check-claims", "obj.call-bank"]);
 
     expect(state.claims).toEqual(claims({}));
     expect(state.flags.code_shared).toBe(false);

@@ -3,6 +3,7 @@
 // See .kiro/specs/chapter-01-the-urgent-call/design.md, "Data Models".
 
 import type {
+  ActId,
   CallId,
   ClaimId,
   DecisionId,
@@ -15,6 +16,8 @@ import type {
   NpcId,
   ObjectiveId,
   OutcomeId,
+  SpeakerId,
+  Tone,
   VerifyMethod,
   WarningSignId,
 } from "./chapter1/ids";
@@ -23,7 +26,7 @@ import type {
 // Core actions and results
 // ---------------------------------------------------------------------------
 
-export type RingReason = "first-interaction" | "exploration-timer" | "re-ring" | "callback";
+export type RingReason = "first-interaction" | "exploration-timer" | "re-ring" | "callback" | "follow-up";
 
 export type CoreAction =
   | { type: "START_CHAPTER" }
@@ -129,7 +132,13 @@ export type Condition =
   | { kind: "flag"; flag: FlagId }
   | { kind: "notFlag"; flag: FlagId }
   | { kind: "callEnded"; callId: CallId }
-  | { kind: "claimStatus"; claimId: ClaimId; status: ClaimStatus };
+  | { kind: "claimStatus"; claimId: ClaimId; status: ClaimStatus }
+  /** A call log record exists for the call. */
+  | { kind: "callRang"; callId: CallId }
+  | { kind: "objectiveCompleted"; objectiveId: ObjectiveId }
+  | { kind: "outcomeSet" }
+  /** At least `count` of the listed evidence items are discovered. */
+  | { kind: "evidenceCountAtLeast"; evidenceIds: EvidenceId[]; count: number };
 
 export type Effect =
   | { kind: "setFlag"; flag: FlagId }
@@ -206,7 +215,7 @@ export interface JournalNote {
 
 export interface DialogueGraph {
   id: DialogueGraphId;
-  persona: { name: string; role: string; honesty: "scammer" | "trusted" | "neutral" };
+  persona: { speakerId: SpeakerId; name: string; role: string; honesty: "scammer" | "trusted" | "neutral" };
   channel: "phone" | "face-to-face";
   /** Only `dlg.official-line` is true. */
   independentChannel: boolean;
@@ -222,6 +231,14 @@ export interface DialogueNode {
   speaker: "caller" | "player" | "npc" | "system";
   lineId: string;
   pressure?: boolean;
+  /** Required by the content validator on every Spoken_Node. */
+  tone?: Tone;
+  /** Overrides `graph.persona.speakerId` for this node. */
+  speakerId?: SpeakerId;
+  /** Presentation only, 0..3000. Delays audio start, not the caption. */
+  pauseBeforeMs?: number;
+  /** Presentation only. Holds the choice list until the voice line ends. */
+  waitForVoice?: boolean;
   onEnter?: Effect[];
   options: DialogueOption[];
   end?: { kind: "hung-up" | "completed"; debriefTag?: string };
@@ -296,6 +313,8 @@ export interface EndingDef {
   variants: Array<{ id: string; when: Condition[]; text: string }>;
   /** "Simulation: nothing real happened." */
   simulationLabel: string;
+  /** Extra conditions that must hold for this outcome. */
+  unlockWhen?: Condition[];
 }
 
 export interface DebriefContent {
@@ -306,6 +325,18 @@ export interface DebriefContent {
   outcomeSummaries: Record<OutcomeId, string>;
   /** Debrief tag → decision note text. */
   decisionNotes: Record<string, string>;
+}
+
+export interface ActDef {
+  id: ActId;
+  /** Translatable, key `acts/<id>/title`. */
+  title: string;
+  /** Monotonic: once true it stays true. */
+  enterWhen: Condition[];
+  /** Equals the next act's `enterWhen` (checked by the validator). */
+  exitWhen: Condition[];
+  /** Each objective belongs to exactly one act. */
+  objectives: ObjectiveId[];
 }
 
 export interface ScenarioDefinition {
@@ -325,4 +356,5 @@ export interface ScenarioDefinition {
   decisions: Record<DecisionId, DecisionDef>;
   endings: Record<OutcomeId, EndingDef>;
   debrief: DebriefContent;
+  acts: ActDef[];
 }
