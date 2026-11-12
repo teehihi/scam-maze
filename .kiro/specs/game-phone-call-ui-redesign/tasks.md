@@ -230,7 +230,7 @@ Resolved assumptions (recorded in the design):
       choices in `PlayerChoiceOverlay`; keep status labels correct.
     - _Requirements: 11.5_
 
-- [ ] 8. Delivery
+- [x] 8. Delivery
   - [x] 8.1 Commit the code and tests
     - Stage the changed and new files under `apps/game/src/` by name (including the `git mv`
       renames) and commit with `feat(game): redesign the phone call screen with external
@@ -242,7 +242,7 @@ Resolved assumptions (recorded in the design):
       `.kiro/specs/game-phone-call-ui-redesign/*` by name; commit with
       `docs(game): record the phone call UI redesign` plus the trailer.
     - _Requirements: 11.3, 11.5_
-  - [-] 8.3 Push without force
+  - [x] 8.3 Push without force
     - Run `git push -u origin feat/game-phone-call-ui-redesign` with no force option. Do not
       merge and do not open a merge action. Report the commit hashes and the real results of
       task 6.
