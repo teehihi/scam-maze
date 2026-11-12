@@ -462,131 +462,131 @@ Honesty rules
 - [x] 16. Checkpoint C - voice player and settings
   - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 17. Commits: voice player, settings
-  - [-] 17.1 Commit the voice player and audio engine
+- [x] 17. Commits: voice player, settings
+  - [x] 17.1 Commit the voice player and audio engine
     - Stage by name the files of tasks 14.1 to 14.14 (including `SRC/test/fakeAudioPort.ts`). Commit `feat(game): add voice dialogue player, choice gate and Web Audio engine` with the trailer.
     - _Requirements: 18.2_
-  - [~] 17.2 Commit settings and migration
+  - [x] 17.2 Commit settings and migration
     - Stage by name the files of tasks 15.1 to 15.9. Commit `feat(game): add voice, caption, reduced-stress and reduced-motion settings` with the trailer.
     - _Requirements: 18.2_
 
-- [ ] 18. Phone call UI updates
-  - [~] 18.1 Add phone UI strings in `SRC/i18n/locales/{en,vi}/chapter1/phone.ts`
+- [x] 18. Phone call UI updates
+  - [x] 18.1 Add phone UI strings in `SRC/i18n/locales/{en,vi}/chapter1/phone.ts`
     - Add the `phone.call.*` and `phone.sound.*` keys of design.md section 8 (duration, mute, unmute, replay, listening, showReplies, the four notices, ringing, connected). English first, then Vietnamese.
     - Edit those two files only.
     - _Requirements: 7.8, 11.6, 12.3_
-  - [~] 18.2 Add HUD strings in `SRC/i18n/locales/{en,vi}/chapter1/hud.ts`
+  - [x] 18.2 Add HUD strings in `SRC/i18n/locales/{en,vi}/chapter1/hud.ts`
     - Add `hud.act.label` ("Act {{number}}: {{title}}"), `hud.saveTrimmed.message` and `hud.saveTrimmed.dismiss`. English first, then Vietnamese. No concatenation.
     - Edit those two files only.
     - _Requirements: 12.3, 13.5_
-  - [~] 18.3 Create `F1/voice/useCallDuration.ts`
+  - [x] 18.3 Create `F1/voice/useCallDuration.ts`
     - Whole seconds since the call became `active`, from a presentation clock (`performance.now()`), frozen while paused, reset per call, never stored in the store or saves.
     - Create only this file.
     - _Requirements: 7.5_
-  - [~] 18.4 Update `F1/call/PhoneScreenUI.tsx`
+  - [x] 18.4 Update `F1/call/PhoneScreenUI.tsx`
     - Add only optional props `controls?: CallControlsView`, `onToggleMute`, `onReplay` (design.md section 6). Active layout: avatar (hidden when `compact`), name, number (`dir="ltr"`, plain text), status, duration as `<time role="timer">`, notice line, existing caption region, Mute (`aria-pressed`, `Volume2`/`VolumeX`), Replay (`RotateCcw`, never remounted), Hang up. Without the new props the output must be identical to today.
     - Edit only this file.
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.6, 7.7, 7.8, 7.9, 7.10, 11.9_
-  - [~] 18.5 Update `F1/call/PlayerChoiceOverlay.tsx`
+  - [x] 18.5 Update `F1/call/PlayerChoiceOverlay.tsx`
     - Add optional `waiting` and `onSkipWait`. While waiting: a status line, one "Show replies now" button that takes focus, number keys off. When waiting ends the first option is focused. Layout, region and keyboard logic unchanged.
     - Edit only this file.
     - _Requirements: 5.9, 8.1, 8.3, 8.6, 8.9_
-  - [~] 18.6 Create `F1/voice/useVoicePlayback.ts`
+  - [x] 18.6 Create `F1/voice/useVoicePlayback.ts`
     - Create one player per mount (disposed on unmount) over `webAudioEngine`, build `VoiceTarget` from `selectDialogueView` and `state.call` (phone or face-to-face), call `show`/`stop` with the right reason, `configure` on settings and locale changes (locale change stops the clip and starts none), `pause`/`resume` with the pause overlay, prefetch Act 1 and Act 2 nodes and the next nodes, and return `{ snapshot, muted, unlock, replay, setMuted, optionsWaiting, skipWait }`. Use `optionsGate.ts`. Mute resets per call.
     - Create only this file.
     - _Requirements: 5.1, 5.2, 5.4, 5.5, 5.9, 12.1, 12.6, 4.11_
-  - [~] 18.7 Create `F1/voice/useCallAudio.ts`
+  - [x] 18.7 Create `F1/voice/useCallAudio.ts`
     - Ringtone while the call is `ringing`, connect click on `active`, tension level from `state.pressure` while a call is active, with reduced-stress factors; stop all on call end, pause menu and unmount.
     - Create only this file.
     - _Requirements: 11.3, 15.1, 15.4, 15.6_
-  - [~] 18.8 Update `F1/call/CallPresentation.tsx`
+  - [x] 18.8 Update `F1/call/CallPresentation.tsx`
     - Pass the controller state to `PhoneScreenUI` (`controls`, notice, mute, replay) and `PlayerChoiceOverlay` (`waiting`, `onSkipWait`), show the non-speech captions ("Phone ringing", "Call connected") through the notice line, keep the single dispatch guard, and call `voice.unlock()` inside the Answer click handler. Props for voice are optional so existing tests still pass.
     - Edit only this file.
     - _Requirements: 7.1, 7.2, 8.4, 11.6, 5.5_
-  - [~] 18.9 Update `F1/dialogue/DialoguePanel.tsx`
+  - [x] 18.9 Update `F1/dialogue/DialoguePanel.tsx`
     - Add an optional `voice` prop with a Replay button and the notice line. The text card is always visible (the Subtitles setting affects only the phone caption).
     - Edit only this file.
     - _Requirements: 7.11_
-  - [~] 18.10 Write Property 21 in `F1/voice/useCallDuration.property.test.tsx`
+  - [x] 18.10 Write Property 21 in `F1/voice/useCallDuration.property.test.tsx`
     - **Property 21: The call duration is whole seconds and presentation only**
     - **Validates: Requirements 7.5**
     - Create only this file.
     - _Requirements: 7.5_
-  - [~] 18.11 Write `F1/call/PhoneScreenUI.controls.test.tsx`
+  - [x] 18.11 Write `F1/call/PhoneScreenUI.controls.test.tsx`
     - Example tests: ringing and active content; duration element; Mute `aria-pressed` and label change; Replay disabled states; caption hidden only when `captionVisible` is false; no player option inside the phone tree; number as plain text with `dir="ltr"`; no emoji; the compact layout keeps two caption lines at `layout.screen.height` 288 using `computeCallLayout` numbers; absent props render as before.
     - Create only this file.
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.9, 11.9_
-  - [~] 18.12 Write `F1/call/PlayerChoiceOverlay.gate.test.tsx`
+  - [x] 18.12 Write `F1/call/PlayerChoiceOverlay.gate.test.tsx`
     - Example tests: waiting state hides options and shows one Skip button with focus; number keys off while waiting; focus moves to the first option when waiting ends; no change when `waiting` is absent.
     - Create only this file.
     - _Requirements: 5.9, 8.3_
-  - [~] 18.13 Write `F1/dialogue/DialoguePanel.voice.test.tsx`
+  - [x] 18.13 Write `F1/dialogue/DialoguePanel.voice.test.tsx`
     - Example tests: Replay calls the controller; notice text appears for `english-voice` and `no-audio`; text card always visible; keyboard focus stays on Replay after activation.
     - Create only this file.
     - _Requirements: 7.11, 8.6_
 
-- [ ] 19. Evidence, follow-up call, endings and credits
-  - [~] 19.1 Add the follow-up trigger to `F1/useCallTriggers.ts`
+- [x] 19. Evidence, follow-up call, endings and credits
+  - [x] 19.1 Add the follow-up trigger to `F1/useCallTriggers.ts`
     - Add a second pure function `stepFollowupTrigger` (45 s after the callback is `ended` or `declined`, only while no decision exists and the phone is free; once only). Leave `stepCallTriggers` untouched.
     - Edit only this file.
     - _Requirements: 2.5, 10.7_
-  - [~] 19.2 Write `F1/useCallTriggers.followup.test.ts`
+  - [x] 19.2 Write `F1/useCallTriggers.followup.test.ts`
     - Example tests: no ring before 45 s, rings once at 45 s, never with a live call, a conversation or a decision, never twice.
     - Create only this file.
     - _Requirements: 2.5_
-  - [~] 19.3 Write `C1/evidenceCoverage.test.ts`
+  - [x] 19.3 Write `C1/evidenceCoverage.test.ts`
     - Check that each of the 15 evidence items has a discovery that maps to an existing interactable, device screen or dialogue node, that no new interactable or 3D object was added by this feature, that each evidence type of requirement 10.2 is covered, and that no evidence needs a long exchange with a scammer for the investigator set.
     - Create only this file.
     - _Requirements: 10.2, 10.3, 14.5_
-  - [~] 19.4 Show the act label in `F1/hud/ObjectiveTracker.tsx`
+  - [x] 19.4 Show the act label in `F1/hud/ObjectiveTracker.tsx`
     - Show `hud.act.label` from `selectCurrentAct`. Keep existing behavior and accessible names.
     - Edit only this file.
     - _Requirements: 2.1, 2.8_
-  - [~] 19.5 Add the investigator icon in `F1/ending/EndingTransition.tsx`
+  - [x] 19.5 Add the investigator icon in `F1/ending/EndingTransition.tsx`
     - Add `FileCheck` (lucide-react) to the outcome icon map for `investigator`, decorative with `aria-hidden="true"`, paired with text.
     - Edit only this file.
     - _Requirements: 14.1, 14.6_
-  - [~] 19.6 Add the voice credits entry
+  - [x] 19.6 Add the voice credits entry
     - In `SRC/config/credits.ts` add group `audio` and item `chapter1Voices` (name "Chapter 1 voice clips", creator text, source `apps/game/scripts/generate-chapter1-voice.ps1`, license "Terms of use not verified (see docs/PROJECT_PROGRESS.md)"). Add `groups.audio.category` and `items.chapter1Voices.notes` to `SRC/i18n/locales/{en,vi}/credits.ts`, English first. Do not add credits for pre-existing audio (flag it as gap G16 in the Baseline Record).
     - Edit those three files only.
     - _Requirements: 4.10_
-  - [~] 19.7 Create `F1/hud/SaveTrimmedNotice.tsx`
+  - [x] 19.7 Create `F1/hud/SaveTrimmedNotice.tsx`
     - A dismissible, localized, polite notice using `hud.saveTrimmed.*`, native button, visible focus, no emoji.
     - Create only this file.
     - _Requirements: 13.5_
-  - [~] 19.8 Update credit and chapter dictionary tests
+  - [x] 19.8 Update credit and chapter dictionary tests
     - Find tests that enumerate credit group and item IDs (`rg "CreditGroupId|CreditItemId|credits" SRC --glob "*.test.*"`) and add the new IDs, keeping en and vi parity.
     - Edit only those test files; list them in the Baseline Record.
     - _Requirements: 12.3, 13.7_
 
-- [ ] 20. Save restore leniency
-  - [~] 20.1 Add lenient restore to `SRC/game/saves/chapterProgress.ts`
+- [x] 20. Save restore leniency
+  - [x] 20.1 Add lenient restore to `SRC/game/saves/chapterProgress.ts`
     - `restoreProgress(..., { lenient: true })` replays the actions in order, stops at the first rejected action, and returns the state after the last accepted action with `trimmed: true` and `acceptedActions: n`. More than 1000 actions or a non-finite pose stay hard failures. A fully accepted log returns `trimmed: false`. `encodeProgress` stays unchanged.
     - Edit only this file.
     - _Requirements: 13.4, 13.5, 13.6_
-  - [~] 20.2 Use lenient restore in `SRC/game/loading/chapterLoader.ts` and `SRC/game/chapters/chapterSession.ts`
+  - [x] 20.2 Use lenient restore in `SRC/game/loading/chapterLoader.ts` and `SRC/game/chapters/chapterSession.ts`
     - A trimmed restore is a success that carries a notice flag; zero accepted actions starts the chapter at the beginning with the same notice. Keep `invalid-save` only for damaged data (too many actions, non-finite pose).
     - Edit only these two files.
     - _Requirements: 13.5_
-  - [~] 20.3 Write Property 16 in `SRC/game/saves/chapterProgress.lenient.property.test.ts`
+  - [x] 20.3 Write Property 16 in `SRC/game/saves/chapterProgress.lenient.property.test.ts`
     - **Property 16: Lenient restore returns the longest accepted prefix**
     - **Validates: Requirements 13.4, 13.5**
     - Create only this file.
     - _Requirements: 13.4, 13.5_
-  - [~] 20.4 Extend `SRC/game/saves/chapterProgress.test.ts` and `SRC/game/loading/chapterLoader.test.ts`
+  - [x] 20.4 Extend `SRC/game/saves/chapterProgress.test.ts` and `SRC/game/loading/chapterLoader.test.ts`
     - Add: `encodeProgress` output has exactly `checkpointId`, `actions`, `playerPose` (no audio, duration, caption or locale); the loader returns a success with the trimmed notice for a drifted log, and `invalid-save` only for damaged data.
     - Edit only these two files.
     - _Requirements: 13.5, 13.6_
-  - [~] 20.5 Write `C1/savedPathsStillReplay.test.ts`
+  - [x] 20.5 Write `C1/savedPathsStillReplay.test.ts`
     - Copy the four action logs of `playthroughs.test.ts` as frozen fixtures (read that file; do not edit it) and assert that each is fully accepted by the new scenario and restored with `trimmed: false`.
     - Create only this file.
     - _Requirements: 13.4, 13.7_
 
-- [~] 21. Checkpoint D - phone UI, follow-up, endings, saves
+- [x] 21. Checkpoint D - phone UI, follow-up, endings, saves
   - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 22. Commits: phone UI, follow-up and endings, saves
-  - [~] 22.1 Commit the phone call UI
+  - [-] 22.1 Commit the phone call UI
     - Stage by name the files of tasks 18.1 to 18.13. Commit `feat(game): add voice-call controls, captions and choice gate to the phone UI` with the trailer.
     - _Requirements: 18.2_
   - [~] 22.2 Commit follow-up call, endings, act label and credits
@@ -761,3 +761,10 @@ Filled in by tasks 1.1, 1.2, 5.x, 8.2, 10.1, 10.3, 14.3, 19.6, 24.1 and copied i
 }
 ```
 - Checkpoint C (task 16): first runs: `pnpm test` exit 1 (104 files: 103 passed, 1 failed; 903 tests: 902 passed, 1 failed; 0 skipped); `pnpm typecheck` exit 2 and `pnpm build` exit 2 (type errors in test files). Test-file fixes only, no assertion removed or weakened: (1) `game/voice/webAudioEngine.test.ts`: the fake compressor was typed `FakeNode & Record<string, FakeParam>` (TS2322, no string index signature); replaced by a `FakeCompressor extends FakeNode` class with `threshold`, `knee`, `ratio`, `attack`, `release` params. (2) `features/chapter1/comfort/comfort.property.test.ts` line 32: TS2769, `ComfortProvider` requires `children`; passed `children: probe` in the props object. (3) `app/App.i18n.test.tsx` "keeps every other settings field when the language changes": the stored fixture was a 6-field partial, but saving now writes the six new settings with defaults (known test update, design.md item 4 / task 15.4); the fixture now spreads `DEFAULT_SETTINGS`, the `toEqual` assertions are unchanged. After the fixes: `pnpm test` exit 0, 104 files passed, 903 tests passed, 0 failed, 0 skipped; `pnpm typecheck` exit 0; `pnpm build` exit 0 (game built in 13.31 s, landing built in 0.92 s). No production-code bug found. Temp logs deleted. Not committed.
+- Checkpoint D (task 21): `pnpm test` exit 0: 113 files passed, 1029 tests passed, 0 failed, 0 skipped, 72.90 s. `pnpm typecheck` exit 0 (shared-types, landing, game Done). `pnpm build` exit 0; game main JS chunk `dist/assets/index-CI1HoV57.js` 1,971.73 kB (gzip 556.14 kB), built in 9.40 s (baseline 1,894.05 kB, Checkpoint B 1,957.05 kB); landing JS `index-DW2A16ld.js` 300.55 kB, unchanged. No failures, so no code was changed. Temp logs deleted. Not committed.
+- Task 19.6 and 19.8 notes: the credits source for the voice entry is the `.mjs` generator (`apps/game/scripts/generate-chapter1-voice.mjs`). Test files updated for the new credit IDs: `apps/game/src/config/credits.callPhone.test.ts` and `apps/game/src/features/menu/CreditsModal.test.tsx` (en and vi parity kept).
+- Gap G16 (flagged for the owner, not part of this feature): the older audio files in `apps/game/public/assets/audio/` and `public/reality/` have no credits entries.
+- Task 20.2 test updates (owner-approved):
+  - `apps/game/src/game/loading/chapterLoader.test.ts`: the case "fails with invalid-save for tampered progress (a rejected action)" was stale by design, because a rejected action now trims the restore (Req. 13.5, `restoreSession` lenient). Replaced by "trims a rejected action and restores the accepted prefix with saveTrimmed", which expects a ready session with `saveTrimmed: true` and the state of the accepted prefix. The damaged-data case stays: a non-finite pose still fails with `invalid-save`, and a new case with 1001 actions (above `SAVE_MAX_ACTIONS`) also fails with `invalid-save`. No other assertion changed.
+  - `apps/game/src/game/narrative/chapter1/evidenceCoverage.test.ts` and new `apps/game/src/features/chapter1/world/noNewWorldObjects.test.ts`: `boundaries.test.ts` (unchanged, boundary is correct) rejected the imports of `chapterRegistry` and `propLayout` inside `game/narrative`. The four G14 "no new interactable or 3D object" tests moved with identical assertions to the new file outside `game/narrative`. The pure narrative checks stay in `evidenceCoverage.test.ts` with no outside imports.
+- `useCallTriggers.test.ts`: callback-once test now counts callback rings because the follow-up call rings after the callback by design. The `call.current === null` expectation was removed; the existing `ringCount(store, "call.callback")` equals 1 assertions stay (owner-approved, task 19.1).

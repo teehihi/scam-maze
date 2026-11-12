@@ -1,10 +1,10 @@
 import { getChapter as defaultGetChapter, type ChapterDefinition } from "../chapters/chapterRegistry";
 import {
+  applyRestoredProgress,
   createNewChapterSession,
   restoreChapterSession,
   type ChapterSession,
 } from "../chapters/chapterSession";
-import { restoreProgress, type RestoreProgressResult } from "../saves/chapterProgress";
 import { createLocalStorageSaveSource, type SaveGameSource, type SavedGame } from "../saves/saveGame";
 import { fetchAssetBytes, isAbortError, type FetchLike } from "./assetFetcher";
 import { verifyAsset } from "./assetVerification";
@@ -246,13 +246,11 @@ export function createChapterLoader(request: ChapterLoadRequest, deps: ChapterLo
         const restored = restoreChapterSession(chapter, save);
         if (!restored.ok) fail(createLoadingError("invalid-save", restored.reason));
         session = (restored as { ok: true; session: ChapterSession }).session;
-        if (session.progress !== undefined) {
-          // A save is valid only when the chapter core accepts every saved action (Req. 15.6).
-          const replayed = restoreProgress(session.progress);
-          if (!replayed.ok) fail(createLoadingError("invalid-save", replayed.reason));
-          const { state, pose } = replayed as Extract<RestoreProgressResult, { ok: true }>;
-          session = { ...session, restored: { state, pose } };
-        }
+        // Lenient replay: a rejected action trims the save instead of failing it (Req. 13.5).
+        // Only damaged data is an invalid save.
+        const applied = applyRestoredProgress(session);
+        if (!applied.ok) fail(createLoadingError("invalid-save", applied.reason));
+        session = (applied as { ok: true; session: ChapterSession }).session;
       } else {
         update({ stage: "initializing-state", currentAssetText: null, currentAssetId: null });
         session = createNewChapterSession(chapter);

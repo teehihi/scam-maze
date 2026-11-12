@@ -411,10 +411,59 @@ describe("createChapterLoader", () => {
         expect(session?.restored?.pose?.position).not.toEqual([0, -200, 0]);
       });
 
+      it("trims a rejected action and restores the accepted prefix with saveTrimmed", async () => {
+        const fake = serveAssets();
+        const progress = {
+          checkpointId: "start",
+          actions: [...actions, { type: "OPEN_PHONE" }],
+          playerPose: null,
+        } as SavedGameV2["progress"];
+        const loader = createChapterLoader({ kind: "continue" }, createTestDeps(fake.fetchImpl, { save: v2Save(progress) }));
+        loader.start();
+        await waitForStage(loader, "ready");
+
+        const prefix = restoreProgress({ ...progress, actions });
+        if (!prefix.ok) throw new Error("Test setup prefix must replay.");
+        const snapshot = loader.getSnapshot();
+        expect(snapshot.error).toBeNull();
+        expect(snapshot.session).toMatchObject({ origin: "saved-game", saveTrimmed: true });
+        expect(snapshot.session?.restored?.state).toEqual(prefix.state);
+        expect(snapshot.session?.restored?.state.events.map((entry) => entry.action)).toEqual(actions);
+      });
+
+      it("does not set saveTrimmed for a fully accepted log", async () => {
+        const fake = serveAssets();
+        const progress = { checkpointId: "start", actions, playerPose: null } as SavedGameV2["progress"];
+        const loader = createChapterLoader({ kind: "continue" }, createTestDeps(fake.fetchImpl, { save: v2Save(progress) }));
+        loader.start();
+        await waitForStage(loader, "ready");
+        expect(loader.getSnapshot().session?.saveTrimmed).toBeUndefined();
+      });
+
+      it("starts at the chapter beginning with the notice when no action is accepted", async () => {
+        const fake = serveAssets();
+        const progress = {
+          checkpointId: "start",
+          actions: [{ type: "OPEN_PHONE" }],
+          playerPose: { position: [0, -200, 0], yaw: 1 },
+        } as SavedGameV2["progress"];
+        const loader = createChapterLoader({ kind: "continue" }, createTestDeps(fake.fetchImpl, { save: v2Save(progress) }));
+        loader.start();
+        await waitForStage(loader, "ready");
+        const snapshot = loader.getSnapshot();
+        expect(snapshot.error).toBeNull();
+        expect(snapshot.session).toMatchObject({ origin: "saved-game", saveTrimmed: true });
+        expect(snapshot.session?.restored?.state.events).toHaveLength(0);
+        expect(snapshot.session?.restored?.pose).toBeNull();
+      });
+
       it.each([
-        ["a rejected action", { checkpointId: "start", actions: [...actions, { type: "OPEN_PHONE" }], playerPose: null }],
         ["a non-finite pose", { checkpointId: "start", actions, playerPose: { position: [Number.NaN, 0, 0], yaw: 0 } }],
-      ] as Array<[string, SavedGameV2["progress"]]>)("fails with invalid-save for tampered progress (%s)", async (_label, progress) => {
+        [
+          "more than 1000 actions",
+          { checkpointId: "start", actions: Array.from({ length: 1001 }, () => ({ type: "OPEN_PHONE" })), playerPose: null },
+        ],
+      ] as Array<[string, SavedGameV2["progress"]]>)("fails with invalid-save for damaged progress (%s)", async (_label, progress) => {
         const fake = serveAssets();
         const loader = createChapterLoader({ kind: "continue" }, createTestDeps(fake.fetchImpl, { save: v2Save(progress) }));
         loader.start();
