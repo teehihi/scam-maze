@@ -16,6 +16,14 @@ const hud = {
     unreadMessages_other: "{{number}} unread messages",
     newEntries_one: "{{number}} new entry",
     newEntries_other: "{{number}} new entries",
+    act: {
+      label: "Act {{number}}: {{title}}",
+    },
+    saveTrimmed: {
+      message:
+        "Your saved progress was updated for a new version of this chapter. It was restored to the last point that still fits.",
+      dismiss: "Dismiss",
+    },
   },
   objectives: {
     heading: "Objectives",

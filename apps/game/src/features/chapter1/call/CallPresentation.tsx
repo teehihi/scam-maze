@@ -18,12 +18,13 @@ import { useTranslation } from "react-i18next";
 import { selectDialogueView } from "../../../game/narrative/selectors";
 import type { ChapterStore } from "../../../game/narrative/store";
 import type { ChapterState, ScenarioDefinition } from "../../../game/narrative/types";
+import type { VoiceSnapshot } from "../../../game/voice/VoiceDialoguePlayer";
 import { useChapterState } from "../useChapterState";
 import { computeCallLayout } from "./callLayout";
 import type { Rect } from "./callLayout";
 import { PhoneScreenHost } from "./PhoneScreenHost";
 import { PhoneScreenUI } from "./PhoneScreenUI";
-import type { CallScreenView } from "./PhoneScreenUI";
+import type { CallControlsView, CallScreenView } from "./PhoneScreenUI";
 import type { PhoneScreenSink } from "./phoneScreenSink";
 import { PlayerChoiceOverlay } from "./PlayerChoiceOverlay";
 import { useViewport } from "./useViewport";
@@ -44,6 +45,40 @@ export interface CallPresentationProps {
   onEnd: () => void;
   /** The page's `handleSelectOption`. */
   onSelectOption: (optionId: string) => void;
+  /**
+   * Optional voice state from `useVoicePlayback` (the page owns the hook). Absent: the call
+   * screen renders exactly as before. This component only reads it; it holds no voice state.
+   */
+  voice?: CallVoiceProps;
+  /** Whole seconds of the active call from `useCallDuration`. Default 0. */
+  durationSeconds?: number;
+  /** The Subtitles setting. Captions also show whenever nothing is audible. */
+  subtitlesEnabled?: boolean;
+}
+
+/** The pieces of the `VoiceController` this component needs. */
+export interface CallVoiceProps {
+  snapshot: VoiceSnapshot;
+  muted: boolean;
+  /** Called inside the Answer click, a user gesture. */
+  unlock: () => Promise<void>;
+  replay: () => void;
+  setMuted: (muted: boolean) => void;
+  optionsWaiting: boolean;
+  skipWait: () => void;
+}
+
+/** Height below which the phone screen uses the compact layout (design.md, section 6). */
+const COMPACT_SCREEN_HEIGHT = 360;
+
+function voiceNotice(snapshot: VoiceSnapshot): CallControlsView["notice"] {
+  if (snapshot.reason === "autoplay-blocked" || snapshot.phase === "blocked") return "autoplay-blocked";
+  if (snapshot.label === "dev-preview") return "dev-preview";
+  if (snapshot.label === "english-voice") return "english-voice";
+  if (snapshot.source === "none" && (snapshot.phase === "unavailable" || snapshot.phase === "failed")) {
+    return "no-audio";
+  }
+  return "none";
 }
 
 /** Time to wait for the first projected rectangle before showing the 2D fallback. */
@@ -60,6 +95,9 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
   onAnswer,
   onEnd,
   onSelectOption,
+  voice,
+  durationSeconds = 0,
+  subtitlesEnabled = true,
 }) => {
   const { t } = useTranslation("chapter1");
   const call = useChapterState(store, callSelector);
@@ -163,6 +201,18 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
     }
   }, [call.status, linkedView?.graphId, linkedView?.nodeId, hasOptions, paused]);
 
+  const controls: CallControlsView | undefined =
+    voice !== undefined && call.status === "active"
+      ? {
+          durationSeconds,
+          muted: voice.muted,
+          replayEnabled: voice.snapshot.source !== "none",
+          captionVisible: subtitlesEnabled || !voice.snapshot.audible,
+          notice: voiceNotice(voice.snapshot),
+          compact: layout.screen.height < COMPACT_SCREEN_HEIGHT,
+        }
+      : undefined;
+
   if (screenView === null) return null;
 
   return (
@@ -180,7 +230,14 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
           view={screenView}
           disabled={paused}
           vibrateIcon={mode === "fallback"}
-          onAccept={guarded(onAnswer)}
+          controls={controls}
+          onToggleMute={voice ? () => voice.setMuted(!voice.muted) : undefined}
+          onReplay={voice ? voice.replay : undefined}
+          onAccept={guarded(() => {
+            // Unlock audio inside the click gesture; failure never blocks the call.
+            if (voice !== undefined) void voice.unlock().catch(() => undefined);
+            onAnswer();
+          })}
           onDecline={guarded(onEnd)}
           onHangUp={guarded(onEnd)}
           acceptRef={acceptRef}
@@ -193,6 +250,8 @@ export const CallPresentation: React.FC<CallPresentationProps> = ({
           narration={narration}
           disabled={paused}
           onSelectOption={onSelectOption}
+          waiting={voice?.optionsWaiting ?? false}
+          onSkipWait={voice?.skipWait}
           region={layout.choice}
         />
       ) : null}
