@@ -9,7 +9,10 @@ export interface ChapterAsset {
   /** Public URL of the file. */
   url: string;
   kind: ChapterAssetKind;
-  /** Status text shown while this file downloads. Full sentence for later translation. */
+  /**
+   * English status text shown while this file downloads. The UI shows the translation from
+   * `chapters:<chapterId>.assets.<assetId>` and falls back to this text.
+   */
   loadingText: string;
 }
 
@@ -24,8 +27,9 @@ export interface ChapterDefinition {
   /** Files the start scene needs before the chapter can begin. */
   assets: readonly ChapterAsset[];
   /**
-   * True only when a playable scene exists for this chapter. While false, the loading
-   * pipeline still runs for real, and the player lands on an honest "in development" screen.
+   * True only when a playable scene exists for this chapter. When true, the App shell renders
+   * the chapter page after loading. While false, the loading pipeline still runs for real,
+   * and the player lands on an honest "in development" screen.
    */
   gameplayAvailable: boolean;
 }
@@ -52,7 +56,8 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
         loadingText: "Loading the sky",
       },
     ],
-    gameplayAvailable: false,
+    // Playable: the App shell renders features/chapter1/ChapterOnePage after loading.
+    gameplayAvailable: true,
   },
 ];
 
@@ -62,6 +67,7 @@ export function getChapter(chapterId: string): ChapterDefinition | undefined {
   return CHAPTERS.find((chapter) => chapter.id === chapterId);
 }
 
+/** English scene labels (source text). The UI translates them with `chapters:scenes.<SceneId>`. */
 export const SCENE_LABELS: Record<SceneId, string> = {
   "main-menu": "Main menu",
   "intro-prologue": "Prologue",

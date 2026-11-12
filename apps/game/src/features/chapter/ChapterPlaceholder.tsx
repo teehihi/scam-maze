@@ -3,17 +3,11 @@ import { ArrowLeft, Construction } from "lucide-react";
 import { BrandLogo } from "../../components/ui/BrandLogo";
 import { SceneTransition } from "../../components/ui/SceneTransition";
 import { LOADING_BACKGROUND_JPG, LOADING_BACKGROUND_WEBP } from "../../config/assetPaths";
-import { getChapter, SCENE_LABELS } from "../../game/chapters/chapterRegistry";
+import { useTranslation } from "react-i18next";
+import { getChapter } from "../../game/chapters/chapterRegistry";
 import type { ChapterSession } from "../../game/chapters/chapterSession";
-import { formatChapterLabel, LOADING_TEXT } from "../../game/loading/loadingStrings";
-
-const TEXT = {
-  heading: "Gameplay for this chapter is still in development.",
-  body: "The chapter files loaded and the starting state was created, but the playable scene is not built yet.",
-  startLabel: "Starting location",
-  originLabel: "Started from",
-  origin: { "new-game": "New game", "saved-game": "Saved game" },
-} as const;
+import { formatChapterLabel } from "../../game/loading/loadingStrings";
+import { useGameLocale } from "../../i18n";
 
 interface ChapterPlaceholderProps {
   session: ChapterSession;
@@ -28,6 +22,13 @@ export const ChapterPlaceholder: React.FC<ChapterPlaceholderProps> = ({ session,
   const [leaving, setLeaving] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const chapter = getChapter(session.chapterId);
+  const { t } = useTranslation(["loading", "common"]);
+  const { t: tChapters } = useTranslation("chapters");
+  const locale = useGameLocale();
+  // The registry's English title is the fallback for a chapter without a dictionary key.
+  const title = chapter
+    ? tChapters(`${chapter.id}.title`, { defaultValue: chapter.title })
+    : session.chapterId;
 
   useEffect(() => {
     buttonRef.current?.focus();
@@ -62,29 +63,29 @@ export const ChapterPlaceholder: React.FC<ChapterPlaceholderProps> = ({ session,
           <div className="mx-auto w-full max-w-xl rounded-2xl border border-[#38344f] bg-[#1d1b2b]/92 p-6 sm:p-8 space-y-5">
             <div className="space-y-2">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-[#b9a5f5]">
-                {formatChapterLabel(session.chapterNumber)}
+                {formatChapterLabel(session.chapterNumber, { t, locale })}
               </p>
               <h2 id="chapter-placeholder-title" className="font-display text-3xl sm:text-4xl">
-                {chapter?.title ?? session.chapterId}
+                {title}
               </h2>
             </div>
 
             <div className="flex items-start gap-3 rounded-xl border border-[#7654d6]/40 bg-[#7654d6]/10 p-4">
               <Construction className="mt-0.5 h-5 w-5 shrink-0 text-[#b9a5f5]" aria-hidden="true" />
               <div className="space-y-1">
-                <p className="text-sm font-semibold">{TEXT.heading}</p>
-                <p className="text-sm text-[#a9a4c4]">{TEXT.body}</p>
+                <p className="text-sm font-semibold">{tChapters("placeholder.heading")}</p>
+                <p className="text-sm text-[#a9a4c4]">{tChapters("placeholder.body")}</p>
               </div>
             </div>
 
             <dl className="grid grid-cols-2 gap-3 font-mono text-xs">
               <div className="rounded-lg bg-[#171521]/70 p-3">
-                <dt className="text-[#a9a4c4]">{TEXT.startLabel}</dt>
-                <dd className="mt-1 text-[#f7f5ff]">{SCENE_LABELS[session.sceneId]}</dd>
+                <dt className="text-[#a9a4c4]">{tChapters("placeholder.startLabel")}</dt>
+                <dd className="mt-1 text-[#f7f5ff]">{tChapters(`scenes.${session.sceneId}`)}</dd>
               </div>
               <div className="rounded-lg bg-[#171521]/70 p-3">
-                <dt className="text-[#a9a4c4]">{TEXT.originLabel}</dt>
-                <dd className="mt-1 text-[#f7f5ff]">{TEXT.origin[session.origin]}</dd>
+                <dt className="text-[#a9a4c4]">{tChapters("placeholder.originLabel")}</dt>
+                <dd className="mt-1 text-[#f7f5ff]">{tChapters(`placeholder.origin.${session.origin}`)}</dd>
               </div>
             </dl>
 
@@ -96,7 +97,7 @@ export const ChapterPlaceholder: React.FC<ChapterPlaceholderProps> = ({ session,
                 className="flex items-center gap-2 rounded-xl bg-[#7654d6] px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#8b6be8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                {LOADING_TEXT.backToMenu}
+                {t("common:actions.returnToMenu")}
               </button>
             </div>
           </div>

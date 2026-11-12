@@ -1,6 +1,6 @@
 # SCAMMAZE architecture overview
 
-> **Last reviewed:** 8 Nov 2026 · **Scope:** current implementation and target architecture
+> **Last reviewed:** 11 Nov 2026 · **Scope:** current implementation and target architecture
 > **Sources of truth:** the repository on `main`; the canonical product definition
 > [`docs/product/PRODUCT_POSITIONING.md`](../product/PRODUCT_POSITIONING.md) (owner decision of
 > 8 Nov 2026: first-person 3D narrative game); the master plan
@@ -31,7 +31,7 @@ Every architecture statement in `docs/` uses one of these labels.
 
 ## 2. What exists today (`IMPLEMENTED`)
 
-Verified on `feat/game-foundation-monorepo-main-menu` (9 Nov 2026):
+Verified on `feat/chapter-01-playable` (11 Nov 2026):
 
 | Area | Current implementation |
 |---|---|
@@ -40,10 +40,15 @@ Verified on `feat/game-foundation-monorepo-main-menu` (9 Nov 2026):
 | Game Application | Located in `apps/game`: React 19, TypeScript, Vite 8, **Three.js r174**, **React Three Fiber v9**, **Drei v10**, Tailwind CSS v4. Implements the cinematic first-person 3D street scene serving as the game's Main Menu. |
 | 3D Environment & Assets | Binary glTF models verified from `Kiroween/Asset3D/`: `low_poly_city_asset_pack.glb` (Calipo, CC-BY 4.0) and `low_poly_cars_pack.glb` (matisosanimation, CC-BY 4.0). Renders modular buildings (B1–B5, corner, shopfront, hospital), road asphalt with dashed lines, streetlights with warm point lights, low-poly trees, and parked cars along curbs. |
 | Camera & Controls | First-person eye-level camera (`y ≈ 2.05m`) facing down the street towards an atmospheric vanishing point. Smooth breathing idle motion and pointer parallax lerping. Configurable FOV (60°–85°). |
-| Menu UI & Modals | Interactive UI overlay over 3D Canvas: `NEW GAME` (opens the Prologue modal, whose "Begin Chapter 1" action starts chapter loading), `CONTINUE` (enabled only when a valid local save exists; nothing writes saves yet, so it stays disabled), `SETTINGS` (real-time graphics quality, FOV, sound toggle, master volume with `localStorage` persistence), `CREDITS` (verified third-party asset licenses), and WebGL fallback detector. |
-| Loading screens | Startup screen for the menu scene and a chapter loading pipeline with byte-measured progress, asset verification, error recovery and fade transitions. Chapter 1 gameplay does not exist, so loading ends on an "in development" screen. See [section 4.2.1](#421-chapter-loading-implemented). |
-| Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings, and scenario metadata. |
-| Quality Gates | Root `pnpm typecheck`, `pnpm test` (Vitest + Testing Library in `apps/game`) and `pnpm build`. No lint script exists. |
+| Menu UI & Modals | Interactive UI overlay over 3D Canvas: `NEW GAME` (opens the Prologue modal, whose "Begin Chapter 1" action starts chapter loading), `CONTINUE` (enabled only when the local save names a known chapter and, for a version 2 save, its progress replays through the chapter core; `app/continueAvailability.ts`), `SETTINGS` (real-time graphics quality, FOV, sound toggle, master volume with `localStorage` persistence), `CREDITS` (verified third-party asset licenses), and WebGL fallback detector. |
+| Loading screens | Startup screen for the menu scene and a chapter loading pipeline with byte-measured progress, asset verification, error recovery and fade transitions. Loading ends in the playable Chapter 1 page (`ChapterOnePage`); a chapter with `gameplayAvailable: false` still ends on the "in development" screen. See [section 4.2.1](#421-chapter-loading-implemented). |
+| Chapter 1 "The Urgent Call" | Playable from start to debrief on the menu street scene (`features/chapter1/`): first-person movement, in-world interactables with a focus probe, a scam phone call and three other dialogues, evidence journal, objectives, a final decision, three outcome groups (verified, risky, uncertain) with variants, and a debrief. Play time and frame rate have not been measured. Story and content: [`docs/gameplay/CHAPTER_01_THE_URGENT_CALL.md`](../gameplay/CHAPTER_01_THE_URGENT_CALL.md). |
+| Game core (deterministic) | `game/narrative/`: pure TypeScript reducer `chapterReducer(state, action, scenario)` with dialogue engine, evidence, objectives, outcome and debrief modules; Chapter 1 content in `game/narrative/chapter1/`; hand-written scenario validation (`validateScenario.ts`); a framework-free `ChapterStore` read through `useSyncExternalStore`; a pure `localize.ts` for display-only translated copies of the scenario. No React, Three.js, Zustand, Dexie or i18n imports. See [section 4.3](#43-deterministic-core-narrative-engine-and-scam-intelligence-engine-implemented-for-chapter-1). |
+| In-game phone | 2D React overlay in `features/chapter1/phone/`: home screen, incoming call and call screens, call history, messages and a fictional bank app. Phone actions are dispatched to the core as Core_Actions. |
+| Local saves (format v2) | `game/saves/saveGame.ts` behind the `SaveGameSource` interface, stored in `localStorage` (key `scammaze_save_v2`). A save holds the accepted Core_Actions (at most 1000), a checkpoint ID and the player pose. Restore replays the actions through the core (`game/saves/chapterProgress.ts`) and rejects saves that do not replay. Version 1 saves are migrated to a chapter-start checkpoint. Checkpoints are written by `features/chapter1/useCheckpointSaver.ts`. |
+| Game localization (English, Vietnamese) | `apps/game/src/i18n/`: i18next 27.1.1 and react-i18next 18.0.1 with bundled dictionaries, English as default and fallback, Vietnamese as second locale. The choice is stored in `GameSettings.language` (`localStorage` key `scammaze_settings_v1`) and `<html lang>` follows it. Chapter 1 narrative text is translated through a display-only overlay; the chapter core, its state and saves do not depend on the language. The landing app stays English-only. See [section 4.2.2](#422-localization-implemented). |
+| Shared Contracts | `packages/shared-types`: pure TypeScript definitions for scene IDs, graphics quality, game settings (including `language: GameLocale`), and scenario metadata. |
+| Quality Gates | Root `pnpm typecheck`, `pnpm test` (Vitest + Testing Library in `apps/game`) and `pnpm build`. On 11 Nov 2026, `pnpm test` reported 48 test files and 392 tests passed. Property tests use a seeded generator in `apps/game/src/test/` (no fast-check dependency). No lint script exists. |
 
 ```mermaid
 flowchart TD
@@ -74,10 +79,11 @@ proxying, persistence and server-side operations.
 | Game client (`apps/game`) | First-person 3D game client with Main Menu scene; React 19 + TypeScript + Vite 8 (section 3.1) | `IMPLEMENTED` (foundation & 3D main menu) |
 | 3D rendering | **Three.js r174** (primary 3D engine) via **React Three Fiber v9**, with **Drei v10** utilities; WebGL 2 baseline | `IMPLEMENTED` |
 | Physics | **Rapier** | `PROPOSED`; prototype required |
-| Gameplay state | **Zustand** stores | `PLANNED` |
-| In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `PLANNED` |
-| Narrative engine + scam intelligence engine (deterministic core) | Pure **TypeScript** chapter state machines, evidence and tactic definitions, versioned scenario files validated with **Zod** | `PLANNED` (a legacy demo reducer exists in `src/legacy/`) |
-| Local progress store | **IndexedDB** through **Dexie** | `PLANNED` |
+| Gameplay state | **Zustand** stores | `PLANNED`; Chapter 1 uses a framework-free store with `useSyncExternalStore` instead (`IMPLEMENTED`, deviation, section 4.3) |
+| In-game smartphone UI | 2D React UI rendered as an overlay or in-world surface; fictional apps | `IMPLEMENTED` as an overlay for Chapter 1; in-world surface `PLANNED` |
+| Narrative engine + scam intelligence engine (deterministic core) | Pure **TypeScript** chapter state machines, evidence and tactic definitions, versioned scenario files validated with **Zod** | `IMPLEMENTED` for Chapter 1 as a pure TypeScript reducer with hand-written validation; Zod not used (deviation); downloaded scenario files `PLANNED` |
+| Local progress store | **IndexedDB** through **Dexie** | `PLANNED`; today `localStorage` save v2 behind `SaveGameSource` (`IMPLEMENTED`, deviation) |
+| Game UI localization | **i18next** + **react-i18next** with bundled dictionaries; English source and fallback, Vietnamese second locale (section 4.2.2) | `IMPLEMENTED` in `apps/game`; landing page English-only |
 | Offline shell | Service worker / PWA (plan F11, section 3.3) | `PLANNED` |
 | Backend API | Amazon API Gateway **HTTP API** | `PLANNED` |
 | Compute | AWS Lambda | `PLANNED` |
@@ -97,11 +103,11 @@ flowchart TB
 
     subgraph FE["Frontend layer"]
         L["Landing page<br/>IMPLEMENTED on GitHub Pages<br/>Vercel PLANNED"]
-        G["Game client<br/>first-person 3D, PLANNED"]
-        W3["3D world<br/>Three.js + R3F + Drei, PLANNED<br/>Rapier physics PROPOSED"]
-        PHONE["In-game smartphone UI<br/>PLANNED"]
-        LOCAL["Deterministic core<br/>TypeScript engine + Zod, Zustand store, PLANNED"]
-        IDB[("Local save<br/>IndexedDB via Dexie, PLANNED")]
+        G["Game client<br/>first-person 3D, IMPLEMENTED<br/>(menu + Chapter 1)"]
+        W3["3D world<br/>Three.js + R3F + Drei, IMPLEMENTED (street)<br/>Rapier physics PROPOSED"]
+        PHONE["In-game smartphone UI<br/>IMPLEMENTED (overlay, Chapter 1)"]
+        LOCAL["Deterministic core<br/>TypeScript reducer + store, IMPLEMENTED (Chapter 1)<br/>Zod, Zustand PLANNED"]
+        IDB[("Local save<br/>localStorage v2, IMPLEMENTED<br/>IndexedDB via Dexie PLANNED")]
     end
 
     subgraph AWSB["AWS backend, ap-southeast-1<br/>PLANNED, nothing provisioned"]
@@ -138,8 +144,8 @@ flowchart TB
     classDef planned fill:#ffffff,stroke:#52525b,stroke-dasharray:5 5,color:#18181b
     classDef pending fill:#fef3c7,stroke:#b45309,color:#451a03
     classDef proposed fill:#f4f4f5,stroke:#a1a1aa,stroke-dasharray:2 4,color:#18181b
-    class L implemented
-    class G,W3,PHONE,LOCAL,IDB,CDN,S3B,API,FN,CW planned
+    class L,G,W3,PHONE,LOCAL,IDB implemented
+    class CDN,S3B,API,FN,CW planned
     class DB,AUTH pending
     class AI proposed
 ```
@@ -158,22 +164,23 @@ flowchart TB
 
 ### 3.1 Game application stack
 
-**Owner decision, 8 Nov 2026.** This is the stack for the future game application. **None of
-these libraries is installed**, and no game code exists. The landing page keeps its own verified
+**Owner decision, 8 Nov 2026.** This is the stack for the game application. Statuses
+were updated on 11 Nov 2026 to match `apps/game`. The landing page keeps its own verified
 stack (section 2) and is not changed by this decision.
 
 | Concern | Technology | Role | Status |
 |---|---|---|---|
-| Application | React 19 + TypeScript + Vite | Same base as the landing page; separate app | `PLANNED` |
-| 3D rendering engine | **Three.js** | The primary and only 3D renderer (WebGL 2 baseline) | `PLANNED` |
-| React integration | **React Three Fiber** | Declarative Three.js scene graph inside React | `PLANNED` |
-| 3D utilities | **Drei** | Reusable helpers (for example controls, loaders, LOD, instancing helpers) | `PLANNED` |
-| Physics | **Rapier** | Character collision, movement against walls and props | `PROPOSED` |
-| Gameplay state | **Zustand** | Container for engine state and UI/game state; no rules inside stores | `PLANNED` |
-| Deterministic scenario engine | **TypeScript** (pure functions) | Chapter state machines, evidence, tactics, consequences, scoring; no React, Three.js or network imports | `PLANNED` |
-| Runtime schema validation | **Zod** | Validates scenario files, saved state on load, and AI proposals before the engine sees them | `PLANNED` |
-| Local persistence | **IndexedDB** via **Dexie** | Local saves with versioned schema; clear-data support | `PLANNED` |
-| In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief | `PLANNED` |
+| Application | React 19 + TypeScript + Vite | Same base as the landing page; separate app | `IMPLEMENTED` (Vite 8) |
+| 3D rendering engine | **Three.js** | The primary and only 3D renderer (WebGL 2 baseline) | `IMPLEMENTED` (r174) |
+| React integration | **React Three Fiber** | Declarative Three.js scene graph inside React | `IMPLEMENTED` (v9) |
+| 3D utilities | **Drei** | Reusable helpers (for example controls, loaders, LOD, instancing helpers) | `IMPLEMENTED` (v10) |
+| Physics | **Rapier** | Character collision, movement against walls and props | `PROPOSED`; not installed |
+| Gameplay state | **Zustand** | Container for engine state and UI/game state; no rules inside stores | `PLANNED`; not installed. Chapter 1 uses a framework-free store (section 4.3) |
+| Deterministic scenario engine | **TypeScript** (pure functions) | Chapter state machines, evidence, tactics, consequences, scoring; no React, Three.js or network imports | `IMPLEMENTED` for Chapter 1 (`game/narrative/`) |
+| Runtime schema validation | **Zod** | Validates scenario files, saved state on load, and AI proposals before the engine sees them | `PLANNED`; not installed. Chapter 1 uses hand-written validation (section 4.3) |
+| Local persistence | **IndexedDB** via **Dexie** | Local saves with versioned schema; clear-data support | `PLANNED`; not installed. Chapter 1 saves to `localStorage` (section 4.3) |
+| In-game phone and overlays | React (2D DOM) | Phone apps, dialogue, debrief | `IMPLEMENTED` for Chapter 1 |
+| Localization | **i18next** + **react-i18next** | UI text per language from bundled dictionaries; display only, never read by the deterministic core | `IMPLEMENTED` (i18next 27.1.1, react-i18next 18.0.1; section 4.2.2) |
 | Entity Component System (ECS) | Not chosen | Option for future evaluation only if prototype profiling shows a need (for example many NPCs or props with shared behaviour) | `PROPOSED` (not approved) |
 
 Boundaries:
@@ -211,9 +218,11 @@ No triangle, draw-call or memory budgets are set until these benchmarks exist
 
 Introduces SCAMMAZE and links to the game through `VITE_GAME_URL`. It has no backend dependency
 and must stay fully static. Its copy still describes the earlier "linked digital environments"
-concept; see section 10.
+concept; see section 10. The landing page is English-only and has no i18n library; game
+localization (section 4.2.2) does not change it, and the two apps do not share the language
+setting.
 
-### 4.2 Game client (`PLANNED`)
+### 4.2 Game client (`IMPLEMENTED` for the menu and Chapter 1; later chapters `PLANNED`)
 
 **Owner decision, 8 Nov 2026:** the game is a browser-based, **first-person 3D narrative game**
 in a small persistent world (one apartment and one street for the MVP) with chapter-based
@@ -221,16 +230,44 @@ stories. The digital interfaces (messages, email, websites, marketplace, bank an
 live on an **in-game smartphone** inside the 3D world. Full definition:
 [product positioning](../product/PRODUCT_POSITIONING.md).
 
-Components inside the game client, all `PLANNED`:
+Components inside the game client (paths relative to `apps/game/src/`):
 
 - **3D world runtime** (Three.js + React Three Fiber + Drei, Rapier proposed for physics; see
-  section 3.1): rendering, first-person movement, interaction,
-  NPCs, area-based loading, quality tiers. Emits world events such as `visited_locker`.
-- **In-game smartphone UI**: 2D React UI; emits phone events such as `opened_link`,
-  `entered_code`.
-- **Deterministic core** (section 4.3): the only component that changes game state.
-- **Debrief and replay**: reads the event log; links missed clues back to world and phone
-  locations.
+  section 3.1).
+  - `IMPLEMENTED`: first-person movement and arms reused from `features/player/`
+    (`FirstPersonPlayer`, `usePlayerControls`); the Chapter 1 canvas
+    `features/chapter1/ChapterOneCanvas.tsx`, which renders the menu street
+    (`StreetEnvironment`, `SkyDome`, `EnvironmentLighting`), the chapter props
+    (`world/InteractableProps.tsx`) and a focus probe (`world/InteractionProbe.tsx`) that reports
+    the interactable in front of the camera; graphics quality from settings.
+  - Controls `enabled` flag (`IMPLEMENTED`): `ChapterOneCanvas`, `FirstPersonPlayer`,
+    `usePlayerControls` and `InteractionProbe` take `enabled`. When it is `false` (an overlay such
+    as the phone, a dialogue, the journal or the pause menu is open), movement keys read as
+    released, look and trigger input are drained and ignored, and the probe stops, so input does
+    not leak into the world or fire on resume.
+  - `PLANNED`: NPC characters, area-based loading, the apartment, physics.
+- **In-game smartphone UI** (`IMPLEMENTED` for Chapter 1): 2D React overlay in
+  `features/chapter1/phone/` (home, incoming call, call screen, call history, messages, bank).
+  Phone actions are sent to the core as Core_Actions; it does not change state itself. An
+  in-world phone surface is `PLANNED`.
+- **Chapter page and UI** (`IMPLEMENTED`): `features/chapter1/ChapterOnePage.tsx` owns the
+  chapter store (created from the initial state, or from the state the loader already rebuilt
+  during `validating-save`), computes the controls `enabled` flag, writes checkpoints (`useCheckpointSaver.ts`),
+  triggers calls (`useCallTriggers.ts`) and renders the canvas plus the 2D UI: title card, HUD
+  (objectives, interaction prompt, evidence notice, save-failure notice, resume prompt),
+  inspection and dialogue panels, evidence journal, decision panel, ending transition, debrief
+  and pause menu. `interaction/interactionToAction.ts` maps a focused interactable to a
+  Core_Action.
+- **Deterministic core** (section 4.3, `IMPLEMENTED` for Chapter 1): the only component that
+  changes game state.
+- **Debrief** (`IMPLEMENTED` for Chapter 1): `game/narrative/debrief.ts` builds the debrief from
+  the event log and evidence state; `features/chapter1/debrief/DebriefScreen.tsx` shows it.
+  Replay of alternative branches is `PLANNED`.
+
+Open follow-up (`PLANNED`): while Chapter 1 is open, the menu canvas stays mounted with
+`frameloop="never"` and `ChapterOneCanvas` creates a second WebGL context. The memory and
+start-up cost of that second context has not been measured; measure it on an integrated-GPU
+laptop and decide whether to unmount the menu canvas or share one canvas.
 
 Performance principles (WebGL 2 baseline, integrated GPUs first, baked lighting, LOD and
 instancing, quality tiers, budgets set from prototype benchmarks) are in
@@ -244,14 +281,20 @@ Rendering is separate from orchestration:
 |---|---|---|
 | Chapter manifest | `game/chapters/chapterRegistry.ts` | Chapter id, number, title, subtitle, scenes, required files, `gameplayAvailable` |
 | Orchestrator (no React) | `game/loading/chapterLoader.ts` | State machine, downloads, verification, stall watchdog, cancellation |
-| Helpers | `game/loading/assetFetcher.ts`, `assetVerification.ts`, `deviceCapabilities.ts`, `game/saves/saveGame.ts`, `game/chapters/chapterSession.ts` | Byte-streamed fetch, GLB/image header checks, WebGL 2 probe, save parsing, session creation |
+| Helpers | `game/loading/assetFetcher.ts`, `assetVerification.ts`, `deviceCapabilities.ts`, `game/saves/saveGame.ts`, `game/saves/chapterProgress.ts`, `game/chapters/chapterSession.ts` | Byte-streamed fetch, GLB/image header checks, WebGL 2 probe, save parsing and v1 migration, replay of saved actions, session creation |
 | React binding | `game/loading/useChapterLoader.ts`, `features/loading/ChapterLoadingFlow.tsx` | One loader per attempt; cancelled on retry, back or unmount |
 | Presentation | `components/ui/LoadingScreen.tsx`, `LoadingProgress.tsx`, `LoadingTip.tsx`, `LoadingErrorState.tsx`, `SceneTransition.tsx` | Props only, no loading logic |
 
 Flow. New game: `checking-device → loading-assets → initializing-state → ready`. Continue:
-`restoring-save → checking-device → loading-assets → validating-save → ready`. After `ready`, the
-screen fades out and `App` switches to the chapter (today `features/chapter/ChapterPlaceholder.tsx`).
-The menu canvas keeps its scene but stops rendering (`frameloop="never"`) while covered.
+`restoring-save → checking-device → loading-assets → validating-save → ready`. In
+`validating-save`, a version 2 save is replayed through the chapter core (`restoreProgress`); if
+any saved action is rejected, loading fails with an invalid-save error, otherwise the rebuilt
+state and clamped player pose go into the session (`session.restored`). After `ready`, the
+screen fades out and `App` switches to the chapter. For a chapter with `gameplayAvailable: true`
+(Chapter 1) that is `features/chapter1/ChapterOnePage.tsx`; otherwise it is the "in development"
+screen `features/chapter/ChapterPlaceholder.tsx`. The menu canvas keeps its scene but stops
+rendering (`frameloop="never"`) while covered (see the second-WebGL-context follow-up in
+section 4.2).
 
 Progress. Each manifest file is fetched with `fetch` and read as a stream. Progress is
 `loaded bytes / total bytes` only when every file reports `Content-Length` without
@@ -284,12 +327,111 @@ because its image loader reports no byte progress. Drei `useProgress`, which fol
 the only thing loading), is still the source of load errors. The screen offers "Continue to
 menu" after 30 s without progress or on error.
 
-Status of items from the 7 Nov brief: main menu and loading screens `IMPLEMENTED` (chapter
-gameplay `PLANNED`); level selection replaced by chapter progression in one world `PLANNED`; character
+Status of items from the 7 Nov brief: main menu and loading screens `IMPLEMENTED`; Chapter 1
+gameplay `IMPLEMENTED`, later chapters `PLANNED`; level selection replaced by chapter progression in one world `PLANNED`; character
 customization `PROPOSED`, future scope, not in the MVP. A *full* or open 3D world and
 multiplayer remain out of scope.
 
-### 4.3 Deterministic core: narrative engine and scam intelligence engine (`PLANNED`)
+#### 4.2.2 Localization (`IMPLEMENTED`)
+
+The game app ships in English (`en`, source and fallback) and Vietnamese (`vi`). Localization is
+display only: it changes the text on screen, never game state. Spec:
+[`.kiro/specs/game-i18n-en-vi/`](../../.kiro/specs/game-i18n-en-vi/design.md).
+
+**I18n_Module** (`apps/game/src/i18n/`, `IMPLEMENTED`):
+
+| Part | Files | Role |
+|---|---|---|
+| Instance and start-up | `index.ts` | Own i18next instance (`i18next.createInstance()`), no backend and no language detector. `initI18n(locale)` initializes it synchronously (`initAsync: false`) with the bundled dictionaries before the first render (`main.tsx`); `fallbackLng` is `en`. `applyLocale(locale)` changes the language and sets `document.documentElement.lang` |
+| Locales | `locales.ts` | `SUPPORTED_LOCALES = ["en", "vi"]`, `DEFAULT_LOCALE = "en"`, `isSupportedLocale`, labels shown in their own language |
+| Dictionaries | `locales/en/*.ts`, `locales/vi/*.ts`, `resources.ts`, `types.ts`, `i18next.d.ts` | Typed TypeScript objects in the namespaces `common`, `menu`, `settings`, `loading`, `credits`, `chapters`, `chapter1` and `worlds`. English is the source; the Vietnamese files are typed against the English shape. Plural keys use `_one` and `_other` |
+| Formatting | `format.ts` | `formatNumber`, `formatPercent`, `formatDate` through `Intl`, cached per locale |
+| React binding | `useGameLocale.ts`, `I18nextProvider` in `main.tsx` | Components read text with `useTranslation` and the current locale with `useGameLocale` |
+
+Settings and document language (`IMPLEMENTED`):
+
+- The locale is stored in `GameSettings.language` (`GameLocale = "en" | "vi"` in
+  `packages/shared-types`), saved with the other settings under the `localStorage` key
+  `scammaze_settings_v1` by `app/settingsStorage.ts`. A missing or unknown value becomes `en`.
+- The player picks the language in the Settings modal. `App.tsx` calls `applyLocale` when
+  `settings.language` changes, so `<html lang>` always follows the active locale. The
+  `index.html` title and meta tags stay English.
+- The game reads only its own `localStorage`; it does not share the setting with the landing
+  page.
+
+**Narrative_Overlay** (`IMPLEMENTED` for Chapter 1):
+
+- The English Chapter 1 content in `game/narrative/chapter1/` stays the authored source and the
+  canonical scenario (`CHAPTER_1_SCENARIO`).
+- The Vietnamese text lives in `src/i18n/narrative/chapter1.vi.ts` (split by area in
+  `chapter1.vi/`), a flat map from stable text keys built from scenario IDs (for example
+  `evidence/<id>/title` or `dialogues/<graphId>/lines/<lineId>`) to translated text.
+- `game/narrative/localize.ts` is pure TypeScript with no i18n import. `localizeScenario` returns
+  a copy of the scenario in which only text fields are replaced; IDs, structure, conditions and
+  effects are copied unchanged, and each field falls back to English when the overlay has no
+  non-empty entry. `narrativeTextEntries` lists every translatable field with the same walker.
+- `src/i18n/narrative.ts` builds the **display scenario**: `getDisplayScenario("en")` returns the
+  canonical object itself; other locales are localized once and cached. `ChapterOnePage` reads
+  text through `useDisplayScenario()` and `getDisplayPrompts(locale)` and passes the display
+  scenario to selectors and `buildDebrief`.
+
+**Locale independence of the Chapter_Core** (`IMPLEMENTED`):
+
+- The reducer, the chapter store and save format v2 always use the canonical English scenario.
+  The store is created with `createChapterStore(initial)`; actions carry IDs, not text, so the
+  same actions give the same state in every locale.
+- Saves hold Core_Actions, a checkpoint ID and the player pose, never displayed text, so a save
+  made in one language restores in the other. Changing the language does not remount the chapter
+  page or reset progress.
+- `game/narrative/boundaries.test.ts` fails if any file in `game/narrative/` imports `i18next`,
+  `react-i18next` or the `src/i18n/` module. The dependency goes one way: `src/i18n/` may import
+  from `game/narrative/`, not the reverse.
+- Reducer rejection reasons stay English developer text; they are not shown to players.
+
+Adding a language: see the "Adding a language" section of [CONTRIBUTING.md](../../CONTRIBUTING.md#adding-a-language).
+
+### 4.3 Deterministic core: narrative engine and scam intelligence engine (`IMPLEMENTED` for Chapter 1)
+
+**What exists (`IMPLEMENTED`, verified 11 Nov 2026)**, in `apps/game/src/game/narrative/`:
+
+| Part | Files | Role |
+|---|---|---|
+| Types | `types.ts` | `CoreAction` union, `ChapterState` (status, call and conversation state, evidence, claims, objectives, pressure, event log `events`), `ScenarioDefinition` |
+| Reducer | `reducer.ts` | `chapterReducer(state, action, scenario) → ActionResult` (`accepted`, next state, rejection reason); `createInitialState()`; `isCoreAction()` guard for untrusted input. Accepted actions are appended to the event log |
+| Rule modules | `conditions.ts`, `dialogueEngine.ts`, `evidence.ts`, `objectives.ts`, `outcome.ts`, `debrief.ts`, `selectors.ts` | Condition checks, dialogue graph traversal, evidence discovery and claim status, objective progress, ending selection, debrief view, read-only selectors |
+| Chapter 1 content | `chapter1/` (`scenario.ts`, `claims.ts`, `evidence.ts`, `interactables.ts`, `objectives.ts`, `phone.ts`, `decisions.ts`, `endings.ts`, `debrief.ts`, `dialogues/`) | Authored data only; fictional names and reserved domains |
+| Scenario validation | `validateScenario.ts` | Hand-written checks of the scenario data for broken references and unreachable dialogue; returns error strings and is run by tests |
+| Store | `store.ts` | `createChapterStore(initial)`: `getState`, `dispatch`, `subscribe`, `replace`. Notifies listeners only when an action is accepted. React reads it with `useSyncExternalStore` (`features/chapter1/useChapterState.ts`) |
+
+Save format v2 (`game/saves/`, `IMPLEMENTED`):
+
+- `saveGame.ts` defines the `SaveGameSource` interface (`read`, `write`, `clear`) and the
+  `localStorage` implementation. Key `scammaze_save_v2`; the envelope holds `chapterId`,
+  `sceneId`, `savedAt` and `progress` (`checkpointId`, accepted Core_Actions up to 1000,
+  `playerPose`). Parsing rebuilds the save from known fields and rejects unknown actions. No
+  names, free text or device identifiers are stored.
+- **Replay validation** (`chapterProgress.ts`): `restoreProgress` replays the saved actions from
+  `createInitialState()` through `chapterReducer`. If any action is rejected, the save is invalid,
+  Continue stays disabled and loading reports an invalid-save error. The player pose is clamped to
+  the play area. `encodeProgress` writes only accepted actions.
+- **v1 migration**: a version 1 save (`scammaze_save_v1`, chapter and scene only) is converted to
+  a v2 checkpoint at the chapter start (`checkpointId: "start"`, no actions), written to the v2
+  key, and the v1 key is removed when the write succeeds.
+- Blocked storage or a failed write does not stop gameplay; the chapter shows a save-failure
+  notice.
+
+**Deviations from the documented stack** (sections 3 and 3.1; to confirm with the owner):
+
+| Documented | Implemented for Chapter 1 | Reason |
+|---|---|---|
+| Zustand store | Framework-free `ChapterStore` read through React `useSyncExternalStore` | One store with four methods needed no new dependency; the reducer stays the only place with rules, so moving to Zustand later does not change the core |
+| Zod validation of scenarios and saves | Hand-written validation (`validateScenario.ts`, `isCoreAction`, `parseSaveEnvelopeV2`) | Scenario content is compiled TypeScript, not downloaded files; save shapes are small |
+| IndexedDB via Dexie | `localStorage` behind `SaveGameSource` | A save is a short action list; the interface keeps the switch to IndexedDB reversible |
+
+Zod, Zustand and Dexie are not installed. Downloaded, versioned scenario files, tactic
+definitions shared across chapters, scoring and AI proposal checks are still `PLANNED`.
+
+**Target design** (unchanged):
 
 Pure TypeScript, no network access, no AI SDK (plan section 4.5). It runs outside the render
 loop and does not depend on the 3D library. It owns game, mission and chapter state, persistent
@@ -304,8 +446,9 @@ accepted or rejected here. It also owns:
 - replay of the user's own decision sequence, with alternative branches labelled hypothetical;
 - scoring as a pure function that never turns "unknown" into "safe".
 
-State ownership (`PLANNED`, owner decision, 8 Nov 2026; resolves the plan's open "XState or
-Zustand" choice in favour of **Zustand**): the engine's transitions are pure TypeScript functions
+State ownership (owner decision, 8 Nov 2026; resolves the plan's open "XState or Zustand"
+choice in favour of **Zustand**; the pure `(state, event) → state` part is `IMPLEMENTED`, the
+Zustand and Dexie parts are `PLANNED`, see the deviations above): the engine's transitions are pure TypeScript functions
 `(state, event) → state`; a Zustand store holds the current engine state, applies events through
 those functions and persists through Dexie. Zustand is the state *container*; the rules live in
 the engine, so they stay testable without React, Three.js or Zustand. XState is not used.
@@ -352,6 +495,9 @@ also ship inside the game's own static build if that keeps cost and setup lower 
 | Completed mission summaries, learning progress, transfer test results | Backend database (`PENDING`) | Only with opt-in sync; summaries, not raw event streams. |
 | Achievements, inventory, customization | Backend database (`PENDING`) | Only if these features are approved. |
 
+The table describes the target. Today (`IMPLEMENTED`), Chapter 1 keeps its state in memory and
+saves checkpoints to `localStorage` (save format v2, section 4.3); nothing is sent to a backend.
+
 The plan requires that **guest play works without an account or email** (F01) and that
 **nothing is sent to the backend unless the user opts in** (section 4.4). Accounts are therefore
 optional add-ons, not a gate. Retention and deletion rules must be defined before any personal
@@ -385,6 +531,16 @@ Rules, following plan section 4.5:
 - timeout about 2.5 s, structured output validation, rate limit and budget limit;
 - on timeout, error or quota, the authored explanation is shown instead;
 - AI output never changes facts, scoring, outcomes or the evidence graph.
+
+**Locale contract for AI dialogue (`PLANNED`).** No AI code exists in `apps/game`. When AI
+dialogue is added, it must follow the localization rules of section 4.2.2:
+
+- each AI dialogue request carries the active `locale` (`GameLocale`) and stable line or intent
+  IDs, never displayed text as the reference;
+- AI output is validated per locale against the same schema and content rules as authored text;
+- on timeout, error, quota or a rejected proposal, the authored text in the active locale is
+  shown (English when that locale has no entry);
+- AI never changes IDs, game state or outcomes, in any language.
 
 Paid AI calls are **not** part of the core gameplay loop. AI provider costs are not covered by
 AWS promotional credits unless the provider is an eligible AWS service; see
@@ -429,17 +585,18 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 | Backend | FastAPI + Pydantic on a stable host, only for the optional coach | API Gateway HTTP API + Lambda for persistence and AI | Serverless `PLANNED`; runtime language `PENDING` |
 | FastAPI on an always-on host | Listed | Not listed | `DEPRECATED` (recommended): conflicts with the cost rules. FastAPI on Lambda through an adapter is `PROPOSED` if Python is chosen. Owner to confirm. |
 | Database | PostgreSQL for scenario metadata and opt-in anonymized results | DynamoDB or PostgreSQL | `PENDING` |
-| Progress storage | IndexedDB, privacy-first, server storage optional | Backend persistence for profiles and progress | Both are compatible if sync is opt-in; `PLANNED` |
+| Progress storage | IndexedDB, privacy-first, server storage optional | Backend persistence for profiles and progress | Both are compatible if sync is opt-in. Local Chapter 1 progress `IMPLEMENTED` (`localStorage`, see Local persistence); backend sync `PLANNED` |
 | Accounts | Guest play without email (F01) | User profiles, authentication | Accounts must stay optional; auth `PENDING` |
-| Product framing | "Safe simulated Internet" (section 0) | Owner decision 8 Nov 2026: first-person 3D narrative game, persistent world, chapters | 3D game `PLANNED`; plan section 0 amended; [positioning](../product/PRODUCT_POSITIONING.md) is canonical |
+| Product framing | "Safe simulated Internet" (section 0) | Owner decision 8 Nov 2026: first-person 3D narrative game, persistent world, chapters | 3D game `IMPLEMENTED` for the menu and Chapter 1, later chapters `PLANNED`; plan section 0 amended; [positioning](../product/PRODUCT_POSITIONING.md) is canonical |
 | 3D world | Full 3D world out of scope (3.1 P2) | Small first-person 3D world is the core platform | Small world `PLANNED`; full/open world still out of scope; plan 3.1 amended |
 | Character customization | Not in the feature contract | Listed in the 7 Nov brief | `PROPOSED`, future scope, not in the MVP |
 | AI role | Optional coach adapter | Bounded AI layer as a meaningful component; deterministic core decides | `PROPOSED`; provider `PENDING`; same safety boundaries |
-| Scenario state owner | XState or Zustand | Zustand for gameplay state; deterministic engine in pure TypeScript | `PLANNED` (Zustand); XState not used; legacy demo uses `useReducer` |
-| 3D and physics libraries | Not specified (3D out of scope) | Three.js + React Three Fiber + Drei; Rapier proposed | Three.js stack `PLANNED`; Rapier `PROPOSED`; nothing installed |
-| Schema validation and local persistence | Zod/JSON Schema; IndexedDB/Dexie | Zod; IndexedDB/Dexie | `PLANNED`; consistent with the plan |
+| Scenario state owner | XState or Zustand | Zustand for gameplay state; deterministic engine in pure TypeScript | Pure TypeScript reducer `IMPLEMENTED` for Chapter 1; state held in a framework-free store read with `useSyncExternalStore` (deviation, section 4.3); Zustand `PLANNED`, not installed; XState not used |
+| 3D and physics libraries | Not specified (3D out of scope) | Three.js + React Three Fiber + Drei; Rapier proposed | Three.js r174 + React Three Fiber v9 + Drei v10 `IMPLEMENTED`; Rapier `PROPOSED`, not installed |
+| Schema validation | Zod/JSON Schema | Zod | Hand-written validation `IMPLEMENTED` (`validateScenario.ts`, `isCoreAction`, save parsers); Zod `PLANNED`, not installed (deviation, section 4.3) |
+| Local persistence | IndexedDB/Dexie | IndexedDB/Dexie | `localStorage` save format v2 behind `SaveGameSource`, with replay validation and v1 migration, `IMPLEMENTED` (deviation, section 4.3); IndexedDB via Dexie `PLANNED`, not installed |
 | Visual system | "Cyber-noir detective lab", dark and light modes (section 3.5) | Game: stylized realism / stylized low-poly, not Halloween | Landing page: dark cinematic theme `IMPLEMENTED` (PR #7, replaced the flat theme of PR #2); game art `PLANNED`; plan 3.5 amended |
-| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | Vitest + Testing Library (jsdom) for the loading pipeline `IMPLEMENTED`; Playwright, fast-check and coverage target not added |
+| Tests | Vitest, Playwright, fast-check, coverage target | Tests for meaningful logic | Vitest + Testing Library (jsdom) `IMPLEMENTED` for the loading pipeline, the Chapter 1 core, saves and chapter UI: 48 files, 392 tests passed on 11 Nov 2026. Property tests use a seeded generator instead of fast-check (deviation). Playwright and a coverage target not added (`PLANNED`) |
 
 ## 10. Known inaccuracies on the live landing page
 

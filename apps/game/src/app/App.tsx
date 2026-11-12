@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { HCMPage } from "../features/hochiminh";
@@ -8,15 +8,26 @@ import { HuePage } from "../features/hue";
 import { MenuStartupLoading } from "../features/loading/MenuStartupLoading";
 import { ChapterLoadingFlow } from "../features/loading/ChapterLoadingFlow";
 import { ChapterPlaceholder } from "../features/chapter/ChapterPlaceholder";
+import { ChapterOnePage } from "../features/chapter1/ChapterOnePage";
 import type { ContinueAvailability } from "../features/menu/MainMenuOverlay";
 import { DEFAULT_CHAPTER_ID, getChapter } from "../game/chapters/chapterRegistry";
+import { readContinueAvailability } from "./continueAvailability";
 import type { ChapterSession } from "../game/chapters/chapterSession";
 import type { ChapterLoadRequest } from "../game/loading/chapterLoader";
 import { checkBasicWebGLSupport } from "../game/loading/deviceCapabilities";
 import { createLocalStorageSaveSource } from "../game/saves/saveGame";
 import type { GameSettings } from "@scammaze/shared-types";
+import { applyLocale } from "../i18n";
+import { loadSettings, saveSettings } from "./settingsStorage";
 
-const SETTINGS_STORAGE_KEY = "scammaze_settings_v1";
+/** `window.localStorage` itself can throw (for example when storage is blocked). */
+function getBrowserStorage(): Storage | undefined {
+  try {
+    return typeof window === "undefined" ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
 
 type Screen =
   | { kind: "menu" }
@@ -25,27 +36,9 @@ type Screen =
 
 const saveSource = createLocalStorageSaveSource();
 
-function readContinueAvailability(): ContinueAvailability {
-  const result = saveSource.read();
-  if (result.status === "none") {
-    return {
-      available: false,
-      reason: "No saved game found. Saving starts once Chapter 1 is playable.",
-    };
-  }
-  if (result.status === "invalid" || !getChapter(result.save.chapterId)) {
-    return { available: false, reason: "Your saved game could not be read. Start a new game instead." };
-  }
-  return { available: true };
+function readSavedContinueAvailability(): ContinueAvailability {
+  return readContinueAvailability(saveSource);
 }
-
-const DEFAULT_SETTINGS: GameSettings = {
-  graphicsQuality: "medium",
-  soundEnabled: true,
-  musicVolume: 1.0,
-  sfxVolume: 1.0,
-  fov: 72,
-};
 
 type AppRoute = "menu" | "hochiminh" | "testmove" | "ueh" | "hue";
 
@@ -74,19 +67,14 @@ export const App: React.FC = () => {
   const [showLoading, setShowLoading] = useState(() => checkBasicWebGLSupport());
   const [sceneError, setSceneError] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ kind: "menu" });
-  const [continueAvailability, setContinueAvailability] = useState(readContinueAvailability);
+  const [continueAvailability, setContinueAvailability] = useState(readSavedContinueAvailability);
 
-  const [settings, setSettings] = useState<GameSettings>(() => {
-    try {
-      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (stored) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-      }
-    } catch {
-      // Fallback to default
-    }
-    return DEFAULT_SETTINGS;
-  });
+  const [settings, setSettings] = useState<GameSettings>(() => loadSettings(getBrowserStorage()));
+
+  // Before paint, so every route (menu, chapter and the world pages) follows the language setting.
+  useLayoutEffect(() => {
+    applyLocale(settings.language);
+  }, [settings.language]);
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -119,11 +107,8 @@ export const App: React.FC = () => {
   const handleUpdateSettings = (updates: Partial<GameSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...updates };
-      try {
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Ignore localStorage quota errors
-      }
+      // A failed write (for example a full quota) is ignored; the new settings still apply.
+      saveSettings(getBrowserStorage(), next);
       return next;
     });
   };
@@ -159,7 +144,7 @@ export const App: React.FC = () => {
 
   const handleReturnToMenu = useCallback(() => {
     setScreen({ kind: "menu" });
-    setContinueAvailability(readContinueAvailability());
+    setContinueAvailability(readSavedContinueAvailability());
   }, []);
 
   // Gapless Seamless Dual-Layer Web Audio Engine (BGM + Street Ambient + SFX)
@@ -175,6 +160,10 @@ export const App: React.FC = () => {
   const hoverBufferRef = useRef<AudioBuffer | null>(null);
   const musicFadedInRef = useRef<boolean>(false);
   const ambientFadedInRef = useRef<boolean>(false);
+  // Menu music is faded out on chapter screens; the street ambient keeps playing.
+  const onMenuScreen = screen.kind === "menu";
+  const onMenuScreenRef = useRef(onMenuScreen);
+  onMenuScreenRef.current = onMenuScreen;
 
   const playHoverSound = useCallback(() => {
     const ctx = audioContextRef.current;
@@ -215,7 +204,10 @@ export const App: React.FC = () => {
       musicSourceRef.current = source;
 
       // Smooth fade-in from loading screen (ramp up over 3.0s)
-      const targetGain = settings.soundEnabled ? Math.max(0, Math.min(1, settings.musicVolume * 0.28)) : 0;
+      const targetGain =
+        settings.soundEnabled && onMenuScreenRef.current
+          ? Math.max(0, Math.min(1, settings.musicVolume * 0.28))
+          : 0;
       gainNode.gain.cancelScheduledValues(ctx.currentTime);
       gainNode.gain.setValueAtTime(0.0001, ctx.currentTime);
       gainNode.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + 3.0);
@@ -422,9 +414,11 @@ export const App: React.FC = () => {
     masterGain.gain.setTargetAtTime(targetMaster, ctx.currentTime, 0.06);
 
     // If BGM already completed initial fade-in, follow music volume changes reactively
+    // Off the menu screen (chapter loading or chapter) the music fades to 0 over about 1 s.
     if (musicFadedInRef.current && route === "menu") {
-      const targetMusic = settings.soundEnabled ? Math.max(0, Math.min(1, settings.musicVolume * 0.28)) : 0;
-      musicGain.gain.setTargetAtTime(targetMusic, ctx.currentTime, 0.06);
+      const targetMusic =
+        settings.soundEnabled && onMenuScreen ? Math.max(0, Math.min(1, settings.musicVolume * 0.28)) : 0;
+      musicGain.gain.setTargetAtTime(targetMusic, ctx.currentTime, onMenuScreen ? 0.06 : 0.3);
     }
 
     if (sfxGain) {
@@ -436,7 +430,7 @@ export const App: React.FC = () => {
       startMusicSource();
       startAmbientSource();
     }
-  }, [route, settings.soundEnabled, settings.musicVolume, settings.sfxVolume, startMusicSource, startAmbientSource]);
+  }, [route, onMenuScreen, settings.soundEnabled, settings.musicVolume, settings.sfxVolume, startMusicSource, startAmbientSource]);
 
   // Global keyboard shortcuts (e.g. 'M' for mute when in menu)
   useEffect(() => {
@@ -522,10 +516,23 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* No chapter scene exists yet (gameplayAvailable is false), so loading ends here. */}
-      {screen.kind === "chapter" && (
-        <ChapterPlaceholder session={screen.session} onBackToMenu={handleReturnToMenu} />
-      )}
+      {/*
+        A playable chapter replaces the menu. The menu canvas stays mounted and paused
+        (frameloop "never") underneath, so returning to the menu needs no reload.
+        A chapter without a playable scene (gameplayAvailable is false) ends at the placeholder.
+      */}
+      {screen.kind === "chapter" &&
+        (getChapter(screen.session.chapterId)?.gameplayAvailable ? (
+          <div className="absolute inset-0 z-40">
+            <ChapterOnePage
+              session={screen.session}
+              settings={settings}
+              onReturnToMenu={handleReturnToMenu}
+            />
+          </div>
+        ) : (
+          <ChapterPlaceholder session={screen.session} onBackToMenu={handleReturnToMenu} />
+        ))}
 
       {/* Startup screen for the menu's own 3D scene */}
       {showLoading && (

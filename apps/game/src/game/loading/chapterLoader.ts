@@ -4,6 +4,7 @@ import {
   restoreChapterSession,
   type ChapterSession,
 } from "../chapters/chapterSession";
+import { restoreProgress, type RestoreProgressResult } from "../saves/chapterProgress";
 import { createLocalStorageSaveSource, type SaveGameSource, type SavedGame } from "../saves/saveGame";
 import { fetchAssetBytes, isAbortError, type FetchLike } from "./assetFetcher";
 import { verifyAsset } from "./assetVerification";
@@ -50,6 +51,8 @@ export interface ChapterLoadSnapshot {
   filesTotal: number;
   /** Status text of the first file that has not finished yet. */
   currentAssetText: string | null;
+  /** ID of the same file, so the UI can show its text in the selected language. */
+  currentAssetId: string | null;
   error: LoadingError | null;
   /** Set only in the "ready" stage. */
   session: ChapterSession | null;
@@ -92,6 +95,7 @@ export const INITIAL_SNAPSHOT: ChapterLoadSnapshot = Object.freeze({
   filesCompleted: 0,
   filesTotal: 0,
   currentAssetText: null,
+  currentAssetId: null,
   error: null,
   session: null,
 });
@@ -168,6 +172,7 @@ export function createChapterLoader(request: ChapterLoadRequest, deps: ChapterLo
         filesCompleted: done.filter(Boolean).length,
         filesTotal: assets.length,
         currentAssetText: firstPending === -1 ? null : assets[firstPending].loadingText,
+        currentAssetId: firstPending === -1 ? null : assets[firstPending].id,
       });
     };
 
@@ -219,12 +224,19 @@ export function createChapterLoader(request: ChapterLoadRequest, deps: ChapterLo
 
       let session: ChapterSession;
       if (save) {
-        update({ stage: "validating-save", currentAssetText: null });
+        update({ stage: "validating-save", currentAssetText: null, currentAssetId: null });
         const restored = restoreChapterSession(chapter, save);
         if (!restored.ok) fail(createLoadingError("invalid-save", restored.reason));
         session = (restored as { ok: true; session: ChapterSession }).session;
+        if (session.progress !== undefined) {
+          // A save is valid only when the chapter core accepts every saved action (Req. 15.6).
+          const replayed = restoreProgress(session.progress);
+          if (!replayed.ok) fail(createLoadingError("invalid-save", replayed.reason));
+          const { state, pose } = replayed as Extract<RestoreProgressResult, { ok: true }>;
+          session = { ...session, restored: { state, pose } };
+        }
       } else {
-        update({ stage: "initializing-state", currentAssetText: null });
+        update({ stage: "initializing-state", currentAssetText: null, currentAssetId: null });
         session = createNewChapterSession(chapter);
       }
 

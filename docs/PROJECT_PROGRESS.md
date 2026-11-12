@@ -11,6 +11,14 @@
 - **Product stage:** Pre-Alpha / Game Foundation.
   - Landing application (`apps/landing`): live on GitHub Pages with 4 cinematic sections and full Knowledge Hub.
   - Game application (`apps/game`): 3D first-person street scene serving as the game's Main Menu built with Three.js r174, R3F v9, Drei v10, and verified Sketchfab 3D assets.
+  - Chapter 1 "The Urgent Call": playable vertical slice from New Game and Continue on branch
+    `feat/chapter-01-playable` (not merged, not deployed). Covered by automated tests only; not
+    yet played through in a browser.
+  - Game localization (English and Vietnamese): `i18next` locale module, persisted Language
+    setting and a Vietnamese Chapter 1 narrative overlay on branch `feat/game-i18n-en-vi`
+    (built on `feat/chapter-01-playable`, not merged). `pnpm typecheck`, `pnpm test` and
+    `pnpm build` pass after the test-file type fixes in commit `5b1c785` (see the task history
+    entry of 2026-11-12). Not yet checked in a browser.
   - Shared contracts (`packages/shared-types`): pure TypeScript types.
 - **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
 - **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
@@ -19,14 +27,15 @@
 - **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
   ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
-- **Last updated:** 2026-11-10
+- **Last updated:** 2026-11-12
 
 ## Completed
 
 Verified against merged pull requests on GitHub and local workspace builds.
 
+- [x] **Chapter 1 "The Urgent Call" playable vertical slice (branch `feat/chapter-01-playable`, not merged):** Deterministic narrative core (reducer, selectors, dialogue engine, scenario validator), versioned save v2 with replay validation, Chapter 1 street canvas with interactable props, smartphone (calls, messages, call history, bank app), face-to-face dialogue, evidence journal, decisions, three ending groups (`verified`, `risky`, `uncertain`), debrief, checkpoints and pause menu. Verified by `pnpm test` (48 files, 392 tests); not verified in a browser. See the task history entry of 2026-11-11.
 - [x] **Lexus GX 550 Vehicle Interaction, Solid Collider Box & First-Person Driving System (`/testmove`):** Added an oriented bounding box (OBB) collider for the gold Lexus GX 550 SUV preventing walking through the vehicle. Integrated proximity detection to the driver door with an animated `[E] Lên xe Lexus GX 550 (Lái xe)` interaction badge. Built driver seat cockpit POV camera with lowered sitting height, free head look around the cabin, procedural 3D steering wheel with driver hands and forearms gripping and turning with `A`/`D`, deterministic driving physics (acceleration up to 63 km/h, braking, reverse, handbrake slide, suspension pitch/roll, road curb clamping), zero-latency procedural Web Audio V8 engine rumble synthesis, digital speedometer (km/h) with gear indicator (`[D]`, `[R]`, `[P]`), and `E` key exit when stopped.
-- [x] **Cinematic chapter loading screen (branch `feat/game-cinematic-loading-screen`, not merged):** Real loading pipeline for New Game / Continue with byte-measured progress, asset verification, stall watchdog, error recovery, fade transitions and reduced-motion support. Startup menu loading rewritten without fabricated progress. First automated tests (Vitest, 103 tests after the 2026-11-10 startup loading percentage task). Startup screen shows a byte-measured percentage of the street GLB. Loading screens are opaque from the first frame and stay up for a minimum display time (1.5 s chapter, 1.2 s startup). Chapter 1 gameplay itself is not implemented; loading ends on an honest "in development" screen.
+- [x] **Cinematic chapter loading screen (branch `feat/game-cinematic-loading-screen`, not merged):** Real loading pipeline for New Game / Continue with byte-measured progress, asset verification, stall watchdog, error recovery, fade transitions and reduced-motion support. Startup menu loading rewritten without fabricated progress. First automated tests (Vitest, 103 tests after the 2026-11-10 startup loading percentage task). Startup screen shows a byte-measured percentage of the street GLB. Loading screens are opaque from the first frame and stay up for a minimum display time (1.5 s chapter, 1.2 s startup). At the time, loading ended on an honest "in development" screen; on branch `feat/chapter-01-playable` it now opens the Chapter 1 page.
 - [x] **Main Menu Performance Optimization (Round 2 — Progressive Loading & Deep GLB Reduction):** Implemented instantaneous menu UI interaction on Frame 1 with non-blocking progressive loading. Decoupled Suspense boundaries so the sky dome and procedural street fallback (`StreetFallback.tsx`) render immediately without waiting for the 3D model. Conducted deep decimation across heavy vehicle CAD hierarchies (VinFast VF3, Lexus GX 550, PCX, fence, pedestrian scan), dropping triangles from 2.68M down to 542k (-91.6% from original) and file size to 21.50 MB (-95.1% from original). Resized normal maps with high-quality WebP, and added parallel asynchronous GPU shader pre-compilation via `gl.compileAsync` to eliminate first-render freeze spikes.
 - [x] **Deep Performance Optimization of Main Menu 3D Scene (Phases 1–7):** Conducted complete asset forensics on the 440.5MB `MenuBG.glb` asset. Engineered an automated Node.js optimization pipeline (`apps/game/scripts/optimize-environment.cjs`) utilizing `@gltf-transform`, Meshopt, and Sharp. Reduced GLB file size from 440.53MB to 43.00MB (-89.76%) and polygon count from 6.48M to 2.68M triangles (-58.6%) without degrading visual fidelity from the authored camera viewpoint. Replaced 8K/4K scan textures with WebP (172.8MB -> 24.1MB), eliminated hidden dead meshes, froze static matrices, eliminated frame-loop memory allocations in `MenuCamera`, optimized SkyDome geometry, capped Retina DPR, and resolved WebGL context exhaustion.
 - [x] **Main Menu Initialization & Render Performance Optimization:** Eliminated initial camera rotation swing and blue-screen flash on menu entry. Added an atmospheric cyber-safety Loading Screen (`LoadingScreen.tsx`) covering 3D asset downloads. Optimized Three.js rendering pipeline by removing 420MB scene cloning, freezing static mesh matrices (`matrixAutoUpdate = false`), capping device pixel ratio, and limiting dynamic foliage animation to ensure smooth 60 FPS performance.
@@ -52,22 +61,42 @@ Verified against merged pull requests on GitHub and local workspace builds.
 
 ## In Progress
 
-- [ ] In-game smartphone interface and message notifications.
-- [ ] Chapter 1 "The Urgent Call" scenario state machine.
+- [ ] Game localization, English and Vietnamese (spec `game-i18n-en-vi`, branch
+      `feat/game-i18n-en-vi`). Code, translations and tests are committed in 9 commits (the
+      cross-cutting tests of task 10.3 in `5b1c785`, with the two test-file type fixes).
+      `pnpm typecheck`, `pnpm test` (62 files, 585 tests) and `pnpm build` pass. The
+      documentation is committed in a tenth commit (task 12.6). Still open: a browser check of
+      the language switch, and a
+      native-speaker review of all Vietnamese text. The pull request depends on the Chapter 1
+      pull request.
+- [ ] Chapter 1 "The Urgent Call" documentation commit (spec task 16.5). Gameplay document,
+      architecture overview update and the quality gate record (task 16.4: 48 files, 392 tests,
+      typecheck and build passed) are done but not committed.
+- [ ] Chapter 1 manual browser playthrough: all endings, prop position calibration, play time,
+      FPS, keyboard-only and screen-reader checks.
 
 ## Planned
 
-Updated for the 3D direction (positioning section 11); none started.
+Updated for the 3D direction (positioning section 11). Items marked "partly done" have a first
+version on branch `feat/chapter-01-playable`.
 
 - [ ] 3D prototype and benchmark with Three.js + React Three Fiber + Drei (and Rapier, if
       adopted): walkable apartment and street on target devices (integrated
       GPUs), to set triangle, draw-call and memory budgets.
-- [ ] Deterministic core (pure TypeScript, Zod-validated scenarios, Zustand store, Dexie
-      saves): chapter state machine, evidence and tactic definitions, persistent
-      world state, local save (IndexedDB), tests for every branch.
-- [ ] In-game smartphone UI: messages, browser with fictional sites, bank app, parcel app.
-- [ ] Vertical slice: Prologue and Chapter 1 "The Missing Parcel" (2 safe, 2 unsafe, 1
-      ambiguous route), debrief, phone-only transfer check.
+- [ ] Deterministic core, partly done: the Chapter 1 reducer, evidence and scenario validator
+      exist in pure TypeScript with a small hand-written store and a `localStorage` save (v2).
+      Still planned: Zod schemas, Zustand, Dexie/IndexedDB saves and persistent world state
+      across chapters, if still needed.
+- [ ] In-game smartphone UI, partly done: calls, messages, call history and a bank app exist
+      for Chapter 1. Still planned: browser with fictional sites, parcel app.
+- [ ] Later chapter "The Missing Parcel" (positioning section 11; moved after Chapter 1 "The
+      Urgent Call" by owner decision 2026-11-10/11).
+- [ ] Touch controls for the chapter page.
+- [ ] Game localization follow-ups: native-speaker review of all Vietnamese text; translate the
+      remaining English strings (`ModalDialog` "Close dialog", `MenuButton` "Unavailable",
+      `GameCanvas` WebGL error messages); add accessible names to the Ho Chi Minh City close
+      buttons; update the key table in the `game-i18n-en-vi` design.
+- [ ] Reduce the game JS bundle below the 1,500 kB warning limit (code-split the chapter page).
 - [ ] Bounded AI Scam Actor with authored fallback and AI on/off toggle (after provider approval).
 - [ ] Phase D — Usability sessions with Vietnamese and international participants; polish.
 - [ ] Phase E — Submission package, video, release tag.
@@ -87,6 +116,8 @@ Updated for the 3D direction (positioning section 11); none started.
 - [ ] Approve the MVP vertical slice details (positioning section 11.1) and chapter content.
 - [ ] Phone-centred fallback mode for devices that cannot run the 3D world.
 - [ ] Update the live landing page copy to the 3D direction.
+- [ ] Who reviews the Vietnamese game text as a native speaker, and when.
+- [ ] Whether and when to localize the landing app (English-only until requested).
 - [ ] Master plan co-author (SaiCT) to review the 8 Nov 2026 amendments.
 - [ ] Select database technology (`DATABASE_DECISION = PENDING`; recommendation in
       [database strategy](architecture/DATABASE_STRATEGY.md#5-recommendation-not-an-approved-decision)).
@@ -114,17 +145,335 @@ Resolved:
 - The live landing page (PR #7) describes the earlier concept ("five fictional digital
   environments, linked together") and does not mention the 3D world. See
   [OVERVIEW.md section 10](architecture/OVERVIEW.md#10-known-inaccuracies-on-the-live-landing-page).
-- Delivery risk: about 25 days remain before the internal deadline (3 Dec 2026 23:00 ICT) and no
-  3D code exists; the slice must stay small (positioning section 11, master plan risk register).
+- Delivery risk: the internal deadline is 3 Dec 2026 23:00 ICT; the slice must stay small
+  (positioning section 11, master plan risk register). Chapter 1 exists but is not merged or
+  played through in a browser.
 - Issue #4 (URL checker flags official country domains such as `google.co.uk`) was closed as
   completed on 2026-11-07, but `src/lib/urlCheck.ts` has not been changed; the false positive
   still exists (the checker is now legacy code, not shown on the site).
 - PR #7 did not update this file or the architecture documents; reconciled on 2026-11-08.
 - `ACCESSIBILITY.md` still describes the flat light theme of PR #2; not re-audited after PR #7.
-- Automated tests cover only the game loading pipeline (Vitest, jsdom); no browser or end-to-end
-  tests; no accessibility audit yet.
+- Automated tests (Vitest, jsdom, a seeded property-test generator; no fast-check) cover the loading pipeline, the Chapter 1
+  narrative core, saves and the chapter page (48 files, 392 tests on 2026-11-11). There are no
+  browser or end-to-end tests and no manual accessibility audit yet.
+- Game JS chunk is 1,755 kB, over the 1,500 kB Vite warning limit (about 1,340 kB before
+  Chapter 1).
+- The main menu canvas stays mounted (paused) under the Chapter 1 page, so two WebGL contexts
+  exist at once; memory and GPU cost not measured.
+- The prologue banner location "District 4 · Morning" (Vietnamese "Quận 4 · Buổi sáng") is
+  country-specific, against the `audience.md` rule for core content.
+- On branch `feat/game-i18n-en-vi` the game JS chunk is 1,905.88 kB (gzip 541.91 kB), over the
+  1,500 kB Vite warning limit.
+- The game localization (branch `feat/game-i18n-en-vi`) has not been checked in a browser or
+  with a screen reader, and its Vietnamese text has not had a native-speaker review.
 
 ## Task History
+
+### 2026-11-12 — Add phone 3D models
+
+- **Objective:** Store the two phone models supplied by the owner in the game asset tree.
+- **Completed work:** Moved `iphone-17-pro.glb` and `phone-17-pro-max.glb` (about 25 MB each,
+  textures embedded) from an untracked root folder to `apps/game/public/assets/3d/props/phone/`
+  and recorded their origin in `SOURCE.md`. Removed the duplicate texture folders and macOS files.
+- **Files created:** `apps/game/public/assets/3d/props/phone/{iphone-17-pro.glb,phone-17-pro-max.glb,SOURCE.md}`.
+- **Validation:** File check only (both GLBs embed all images; no external URIs). No code uses them yet.
+- **Limitations:** License is an owner statement ("free to use"); the source URL and license text
+  are not recorded. Files are not optimized and not in Git LFS.
+- **Follow-up:** credits entry and optimization when a model is used in the game.
+
+### 2026-11-12 — Merge `main` (PR #16, Lexus driving) into `feat/game-i18n-en-vi`
+
+- **Objective:** Bring the latest `main` into the localization branch.
+- **Completed work:** Resolved conflicts in `FirstPersonPlayer.tsx` and `player/types.ts` by keeping both the `enabled` input gate (Chapter 1) and the `carPivotRef` driving layer (`main`); driving input is now gated by `enabled` too. Resolved `TestMoveOverlay.tsx` by keeping the driving HUD from `main` and moving its hard-coded Vietnamese text into the `worlds` `testmove` dictionaries (`en` and `vi`); the vehicle name "Lexus GX 550" stays in code and is not translated. The unused `testmove.trackpadTip` key was replaced by `walkingTip` and `drivingTip`. Kept both sides of this file.
+- **Files modified:** `apps/game/src/features/player/FirstPersonPlayer.tsx`, `apps/game/src/features/player/types.ts`, `apps/game/src/features/testmove/TestMoveOverlay.tsx`, `apps/game/src/i18n/locales/{en,vi}/worlds/testmove.ts`, `apps/game/src/features/worlds.i18n.test.tsx` (`isBlocking` in the stats fixture, new driving locale test), `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm typecheck` passed; `pnpm test` passed (63 files, 598 tests); `pnpm build` passed (game JS chunk 1,923.05 kB, gzip 547.15 kB, over the 1,500 kB warning limit).
+- **Limitations:** Driving and the Chapter 1 input gate were not play-tested in a browser after the merge. "Lexus GX 550" is a real brand name in a teammate world; this predates the merge and is left for the owner to decide.
+- **Deviations:** None. **Follow-up:** browser check of `/testmove` driving and Chapter 1.
+
+### 2026-11-12 — Game localization (English and Vietnamese) (spec `game-i18n-en-vi`, task 12.5)
+
+- **Objective:** Let players switch the game (`apps/game`) between English and Vietnamese in
+  Settings, without a reload, with English as the source and fallback. Chapter 1 narrative text
+  gets a Vietnamese display-only overlay; the deterministic core, saves and outcomes do not
+  depend on the UI language.
+- **Completed work:**
+  1. *Dependencies:* `i18next` 27.1.1 and `react-i18next` 18.0.1 added to `apps/game`.
+     Justification: the game had no i18n library. Both are initialized synchronously with
+     bundled resources (`initAsync: false`), with no HTTP backend, no language detector and no
+     Suspense (`react.useSuspense: false`), so the first frame already shows the stored
+     language and the game still works offline. `react-i18next` re-renders components when the
+     language changes, which the runtime switch needs. Peer ranges checked against the
+     installed packages: `i18next` wants `typescript ^5 || ^6 || ^7` (installed 5.9.3);
+     `react-i18next` wants `i18next >= 27.0.1`, `react >= 18.0.0` (installed 19.3.1),
+     `@types/react *` and the same TypeScript range.
+  2. *Locale module (`apps/game/src/i18n/`):* `SUPPORTED_LOCALES` (`en`, `vi`), `initI18n`,
+     `applyLocale` (also sets `<html lang>`), cached `Intl` formatters (`formatNumber`,
+     `formatPercent`, `formatDate`), `useGameLocale`, and namespaced dictionaries in
+     `locales/{en,vi}/`. Every `vi` file is typed against its `en` file (`LocaleShape`).
+  3. *Typed `t` (task 1.3):* `src/i18n/i18next.d.ts` augments `CustomTypeOptions` with
+     `defaultNS: "common"`, `resources: EnResources` and `returnNull: false`, so keys are
+     checked against the English dictionaries. The full augmentation was kept; the
+     resources-only fallback described in task 1.3 was not needed.
+  4. *Language setting:* `GameLocale` and `GameSettings.language` in `packages/shared-types`;
+     `app/settingsStorage.ts` validates only `language` and keeps the legacy merge for the other
+     fields; invalid or missing values give English; a failing storage write still switches the
+     language. Settings has a Language radio group ("English", "Tiếng Việt") with the lucide
+     `Languages` icon.
+  5. *Narrative localization:* pure `game/narrative/localize.ts` replaces only text by stable
+     content key and falls back to English per field; `src/i18n/narrative.ts` serves the
+     display scenario (`en` returns the canonical scenario object). The Vietnamese overlay lives
+     in `src/i18n/narrative/chapter1.vi.ts` and its parts. Decision views gained `hintCode`;
+     `continueAvailability` gained `reasonCode`; the chapter loader snapshot gained
+     `currentAssetId`, so the UI translates by code instead of by English text.
+  6. *Extracted and translated UI:* main menu, prologue, Settings, Credits headings and notes
+     (names, creators, licenses and URLs stay unchanged), loading screens, loading errors, tips,
+     WebGL fallback, chapter titles and placeholder, the full Chapter 1 interface (HUD, phone,
+     dialogue, journal, inspection, decision, ending, debrief, pause), and the teammate world
+     pages (`/hochiminh`, `/testmove`, `/ueh`, `/hue`) with no behavior change. Place and
+     landmark names stay literal.
+  7. *Tests:* init and dictionary consistency tests; a Vietnamese content lint (no "an toàn",
+     reserved domains and `+000` numbers only, no emoji, currency or blaming phrases, "Northgate
+     Bank" kept verbatim); Vietnamese cases in the existing component tests; property tests 1
+     to 9 of the design (settings parsing and round trip, language selections, missing-text
+     fallback, plural selection and count formatting, scenario localization, core and save
+     independence from the locale, decision hint codes); `boundaries.test.ts` forbids
+     `i18next`, `react-i18next` and `src/i18n/` imports in `game/narrative/`.
+  8. *Documentation (tasks 12.1 to 12.4, committed in task 12.6):* `.kiro/steering/language.md`,
+     `AGENTS.md`, `CONTRIBUTING.md` and `docs/architecture/OVERVIEW.md` describe the game
+     localization; OVERVIEW.md records the AI locale contract as `PLANNED`.
+- **Bugs found and fixed during the work:**
+  - The unread badge count on the phone home screen was not formatted for the locale. Found by
+    Property 5 (plural selection and count formatting); `PhoneHome.tsx` now passes
+    `formatNumber(locale, unreadCount)` (commit `059d911`).
+  - `TestMoveOverlay.tsx` used a lightbulb emoji as an icon in the trackpad tip; it is now the
+    lucide `Lightbulb` icon with `aria-hidden="true"` (commit `4f22075`, `icons.md`).
+- **Commits on `feat/game-i18n-en-vi`** (oldest first, local only, not pushed): `bd8f97c`
+  display-only scenario localization and decision hint codes; `e260c97` i18next locale module
+  with English and Vietnamese resources; `98798ec` persisted language setting and runtime
+  switching; `77a6dff` Vietnamese Chapter 1 narrative overlay; `a422a03` explicit timeouts for
+  seeded property tests; `6401086` main menu, credits, loading screens and chapter text;
+  `059d911` Chapter 1 interface; `4f22075` teammate world pages; `5b1c785` Vietnamese content
+  lint and i18n property tests (task 10.3: `src/i18n/content.vi.test.ts`,
+  `src/i18n/i18n.property.test.ts`, plus the `GameLocale` import fix in
+  `src/features/worlds.i18n.test.tsx`); then this commit (task 12.6, "docs: document game
+  localization and the process for adding a language"), which adds the documentation of item
+  8, this entry and the `game-i18n-en-vi` spec files (requirements, design, tasks, config).
+- **Dependency on the Chapter 1 pull request:** the branch was created from
+  `feat/chapter-01-playable` at `8fed327`, not from `main`, because `main` does not contain
+  Chapter 1. The pull request must be merged after the Chapter 1 pull request, or rebased onto
+  `main` once that one is merged.
+- **Files:** against `8fed327`, the 9 code and test commits (`bd8f97c` to `5b1c785`) change
+  149 files (7,303 insertions, 910 deletions), per `git diff --shortstat 8fed327..5b1c785`: `apps/game/package.json`, `pnpm-lock.yaml`, `packages/shared-types/src/index.ts`,
+  new `apps/game/src/i18n/**` (module, `locales/{en,vi}/**`, narrative overlay, tests), new
+  `apps/game/src/app/settingsStorage.ts`, new `apps/game/src/game/narrative/localize.ts`, new
+  `apps/game/src/features/hue/placeNames.ts`, and modified components and tests under
+  `apps/game/src/{app,components/ui,config,features,game}`. Commit `5b1c785` adds the two
+  test files above and changes one line in `src/features/worlds.i18n.test.tsx`.
+  The documentation commit (task 12.6) adds the four documentation files in item 8, this file,
+  the anchor fix of the OVERVIEW.md link to `CONTRIBUTING.md#adding-a-language`, and the spec
+  files. No files deleted. `git diff --stat 8fed327 -- apps/landing apps/game/index.html` is
+  empty (re-run in task 12.6).
+- **Checkpoints 4, 8 and 11** of the `game-i18n-en-vi` task list are satisfied by the passing
+  `pnpm typecheck`, `pnpm test` (62 files, 585 tests) and `pnpm build` run at `5b1c785`
+  below. Task 12.6 changed documentation only, so the checks were not re-run.
+- **Type errors found and fixed (task 10.3, commit `5b1c785`):** the first quality-gate run
+  failed `pnpm typecheck` and `pnpm build` (`tsc -b` runs before `vite build`) on two errors in
+  test files: `src/features/worlds.i18n.test.tsx(5,15)` TS2459 (`GameLocale` imported from
+  `../i18n/locales`, which does not export it) and `src/i18n/i18n.property.test.ts(163,22)`
+  TS2352 (typed `t` result cast straight to `string`). Fixes: import `GameLocale` from
+  `@scammaze/shared-types`, and wrap the `t` result in `String(...)`. No assertion changed.
+- **Validation (run sequentially from the repository root on 2026-11-12, after the fix):**
+  - `pnpm typecheck`: **passed** (`apps/game`, `apps/landing`, `packages/shared-types`).
+  - `pnpm test`: **passed.** 62 test files, 585 tests passed (Vitest 5.1.0, `apps/game`,
+    49.6 s). Baseline on `8fed327`: 48 files, 392 tests.
+  - `pnpm build`: **passed** for all packages. Game JS chunk `index-*.js` 1,905.88 kB (gzip
+    541.91 kB), CSS 75.90 kB (gzip 15.09 kB); Vite warns that the chunk is over 1,500 kB.
+  - Not run: a browser check of the language switch, a screen reader pass in Vietnamese.
+- **Unresolved issues and known limitations:**
+  - The game JS chunk grew from 1,755 kB (Chapter 1 branch) to 1,905.88 kB; not code-split.
+  - All Vietnamese text was written by an AI agent. A native-speaker review of every
+    Vietnamese dictionary and the narrative overlay is recommended before release.
+  - Still English in both locales: the `ModalDialog` "Close dialog" label, the `MenuButton`
+    "Unavailable" badge and the `GameCanvas` WebGL error messages passed to `WebGLFallback`.
+  - The `index.html` title and meta tags stay English by design; only `<html lang>` changes.
+  - Loading tips are translated (`loading:tips.*`) but no loading screen passes `tips` to
+    `LoadingScreen`, so they are not displayed.
+  - The credits item `menuStreetScene` has `sourceUrl` "Local Authoring / Kiroween Asset3D",
+    which `CreditsModal` renders as a link (`href`) that does not work.
+  - The Ho Chi Minh City overlay close buttons (`HCMOverlay.tsx`, icon-only `X`) have no
+    accessible name.
+  - The prologue location is "District 4" / "Quận 4", which is country-specific
+    (`audience.md`).
+  - The key table in the `game-i18n-en-vi` design lists `credits.title`, `credits.subtitle` and
+    `credits.licenseLabel` under the `menu` namespace; they live in the `credits` namespace.
+  - Ending `risky.money-moved` says the balance "reads zero" in English and "là 0" (the digit)
+    in Vietnamese; a small wording difference to check in the native-speaker review.
+  - The landing app stays English-only.
+  - The AI locale contract is documented only (`PLANNED`); no AI code exists.
+- **Deviations:** None from the documented architecture. The branch base (`feat/chapter-01-playable`
+  instead of `main`) is a known dependency, recorded above.
+- **Follow-up:** fix the two type errors and rerun `pnpm test`, `pnpm typecheck` and
+  `pnpm build`; commit task 10.3 and the documentation; native-speaker review of the Vietnamese
+  text; translate the remaining English strings; decide whether loading tips are shown; fix the
+  `menuStreetScene` source link and the HCM close button names; replace "District 4" with a
+  neutral location; update the design key table; open the pull request after the Chapter 1
+  pull request.
+
+### 2026-11-11 — Chapter 1 "The Urgent Call": playable vertical slice (spec `chapter-01-the-urgent-call`, tasks 16.3 and 16.4)
+
+- **Objective:** Make Chapter 1 "The Urgent Call" playable from New Game and Continue as a small
+  first-person slice: a phone scam call, evidence in the street and on the phone, a decision,
+  an ending and a debrief. This entry summarizes all phases; the entries below (14.4, 14.5, 15.2,
+  15.1/15.3) keep the per-task detail.
+- **Completed work, by phase:**
+  1. *Narrative core:* pure TypeScript `chapterReducer` with action validation, selectors,
+     dialogue engine, evidence, objectives, outcome and debrief logic, and a scenario validator.
+     Chapter 1 data: claims, evidence, interactables, four dialogue graphs (scam call, callback,
+     shopkeeper, official line), decisions, endings and debrief text. A `RING_CALL` action
+     rings the scam call (after the first interaction, an exploration timer or a re-ring) and
+     the callback.
+  2. *Saves v2:* versioned chapter progress in `localStorage`; on load, the action log is
+     replayed through the reducer and rejected if it does not match; v1 saves migrate. Continue
+     availability uses the same check.
+  3. *Controls pause:* `usePlayerControls` / `FirstPersonPlayer` take an `enabled` flag so
+     movement and look stop while a panel is open.
+  4. *Canvas and props:* `ChapterOneCanvas` on the street play area, interactable props from
+     `propLayout.ts`, a look-at probe and an interaction prompt.
+  5. *Page and HUD:* `ChapterOnePage`, title card, objective tracker (polite live region),
+     objective toast, evidence notice, HUD buttons, resume prompt.
+  6. *Phone:* incoming call and call screens, messages, call history, bank app.
+  7. *Dialogue:* face-to-face dialogue panel for the shopkeeper.
+  8. *Journal:* evidence journal with an entry point to the decision.
+  9. *Decisions and endings:* decision panel; ending groups `verified`, `risky` and
+     `uncertain` with variants (for example `risky.money-moved`, `uncertain.stopped`); ending
+     transition.
+  10. *Debrief:* debrief screen with tactics, evidence found and decision notes.
+  11. *Checkpoints and pause:* checkpoint saver, save failure notice, pause menu, focus trap.
+  12. *Accessibility:* focus moves into and back out of every dialog, `aria-modal` and names,
+      `aria-hidden` lucide icons, reduced motion for toast, call vibration and ending fade; a
+      test scans `features/chapter1/` for emoji.
+  13. *Menu music fade:* menu music fades out when the chapter starts (`App.tsx`).
+  14. *Prologue callout:* status callout in `IntroPrologueModal.tsx`.
+  15. *Enablement:* `gameplayAvailable: true` for `chapter-1`; `App.tsx` routes to
+      `ChapterOnePage` after loading; other chapters still reach `ChapterPlaceholder`.
+- **Commits on `feat/chapter-01-playable`** (oldest first, not pushed, not merged):
+  `845045d` narrative core and scenario data; `1cfbb89` save v2 with replay validation;
+  `f846996` street canvas, props, look-at interaction and controls `enabled` flag; `a1a4265`
+  page, smartphone, dialogue, journal and debrief; `a99ea25` checkpoints, pause menu,
+  accessibility, menu music fade and prologue callout; `f02f29f` enablement from New Game and
+  Continue. This entry and the 16.1/16.2 documents are uncommitted (task 16.5).
+- **Files:** 119 files changed against `main` (18,046 insertions, 99 deletions), mainly under
+  `apps/game/src/game/narrative/` (core and `chapter1/` data), `apps/game/src/game/saves/`,
+  `apps/game/src/features/chapter1/` (page, canvas, HUD, phone, dialogue, journal, decision,
+  ending, debrief, pause), `apps/game/src/features/player/`, `apps/game/src/app/App.tsx`,
+  `apps/game/src/app/continueAvailability.ts`, `apps/game/src/game/chapters/`,
+  `apps/game/src/game/loading/chapterLoader.ts`,
+  `apps/game/src/game/scenes/MainMenuScene/streetPlayArea.ts`,
+  `apps/game/src/features/menu/IntroPrologueModal.tsx`, test helpers in `apps/game/src/test/`,
+  and the spec in `.kiro/specs/chapter-01-the-urgent-call/`. A temporary
+  `PlaceholderOverlays.tsx` was added in `a1a4265` and removed in `a99ea25`. This task modified
+  only `docs/PROJECT_PROGRESS.md`.
+- **Validation (task 16.4, run from the repository root on 2026-11-11, no code changes needed):**
+  - `pnpm test`: passed. 48 test files, 392 tests passed (Vitest 5.1.0, `apps/game`; 35.6 s, a
+    second run 26.3 s). No "Multiple instances of Three.js" warning and no stderr in either run.
+  - `pnpm typecheck`: passed for all 3 workspace projects (`apps/landing`, `apps/game`,
+    `packages/shared-types`), no errors.
+  - `pnpm build`: passed for all 3 projects. Game build (Vite 8.3.6, 2,780 modules, 41.2 s):
+    JS chunk `index-*.js` 1,755.10 kB (gzip 497.60 kB), CSS 75.74 kB (gzip 15.06 kB). One
+    warning: chunks larger than 1,500 kB after minification (the game JS chunk). Landing JS
+    chunk 300.55 kB, no warnings.
+  - Dev server: `pnpm dev:game` started (Vite ready in 553 ms) and `GET http://localhost:5174/`
+    returned HTTP 200 (1,465 bytes); the server was then stopped. This only confirms the dev
+    server serves the page; gameplay was not checked in a browser.
+- **Limitations and manual checks still needed:**
+  - Not played through in a browser; no end-to-end test. Needed: every ending, keyboard-only
+    play, screen reader pass, pointer lock behavior with panels.
+  - Prop positions in `propLayout.ts` are not calibrated against the street model.
+  - No touch controls.
+  - The kept-mounted menu canvas creates a second WebGL context; its cost is not measured.
+  - Game JS chunk 1,755 kB, over the 1,500 kB warning limit; it was about 1,340 kB before this
+    chapter, so the chapter added about 400 kB.
+  - A "Multiple instances of Three.js being imported" warning was seen in earlier test runs; it
+    did not appear in the task 16.4 runs. Not investigated.
+  - Play duration and FPS are not measured.
+  - The prologue banner "District 4 · Morning" is country-specific (`audience.md`).
+- **Deviations:**
+  - Chapter 1 is "The Urgent Call", not "The Missing Parcel" from positioning section 11, by
+    owner decision (2026-11-10/11); "The Missing Parcel" becomes a later chapter. The
+    positioning document has not been changed.
+  - No Zustand, Zod or Dexie: a small hand-written store (`narrative/store.ts`), hand-written
+    action validation in the reducer, and `localStorage` save v2 instead of IndexedDB.
+  - `RING_CALL` action added to the core action set (not in the original design).
+  - The safe ending group is named `verified`, not "safe", to follow `safety.md` (never imply
+    something is safe).
+- **Follow-up:** task 16.5 (documentation commit); manual browser
+  playthrough; prop calibration; WebGL context and bundle size measurement; replace "District
+  4" with a fictional or neutral location; update positioning section 11 for the new chapter
+  order after owner review.
+
+### 2026-11-11 — Commit Chapter 1 enablement (spec tasks 15.1 and 15.3)
+
+- **Objective:** Commit the Chapter 1 enablement (task 15.1) and its routing tests (task 15.2).
+- **Completed work:** Task 15.1 had no entry here; recorded now. `gameplayAvailable` is `true` for
+  `chapter-1`, and `App.tsx` renders `ChapterOnePage` after New Game or Continue loading when the
+  session's chapter is playable; other chapters still reach `ChapterPlaceholder`. The menu canvas
+  stays mounted and paused under the chapter page. Checked the 15.2 entry: its file list and its
+  targeted run (3 files, 16 tests) are accurate.
+- **Files:** `apps/game/src/game/chapters/chapterRegistry.ts`,
+  `apps/game/src/game/chapters/chapterRegistry.test.ts`, `apps/game/src/app/App.tsx`,
+  `apps/game/src/app/continueAvailability.test.ts`, `apps/game/src/app/App.chapter.test.tsx`,
+  `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm test` (48 files, 392 tests passed); `pnpm typecheck` passed; `pnpm build`
+  passed (existing warning: game JS chunk 1,755 kB, over the 1,500 kB limit).
+- **Issues / deviations:** Commit message is `feat(game): make Chapter 1 playable from New Game and
+  Continue` instead of the one in `tasks.md`. Not pushed. No manual browser test of the chapter in
+  this task. **Follow-up:** task 16.
+
+### 2026-11-11 — Chapter 1 routing tests (spec task 15.2)
+
+- **Objective:** Test that New Game reaches the Chapter 1 page, that a chapter without gameplay
+  reaches the placeholder, and that returning to the menu refreshes Continue.
+- **Completed work:** Unit tests for `readContinueAvailability` (no save, unreadable save, unknown
+  chapter, v2 progress that fails replay, valid v2 progress, v1 save). App routing tests with the
+  menu canvas, startup loading, chapter loading flow, chapter page and other routes stubbed; the
+  menu, prologue and placeholder are real. Registry test for `gameplayAvailable: true`.
+- **Files:** created `apps/game/src/app/continueAvailability.test.ts`,
+  `apps/game/src/app/App.chapter.test.tsx`; modified
+  `apps/game/src/game/chapters/chapterRegistry.test.ts`, `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm --filter @scammaze/game test -- src/app src/game/chapters/chapterRegistry`
+  (3 files, 16 tests passed); `pnpm typecheck` passed. Full suite and `pnpm build` not run.
+- **Issues / deviations:** No production code changed; no bugs found. Not committed.
+  **Follow-up:** 15.3 (commit).
+
+### 2026-11-11 — Commit Chapter 1 checkpoints, pause menu and polish (spec task 14.5)
+
+- **Objective:** Commit the uncommitted work from spec tasks 12.x and 14.1 to 14.4.
+- **Completed work:** One commit with the checkpoint saver (`useCheckpointSaver.ts`), the save
+  failure notice, the pause menu, the focus trap, restore and saver tests, the accessibility
+  test, reduced-motion and focus edits to the phone, ending and debrief screens, the menu music
+  fade in `App.tsx`, the prologue status callout, and the removal of `PlaceholderOverlays.tsx`.
+  Chapter 1 gameplay is still not enabled from the menu (task 15.1).
+- **Validation:** `pnpm --filter @scammaze/game test` (46 files, 380 tests passed);
+  `pnpm typecheck` passed. `pnpm build` was not run.
+- **Deviations:** Commit message differs slightly from the one in `tasks.md`. **Follow-up:** 15.1.
+
+### 2026-11-11 — Chapter 1 accessibility and icon tests (spec task 14.4)
+
+- **Objective:** Cover Requirements 16.6, 17.1 to 17.5 and 18.1 with automated tests for the
+  Chapter_Page.
+- **Completed work:** Added `accessibility.test.tsx` (10 tests, canvas stubbed): focus moves into
+  the inspection panel, pause menu, phone, journal and decision panel and returns to the game view
+  or to the opener (Decide in the journal); Tab and Shift+Tab wrap inside the top dialog; every
+  dialog is `aria-modal` and named; every button has an accessible name; every rendered lucide
+  icon is `aria-hidden`; the objective tracker is a polite live region; reduced motion removes the
+  toast fade, the call vibration and the ending fade; a source scan finds no emoji under
+  `features/chapter1/`. No product code bug was found, so no source file changed.
+- **Files:** created `apps/game/src/features/chapter1/accessibility.test.tsx`; modified this file.
+- **Validation:** `pnpm --filter @scammaze/game test -- src/features/chapter1` (10 files, 71 tests
+  passed); `pnpm typecheck` passed. `pnpm build` was not run for this test-only change.
+- **Limitations:** jsdom does not move focus on Tab, so the trap is tested at the wrap points
+  only. The face-to-face dialogue overlay is not opened in these tests.
+- **Deviations:** None. **Follow-up:** task 14.5 (commit).
 
 ### 2026-11-12 — Merge `main` into Lexus driving branch (CharacterRuntime port)
 

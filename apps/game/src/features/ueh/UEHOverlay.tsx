@@ -1,5 +1,12 @@
 import React from "react";
-import { ArrowLeft, Eye, Music, Sparkles } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
+import { ArrowLeft, Eye, Lightbulb, Music, Sparkles } from "lucide-react";
+
+/** Track titles are proper nouns: shown the same in every language. */
+export const UEH_TRACK_TITLES = {
+  "mua-ha": "Mùa Hạ Thứ 18",
+  "ngay-mai": "Nếu Ngày Mai",
+} as const;
 
 interface UEHOverlayProps {
   isLocked: boolean;
@@ -25,6 +32,15 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
   activeToast = null,
   stats,
 }) => {
+  const { t } = useTranslation("worlds");
+  const isMuaHa = currentTrack === "mua-ha";
+  const headerTrack = isMuaHa
+    ? t("ueh.header.muaHa", { title: UEH_TRACK_TITLES["mua-ha"].toUpperCase() })
+    : t("ueh.header.ngayMai", { title: UEH_TRACK_TITLES["ngay-mai"].toUpperCase() });
+  const nextTrack = isMuaHa
+    ? t("ueh.guitar.nextNgayMai", { title: UEH_TRACK_TITLES["ngay-mai"] })
+    : t("ueh.guitar.nextMuaHa", { title: UEH_TRACK_TITLES["mua-ha"] });
+
   return (
     <div className="absolute inset-0 pointer-events-none select-none z-30 flex flex-col justify-between p-6 sm:p-8">
       {/* Top Header Bar */}
@@ -36,13 +52,13 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0d1f2d]/85 hover:bg-[#133045] border border-[#1e4659] text-xs font-semibold text-zinc-100 transition-all shadow-lg hover:border-[#00a896] cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 text-[#4dd8ff]" />
-            <span>Về Menu Chính</span>
+            <span>{t("ueh.backToMenu")}</span>
           </button>
 
           <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#005f69]/40 border border-[#00a896]/30 text-xs font-medium text-emerald-100 backdrop-blur-md">
             <Sparkles className="w-3.5 h-3.5 text-[#f26f33]" />
             <span>
-              UEH CAMPUS · {currentTrack === "mua-ha" ? "MÙA HẠ THỨ 18 (MƯA RÀO)" : "NẾU NGÀY MAI (HOA PHƯỢNG BAY)"}
+              {t("ueh.header.campus")} · {headerTrack}
             </span>
           </div>
         </div>
@@ -55,7 +71,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0d1f2d]/85 hover:bg-[#172f3e] border border-[#1e4659] text-xs font-mono text-zinc-300 transition-all shadow-lg cursor-pointer"
           >
             <div className={`w-2 h-2 rounded-full ${isLocked ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-            <span>{isLocked ? "MOUSE LOCKED (Ctrl: mở)" : "MOUSE UNLOCKED (Click: khoá)"}</span>
+            <span>{isLocked ? t("ueh.pointer.locked") : t("ueh.pointer.unlocked")}</span>
           </button>
         </div>
       </header>
@@ -83,9 +99,14 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             E
           </kbd>
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-emerald-200">Gảy Đàn Guitar · Đổi Giai Điệu</span>
+            <span className="text-xs font-bold text-emerald-200">{t("ueh.guitar.title")}</span>
             <span className="text-[10px] text-zinc-300">
-              Đổi sang: <strong className="text-amber-300">{currentTrack === "mua-ha" ? "Nếu Ngày Mai (Hoa phượng bay)" : "Mùa Hạ Thứ 18 (Cơn mưa hạ)"}</strong>
+              <Trans
+                t={t}
+                i18nKey="ueh.guitar.switchTo"
+                values={{ track: nextTrack }}
+                components={{ strong: <strong className="text-amber-300" /> }}
+              />
             </span>
           </div>
         </div>
@@ -98,9 +119,17 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             <Eye className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-zinc-100">Khám Phá Khuôn Viên UEH</h3>
+            <h3 className="text-base font-bold text-zinc-100">{t("ueh.lockPrompt.title")}</h3>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              Nhấn chuột vào màn hình hoặc bấm phím <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-amber-300 font-mono text-[11px] border border-zinc-700">Ctrl</kbd> để khóa chuột và điều khiển góc nhìn.
+              <Trans
+                t={t}
+                i18nKey="ueh.lockPrompt.body"
+                components={{
+                  kbd: (
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-amber-300 font-mono text-[11px] border border-zinc-700" />
+                  ),
+                }}
+              />
             </p>
           </div>
           <button
@@ -108,7 +137,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             onClick={onToggleLock}
             className="mt-1 px-5 py-2 rounded-xl bg-gradient-to-r from-[#005f69] to-[#028090] hover:from-[#028090] hover:to-[#00a896] text-white text-xs font-semibold shadow-lg shadow-teal-900/40 transition-all cursor-pointer"
           >
-            Bắt đầu Điều Khiển
+            {t("ueh.lockPrompt.start")}
           </button>
         </div>
       )}
@@ -118,61 +147,62 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
         {/* Controls cheat sheet */}
         <div className="p-3.5 rounded-2xl bg-[#091b26]/85 backdrop-blur-md border border-[#1e4659]/80 text-[11px] text-zinc-300 shadow-xl max-w-md">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#4dd8ff] uppercase tracking-wider mb-2">
-            <span>PHÍM ĐIỀU KHIỂN:</span>
+            <span>{t("ueh.controls.heading")}</span>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[11px]">
             <div>
               <span className="text-amber-300 font-semibold">W A S D</span>
-              <span className="text-zinc-400"> : Di chuyển</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.move")}</span>
             </div>
             <div>
               <span className="text-amber-300 font-semibold">Shift</span>
-              <span className="text-zinc-400"> : Chạy nhanh</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.sprint")}</span>
             </div>
             <div>
               <span className="text-amber-300 font-semibold">Space</span>
-              <span className="text-zinc-400"> : Nhảy</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.jump")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">Chuột Trái / F</span>
-              <span className="text-zinc-400"> : Đấm</span>
+              <span className="text-amber-300 font-semibold">{t("ueh.controls.leftMouse")}</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.punch")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">Chuột Phải</span>
-              <span className="text-zinc-400"> : Đỡ đòn (Block)</span>
+              <span className="text-amber-300 font-semibold">{t("ueh.controls.rightMouse")}</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.block")}</span>
             </div>
             <div>
               <span className="text-amber-300 font-semibold">E</span>
-              <span className="text-zinc-400"> : Tương tác (Đàn)</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.interact")}</span>
             </div>
             <div>
               <span className="text-amber-300 font-semibold">T / I</span>
-              <span className="text-zinc-400"> : Xem tay</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.viewHands")}</span>
             </div>
             <div className="col-span-2">
               <span className="text-amber-300 font-semibold">Ctrl</span>
-              <span className="text-zinc-400"> : Ẩn / Hiện chuột</span>
+              <span className="text-zinc-400"> : {t("ueh.controls.toggleCursor")}</span>
             </div>
           </div>
           <div className="mt-2 pt-2 border-t border-zinc-800 text-[10px] text-zinc-400">
-            💡 Tiến lại ghế đá dưới tán phượng và bấm phím <strong className="text-amber-300">E</strong> để gảy đàn guitar & đổi giai điệu / thời tiết.
+            <Lightbulb className="inline-block w-3 h-3 mr-1 align-[-2px] text-amber-300" aria-hidden="true" />
+            <Trans t={t} i18nKey="ueh.controls.tip" components={{ strong: <strong className="text-amber-300" /> }} />
           </div>
         </div>
 
         {/* Live coordinate & speed HUD telemetry */}
         <div className="p-3 rounded-2xl bg-[#091b26]/85 backdrop-blur-md border border-[#1e4659]/80 text-[11px] font-mono text-zinc-300 shadow-xl flex flex-col items-end gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-zinc-400">Tốc độ:</span>
+            <span className="text-zinc-400">{t("ueh.hud.speed")}</span>
             <span className="text-emerald-400 font-bold">{stats.speed.toFixed(1)} m/s</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-zinc-400">Tọa độ:</span>
+            <span className="text-zinc-400">{t("ueh.hud.position")}</span>
             <span className="text-zinc-200">
               X:{stats.position[0].toFixed(1)} Z:{stats.position[2].toFixed(1)}
             </span>
           </div>
           <div className="text-[10px] text-zinc-400">
-            {stats.isGrounded ? "Mặt sân trường" : "Đang nhảy"}
+            {stats.isGrounded ? t("ueh.hud.grounded") : t("ueh.hud.airborne")}
           </div>
         </div>
       </footer>

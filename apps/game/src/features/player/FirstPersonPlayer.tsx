@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CharacterRuntime } from "./runtime/CharacterRuntime";
 import type { GameWorldAdapter } from "./adapters/GameWorldAdapter";
-import type { FirstPersonPlayerProps, PlayerStats } from "./types";
+import type { FirstPersonPlayerProps, PlayerControlsState, PlayerStats } from "./types";
 import {
   type BoxCollider,
   type VehicleState,
@@ -13,6 +13,22 @@ import {
   stepVehiclePhysics,
   useVehicleAudio,
 } from "../vehicle";
+
+// Read-only idle input the runtime sees while the player is disabled (the runtime never writes keys)
+const IDLE_KEYS_REF: { readonly current: PlayerControlsState } = {
+  current: Object.freeze({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    sprint: false,
+    jump: false,
+    punch: false,
+    block: false,
+    inspect: false,
+    interact: false,
+  }),
+};
 
 /** Car collider half extents (Lexus GX 550) and player radius used against it. */
 const CAR_HALF_WIDTH = 1.28;
@@ -46,6 +62,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
   onInteract,
   soundEnabled = true,
   sfxVolume = 1.0,
+  enabled = true,
   carPivotRef,
 }) => {
   const { camera } = useThree();
@@ -165,6 +182,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     onInteract,
     soundEnabled,
     sfxVolume,
+    enabled,
   });
 
   propsRef.current = {
@@ -179,6 +197,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     onInteract,
     soundEnabled,
     sfxVolume,
+    enabled,
   };
 
   // Initialize unified CharacterRuntime ONCE on mount
@@ -260,15 +279,22 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
       },
     };
 
+    // While disabled, the runtime keeps ticking (gravity, deceleration, idle arms) but sees idle
+    // keys, zero look delta and no triggers. Real sources are still drained every frame so
+    // accumulated mouse movement or a queued trigger does not fire on resume.
+    const isEnabled = () => propsRef.current.enabled !== false;
     const controls = {
       get keysRef() {
-        return propsRef.current.keysRef;
+        return isEnabled() ? propsRef.current.keysRef : IDLE_KEYS_REF;
       },
-      consumeMovement: () => propsRef.current.consumeMovement(),
-      consumePunchTrigger: () => propsRef.current.consumePunchTrigger(),
-      consumeInspectTrigger: () => propsRef.current.consumeInspectTrigger(),
+      consumeMovement: () => {
+        const delta = propsRef.current.consumeMovement();
+        return isEnabled() ? delta : { x: 0, y: 0 };
+      },
+      consumePunchTrigger: () => propsRef.current.consumePunchTrigger() && isEnabled(),
+      consumeInspectTrigger: () => propsRef.current.consumeInspectTrigger() && isEnabled(),
       consumeInteractTrigger: () => {
-        const triggered = propsRef.current.consumeInteractTrigger();
+        const triggered = propsRef.current.consumeInteractTrigger() && isEnabled();
         // E next to the car enters it instead of the normal interact gesture.
         if (triggered && vehicleRef.current.hasVehicle && isNearCarRef.current) {
           vehicleRef.current.enterCar();
@@ -334,10 +360,13 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
 
   /** Driving mode: vehicle physics, cockpit camera, audio and HUD. Runtime is paused. */
   function stepDriving(dt: number) {
-    const keys = keysRef.current;
+    // While disabled, driving sees idle keys and no look or triggers (sources are still drained).
+    const inputEnabled = enabled !== false;
+    const keys = inputEnabled ? keysRef.current : IDLE_KEYS_REF.current;
 
     // Cockpit glance, bounded to the side mirrors and the windshield/dashboard.
-    const mouse = consumeMovement();
+    const rawMouse = consumeMovement();
+    const mouse = inputEnabled ? rawMouse : { x: 0, y: 0 };
     const SENS = 0.002;
     cockpitYawRef.current = Math.max(-0.95, Math.min(0.95, cockpitYawRef.current - mouse.x * SENS));
     cockpitPitchRef.current = Math.max(-0.28, Math.min(0.22, cockpitPitchRef.current - mouse.y * SENS));
@@ -345,7 +374,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     // Consume the other triggers so they don't fire when the player steps out.
     consumePunchTrigger();
     consumeInspectTrigger();
-    if (consumeInteractTrigger() && Math.abs(carStateRef.current.speed) < 2.5) {
+    if (consumeInteractTrigger() && inputEnabled && Math.abs(carStateRef.current.speed) < 2.5) {
       exitCar();
       return;
     }

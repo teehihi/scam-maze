@@ -8,12 +8,16 @@ export type SceneId = 'main-menu' | 'intro-prologue' | 'apartment' | 'street';
 
 export type GraphicsQuality = 'low' | 'medium' | 'high';
 
+export type GameLocale = 'en' | 'vi';
+
 export interface GameSettings {
   graphicsQuality: GraphicsQuality;
   soundEnabled: boolean;
   musicVolume: number; // 0.0 to 1.0
   sfxVolume: number;   // 0.0 to 1.0
   fov: number;         // Field of View, e.g. 65 - 85
+  /** UI language. Display only; never affects game state. */
+  language: GameLocale;
 }
 
 export interface CreditEntry {

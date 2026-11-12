@@ -12,6 +12,10 @@ describe("chapter registry", () => {
     expect(getChapter("does-not-exist")).toBeUndefined();
   });
 
+  it("marks Chapter 1 as playable", () => {
+    expect(getChapter(DEFAULT_CHAPTER_ID)?.gameplayAvailable).toBe(true);
+  });
+
   it.each(CHAPTERS.map((chapter) => [chapter.id, chapter] as const))("%s starts in one of its own scenes", (_id, chapter) => {
     expect(chapter.sceneIds).toContain(chapter.startSceneId);
     expect(new Set(chapter.assets.map((asset) => asset.id)).size).toBe(chapter.assets.length);

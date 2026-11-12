@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { HUE_PLACE_NAMES } from './placeNames';
 import { HueWorldEngine } from './engine/HueWorldEngine';
 import type { PlayerStats } from './engine/HueWorldEngine';
 import { HueHUD } from './components/HueHUD';
@@ -14,6 +16,7 @@ export const HuePage: React.FC<HuePageProps> = ({
   settings: _settings,
   onBackToMenu,
 }) => {
+  const { t } = useTranslation('worlds');
   const mountRef = useRef<HTMLDivElement | null>(null);
   const controls = usePlayerControls(mountRef);
   const controlsRef = useRef(controls);
@@ -91,7 +94,7 @@ export const HuePage: React.FC<HuePageProps> = ({
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0b0e13] text-[#e8cf9b] transition-opacity duration-500">
           <div className="h-10 w-10 rounded-full border-2 border-[#d6b372]/30 border-t-[#d6b372] animate-spin mb-4" />
           <p className="text-xs tracking-widest uppercase font-mono text-[#d6b372]">
-            Đang tải thế giới di sản Cố Đô Huế...
+            {t('hue.loading', { city: HUE_PLACE_NAMES.city })}
           </p>
         </div>
       )}

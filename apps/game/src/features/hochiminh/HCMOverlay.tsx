@@ -14,6 +14,7 @@ import {
   X,
   Layers,
 } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import {
   HCM_VIEW_PRESETS,
   type HCMThemeId,
@@ -48,6 +49,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
   onClearSelectedLandmark,
   onBackToMenu,
 }) => {
+  const { t } = useTranslation("worlds");
   const [infoOpen, setInfoOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -60,10 +62,10 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
   };
 
   const THEMES: { id: HCMThemeId; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: "daylight", label: "Ban Ngày", icon: Sun },
-    { id: "cyberpunk", label: "Cyberpunk", icon: Moon },
-    { id: "sunset", label: "Hoàng Hôn", icon: Sunset },
-    { id: "blueprint", label: "Bản Đồ Tech", icon: Cpu },
+    { id: "daylight", label: t("hcm.themes.daylight"), icon: Sun },
+    { id: "cyberpunk", label: t("hcm.themes.cyberpunk"), icon: Moon },
+    { id: "sunset", label: t("hcm.themes.sunset"), icon: Sunset },
+    { id: "blueprint", label: t("hcm.themes.blueprint"), icon: Cpu },
   ];
 
   return (
@@ -76,17 +78,17 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
             type="button"
             onClick={onBackToMenu}
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#13111f]/90 hover:bg-[#201d33] border border-[#3b3554] text-zinc-200 hover:text-white backdrop-blur-xl transition-all cursor-pointer shadow-lg active:scale-95"
-            title="Quay lại Menu Game"
+            title={t("hcm.back.title")}
           >
             <ArrowLeft className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-semibold tracking-wide">Menu Game</span>
+            <span className="text-xs font-semibold tracking-wide">{t("hcm.back.label")}</span>
           </button>
 
           <div className="hidden sm:flex flex-col px-3.5 py-1.5 rounded-xl bg-[#13111f]/85 border border-[#3b3554] backdrop-blur-xl shadow-lg">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <h1 className="text-xs font-bold tracking-wider text-zinc-100 uppercase">
-                TP. Hồ Chí Minh 2025 · 3D Map
+                {t("hcm.header.title")}
               </h1>
             </div>
             <p className="text-[10px] text-zinc-400 font-mono">
@@ -99,23 +101,23 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Theme Selector */}
           <div className="flex items-center p-1 rounded-xl bg-[#13111f]/90 border border-[#3b3554] backdrop-blur-xl shadow-lg">
-            {THEMES.map((t) => {
-              const Icon = t.icon;
-              const isActive = theme === t.id;
+            {THEMES.map((themeOption) => {
+              const Icon = themeOption.icon;
+              const isActive = theme === themeOption.id;
               return (
                 <button
-                  key={t.id}
+                  key={themeOption.id}
                   type="button"
-                  onClick={() => onChangeTheme(t.id)}
+                  onClick={() => onChangeTheme(themeOption.id)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     isActive
                       ? "bg-emerald-600 text-white shadow-md font-semibold"
                       : "text-zinc-400 hover:text-zinc-200 hover:bg-[#232038]"
                   }`}
-                  title={t.label}
+                  title={themeOption.label}
                 >
                   <Icon className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">{t.label}</span>
+                  <span className="hidden md:inline">{themeOption.label}</span>
                 </button>
               );
             })}
@@ -130,7 +132,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
                 ? "bg-emerald-950/80 border-emerald-600 text-emerald-400"
                 : "bg-[#13111f]/90 border-[#3b3554] text-zinc-400 hover:text-white"
             }`}
-            title={autoRotate ? "Dừng tự động xoay" : "Bật tự động xoay"}
+            title={autoRotate ? t("hcm.controls.autoRotateStop") : t("hcm.controls.autoRotateStart")}
           >
             <RotateCw className={`w-4 h-4 ${autoRotate ? "animate-spin" : ""}`} />
           </button>
@@ -144,7 +146,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
                 ? "bg-amber-950/80 border-amber-600 text-amber-400"
                 : "bg-[#13111f]/90 border-[#3b3554] text-zinc-400 hover:text-white"
             }`}
-            title={showLandmarks ? "Ẩn địa danh" : "Hiện địa danh 3D"}
+            title={showLandmarks ? t("hcm.controls.landmarksHide") : t("hcm.controls.landmarksShow")}
           >
             <MapPin className="w-4 h-4" />
           </button>
@@ -154,7 +156,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
             type="button"
             onClick={() => setInfoOpen(true)}
             className="p-2 rounded-xl bg-[#13111f]/90 hover:bg-[#201d33] border border-[#3b3554] text-zinc-300 hover:text-white backdrop-blur-xl transition-all cursor-pointer shadow-lg"
-            title="Thông tin mô hình 3D"
+            title={t("hcm.controls.info")}
           >
             <Info className="w-4 h-4" />
           </button>
@@ -164,7 +166,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
             type="button"
             onClick={toggleFullscreen}
             className="hidden sm:flex p-2 rounded-xl bg-[#13111f]/90 hover:bg-[#201d33] border border-[#3b3554] text-zinc-300 hover:text-white backdrop-blur-xl transition-all cursor-pointer shadow-lg"
-            title={isFullscreen ? "Thu nhỏ" : "Toàn màn hình"}
+            title={isFullscreen ? t("hcm.controls.fullscreenExit") : t("hcm.controls.fullscreenEnter")}
           >
             {isFullscreen ? (
               <Minimize2 className="w-4 h-4" />
@@ -191,17 +193,17 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
                 <MapPin className="w-4 h-4" />
               </span>
               <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400">
-                Địa Danh Nổi Bật
+                {t("hcm.landmarkCard.heading")}
               </span>
             </div>
             <h3 className="text-base font-bold text-white mb-0.5">
               {selectedLandmark.name}
             </h3>
             <p className="text-xs font-medium text-amber-300/90 mb-2">
-              {selectedLandmark.title}
+              {t(`hcm.landmarks.${selectedLandmark.id}.title`)}
             </p>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              {selectedLandmark.description}
+              {t(`hcm.landmarks.${selectedLandmark.id}.description`)}
             </p>
           </div>
         </div>
@@ -212,7 +214,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
         <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl bg-[#12101f]/90 border border-[#3b3554] backdrop-blur-xl shadow-2xl pointer-events-auto max-w-full overflow-x-auto">
           <div className="hidden sm:flex items-center gap-1 px-2.5 text-zinc-400 text-[11px] font-medium border-r border-[#3b3554]/70">
             <Compass className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Góc nhìn:</span>
+            <span>{t("hcm.views.heading")}</span>
           </div>
 
           {HCM_VIEW_PRESETS.map((preset) => {
@@ -227,16 +229,16 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
                     ? "bg-sky-600 text-white shadow-md font-semibold ring-1 ring-sky-400/50"
                     : "text-zinc-300 hover:text-white hover:bg-[#221e36]"
                 }`}
-                title={preset.description}
+                title={t(`hcm.views.${preset.id}.description`)}
               >
-                {preset.shortLabel}
+                {t(`hcm.views.${preset.id}.shortLabel`)}
               </button>
             );
           })}
         </div>
 
         <div className="text-[10px] text-zinc-400/80 font-mono tracking-wider text-center drop-shadow">
-          Kéo chuột trái để xoay · Chuột phải để di chuyển · Lăn chuột để phóng to/thu nhỏ
+          {t("hcm.hint")}
         </div>
       </footer>
 
@@ -248,7 +250,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-emerald-400" />
                 <h2 className="text-base font-bold text-white">
-                  Mô Hình 3D TP. Hồ Chí Minh
+                  {t("hcm.info.title")}
                 </h2>
               </div>
               <button
@@ -262,30 +264,33 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
 
             <div className="space-y-3 text-xs text-zinc-300 leading-relaxed">
               <p>
-                Bản đồ mô phỏng không gian 3D tỷ lệ thực tế của trung tâm{" "}
-                <strong className="text-white">Thành phố Hồ Chí Minh (2025)</strong>, bao gồm dải skyline Quận 1, khu Bến Nghé, Bến Thành, sông Sài Gòn và bán đảo Thủ Thiêm (TP. Thủ Đức).
+                <Trans
+                  t={t}
+                  i18nKey="hcm.info.intro"
+                  components={{ strong: <strong className="text-white" /> }}
+                />
               </p>
               <div className="p-3 rounded-xl bg-[#1b172e] border border-[#3b3456] space-y-1.5 font-mono text-[11px]">
                 <div className="flex justify-between">
-                  <span className="text-zinc-400">Quy mô hiển thị:</span>
+                  <span className="text-zinc-400">{t("hcm.info.scaleLabel")}</span>
                   <span className="text-emerald-400 font-semibold">~9 km² (3km x 3km)</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-400">Số lượng đỉnh (Vertices):</span>
-                  <span className="text-sky-400 font-semibold">493,715 vertices</span>
+                  <span className="text-zinc-400">{t("hcm.info.verticesLabel")}</span>
+                  <span className="text-sky-400 font-semibold">{t("hcm.info.verticesValue")}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-400">Hệ thống tạo màu:</span>
+                  <span className="text-zinc-400">{t("hcm.info.colorSystemLabel")}</span>
                   <span className="text-amber-400 font-semibold">Dynamic Height & Normal Shading</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-zinc-400">Bản quyền 3D:</span>
+                  <span className="text-zinc-400">{t("hcm.info.licenseLabel")}</span>
                   <span className="text-zinc-200">Saigon 3D City (CC-BY-4.0)</span>
                 </div>
               </div>
 
               <p className="text-[11px] text-zinc-400">
-                Toàn bộ màu sắc kiến trúc (mái ngói terracotta, tường biệt thự vàng thuộc địa, kính phản quang cao ốc, mặt nước sông Sài Gòn) được phân tích và tạo màu thủ công kết hợp thuật toán tính toán độ cao và hướng pháp tuyến.
+                {t("hcm.info.note")}
               </p>
             </div>
 
@@ -295,7 +300,7 @@ export const HCMOverlay: React.FC<HCMOverlayProps> = ({
                 onClick={() => setInfoOpen(false)}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs cursor-pointer transition-colors shadow-lg"
               >
-                Đóng
+                {t("hcm.info.close")}
               </button>
             </div>
           </div>

@@ -1,0 +1,46 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Update loading flows, LoadingScreen layout, test and progress log": [
+      {
+        "executionId": "be8bf4a5-3328-4fc8-aba8-ac41ae3705e4",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794322571808
+      },
+      {
+        "executionId": "be8bf4a5-3328-4fc8-aba8-ac41ae3705e4",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794322577977
+      },
+      {
+        "executionId": "be8bf4a5-3328-4fc8-aba8-ac41ae3705e4",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794322711215
+      }
+    ],
+    "2. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "be8bf4a5-3328-4fc8-aba8-ac41ae3705e4",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794322571897
+      },
+      {
+        "executionId": "be8bf4a5-3328-4fc8-aba8-ac41ae3705e4",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794322719471
+      },
+      {
+        "executionId": "be8bf4a5-3328-4fc8-aba8-ac41ae3705e4",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794322789045
+      }
+    ],
+    "1. Remove the tip card and make the progress area full width": [
+      {
+        "executionId": "be8bf4a5-3328-4fc8-aba8-ac41ae3705e4",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794322711284
+      }
+    ]
+  }
+}

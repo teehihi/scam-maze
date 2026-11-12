@@ -1,8 +1,24 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { PlayerControlsState } from "./types";
 
-export function usePlayerControls(_domElementRef?: React.RefObject<HTMLElement | null>) {
+export interface PlayerControlsOptions {
+  /**
+   * When false, gameplay input is paused: keys and triggers are cleared once, pointer lock is
+   * released, and keyboard, mouse move, mouse down and Ctrl are ignored. Defaults to true.
+   */
+  enabled?: boolean;
+}
+
+export function usePlayerControls(
+  _domElementRef?: React.RefObject<HTMLElement | null>,
+  options: PlayerControlsOptions = {}
+) {
+  const enabled = options.enabled ?? true;
   const [isLocked, setIsLocked] = useState(false);
+
+  // Read by the event handlers so toggling does not re-register listeners
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
 
   // High-frequency 60 FPS mutable input state
   const keysRef = useRef<PlayerControlsState>({
@@ -94,8 +110,26 @@ export function usePlayerControls(_domElementRef?: React.RefObject<HTMLElement |
     };
   }, []);
 
+  // Pause transition: clear held input once and release the pointer
+  useEffect(() => {
+    if (enabled) return;
+    const keys = keysRef.current;
+    (Object.keys(keys) as (keyof PlayerControlsState)[]).forEach((k) => {
+      keys[k] = false;
+    });
+    mouseMovementRef.current.x = 0;
+    mouseMovementRef.current.y = 0;
+    punchTriggerRef.current = false;
+    inspectTriggerRef.current = false;
+    interactTriggerRef.current = false;
+    unlockPointer();
+  }, [enabled, unlockPointer]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!enabledRef.current) {
+        return;
+      }
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -177,13 +211,16 @@ export function usePlayerControls(_domElementRef?: React.RefObject<HTMLElement |
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (document.pointerLockElement) {
+      if (enabledRef.current && document.pointerLockElement) {
         mouseMovementRef.current.x += e.movementX;
         mouseMovementRef.current.y += e.movementY;
       }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
+      if (!enabledRef.current) {
+        return;
+      }
       if (!document.pointerLockElement) {
         lockPointer();
         return;

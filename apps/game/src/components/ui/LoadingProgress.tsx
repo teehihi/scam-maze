@@ -1,5 +1,6 @@
 import React from "react";
-import { LOADING_TEXT } from "../../game/loading/loadingStrings";
+import { useTranslation } from "react-i18next";
+import { formatPercent, useGameLocale } from "../../i18n";
 
 interface LoadingProgressProps {
   /** 0..1 for measured progress; null shows an indeterminate bar. */
@@ -13,16 +14,19 @@ interface LoadingProgressProps {
 export const LoadingProgress: React.FC<LoadingProgressProps> = ({ progress, status, detail }) => {
   const determinate = progress !== null && Number.isFinite(progress);
   const percent = determinate ? Math.round(Math.min(Math.max(progress, 0), 1) * 100) : null;
+  const { t } = useTranslation("loading");
+  const locale = useGameLocale();
+  const percentText = percent === null ? null : formatPercent(locale, percent / 100);
 
   return (
     <div className="w-full space-y-2.5">
       <div
         role="progressbar"
-        aria-label={LOADING_TEXT.progressLabel}
+        aria-label={t("progressLabel")}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent ?? undefined}
-        aria-valuetext={percent === null ? status : `${percent}%`}
+        aria-valuetext={percentText ?? status}
         aria-busy={percent === null || percent < 100}
         data-state={determinate ? "determinate" : "indeterminate"}
         className="relative h-[3px] w-full overflow-hidden rounded-full bg-[#f7f5ff]/12"
@@ -46,9 +50,9 @@ export const LoadingProgress: React.FC<LoadingProgressProps> = ({ progress, stat
           {status}
           {detail && <span className="ml-2 text-[#a9a4c4]">· {detail}</span>}
         </p>
-        {percent !== null && (
+        {percentText !== null && (
           <span className="shrink-0 font-semibold tabular-nums text-[#b9a5f5]" aria-hidden="true">
-            {percent}%
+            {percentText}
           </span>
         )}
       </div>

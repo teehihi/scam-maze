@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { UEHCanvas } from "./UEHCanvas";
-import { UEHOverlay } from "./UEHOverlay";
+import { useTranslation } from "react-i18next";
+import { UEHOverlay, UEH_TRACK_TITLES } from "./UEHOverlay";
 import { usePlayerControls } from "../player";
 import { useReality, rt } from "./state";
 import { guitarAudio } from "./guitarAudio";
@@ -24,6 +25,7 @@ export const UEHPage: React.FC<UEHPageProps> = ({
   onBackToMenu,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation("worlds");
 
   const {
     isLocked,
@@ -79,12 +81,12 @@ export const UEHPage: React.FC<UEHPageProps> = ({
         rt.rain = 0;
         rt.wetness = 0;
         rt.blossom = 1.0;
-        setToastMessage("🎵 Đang phát: Nếu Ngày Mai — Hoa phượng đỏ ngập tràn gió chiều UEH");
+        setToastMessage(t("ueh.toast.ngayMai", { title: UEH_TRACK_TITLES["ngay-mai"] }));
       } else {
         rt.rain = 0.85;
         rt.wetness = 0.85;
         rt.blossom = 0.35;
-        setToastMessage("🎵 Đang phát: Mùa Hạ Thứ 18 — Cơn mưa mùa hạ man mác trên sân trường UEH");
+        setToastMessage(t("ueh.toast.muaHa", { title: UEH_TRACK_TITLES["mua-ha"] }));
       }
 
       if (toastTimerRef.current) {
@@ -94,7 +96,7 @@ export const UEHPage: React.FC<UEHPageProps> = ({
         setToastMessage(null);
       }, 4500);
     }
-  }, [stats.position, settings.sfxVolume]);
+  }, [stats.position, settings.sfxVolume, t]);
 
   return (
     <div
