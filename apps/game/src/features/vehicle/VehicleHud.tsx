@@ -15,7 +15,9 @@ export const VehicleHud: React.FC<{
   stats: PlayerStats;
   /** False hides the driving panels; the "[E] get in" prompt is always shown. */
   showPanels?: boolean;
-}> = ({ stats, showPanels = true }) => {
+  /** Model name shown in the HUD (a proper name, never translated). */
+  carName?: string;
+}> = ({ stats, showPanels = true, carName = LEXUS_CAR_NAME }) => {
   const { t } = useTranslation("worlds");
   const isDriving = Boolean(stats.isDriving);
   const isNearCar = Boolean(stats.isNearCar);
@@ -31,7 +33,7 @@ export const VehicleHud: React.FC<{
             E
           </kbd>
           <span className="text-white text-xs font-semibold tracking-wide">
-            {t("testmove.enterCarPrompt", { car: LEXUS_CAR_NAME })}
+            {t("testmove.enterCarPrompt", { car: carName })}
           </span>
         </div>
       </div>
@@ -55,7 +57,7 @@ export const VehicleHud: React.FC<{
         <div className="flex items-center gap-2 text-purple-300 font-semibold font-mono text-[11px] uppercase tracking-wider">
           <Car className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
           <span>{t("testmove.controls.drivingTitle")}</span>
-          <span className="normal-case text-amber-300">· {LEXUS_CAR_NAME}</span>
+          <span className="normal-case text-amber-300">· {carName}</span>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-zinc-300 font-mono">
           <div><span className="text-amber-300 font-bold">W</span> : {t("testmove.driving.accelerate")}</div>

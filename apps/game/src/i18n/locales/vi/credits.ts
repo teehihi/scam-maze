@@ -36,6 +36,9 @@ const credits: LocaleShape<typeof en> = {
     lowPolyCarsPack: {
       notes: "Xe low poly gồm xe sedan, xe tải nhỏ và ô tô đỗ trong khu phố.",
     },
+    mercedesA45: {
+      notes: "Xe lái được trên bản đồ Huế. Đã chuyển thành một tệp GLB (Meshopt + WebP) và chỉnh về đơn vị mét; chia sẻ theo cùng giấy phép.",
+    },
     muaHaThu18: {
       notes: "Bài hát phát trong sân trường UEH (chủ đề cơn mưa hạ). Không thuộc phạm vi giấy phép MIT của dự án.",
     },
