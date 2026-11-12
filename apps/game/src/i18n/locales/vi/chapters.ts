@@ -10,6 +10,8 @@ const chapters: LocaleShape<typeof en> = {
       "street-environment": "Đang tải con phố",
       sky: "Đang tải bầu trời",
       "call-phone": "Đang tải điện thoại",
+      "city-district": "Đang tải khu phố xung quanh",
+      "city-cars": "Đang tải xe đỗ",
     },
   },
   scenes: {

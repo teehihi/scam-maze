@@ -1,12 +1,29 @@
 /** English source text for the `chapter1` namespace, `hud` area. Owns one top-level key group. */
 const hud = {
-  titleCard: {
-    // `number` is already formatted for the locale.
-    eyebrow: "Chapter {{number}}",
-    preparing: "Preparing the street",
-    ready: "The street is ready",
-    begin: "Begin",
-    continue: "Continue",
+  // Opening screen of a chapter. It never names the chapter, so the player is not told what is
+  // coming. The voice is a friendly guide greeting an old acquaintance.
+  intro: {
+    heading: "Welcome back",
+    preparing: "Walking back to the street",
+    welcome: {
+      p1: "Oh, there you are! It has been so long. I was starting to think you had forgotten the way back to this street.",
+      p2: "Nothing has changed much. Scooters hum past, the bakery on the corner is already warm, and the neighbors still wave at you the way they always do. You belong here. Everyone knows your face.",
+      p3: "So take your time today. Look around, wander wherever you like, and talk to anyone you meet. The street is yours to explore.",
+    },
+    resume: "Welcome back! I kept your place for you. Whenever you are ready, we can pick up right where you left off.",
+    skip: "Click to show all the text",
+    continue: "Click to continue",
+    controls: {
+      heading: "Controls",
+      move: "Move",
+      look: "Look around",
+      interact: "Interact",
+      phone: "Phone",
+      journal: "Journal",
+      pause: "Pause",
+      mouse: "Mouse",
+    },
+    simulation: "Everything in this game is a simulation.",
   },
   hud: {
     phone: "Phone",

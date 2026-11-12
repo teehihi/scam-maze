@@ -1,5 +1,5 @@
 import type { SceneId } from "@scammaze/shared-types";
-import { CALL_PHONE_GLB, SKY_TEXTURE, STREET_ENVIRONMENT_GLB } from "../../config/assetPaths";
+import { CALL_PHONE_GLB, CITY_CARS_GLB, CITY_DISTRICT_GLB, SKY_TEXTURE, STREET_ENVIRONMENT_GLB } from "../../config/assetPaths";
 
 export type ChapterAssetKind = "gltf" | "image";
 
@@ -66,6 +66,20 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
         url: CALL_PHONE_GLB,
         kind: "gltf",
         loadingText: "Loading the phone",
+        optional: true,
+      },
+      {
+        id: "city-district",
+        url: CITY_DISTRICT_GLB,
+        kind: "gltf",
+        loadingText: "Loading the neighborhood",
+        optional: true,
+      },
+      {
+        id: "city-cars",
+        url: CITY_CARS_GLB,
+        kind: "gltf",
+        loadingText: "Loading the parked cars",
         optional: true,
       },
     ],

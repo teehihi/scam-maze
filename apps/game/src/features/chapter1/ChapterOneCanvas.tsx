@@ -17,6 +17,7 @@ import type { GameSettings } from "@scammaze/shared-types";
 import { EnvironmentLighting } from "../../game/scenes/MainMenuScene/EnvironmentLighting";
 import { SkyDome } from "../../game/scenes/MainMenuScene/SkyDome";
 import { StreetEnvironment } from "../../game/scenes/MainMenuScene/StreetEnvironment";
+import { CityBackdrop } from "../../game/scenes/CityBackdrop/CityBackdrop";
 import {
   STREET_PLAY_BOUNDS,
   STREET_PLAY_SPAWN,
@@ -214,6 +215,9 @@ export const ChapterOneCanvas: React.FC<ChapterOneCanvasProps> = ({
       <Suspense fallback={null}>
         <StreetEnvironment shadows={shadows} onReady={handleSceneReady} />
       </Suspense>
+
+      {/* Low-poly city around the street. Decoration only; loads after the street. */}
+      <CityBackdrop />
 
       <InteractableProps focusedId={focusedId} />
       <InteractionProbe enabled={enabled} onFocusChange={onFocusChange} />

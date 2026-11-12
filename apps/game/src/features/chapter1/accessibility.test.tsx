@@ -31,6 +31,7 @@ import { ChapterOnePage } from "./ChapterOnePage";
 import { DebriefScreen } from "./debrief/DebriefScreen";
 import { EndingTransition } from "./ending/EndingTransition";
 import { FIRST_INTERACTION_RING_DELAY_MS } from "./useCallTriggers";
+import { INTRO_CONTINUE_EN, INTRO_CONTINUE_VI, passIntro } from "../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -91,9 +92,9 @@ function renderPage(settings: GameSettings = SETTINGS) {
   render(<ChapterOnePage session={createNewChapterSession(chapter)} settings={settings} onReturnToMenu={vi.fn()} />);
 }
 
-function beginChapter(beginLabel = "Begin") {
+function beginChapter(beginLabel = INTRO_CONTINUE_EN) {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: beginLabel }));
+  passIntro(beginLabel);
 }
 
 function inspectWallet() {
@@ -221,8 +222,9 @@ const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{1F1E6}-\u{1F1FF}]/gu;
 describe("Chapter 1 accessibility", () => {
   it("moves focus into each overlay when it opens and back to the game view when it closes", () => {
     renderPage();
-    // The title card moves focus to its heading.
-    expect(document.activeElement).toBe(screen.getByRole("heading", { name: CHAPTER_1_SCENARIO.title }));
+    // The intro overlay moves focus to its (visually hidden) heading and never names the chapter.
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Welcome back" }));
+    expect(screen.queryByText(CHAPTER_1_SCENARIO.title)).toBeNull();
     beginChapter();
 
     inspectWallet();
@@ -442,9 +444,9 @@ describe("Chapter 1 accessibility", () => {
 
     it("gives every dialog and button a Vietnamese accessible name", () => {
       renderVi();
-      expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Cuộc gọi khẩn cấp" }));
-      expectAccessibleDom("vi title card");
-      beginChapter(viHud.titleCard.begin);
+      expect(document.activeElement).toBe(screen.getByRole("heading", { name: viHud.intro.heading }));
+      expectAccessibleDom("vi intro");
+      beginChapter(INTRO_CONTINUE_VI);
       expectAccessibleDom("vi hud");
 
       inspectWallet();
@@ -501,7 +503,7 @@ describe("Chapter 1 accessibility", () => {
 
     it("announces objectives in Vietnamese in the polite live region", () => {
       renderVi();
-      beginChapter(viHud.titleCard.begin);
+      beginChapter(INTRO_CONTINUE_VI);
       expect(within(liveRegion()).getByText(VI_SCENARIO.objectives["obj.look-around"].text)).not.toBeNull();
 
       ringFirstCallVi();
@@ -520,7 +522,7 @@ describe("Chapter 1 accessibility", () => {
 
     it("keeps the key hints E, P, J and Esc literal", () => {
       renderVi();
-      beginChapter(viHud.titleCard.begin);
+      beginChapter(INTRO_CONTINUE_VI);
       act(() => canvas().onFocusChange("obj.wallet"));
       expect(screen.getByTestId("interaction-prompt").textContent).toBe(getDisplayPrompts("vi")["obj.wallet"]);
       expect(screen.getByTestId("interaction-prompt").textContent).toMatch(/^Nhấn E /);

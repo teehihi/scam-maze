@@ -11,11 +11,10 @@ describe("callPhone Asset_Credits entry", () => {
     expect(callPhoneEntries).toHaveLength(1);
   });
 
-  it("names the optimized file and the candidate without a path", () => {
+  it("names the optimized file and shows no source line", () => {
     const [entry] = callPhoneEntries;
     expect(entry.name).toBe("call-phone.optimized.glb");
-    expect(entry.sourceUrl).toContain("iphone-17-pro.glb");
-    expect(entry.sourceUrl).not.toContain("props/phone/");
+    expect(entry.sourceUrl).toBe("");
   });
 
   it("states the creator as not stated and the license as the owner statement of 2026-11-12", () => {

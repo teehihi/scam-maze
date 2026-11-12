@@ -25,12 +25,12 @@ import enPhone from "../../../i18n/locales/en/chapter1/phone";
 import enStory from "../../../i18n/locales/en/chapter1/story";
 import viPhone from "../../../i18n/locales/vi/chapter1/phone";
 import viStory from "../../../i18n/locales/vi/chapter1/story";
-import viHud from "../../../i18n/locales/vi/chapter1/hud";
 import { DECISION_PANEL_PREFIX } from "../../../test/callStates";
 import type { ChapterOneCanvasProps } from "../ChapterOneCanvas";
 import { ChapterOnePage } from "../ChapterOnePage";
 import { getTabbable } from "../focusTrap";
 import { resetPhoneModelStatusForTests } from "./phoneModelStatus";
+import { INTRO_CONTINUE_EN, INTRO_CONTINUE_VI, passIntro } from "../../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -164,9 +164,9 @@ function renderPage(settings: GameSettings = SETTINGS) {
   );
 }
 
-function beginChapter(beginLabel = "Begin") {
+function beginChapter(beginLabel = INTRO_CONTINUE_EN) {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: beginLabel }));
+  passIntro(beginLabel);
   expect(store().getState().status).toBe("playing");
 }
 
@@ -529,7 +529,7 @@ describe("ChapterOnePage call presentation", () => {
   it("(13.7) shows the Vietnamese chrome text while ringing and while active", () => {
     applyLocale("vi");
     renderPage({ ...SETTINGS, language: "vi" });
-    beginChapter(viHud.titleCard.begin);
+    beginChapter(INTRO_CONTINUE_VI);
     ring();
 
     /** The shown text equals the `vi` value and differs from English unless both are identical. */

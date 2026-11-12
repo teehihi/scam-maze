@@ -198,6 +198,36 @@ Resolved:
 
 ## Task History
 
+### 2026-11-13 — Main menu redesign with the new logo
+
+- **Objective:** replace the purple framed menu panel with a title-screen menu (Insurgency / Portal 2 style) over the live street, using the owner's new SCAMMAZE logo.
+- **Completed:**
+  - `MainMenuOverlay` rewritten: logo top left, a spoiler-free tagline (no chapter number or title), a vertical text menu (NEW GAME and CONTINUE, divider, SETTINGS and CREDITS), an ivory highlight with a purple accent on the current item, the current item's description under it (others stay screen-reader only through `aria-describedby`), a lock icon and reason line for an unavailable CONTINUE, a sound toggle top right and keyboard hints bottom left. Left and bottom gradients plus a static SVG grain keep the text readable.
+  - Keyboard: ArrowUp/ArrowDown and W/S move between enabled items (wrapping) while no modal is open; Enter and Space use the native button. Hover highlights the item, including the disabled one. Entrance animation is staggered and turned off under reduced motion.
+  - Font: `@fontsource/barlow-condensed` 5.3.0 (pinned, weights 500/600/700, SIL OFL 1.1, includes Vietnamese) as `--font-menu`.
+  - Logo: trimmed and resized to 1400 px, `public/assets/branding/scammaze-logo.{webp,png}`.
+  - i18n: `menu:kicker` and `menu:hints` in en and vi.
+- **Files:** modified `features/menu/MainMenuOverlay.tsx`, `i18n/locales/{en,vi}/menu.ts`, `styles/index.css`, `apps/game/package.json`, `pnpm-lock.yaml`; added `public/assets/branding/scammaze-logo.{webp,png}`; deleted `components/ui/MenuButton.tsx`, `public/assets/ui/{btn_primary,btn_primary_9slice,btn_secondary,btn_secondary_9slice,menu_panel_frame,menu_panel_frame_fit}.webp` and `public/assets/branding/game-title-logo.{png,webp}` (no remaining references).
+- **Validation:** `pnpm typecheck`, `pnpm test` (1080/1080), `pnpm build` pass. Headless Chrome screenshots at 1366×768 in en and vi (keyboard focus and hover on the disabled CONTINUE).
+- **Limitations:** checked only at 1366×768 with software WebGL; menu sounds and real mouse feel were not checked by hand.
+- **Deviations:** none.
+- **Follow-up:** check small screens and very wide screens.
+
+### 2026-11-13 — Vietnamese fonts, chapter intro, low-poly city backdrop
+
+- **Objective:** fix broken Vietnamese text, stop spoiling the chapter at the start, replace the web-style prologue dialog with an in-world welcome, and use the unused city and car packs.
+- **Completed:**
+  - Fonts: Vietnamese text fell back mid-word because `Stylish` and `Shojumaru` have no Vietnamese glyphs. UI fonts are now Inter, Bricolage Grotesque and JetBrains Mono (all with the Vietnamese subset); `Shojumaru` stays only for the Latin wordmark (`font-brand`).
+  - New Game goes straight to loading (the prologue dialog with the chapter title and the bank alert is removed). The menu button and the chapter loading screen no longer show the chapter number, title or subtitle.
+  - Chapter start: the street is visible and a friendly voice greets the player with typed text (no "You are..." line), mentions free exploration and shows the controls. A click shows all the text, the next click starts the story (`START_CHAPTER`). A restored run shows a short welcome-back text. Respects the reduce-motion setting.
+  - Credits: the call phone entry no longer shows a source line.
+  - Assets: `scripts/optimize-city-packs.cjs` builds `city-district.optimized.glb` (1.9 MB, 54 pieces from Low Poly City, Game-Ready and Asset Pack) and `city-cars.optimized.glb` (0.4 MB, 39 cars). `CityBackdrop` fills the empty ground around the street with rows of buildings, a car park and four cars on the side road. Both files are optional chapter assets.
+- **Files:** new `features/chapter1/intro/{ChapterIntroOverlay.tsx,useTypewriter.ts}`, `game/scenes/CityBackdrop/*`, `scripts/optimize-city-packs.cjs`, `src/test/chapterIntro.ts`; removed `ChapterTitleCard.tsx` and `IntroPrologueModal.tsx`; edited the i18n dictionaries (`menu`, `loading`, `chapters`, `chapter1/hud`), `ChapterOnePage`, `ChapterOneCanvas`, `ChapterLoadingFlow`, `MainMenuOverlay`, `chapterRegistry`, `assetPaths`, `credits`, `index.html`, `index.css` and the affected tests.
+- **Validation:** `pnpm typecheck`, `pnpm test` (all pass), `pnpm build` (passes). Checked with headless Chrome screenshots: the intro overlay, Vietnamese settings text and the backdrop from several camera positions.
+- **Limitations:** the buildings have no collision (decoration only, outside the play area). Which side a building faces is a guess, because the packs have no front marker. The cars on the side road were placed by eye. The headless renderer is software WebGL, so frame rate on real GPUs was not measured. The `credits` notes still describe the packs generally.
+- **Deviations:** none from the documented architecture.
+- **Follow-up:** replace the placeholder street with the Chapter 1 start room; add road tiles to the district; check performance on low-end devices.
+
 ### 2026-11-12 — Drivable Mercedes-AMG A45 on the Huế map
 
 - **Objective:** Add a drivable car to `/hue` using the owner-supplied Sketchfab glTF.

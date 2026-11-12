@@ -31,6 +31,7 @@ import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
 import { DialoguePanel } from "./dialogue/DialoguePanel";
 import { FIRST_INTERACTION_RING_DELAY_MS } from "./useCallTriggers";
+import { INTRO_CONTINUE_EN, INTRO_CONTINUE_VI, passIntro } from "../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -172,7 +173,7 @@ function sceneReady() {
 
 function beginChapter() {
   sceneReady();
-  fireEvent.click(screen.getByRole("button", { name: "Begin" }));
+  passIntro();
 }
 
 function focus(id: Parameters<ChapterOneCanvasProps["onFocusChange"]>[0]) {
@@ -196,9 +197,9 @@ const queryDialog = (name: string) => screen.queryByRole("dialog", { name });
 // --- Tests -----------------------------------------------------------------------------------
 
 describe("ChapterOnePage", () => {
-  it("keeps Begin disabled until the canvas reports the scene is ready", () => {
+  it("keeps Continue disabled until the scene is ready and the intro text has been shown", () => {
     renderPage();
-    const begin = screen.getByRole<HTMLButtonElement>("button", { name: "Begin" });
+    const begin = screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN });
     expect(begin.disabled).toBe(true);
 
     fireEvent.click(begin);
@@ -206,7 +207,10 @@ describe("ChapterOnePage", () => {
     expect(canvas().enabled).toBe(false);
 
     sceneReady();
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Begin" }).disabled).toBe(false);
+    // Typing starts when the scene is ready; the button waits for the full text.
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN }).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId("chapter-intro"));
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN }).disabled).toBe(false);
   });
 
   it("dispatches START_CHAPTER on Begin and shows the first objective", () => {
@@ -215,7 +219,7 @@ describe("ChapterOnePage", () => {
 
     expect(dispatched("START_CHAPTER")).toHaveLength(1);
     expect(store().getState().status).toBe("playing");
-    expect(screen.queryByRole("button", { name: "Begin" })).toBeNull();
+    expect(screen.queryByTestId("chapter-intro")).toBeNull();
     const tracker = screen.getByRole("region", { name: "Objectives" });
     expect(within(tracker).getByText(FIRST_OBJECTIVE)).not.toBeNull();
     expect(canvas().enabled).toBe(true);
@@ -318,8 +322,8 @@ describe("ChapterOnePage", () => {
     expect(saveSource.clear).toHaveBeenCalledTimes(1);
     expect(store().getState().status).toBe("not-started");
     expect(queryDialog("Paused")).toBeNull();
-    // The title card is back in Begin mode and waits for the remounted canvas.
-    const begin = screen.getByRole<HTMLButtonElement>("button", { name: "Begin" });
+    // The intro is back in Begin mode and waits for the remounted canvas.
+    const begin = screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN });
     expect(begin.disabled).toBe(true);
     expect(canvas().spawnPosition).toBeUndefined();
   });
@@ -444,16 +448,18 @@ function renderPageVi(saveSource?: SaveGameSource) {
 
 function beginChapterVi() {
   sceneReady();
-  fireEvent.click(screen.getByRole("button", { name: viHud.titleCard.begin }));
+  passIntro(INTRO_CONTINUE_VI);
 }
 
 describe("ChapterOnePage in Vietnamese", () => {
-  it("shows the Vietnamese title card, objective tracker and HUD buttons", () => {
+  it("shows the Vietnamese intro, objective tracker and HUD buttons", () => {
     renderPageVi();
     expect(VI_SCENARIO.title).toBe("Cuộc gọi khẩn cấp");
-    expect(screen.getByRole("heading", { name: "Cuộc gọi khẩn cấp" })).not.toBeNull();
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Bắt đầu" }).disabled).toBe(true);
-    expect(screen.queryByRole("button", { name: "Begin" })).toBeNull();
+    expect(screen.getByRole("heading", { name: viHud.intro.heading })).not.toBeNull();
+    // The intro never names the chapter.
+    expect(screen.queryByText(VI_SCENARIO.title)).toBeNull();
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_VI }).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: INTRO_CONTINUE_EN })).toBeNull();
 
     beginChapterVi();
     expect(dispatched("START_CHAPTER")).toHaveLength(1);

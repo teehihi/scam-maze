@@ -72,10 +72,9 @@ function continueButton(): HTMLButtonElement {
   return screen.getByRole("button", { name: /CONTINUE/ }) as HTMLButtonElement;
 }
 
-/** Menu → NEW GAME → prologue "Begin Chapter 1" → loading stub → enter the chapter. */
+/** Menu → NEW GAME (straight to loading, no prologue dialog) → loading stub → enter the chapter. */
 function startNewGameAndEnterChapter() {
   fireEvent.click(screen.getByRole("button", { name: /NEW GAME/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Begin Chapter 1" }));
   expect(screen.getByTestId("chapter-loading")).toBeTruthy();
   expect(harness.loadingRequest).toEqual({ kind: "new-game", chapterId: "chapter-1" });
   fireEvent.click(screen.getByRole("button", { name: "Stub enter chapter" }));
@@ -149,8 +148,7 @@ describe("App chapter routing", () => {
   it("returns to the menu when the loading flow is left", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /NEW GAME/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Begin Chapter 1" }));
-    fireEvent.click(screen.getByRole("button", { name: "Stub loading back" }));
+      fireEvent.click(screen.getByRole("button", { name: "Stub loading back" }));
 
     expect(screen.queryByTestId("chapter-loading")).toBeNull();
     expect(screen.getByRole("navigation", { name: "Game Main Menu" })).toBeTruthy();

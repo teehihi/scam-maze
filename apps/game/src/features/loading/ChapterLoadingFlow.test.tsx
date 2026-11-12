@@ -7,6 +7,8 @@ import type { ChapterLoadRequest } from "../../game/loading/chapterLoader";
 import type { FetchLike } from "../../game/loading/assetFetcher";
 import { getChapter } from "../../game/chapters/chapterRegistry";
 import { applyLocale } from "../../i18n";
+import enLoading from "../../i18n/locales/en/loading";
+import viLoading from "../../i18n/locales/vi/loading";
 import {
   collectPropertyFailures,
   createClock,
@@ -57,15 +59,18 @@ afterEach(() => {
 });
 
 describe("ChapterLoadingFlow", () => {
-  it("shows the chapter and an indeterminate bar before sizes are known", async () => {
+  it("shows a neutral new-story screen (no chapter name) and an indeterminate bar before sizes are known", async () => {
     const fake = createFakeFetch();
     fake.manual(MODEL.url);
     fake.manual(TEXTURE.url);
     renderFlow(createTestDeps(fake.fetchImpl));
 
-    expect(screen.getByRole("heading", { name: TEST_CHAPTER.title })).toBeTruthy();
-    expect(screen.getByText("Chapter 7")).toBeTruthy();
-    expect(screen.getByText(TEST_CHAPTER.subtitle)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: enLoading.newGameTitle })).toBeTruthy();
+    expect(screen.getByText(enLoading.newGameEyebrow)).toBeTruthy();
+    // The chapter number, title and subtitle are never shown: players are not told what is coming.
+    expect(screen.queryByText("Chapter 7")).toBeNull();
+    expect(screen.queryByText(TEST_CHAPTER.title)).toBeNull();
+    expect(screen.queryByText(TEST_CHAPTER.subtitle)).toBeNull();
     const bar = screen.getByRole("progressbar");
     expect(bar.getAttribute("data-state")).toBe("indeterminate");
     expect(bar.hasAttribute("aria-valuenow")).toBe(false);
@@ -236,6 +241,9 @@ describe("ChapterLoadingFlow", () => {
 const CHAPTER_ONE = getChapter("chapter-1")!;
 const CHAPTER_ONE_REQUEST: ChapterLoadRequest = { kind: "new-game", chapterId: "chapter-1" };
 const [STREET, SKY, PHONE] = CHAPTER_ONE.assets;
+/** Street, sky, phone and the optional city files. */
+const TOTAL_FILES = CHAPTER_ONE.assets.length;
+const [, , , CITY_DISTRICT, CITY_CARS] = CHAPTER_ONE.assets;
 
 /** Test deps that resolve the real Chapter 1 definition; its files are driven by the fake fetch. */
 function chapterOneDeps(fetchImpl: FetchLike) {
@@ -243,21 +251,25 @@ function chapterOneDeps(fetchImpl: FetchLike) {
 }
 
 describe("ChapterLoadingFlow in Vietnamese", () => {
-  it("shows the Chapter 1 title, label, subtitle, asset text and file count in Vietnamese", async () => {
+  it("shows the neutral Vietnamese new-story text, asset text and file count without the chapter name", async () => {
     applyLocale("vi");
     const fake = createFakeFetch();
     fake.manual(STREET.url);
     fake.manual(SKY.url);
     fake.manual(PHONE.url);
+    fake.manual(CITY_DISTRICT.url);
+    fake.manual(CITY_CARS.url);
     renderFlow(chapterOneDeps(fake.fetchImpl), CHAPTER_ONE_REQUEST);
 
-    expect(screen.getByRole("heading", { name: "Cuộc gọi khẩn cấp" })).toBeTruthy();
-    expect(screen.getByText("Chương 1")).toBeTruthy();
-    expect(screen.getByText("Thông báo đến trước cả bữa sáng.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: viLoading.newGameTitle })).toBeTruthy();
+    expect(screen.getByText(viLoading.newGameEyebrow)).toBeTruthy();
+    expect(screen.queryByText("Cuộc gọi khẩn cấp")).toBeNull();
+    expect(screen.queryByText("Chương 1")).toBeNull();
+    expect(screen.queryByText("Thông báo đến trước cả bữa sáng.")).toBeNull();
     // Asset text by asset ID; the first pending file is the street.
     expect(await screen.findByText("Đang tải con phố")).toBeTruthy();
-    expect(screen.getByText(/0 \/ 3 tệp/)).toBeTruthy();
-    expect(screen.queryByText(/of 3 files/)).toBeNull();
+    expect(screen.getByText(new RegExp(`0 \\/ ${TOTAL_FILES} tệp`))).toBeTruthy();
+    expect(screen.queryByText(new RegExp(`of ${TOTAL_FILES} files`))).toBeNull();
     expect(screen.queryByText(STREET.loadingText)).toBeNull();
     expect(screen.getByRole("progressbar", { name: "Tiến trình tải" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Hủy" })).toBeTruthy();
@@ -269,12 +281,14 @@ describe("ChapterLoadingFlow in Vietnamese", () => {
     fake.serve(STREET.url, makeGlb());
     fake.serve(SKY.url, makePng());
     const phone = fake.manual(PHONE.url);
+    fake.manual(CITY_DISTRICT.url);
+    fake.manual(CITY_CARS.url);
     renderFlow(chapterOneDeps(fake.fetchImpl), CHAPTER_ONE_REQUEST);
     await vi.waitFor(() => expect(phone.signal).not.toBeNull());
 
     expect(PHONE.id).toBe("call-phone");
     expect(await screen.findByText("Đang tải điện thoại")).toBeTruthy();
-    expect(screen.getByText(/2 \/ 3 tệp/)).toBeTruthy();
+    expect(screen.getByText(new RegExp(`2 \\/ ${TOTAL_FILES} tệp`))).toBeTruthy();
     expect(screen.queryByText(PHONE.loadingText)).toBeNull();
   });
 
@@ -286,9 +300,8 @@ describe("ChapterLoadingFlow in Vietnamese", () => {
     const glb = makeGlb(undefined, 1000);
     renderFlow(createTestDeps(fake.fetchImpl));
 
-    // The test chapter has no dictionary entry: the registry's English text is the fallback.
-    expect(screen.getByRole("heading", { name: TEST_CHAPTER.title })).toBeTruthy();
-    expect(screen.getByText("Chương 7")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: viLoading.newGameTitle })).toBeTruthy();
+    expect(screen.queryByText("Chương 7")).toBeNull();
     await vi.waitFor(() => expect(model.signal).not.toBeNull());
     await vi.waitFor(() => expect(texture.signal).not.toBeNull());
 
@@ -342,21 +355,23 @@ describe("ChapterLoadingFlow in Vietnamese", () => {
     const street = fake.manual(STREET.url);
     fake.manual(SKY.url);
     fake.manual(PHONE.url);
+    fake.manual(CITY_DISTRICT.url);
+    fake.manual(CITY_CARS.url);
     const { onBackToMenu, onEnterChapter } = renderFlow(chapterOneDeps(fake.fetchImpl), CHAPTER_ONE_REQUEST);
     expect(await screen.findByText(STREET.loadingText)).toBeTruthy();
     await vi.waitFor(() => expect(street.signal).not.toBeNull());
-    const heading = screen.getByRole("heading", { name: "The Urgent Call" });
+    const heading = screen.getByRole("heading", { name: enLoading.newGameTitle });
     const bar = screen.getByRole("progressbar");
     const callsBefore = fake.calls.length;
 
     act(() => applyLocale("vi"));
 
     // Same DOM nodes, new text: the screen was not remounted.
-    expect(heading.textContent).toBe("Cuộc gọi khẩn cấp");
+    expect(heading.textContent).toBe(viLoading.newGameTitle);
     expect(screen.getByRole("progressbar")).toBe(bar);
-    expect(screen.getByText("Chương 1")).toBeTruthy();
+    expect(screen.queryByText("Chương 1")).toBeNull();
     expect(screen.getByText("Đang tải con phố")).toBeTruthy();
-    expect(screen.getByText(/0 \/ 3 tệp/)).toBeTruthy();
+    expect(screen.getByText(new RegExp(`0 \\/ ${TOTAL_FILES} tệp`))).toBeTruthy();
     // The loader kept its downloads: no new requests, nothing aborted, no callback.
     expect(fake.calls.length).toBe(callsBefore);
     expect(street.signal?.aborted).toBe(false);

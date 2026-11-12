@@ -65,10 +65,11 @@ describe("CreditsModal localization", () => {
   it("links only https sources and shows every other source as plain text", () => {
     const { container } = renderCredits("en");
     const items = GAME_CREDITS.flatMap((g) => g.items);
-    const plainSources = items.filter((i) => !i.sourceUrl.startsWith("https://"));
-    expect(plainSources.map((i) => i.id)).toEqual(
-      expect.arrayContaining(["menuStreetScene", "callPhone", "chapter1Voices"]),
-    );
+    const plainSources = items.filter((i) => i.sourceUrl !== "" && !i.sourceUrl.startsWith("https://"));
+    expect(plainSources.map((i) => i.id)).toEqual(expect.arrayContaining(["menuStreetScene", "chapter1Voices"]));
+    // The call phone has no source line at all.
+    expect(items.find((i) => i.id === "callPhone")?.sourceUrl).toBe("");
+    expect(screen.queryByText(/Owner-provided/)).toBeNull();
     for (const anchor of Array.from(container.querySelectorAll("a"))) {
       expect(anchor.getAttribute("href")).toMatch(/^https:\/\//);
     }

@@ -23,6 +23,7 @@ import type { FakeAudioPort, FakeAudioPortOptions } from "../../test/fakeAudioPo
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
 import { resetPhoneModelStatusForTests } from "./call/phoneModelStatus";
+import { INTRO_CONTINUE_EN, passIntro } from "../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({
   canvasProps: null as ChapterOneCanvasProps | null,
@@ -207,9 +208,9 @@ function renderPage(settings: GameSettings, session?: ChapterSession) {
   );
 }
 
-function pressBegin(label = "Begin") {
+function pressBegin(label = INTRO_CONTINUE_EN) {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: label }));
+  passIntro(label);
 }
 
 function dispatchAccepted(action: CoreAction) {
@@ -412,7 +413,7 @@ describe("ChapterOnePage voice integration", () => {
     renderPage(SETTINGS, applied.session);
     // Hidden behind the title card until the player continues.
     expect(screen.queryByTestId("save-trimmed-notice")).toBeNull();
-    pressBegin("Continue");
+    pressBegin();
 
     const notice = screen.getByTestId("save-trimmed-notice");
     expect(notice.getAttribute("role")).toBe("status");

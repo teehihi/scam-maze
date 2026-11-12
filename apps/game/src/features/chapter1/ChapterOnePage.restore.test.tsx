@@ -23,6 +23,8 @@ import {
 } from "../../game/saves/saveGame";
 import type { ChapterOneCanvasProps } from "./ChapterOneCanvas";
 import { ChapterOnePage } from "./ChapterOnePage";
+import enHud from "../../i18n/locales/en/chapter1/hud";
+import { INTRO_CONTINUE_EN, passIntro } from "../../test/chapterIntro";
 
 const harness = vi.hoisted(() => ({ canvasProps: null as ChapterOneCanvasProps | null }));
 
@@ -163,7 +165,7 @@ function canvas(): ChapterOneCanvasProps {
 
 function continueChapter() {
   act(() => canvas().onSceneReady?.());
-  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  passIntro();
 }
 
 const pressKey = (init: KeyboardEventInit) => fireEvent.keyDown(window, init);
@@ -176,11 +178,12 @@ describe("ChapterOnePage restore", () => {
     const saveSource = createMemorySaveSource(save);
     renderPage(session, saveSource);
 
-    // Continue mode, not Begin, and the saved pose reaches the canvas.
-    expect(screen.queryByRole("button", { name: "Begin" })).toBeNull();
+    // Resume mode: a short welcome-back text, no controls list, and the saved pose reaches the canvas.
+    expect(screen.getByTestId("chapter-intro")).not.toBeNull();
+    expect(screen.queryByText(enHud.intro.controls.heading)).toBeNull();
     expect(canvas().spawnPosition).toEqual(session.restored?.pose?.position);
     continueChapter();
-    expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+    expect(screen.queryByTestId("chapter-intro")).toBeNull();
     // Mounting from a restored Checkpoint does not write again.
     expect(saveSource.write).not.toHaveBeenCalled();
 
@@ -254,7 +257,7 @@ describe("ChapterOnePage restore", () => {
     expect(saveSource.clear).toHaveBeenCalledTimes(1);
     expect(saveSource.read()).toEqual({ status: "none" });
     expect(screen.queryByRole("dialog", { name: "Paused" })).toBeNull();
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Begin" }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN }).disabled).toBe(true);
     expect(canvas().spawnPosition).toBeUndefined();
     // The restart itself writes nothing: the next Checkpoint comes after Begin.
     expect(saveSource.write).not.toHaveBeenCalled();
