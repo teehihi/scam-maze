@@ -169,6 +169,21 @@ Resolved:
 
 ## Task History
 
+### 2026-11-12 — Game asset size reduction and removal of the `/hochiminh` route
+
+- **Objective:** Reduce `apps/game/public` (560 MB) without lowering quality; remove the unused Ho Chi Minh City map (owner decision, backup kept by the owner).
+- **Completed work:**
+  - Moved source-only files out of `public/` into `apps/game/assets-src/` (not shipped by Vite, stored in Git LFS): `MenuBG.glb` (420 MB, input of `scripts/optimize-environment.cjs`, whose paths were updated) and the two unused phone models (48.6 MB, now LFS).
+  - `first_person_animations.glb`: 14.01 MB → 7.42 MB. Redundant keyframes removed (`resample`, tolerance 1e-7) and textures re-encoded as lossless WebP. Verified against the original: 16/16 animations, 13,103/13,103 channels, 1,053 joints, identical durations, maximum pose difference at float32 rounding level (≈1e-7; rotation ≤ 0.0001°), texture pixels identical.
+  - Vehicle audio: `closedoorlx`, `stop`, `stopCar` → MP3 (LAME V0); `drive.wav` (looped) kept as WAV but 32-bit float → 16-bit PCM so the loop stays gapless. 10.9 MB → 1.8 MB.
+  - `sky.png` → `sky.webp` and `logo.png` → `logo.webp` (lossless, pixel-identical). Deleted unreferenced PNGs that already had WebP versions (`menu_panel_frame.png`, `btn_primary.png`, `btn_secondary.png`) and `game-title-logo_jo.png`. `game-title-logo.png` kept as the `<picture>` fallback.
+  - Removed `/hochiminh` (`/hcm`): `features/hochiminh/`, `hochiminh.glb`, `saigon_sky.png`, the `worlds.hcm` locale files and the related tests and mocks.
+- **Files:** `.gitattributes`, `apps/game/assets-src/**`, `apps/game/scripts/optimize-environment.cjs`, `apps/game/public/**` (assets above), `src/app/App.tsx`, `src/features/menu/MainMenuOverlay.tsx`, `src/features/vehicle/useVehicleAudio.ts`, `src/config/assetPaths.ts`, `src/components/ui/BrandLogo.tsx`, `src/i18n/locales/{en,vi}/worlds/index.ts`, `src/features/worlds.i18n.test.tsx`, `src/app/App.{i18n,chapter}.test.tsx`.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 63 files, 596/596 passed (two HCM tests removed); `pnpm build` passed. Game build 579 MB → 57 MB; `public/` 560 MB → 53 MB. Headless Chrome on `vite preview`: all four vehicle sounds decode with `decodeAudioData` with the original durations, both WebP images decode, menu and `/testmove` load with no console errors and no 404s.
+- **Unresolved issues and known limitations:** The arms animations and the driving sounds were not checked by playing in a browser (pointer lock is needed); only loading, decoding and the numeric comparison were verified. `optimize-environment.cjs` dependencies (`@gltf-transform/*`, `meshoptimizer`, `sharp`) are still not declared in `package.json` (pre-existing).
+- **Deviations from the documented architecture:** None. S3/CloudFront remain `PLANNED`.
+- **Follow-up tasks:** Play-test the arms and driving audio; consider declaring the optimizer script's dev dependencies.
+
 ### 2026-11-12 — Add phone 3D models
 
 - **Objective:** Store the two phone models supplied by the owner in the game asset tree.

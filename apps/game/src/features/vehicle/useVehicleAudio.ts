@@ -12,10 +12,10 @@ interface VehicleAudioProps {
 export function useVehicleAudio({
   enabled = true,
   volume = 1.5,
-  doorSoundPath = "/assets/audio/closedoorlx.wav",
+  doorSoundPath = "/assets/audio/closedoorlx.mp3",
   driveSoundPath = "/assets/audio/drive.wav",
-  stopSoundPath = "/assets/audio/stop.wav",
-  stopCarSoundPath = "/assets/audio/stopCar.wav",
+  stopSoundPath = "/assets/audio/stop.mp3",
+  stopCarSoundPath = "/assets/audio/stopCar.mp3",
 }: VehicleAudioProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
 
