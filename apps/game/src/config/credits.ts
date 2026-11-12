@@ -8,6 +8,7 @@ export type CreditItemId =
   | "lowPolyCityGameReady"
   | "lowPolyCityAssetPack"
   | "lowPolyCarsPack"
+  | "mercedesA45"
   | "muaHaThu18"
   | "neuNgayMai"
   | "callPhone"
@@ -84,6 +85,14 @@ export const GAME_CREDITS: CreditGroup[] = [
         sourceUrl: "https://sketchfab.com/3d-models/low-poly-cars-pack-1d942e1a2f564690a5d703fdc08657b3",
         license: "Creative Commons Attribution (CC-BY 4.0)",
         notes: "Low-poly vehicles, sedans, utility vans, and neighborhood parked cars.",
+      },
+      {
+        id: "mercedesA45",
+        name: "2023 Mercedes-Benz A45 S AMG 4Matic",
+        creator: "Ddiaz Design (https://sketchfab.com/ddiaz-design)",
+        sourceUrl: "https://sketchfab.com/3d-models/2023-mercedes-benz-a45-s-amg-4matic-7dcef373c52c44ffb0bfbd85a1da1ed2",
+        license: "Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA 4.0)",
+        notes: "Drivable car on the Huế map. Converted to a single Meshopt + WebP GLB and scaled to metres; shared under the same license.",
       },
       {
         id: "callPhone",

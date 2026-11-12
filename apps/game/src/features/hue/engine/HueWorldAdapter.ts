@@ -7,6 +7,8 @@ export class HueWorldAdapter implements GameWorldAdapter {
   public readonly gravity: number = -24.0;
   public readonly jumpForce: number = 7.2;
   private collision: HueCollisionSystem;
+  /** Extra solid body that moves (the parked car); returns a pushed-out position or null. */
+  public dynamicObstacle?: (x: number, z: number, radius: number) => { x: number; z: number } | null;
 
   constructor(collision: HueCollisionSystem) {
     this.collision = collision;
@@ -25,7 +27,7 @@ export class HueWorldAdapter implements GameWorldAdapter {
     radius: number,
     height: number,
   ): MovementResolution {
-    return this.collision.resolveMovement(
+    const res = this.collision.resolveMovement(
       currX,
       currZ,
       targetX,
@@ -34,6 +36,12 @@ export class HueWorldAdapter implements GameWorldAdapter {
       radius,
       height,
     );
+    const pushed = this.dynamicObstacle?.(res.newX, res.newZ, radius);
+    if (!pushed) return res;
+    const nx = pushed.x - res.newX;
+    const nz = pushed.z - res.newZ;
+    const len = Math.hypot(nx, nz) || 1;
+    return { ...res, newX: pushed.x, newZ: pushed.z, collided: true, hitNormalX: nx / len, hitNormalZ: nz / len };
   }
 
   public raycastPunch(

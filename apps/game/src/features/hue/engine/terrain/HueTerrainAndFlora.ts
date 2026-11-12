@@ -27,6 +27,11 @@ export interface TerrainAndFloraResult {
   updateWind: (elapsed: number) => void;
   setRainWetness: (wetness: number) => void;
   updateCamera: (camPos: THREE.Vector3) => void;
+  /**
+   * Hides the grass blades inside an oriented box on the ground (the car), so they do not poke
+   * through the floor into the cabin. `yaw` is the Three.js Y rotation; zero half sizes disable it.
+   */
+  setGrassExclusion: (x: number, z: number, yaw: number, halfWidth: number, halfLength: number) => void;
   dispose: () => void;
 }
 
@@ -634,8 +639,31 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   // -------------------------------------------------------------------------
   // 4. Reeds & wild cogon-grass tufts (crossed alpha cards)
   // -------------------------------------------------------------------------
+  // Car footprint where no grass or reeds grow: x, z, cos(yaw), sin(yaw) and half width / length
+  const grassHole = { value: new THREE.Vector4(0, 0, 1, 0) };
+  const grassHoleSize = { value: new THREE.Vector2(0, 0) };
   const reedTex = makeFoliageTexture('reed');
   const reedMat = makeLeafMaterial(reedTex, 1.4, 0.2);
+  // Reed tufts are ~1.1 m wide cards: drop every tuft whose root lies under the car (plus margin).
+  const REED_HOLE_MARGIN = 0.6;
+  const leafCompile = reedMat.onBeforeCompile;
+  reedMat.customProgramCacheKey = () => 'hue-reed';
+  reedMat.onBeforeCompile = (shader, renderer) => {
+    leafCompile.call(reedMat, shader, renderer);
+    Object.assign(shader.uniforms, { hGrassHole: grassHole, hGrassHoleSize: grassHoleSize });
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform vec4 hGrassHole; uniform vec2 hGrassHoleSize;')
+      .replace(
+        '#include <project_vertex>',
+        `#ifdef USE_INSTANCING
+          vec2 rd = instanceMatrix[3].xz - hGrassHole.xy;
+          vec2 rl = vec2(rd.x*hGrassHole.z - rd.y*hGrassHole.w, rd.x*hGrassHole.w + rd.y*hGrassHole.z);
+          vec2 rh = hGrassHoleSize + vec2(${REED_HOLE_MARGIN.toFixed(2)}) * step(0.001, hGrassHoleSize.x);
+          if (abs(rl.x) < rh.x && abs(rl.y) < rh.y) transformed = vec3(0.0);
+        #endif
+        #include <project_vertex>`,
+      );
+  };
   reedMat.alphaTest = 0.35;
   const reedParts: THREE.BufferGeometry[] = [];
   for (let k = 0; k < 3; k++) {
@@ -753,13 +781,20 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
   const grassMat = new THREE.MeshStandardMaterial({ roughness: 0.85, side: THREE.DoubleSide });
   grassMat.customProgramCacheKey = () => 'hue-grass';
   grassMat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, HUE_SHARED, { hGrassCam: grassCam, hGrassD: { value: densTex }, hGR: { value: GR } });
+    Object.assign(shader.uniforms, HUE_SHARED, {
+      hGrassCam: grassCam,
+      hGrassD: { value: densTex },
+      hGR: { value: GR },
+      hGrassHole: grassHole,
+      hGrassHoleSize: grassHoleSize,
+    });
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
         `#include <common>
         attribute vec3 aOff; attribute float aT;
         uniform vec3 hGrassCam; uniform sampler2D hGrassD; uniform float hGR;
+        uniform vec4 hGrassHole; uniform vec2 hGrassHoleSize;
         uniform sampler2D hTerrainH; uniform vec4 hTerrainRect; uniform float hTime; uniform float hWetness;
         varying vec3 vGCol;
         ${HUE_NOISE_GLSL}`,
@@ -775,6 +810,10 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
          float dist = length(wp - cam);
          float fade = 1.0 - smoothstep(hGR*0.55, hGR*0.97, dist);
          float keep = step(aOff.z, d*(0.55+0.6*patchN)) * fade;
+         // no blades under the car: world -> car-local (inverse of the Y rotation)
+         vec2 hd = wp - hGrassHole.xy;
+         vec2 hl = vec2(hd.x*hGrassHole.z - hd.y*hGrassHole.w, hd.x*hGrassHole.w + hd.y*hGrassHole.z);
+         keep *= 1.0 - step(abs(hl.x), hGrassHoleSize.x) * step(abs(hl.y), hGrassHoleSize.y);
          float hgt = (0.12 + 0.26*aOff.z*aOff.z + 0.16*patchN) * keep;
          float ang = aOff.z*43.0;
          vec3 lp = position; lp.y *= hgt; lp.xz *= 1.0 + aOff.z;
@@ -817,6 +856,10 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
     grass.visible = camPos.y - getTerrainHeight(camPos.x, camPos.z) < 40;
   };
 
+  const setGrassExclusion = (x: number, z: number, yaw: number, halfWidth: number, halfLength: number) => {
+    grassHole.value.set(x, z, Math.cos(yaw), Math.sin(yaw));
+    grassHoleSize.value.set(halfWidth, halfLength);
+  };
   const dispose = () => {
     densTex.dispose();
     grassGeo.dispose();
@@ -835,5 +878,5 @@ export function buildHueTerrainAndFlora(): TerrainAndFloraResult {
     root.clear();
   };
 
-  return { group: root, updateWind, setRainWetness, updateCamera, dispose };
+  return { group: root, updateWind, setRainWetness, updateCamera, setGrassExclusion, dispose };
 }

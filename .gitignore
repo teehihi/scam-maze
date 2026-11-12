@@ -7,6 +7,7 @@ dist
 .env
 .env.*
 !.env.example
-
 # Chapter 1 voice generator cache (WAV files, job and result files)
 apps/game/.voice-cache/
+# Large third-party source exports (production assets live in apps/game/public)
+apps/game/assets-src/vehicles/*-gltf/

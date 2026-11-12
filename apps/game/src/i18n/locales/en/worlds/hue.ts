@@ -22,7 +22,7 @@ const hue = {
       jump: "Jump",
       punch: "Punch",
       block: "Block",
-      interact: "Interact",
+      interact: "Interact / Get in the car",
       viewHands: "View hands",
       ringBell: "Ring the bell",
       mouse: "Mouse",

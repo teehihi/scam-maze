@@ -20,7 +20,7 @@ const hue: LocaleShape<typeof en> = {
       jump: "Nhảy",
       punch: "Đấm",
       block: "Đỡ đòn",
-      interact: "Tương tác",
+      interact: "Tương tác / Lên xe",
       viewHands: "Xem tay",
       ringBell: "Thỉnh chuông",
       mouse: "Chuột",
