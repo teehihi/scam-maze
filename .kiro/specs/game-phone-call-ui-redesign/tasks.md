@@ -237,12 +237,12 @@ Resolved assumptions (recorded in the design):
       subtitles` plus the Co-authored-by trailer. Confirm with `git status --short` that nothing
       unrelated is staged.
     - _Requirements: 11.3_
-  - [-] 8.2 Commit the docs and the spec
+  - [x] 8.2 Commit the docs and the spec
     - Stage `docs/PROJECT_PROGRESS.md`, `ACCESSIBILITY.md`, `docs/architecture/OVERVIEW.md` and
       `.kiro/specs/game-phone-call-ui-redesign/*` by name; commit with
       `docs(game): record the phone call UI redesign` plus the trailer.
     - _Requirements: 11.3, 11.5_
-  - [~] 8.3 Push without force
+  - [-] 8.3 Push without force
     - Run `git push -u origin feat/game-phone-call-ui-redesign` with no force option. Do not
       merge and do not open a merge action. Report the commit hashes and the real results of
       task 6.
