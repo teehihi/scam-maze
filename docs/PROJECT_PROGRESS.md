@@ -169,6 +169,16 @@ Resolved:
 
 ## Task History
 
+### 2026-11-12 — UEH: real audio for "Mùa Hạ Thứ 18"
+
+- **Objective:** Play the owner-supplied recording when the guitar switches to "Mùa Hạ Thứ 18", without shipping a 50 MB WAV.
+- **Completed work:** Encoded `muaha18.wav` (PCM 16-bit, 284.6 s, 50.2 MB) to `public/reality/mua-ha-thu-18.mp3` (LAME V2, ≈172 kbps, 6.1 MB, same duration; same quality level as `neu-ngay-mai.mp3`) and removed the WAV. `features/ueh/music.ts` now plays each track's `audioSrc` from `tracks.ts` through one element per track, created on first play (a song is only downloaded when it is switched to), with a shared gain/analyser so the audio-reactive visuals follow both songs. Before, only "Nếu ngày mai" had real audio.
+- **Files:** `apps/game/public/reality/mua-ha-thu-18.mp3` (new), `apps/game/src/features/ueh/music.ts`, `apps/game/src/features/ueh/tracks.ts`, `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 64 files, 602/602 passed; `pnpm build` passed. Not listened to in a browser by the agent.
+- **Unresolved issues and known limitations:** `tracks.ts` records rehost rights for both songs as `not_granted` in the portfolio data; the owner must confirm usage rights before public deployment or submission (rules require permission for music).
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Owner listening test; confirm music rights.
+
 ### 2026-11-12 — Drivable Lexus on the UEH map, louder vehicle audio, H toggles UEH panels
 
 - **Objective:** Put the drivable Lexus GX 550 on `/ueh`; make the vehicle sounds louder; add a shortcut to hide/show the UEH information panels.
