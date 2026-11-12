@@ -13,8 +13,9 @@
 import React, { useLayoutEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { SCREEN_CORNER_RATIO } from "./callLayout";
-import type { CallLayout, Rect } from "./callLayout";
-import type { PhoneScreenSink } from "./phoneScreenSink";
+import type { CallLayout } from "./callLayout";
+import type { PhoneScreenSink, ScreenPlacement } from "./phoneScreenSink";
+import { quadSize, quadToMatrix3d } from "./screenQuad";
 
 export type PhoneScreenHostMode = "pending" | "model" | "fallback";
 
@@ -31,9 +32,24 @@ const SCREEN_BACKGROUND = "#1d1b2b";
 /** 2D bezel drawn outside the screen rectangle in fallback mode. */
 const FALLBACK_BEZEL_OUTLINE = "6px solid #38344f";
 
-/** Writes the rectangle-driven style properties on the host element. */
-function applyRect(element: HTMLDivElement, rect: Rect, cornerRadius: number): void {
+/**
+ * Writes the placement-driven style properties on the host element. With a projected quad the
+ * element keeps its natural size and a matrix3d maps it onto the tilted glass.
+ */
+function applyRect(element: HTMLDivElement, rect: ScreenPlacement, cornerRadius: number): void {
   const { style } = element;
+  if (rect.quad) {
+    const size = quadSize(rect.quad);
+    const matrix = quadToMatrix3d(size.width, size.height, rect.quad);
+    if (matrix !== null) {
+      style.transformOrigin = "0 0";
+      style.transform = matrix;
+      style.width = `${size.width}px`;
+      style.height = `${size.height}px`;
+      style.borderRadius = `${SCREEN_CORNER_RATIO * size.width}px`;
+      return;
+    }
+  }
   style.transform = `translate(${rect.left}px, ${rect.top}px)`;
   style.width = `${rect.width}px`;
   style.height = `${rect.height}px`;
@@ -56,7 +72,7 @@ export const PhoneScreenHost: React.FC<PhoneScreenHostProps> = ({
     const element = hostRef.current;
     if (element === null) return undefined;
 
-    const write = (rect: Rect | null): void => {
+    const write = (rect: ScreenPlacement | null): void => {
       // `null` means the 3D phone is gone; the parent switches to fallback mode.
       if (rect === null) return;
       applyRect(element, rect, SCREEN_CORNER_RATIO * rect.width);

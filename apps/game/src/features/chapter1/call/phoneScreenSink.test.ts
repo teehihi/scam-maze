@@ -89,4 +89,18 @@ describe("createPhoneScreenSink", () => {
     expect(removed).toHaveBeenCalledTimes(1);
     expect(kept).toHaveBeenCalledTimes(3);
   });
+  it("forwards a quad change even when the bounding rectangle is the same", () => {
+    const sink = createPhoneScreenSink();
+    const listener = vi.fn();
+    sink.subscribe(listener);
+    const base = { left: 10, top: 10, width: 100, height: 200 };
+    sink.publish({ ...base, quad: [{ x: 10, y: 10 }, { x: 110, y: 12 }, { x: 110, y: 210 }, { x: 10, y: 208 }] });
+    sink.publish({ ...base, quad: [{ x: 10, y: 10 }, { x: 110, y: 16 }, { x: 110, y: 210 }, { x: 10, y: 204 }] });
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(sink.current()?.quad?.[1]).toEqual({ x: 110, y: 16 });
+    // Dropping the quad is a change too.
+    sink.publish(base);
+    expect(listener).toHaveBeenCalledTimes(3);
+    expect(sink.current()?.quad).toBeUndefined();
+  });
 });

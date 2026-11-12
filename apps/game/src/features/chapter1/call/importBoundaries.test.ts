@@ -138,8 +138,12 @@ const CAMERA_WRITE_PATTERNS: readonly RegExp[] = [
   /\bcamera\.(?:lookAt|translate[XYZ]|translateOnAxis|rotate[XYZ]|rotateOnAxis|rotateOnWorldAxis|applyQuaternion|applyMatrix4|setRotationFromEuler|setRotationFromQuaternion|setRotationFromAxisAngle|setRotationFromMatrix)\s*\(/,
 ];
 
-/** Matches lights, environment maps and post-processing in component code. */
-const SCENE_ADDITION_PATTERN = /(?:Light|\bEnvironment|EffectComposer)\b/;
+/**
+ * Matches lights, a scene-wide environment (Drei `<Environment>` or `scene.environment =`) and
+ * post-processing in component code. Reflection maps on the phone's own materials
+ * (`phoneReflections.ts`) are allowed.
+ */
+const SCENE_ADDITION_PATTERN = /(?:Light\b|\bEnvironment\b|EffectComposer\b|\.environment\s*=)/;
 
 /** Narrative store, selectors and `useChapterState`, relative to `src/`. */
 const PHONE_MODEL_FORBIDDEN_TARGETS = [

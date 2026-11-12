@@ -4,8 +4,11 @@
  * `PhoneModel3D` draws the optimized phone model in front of the camera and publishes the
  * projected screen rectangle to the page's `PhoneScreenSink`, so the DOM screen content
  * (`PhoneScreenHost` in model mode) follows exactly what is drawn. It reads the camera pose and
- * field of view but never writes to the camera. It adds no light, environment map,
- * post-processing or second canvas.
+ * field of view but never writes to the camera. It adds no light, no scene-wide environment,
+ * no post-processing and no second canvas; the phone's own materials get a studio reflection
+ * map (phoneReflections.ts) so metal and glass read as real. The phone is turned slightly
+ * toward the player, and the projected screen corners are published as a quad so the DOM screen
+ * follows the tilted glass.
  *
  * This file imports nothing from the narrative store, the selectors or `useChapterState`: the
  * call status reaches it only as the `ringing` prop.
@@ -23,7 +26,9 @@ import {
   solveScreenPose,
   type Rect,
 } from "./callLayout";
+import { applyPhoneReflections, createPhoneReflectionMap } from "./phoneReflections";
 import { phoneMotionOffset } from "./phoneMotion";
+import { quadBounds, type Point } from "./screenQuad";
 import type { PhoneScreenSink } from "./phoneScreenSink";
 
 /**
@@ -47,6 +52,12 @@ const DIMMING_COVER_MARGIN = 1.2;
 const DIMMING_OPACITY = 0.6;
 /** The first rectangle must be published within this time for the entry slide to play. */
 const ENTRY_ANIMATION_WINDOW_MS = 150;
+/**
+ * Turn of the phone toward the player (radians): the face turns left toward the view center
+ * and the top leans back a little, like a phone held in the right hand.
+ */
+const PHONE_TILT_Y = -0.16;
+const PHONE_TILT_X = -0.07;
 /** Fallback vertical field of view (degrees) if the camera is not a perspective camera. */
 const DEFAULT_FOV_DEG = 70;
 
@@ -70,6 +81,7 @@ const SCREEN_CORNERS: ReadonlyArray<readonly [number, number]> = [
 export const PhoneModel3D: FC<PhoneModel3DProps> = ({ ringing, reducedMotion, openedAt, screenSink }) => {
   const { scene } = useCallPhoneGLTF();
   const size = useThree((state) => state.size);
+  const gl = useThree((state) => state.gl);
 
   const model = useMemo(() => {
     const clone = scene.clone(true);
@@ -80,6 +92,16 @@ export const PhoneModel3D: FC<PhoneModel3DProps> = ({ ringing, reducedMotion, op
     });
     return clone;
   }, [scene]);
+
+  // Studio reflections on the phone's own (cloned) materials only.
+  useEffect(() => {
+    const envMap = createPhoneReflectionMap(gl);
+    const materials = applyPhoneReflections(model, envMap);
+    return () => {
+      materials.forEach((material) => material.dispose());
+      envMap.dispose();
+    };
+  }, [gl, model]);
 
   const dimmingMaterial = useMemo(
     () =>
@@ -104,6 +126,12 @@ export const PhoneModel3D: FC<PhoneModel3DProps> = ({ ringing, reducedMotion, op
   const anchorRef = useRef<THREE.Group>(null);
   const dimmingRef = useRef<THREE.Mesh>(null);
   const cornerScratch = useRef(new THREE.Vector3());
+  const quadScratch = useRef<Point[]>([
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+  ]);
   /** Time of the first publication; `null` until the first frame. */
   const firstFrameAtRef = useRef<number | null>(null);
   const animateEntryRef = useRef(true);
@@ -155,41 +183,37 @@ export const PhoneModel3D: FC<PhoneModel3DProps> = ({ ringing, reducedMotion, op
     rig.translateX(pose.x);
     rig.translateY(pose.y);
     rig.translateZ(pose.z - SCREEN_FRONT_OFFSET_M);
+    rig.rotateY(PHONE_TILT_Y);
+    rig.rotateX(PHONE_TILT_X);
 
     // Dimming plane: centered on the camera axis, behind the screen, covering the frustum.
     const dimmingDistance = -pose.z + DIMMING_DISTANCE_BEHIND_M;
     const dimmingHeight =
       2 * dimmingDistance * Math.tan((fov * Math.PI) / 360) * DIMMING_COVER_MARGIN;
     const dimmingWidth = dimmingHeight * (viewport.width / viewport.height);
-    dimming.position.set(
-      -pose.x,
-      -pose.y,
-      SCREEN_FRONT_OFFSET_M - DIMMING_DISTANCE_BEHIND_M,
-    );
+    // The plane must face the camera, so it undoes the rig tilt before moving back on the axis.
+    dimming.quaternion.copy(rig.quaternion).invert().multiply(camera.quaternion);
+    dimming.position
+      .set(-pose.x, -pose.y, SCREEN_FRONT_OFFSET_M - DIMMING_DISTANCE_BEHIND_M)
+      .applyQuaternion(dimming.quaternion);
     dimming.scale.set(dimmingWidth, dimmingHeight, 1);
 
-    // Project the four anchor corners with the current camera matrices and publish the
-    // bounding rectangle in CSS px.
+    // Project the four anchor corners with the current camera matrices and publish them as a
+    // quad (with its bounding rectangle) in CSS px.
     rig.updateMatrixWorld(true);
     camera.updateMatrixWorld();
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
     const corner = cornerScratch.current;
-    for (const [x, y] of SCREEN_CORNERS) {
+    const quad = quadScratch.current;
+    SCREEN_CORNERS.forEach(([x, y], index) => {
       corner.set(x, y, 0);
       anchor.localToWorld(corner);
       corner.project(camera);
-      const px = ((corner.x + 1) / 2) * viewport.width;
-      const py = ((1 - corner.y) / 2) * viewport.height;
-      minX = Math.min(minX, px);
-      minY = Math.min(minY, py);
-      maxX = Math.max(maxX, px);
-      maxY = Math.max(maxY, py);
-    }
-    if (![minX, minY, maxX, maxY].every(Number.isFinite)) return;
-    props.screenSink.publish({ left: minX, top: minY, width: maxX - minX, height: maxY - minY });
+      quad[index].x = ((corner.x + 1) / 2) * viewport.width;
+      quad[index].y = ((1 - corner.y) / 2) * viewport.height;
+    });
+    if (!quad.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y))) return;
+    const published = [0, 1, 2, 3].map((i) => ({ x: quad[i].x, y: quad[i].y })) as [Point, Point, Point, Point];
+    props.screenSink.publish({ ...quadBounds(published), quad: published });
   });
 
   return (

@@ -146,6 +146,32 @@ describe("PhoneScreenHost", () => {
     }
   });
 
+  it("model mode maps the screen onto a tilted quad with matrix3d", () => {
+    const sink = createPhoneScreenSink();
+    render(
+      <PhoneScreenHost mode="model" layout={LAYOUT} screenSink={sink}>
+        <span />
+      </PhoneScreenHost>,
+    );
+    const quad = [
+      { x: 820, y: 90 },
+      { x: 1110, y: 104 },
+      { x: 1104, y: 712 },
+      { x: 824, y: 724 },
+    ] as const;
+    act(() => sink.publish({ left: 820, top: 90, width: 290, height: 634, quad }));
+    const host = hostElement();
+    expect(host.style.transform.startsWith("matrix3d(")).toBe(true);
+    expect(host.style.transformOrigin).toMatch(/^0(px)? 0(px)?$/);
+    // Natural size: the mean length of opposite edges.
+    expect(px(host.style.width)).toBeCloseTo((Math.hypot(290, 14) + Math.hypot(280, 12)) / 2, 2);
+    expect(px(host.style.height)).toBeCloseTo((Math.hypot(4, 634) + Math.hypot(6, 608)) / 2, 2);
+
+    // A flat rectangle again goes back to the plain translate.
+    const flat: Rect = { left: 410, top: 60, width: 300, height: 650 };
+    act(() => sink.publish(flat));
+    expectRect(host, flat);
+  });
   it("stops following the sink after leaving model mode", () => {
     const sink = createPhoneScreenSink();
     const { rerender } = render(

@@ -181,6 +181,15 @@ Resolved:
 
 ## Task History
 
+### 2026-11-12 — More realistic 3D call phone
+
+- **Objective:** Owner request: make the 3D call phone look closer to a real phone.
+- **Completed work:** The phone's own materials now reflect a procedural studio map (`phoneReflections.ts`, three's `RoomEnvironment` + PMREM, generated locally, no file or network; materials are cloned so the cached model is unchanged; no scene-wide environment and no new light). The phone is turned slightly toward the player (about 9 degrees about Y, 4 degrees about X). The projected screen corners are published as a quad, and `PhoneScreenHost` maps the DOM screen onto it with a CSS `matrix3d` (`screenQuad.ts`), so text, focus and clicks stay on the tilted glass. The wide layout now uses 80% of the viewport height (was 90%, max 660 px instead of 720 px) so the whole body and frame are visible. Requirement 1.6 now allows a phone-only reflection map; the boundary test still rejects lights, Drei `<Environment>` and `scene.environment`.
+- **Files:** created `apps/game/src/features/chapter1/call/{phoneReflections.ts,screenQuad.ts,screenQuad.property.test.ts}`; modified `PhoneModel3D.tsx`, `PhoneScreenHost.tsx`, `PhoneScreenHost.test.tsx`, `phoneScreenSink.ts`, `phoneScreenSink.test.ts`, `callLayout.ts`, `importBoundaries.test.ts`, `.kiro/specs/game-3d-phone-call-ui/requirements.md`, this file.
+- **Validation:** `pnpm test` passed (81 files, 752 tests); `pnpm typecheck` passed; `pnpm build` passed (game JS 1,940.36 kB, gzip 553.54 kB, over the 1,500 kB warning).
+- **Limitations:** Not checked in a browser; the look, the 4 px screen alignment and the frame rate are not verified. The model itself (geometry and the 1024 px textures) is unchanged.
+- **Deviations:** Requirement 1.6 relaxed as above (owner request). **Follow-up:** browser check; if the textures look soft up close, re-run the optimizer with 2048 px normal maps and keep the 5 MB limit.
+
 ### 2026-11-12 — Chapter 1 phone calls on a 3D phone (spec `game-3d-phone-call-ui`, task 13.2)
 
 - **Objective:** Show Chapter 1 ringing and active calls on a 3D phone in the existing chapter

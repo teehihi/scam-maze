@@ -50,7 +50,7 @@ export const SCREEN_CORNER_RATIO = 0.176;
 /** Viewports narrower than this use the narrow layout (same as Tailwind `sm`). */
 export const NARROW_BREAKPOINT = 640;
 /** The phone screen is never taller than this, in CSS pixels. */
-export const MAX_SCREEN_HEIGHT = 720;
+export const MAX_SCREEN_HEIGHT = 660;
 /** The wide layout keeps at least this width for the choice region, in CSS pixels. */
 export const MIN_CHOICE_WIDTH = 280;
 
@@ -58,7 +58,8 @@ const NARROW_MARGIN = 12;
 const WIDE_MARGIN = 24;
 const NARROW_MIN_SCREEN_HEIGHT = 288;
 const NARROW_SCREEN_HEIGHT_RATIO = 0.6;
-const WIDE_SCREEN_HEIGHT_RATIO = 0.9;
+/** Leaves room above and below the glass so the whole phone body and its frame are visible. */
+const WIDE_SCREEN_HEIGHT_RATIO = 0.8;
 const MAX_CHOICE_WIDTH = 720;
 /** Guard so the screen anchor can never reach the camera near plane (0.05 m). */
 const MIN_POSE_DISTANCE_M = 0.06;
