@@ -49,6 +49,12 @@ const SETTINGS: GameSettings = {
   sfxVolume: 0,
   fov: 75,
   language: "en",
+  voiceVolume: 1,
+  subtitlesEnabled: true,
+  reducedStress: false,
+  reducedMotion: "system",
+  phoneVoiceFilter: true,
+  englishVoiceFallback: false,
 };
 
 const WALLET = CHAPTER_1_INTERACTABLES["obj.wallet"];

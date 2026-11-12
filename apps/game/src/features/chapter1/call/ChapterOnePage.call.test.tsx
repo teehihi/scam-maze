@@ -64,6 +64,12 @@ const SETTINGS: GameSettings = {
   sfxVolume: 0,
   fov: 75,
   language: "en",
+  voiceVolume: 1,
+  subtitlesEnabled: true,
+  reducedStress: false,
+  reducedMotion: "system",
+  phoneVoiceFilter: true,
+  englishVoiceFallback: false,
 };
 
 /** A projected screen rectangle, as the 3D phone publishes it every frame. */

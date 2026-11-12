@@ -32,6 +32,28 @@ const settings: LocaleShape<typeof en> = {
     muted: "ĐÃ TẮT",
     masterVolume: "Âm lượng chung",
   },
+  voice: {
+    heading: "Giọng nói và sự thoải mái",
+    volume: "Âm lượng giọng nói",
+    captions: "Phụ đề",
+    phoneFilter: "Hiệu ứng loa điện thoại",
+    englishFallback: "Dùng giọng tiếng Anh khi thiếu âm thanh tiếng Việt",
+  },
+  comfort: {
+    reducedStress: "Chế độ giảm căng thẳng",
+    reducedStressHint:
+      "Âm thanh nhẹ hơn, không rung khi có cuộc gọi và dừng lâu hơn trước những câu căng thẳng. Câu chuyện không thay đổi.",
+    motion: {
+      heading: "Giảm chuyển động",
+      system: "Theo hệ thống",
+      on: "Bật",
+      off: "Tắt",
+    },
+  },
+  toggle: {
+    on: "Bật",
+    off: "Tắt",
+  },
 };
 
 export default settings;

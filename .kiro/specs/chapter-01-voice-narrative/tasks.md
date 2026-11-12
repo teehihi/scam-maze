@@ -341,129 +341,129 @@ Honesty rules
 - [x] 12. Checkpoint B - validator, manifest and generator
   - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. If `validateChapterContent.test.ts` reports a stale hash, rerun task 10.2 for the affected clips. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 13. Commits: validator, voice contracts, clips
-  - [-] 13.1 Commit the validator, solver and engine tests
+- [x] 13. Commits: validator, voice contracts, clips
+  - [x] 13.1 Commit the validator, solver and engine tests
     - Stage by name the files of tasks 8.1 to 8.10. Commit `test(game): add scenario validator, reachability solver and engine tests` with the trailer.
     - _Requirements: 18.2_
-  - [~] 13.2 Commit the voice contracts, generator scripts and content validator
+  - [x] 13.2 Commit the voice contracts, generator scripts and content validator
     - Stage by name: the files of tasks 9.1 to 9.11 and 11.1 to 11.3 (including `apps/game/package.json`, `.gitignore`, `SRC/config/assetPaths.ts`), but not `chapter1.manifest.ts` and not `public/audio/**`. Commit `feat(game): add voice manifest contract, TTS generator script and content validator` with the trailer.
     - _Requirements: 18.2_
-  - [~] 13.3 Commit the generated manifest and clips
+  - [x] 13.3 Commit the generated manifest and clips
     - Stage `VOICE/chapter1.manifest.ts` and each `.mp3` listed as `present` in it (enumerate them with `Get-ChildItem` and pass explicit paths to `git add`). Commit `feat(game): add generated Chapter 1 voice clips and manifest` with a body stating the real counts per locale and that the redistribution terms are not verified, plus the trailer.
     - _Requirements: 4.9, 18.2_
 
-- [ ] 14. Voice player and Web Audio graph
-  - [~] 14.1 Create `VOICE/audioPort.ts` and `VOICE/mixPlan.ts`
+- [x] 14. Voice player and Web Audio graph
+  - [x] 14.1 Create `VOICE/audioPort.ts` and `VOICE/mixPlan.ts`
     - `audioPort.ts`: `LoadedClip`, `PlaybackHandle`, `AudioPort`, `PreviewPort` and `StopReason` types only (design.md section 4). `mixPlan.ts`: the constants of the mix table and pure functions `voiceGain`, `effectivePauseMs`, `tensionGain`, `ringtoneGain`, `ambienceGain`, all within the 0.2 linear peak cap. Neither imports React or Three.js.
     - Create these two files.
     - _Requirements: 5.13, 11.3, 11.10_
-  - [~] 14.2 Create the test double `SRC/test/fakeAudioPort.ts`
+  - [x] 14.2 Create the test double `SRC/test/fakeAudioPort.ts`
     - Implement `AudioPort` with manual control: completion of `load`, `fireEnded(id)`, `failLoad(url)`, `refuseResume()`, counters of live handles, timers and listeners, a fake clock and fake `setTimer`/`clearTimer`, and a fake `speechSynthesis` for `PreviewPort`.
     - Create only this file.
     - _Requirements: 17.2, 17.6_
-  - [~] 14.3 Create the pure choice gate `VOICE/optionsGate.ts`
+  - [x] 14.3 Create the pure choice gate `VOICE/optionsGate.ts`
     - Implement the gate rule of design.md section 5 as a pure function of a minimal input type it defines itself (`phase`, `audible`, `durationMs`, `endedAt`, node `waitForVoice`, elapsed times, skip), so it does not import `VoiceDialoguePlayer.ts`. This extracts the gate from `useOptionsGate` so Property 14 can test it; record this small deviation in the Baseline Record.
     - Create only this file.
     - _Requirements: 5.9, 5.10_
-  - [~] 14.4 Create `VOICE/VoiceDialoguePlayer.ts`
+  - [x] 14.4 Create `VOICE/VoiceDialoguePlayer.ts`
     - Implement `createVoiceDialoguePlayer` with the state machine, `playId` stale-callback rule, synchronous `stop`, `dispose`, `LATE_CLIP_MS`, prefetch cache (8 buffers, LRU, concurrency 2), once-per-clip failure log, mute flag, `replay` unmuting first, `pause`/`resume` with offset, gain rules, `selectClip` use, dev preview hand-off. It never throws and never touches the narrative store.
     - Create only this file.
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.7, 5.8, 5.11, 5.12, 5.13_
-  - [~] 14.5 Create `VOICE/devSpeechPreview.ts`
+  - [x] 14.5 Create `VOICE/devSpeechPreview.ts`
     - `PreviewPort` over `speechSynthesis`, created only when `import.meta.env.DEV` or `import.meta.env.VITE_DEV_VOICE_PREVIEW === "true"`. A pure `pickPreviewVoice(voices, locale)` returns a voice whose `lang` starts with the locale tag or `null`. Silent when none matches. Follows stop, mute and dispose.
     - Create only this file.
     - _Requirements: 6.2, 6.3, 6.5, 6.6_
-  - [~] 14.6 Create `VOICE/webAudioEngine.ts`
+  - [x] 14.6 Create `VOICE/webAudioEngine.ts`
     - Real `AudioPort` plus ringtone, connect click, ambience and tension, one lazily created `AudioContext`, the graph of design.md "Web Audio graph" (phone filter high-pass 300 Hz and low-pass 3400 Hz Q 0.707, master gain, `DynamicsCompressor` limiter, all gains capped by `PEAK_CAP`). `supported` is false when the constructor is missing. `dispose` closes only the context it created.
     - Create only this file.
     - _Requirements: 5.5, 11.10, 15.1, 15.3, 15.4, 15.6_
-  - [~] 14.7 Write Property 19 in `VOICE/mixPlan.property.test.ts`
+  - [x] 14.7 Write Property 19 in `VOICE/mixPlan.property.test.ts`
     - **Property 19: The mix plan stays inside its caps**
     - **Validates: Requirements 11.3, 11.10, 15.4, 15.5**
     - Create only this file.
     - _Requirements: 11.3, 11.10, 15.4_
-  - [~] 14.8 Write Property 10 and Property 11 in `VOICE/VoiceDialoguePlayer.property.test.ts`
+  - [x] 14.8 Write Property 10 and Property 11 in `VOICE/VoiceDialoguePlayer.property.test.ts`
     - **Property 10: At most one clip is audible**
     - **Property 11: Stopping is immediate and releases everything**
     - **Validates: Requirements 5.3, 5.4, 6.6, 15.6**
     - Use `fakeAudioPort`; load and ended callbacks complete in random order, including stale ones; also run with the dev preview port.
     - Create only this file.
     - _Requirements: 5.3, 5.4, 6.6, 15.6_
-  - [~] 14.9 Write Property 12 and Property 13 in `VOICE/VoiceDialoguePlayer.failures.property.test.ts`
+  - [x] 14.9 Write Property 12 and Property 13 in `VOICE/VoiceDialoguePlayer.failures.property.test.ts`
     - **Property 12: Failures fall back to captions and are logged once**
     - **Property 13: Audibility, gain and caption visibility are consistent**
     - **Validates: Requirements 5.5, 5.7, 5.11, 7.3, 7.6, 15.3**
     - Create only this file.
     - _Requirements: 5.5, 5.7, 5.11, 7.3, 7.6, 15.3_
-  - [~] 14.10 Write Property 14 in `VOICE/optionsGate.property.test.ts`
+  - [x] 14.10 Write Property 14 in `VOICE/optionsGate.property.test.ts`
     - **Property 14: The choice gate always opens**
     - **Validates: Requirements 5.9**
     - Create only this file.
     - _Requirements: 5.9_
-  - [~] 14.11 Write Property 18 in `VOICE/devSpeechPreview.property.test.ts`
+  - [x] 14.11 Write Property 18 in `VOICE/devSpeechPreview.property.test.ts`
     - **Property 18: The dev preview never speaks with the wrong language**
     - **Validates: Requirements 6.5**
     - Create only this file.
     - _Requirements: 6.5_
-  - [~] 14.12 Write example tests in `VOICE/VoiceDialoguePlayer.test.ts`
+  - [x] 14.12 Write example tests in `VOICE/VoiceDialoguePlayer.test.ts`
     - Cover: correct clip per node and locale; quick node changes never overlap; replay restarts the latest line and changes no state; hang-up and dispose stop within the same call and remove listeners; mute and volume 0; blocked autoplay shows `blocked` and Replay works after unlock; missing and failing clips fall back; late clip (over 1500 ms) is skipped; English clip is labeled `english-voice` and never as Vietnamese; pause and resume.
     - Create only this file.
     - _Requirements: 17.2, 17.3_
-  - [~] 14.13 Write `VOICE/webAudioEngine.test.ts`
+  - [x] 14.13 Write `VOICE/webAudioEngine.test.ts`
     - With a minimal stub `AudioContext` on `globalThis`, check: graph creation is lazy, `supported` is false without the constructor, gains never exceed the cap, `dispose` closes the context. No real audio device.
     - Create only this file.
     - _Requirements: 15.1, 17.6_
-  - [~] 14.14 Write `VOICE/boundaries.test.ts`
+  - [x] 14.14 Write `VOICE/boundaries.test.ts`
     - Scan every `.ts` file under `VOICE` (same scanner approach as `NARR/boundaries.test.ts`) and fail on imports of React, `react-dom`, Three.js, R3F, Drei, i18next, Zustand or Dexie. Allow `game/narrative` and `@scammaze/shared-types`.
     - Create only this file.
     - _Requirements: 5.13, 16.3_
 
-- [ ] 15. Settings, migration and Settings screen
-  - [~] 15.1 Extend `GameSettings` in `packages/shared-types/src/index.ts`
+- [x] 15. Settings, migration and Settings screen
+  - [x] 15.1 Extend `GameSettings` in `packages/shared-types/src/index.ts`
     - Add `ReducedMotionSetting` and the six fields `voiceVolume`, `subtitlesEnabled`, `reducedStress`, `reducedMotion`, `phoneVoiceFilter`, `englishVoiceFallback`. Keep the six existing fields unchanged.
     - Edit only this file.
     - _Requirements: 11.1_
-  - [~] 15.2 Update `SRC/app/settingsStorage.ts`
+  - [x] 15.2 Update `SRC/app/settingsStorage.ts`
     - Add the defaults (`1.0`, `true`, `false`, `"system"`, `true`, `false`) to `DEFAULT_SETTINGS`. After the legacy merge, run `sanitizeNewFields`: `voiceVolume` finite and clamped to 0..1 (else 1.0), booleans must be booleans, `reducedMotion` one of three strings, else defaults. Legacy fields keep their behavior. Storage key stays `scammaze_settings_v1`.
     - Edit only this file.
     - _Requirements: 11.1, 11.2_
-  - [~] 15.3 Write Property 15 (parsing) in `SRC/app/settingsStorage.property.test.ts`
+  - [x] 15.3 Write Property 15 (parsing) in `SRC/app/settingsStorage.property.test.ts`
     - **Property 15: Settings parsing is total, bounded and idempotent**
     - **Validates: Requirements 11.2, 11.4**
     - Add the seeded property for random stored JSON, plus examples: an old stored object (five legacy fields only) loads with defaults for the six new fields and keeps its values.
     - Edit only this file.
     - _Requirements: 11.2_
-  - [~] 15.4 Add the six fields to `GameSettings` fixtures in other tests
+  - [x] 15.4 Add the six fields to `GameSettings` fixtures in other tests
     - In `SRC/app/App.i18n.test.tsx`, `SRC/features/chapter1/accessibility.test.tsx`, `SRC/features/chapter1/call/ChapterOnePage.call.test.tsx`, `SRC/features/chapter1/ChapterOnePage.test.tsx`, `SRC/features/chapter1/ChapterOnePage.restore.test.tsx` and the test that holds `applyLocale` properties (find it with `rg "applyLocale" SRC --glob "*.test.*"`), spread `DEFAULT_SETTINGS` into each `GameSettings` literal. Do not touch `settingsStorage.property.test.ts` or `SettingsModal.test.tsx`.
     - _Requirements: 13.7_
-  - [~] 15.5 Create `SRC/components/ui/useReducedMotion.ts` and `F1/comfort/ComfortProvider.tsx`
+  - [x] 15.5 Create `SRC/components/ui/useReducedMotion.ts` and `F1/comfort/ComfortProvider.tsx`
     - `useReducedMotion()` reads the provider and falls back to the OS query when there is no provider (leave `usePrefersReducedMotion.ts` unchanged). `ComfortProvider` publishes `{ reducedMotion, reducedStress, subtitlesEnabled }`, where effective reduced motion is `on`, or `system` and the OS query matches. Export a pure `effectiveReducedMotion(setting, osQuery)`.
     - Create these two files.
     - _Requirements: 11.4, 11.3_
-  - [~] 15.6 Write the motion part of Property 15 in `F1/comfort/comfort.property.test.ts`
+  - [x] 15.6 Write the motion part of Property 15 in `F1/comfort/comfort.property.test.ts`
     - **Property 15: Settings parsing is total, bounded and idempotent**
     - **Validates: Requirements 11.2, 11.4**
     - Test `effectiveReducedMotion` over all setting and OS combinations, and that a component outside the provider keeps the OS behavior.
     - Create only this file.
     - _Requirements: 11.4_
-  - [~] 15.7 Add settings and prologue strings in `SRC/i18n/locales/{en,vi}/settings.ts` and `menu.ts`
+  - [x] 15.7 Add settings and prologue strings in `SRC/i18n/locales/{en,vi}/settings.ts` and `menu.ts`
     - Add every `settings:*` key of design.md section 8 table (voice heading, voice volume, captions, phone filter, English fallback, reduced stress and hint, motion heading and three options, toggle on and off) and change `menu:prologue.location` to "A city street · Morning" / "Một con phố trong thành phố · Buổi sáng". Edit en first, then vi.
     - Edit those four files only.
     - _Requirements: 11.1, 12.3, 12.8_
-  - [~] 15.8 Add the "Voice and comfort" section to `SRC/features/menu/SettingsModal.tsx`
+  - [x] 15.8 Add the "Voice and comfort" section to `SRC/features/menu/SettingsModal.tsx`
     - Controls: Voice volume slider (only when sound is on), Captions toggle, Phone speaker effect toggle, English voice fallback toggle (only when the language is Vietnamese), Reduced-stress toggle with hint, three-option radio group for reduced motion. Native elements, existing classes, all text through i18n keys. Master volume for chapter audio remains `sfxVolume`.
     - Edit only this file.
     - _Requirements: 11.1, 11.8, 11.9_
-  - [~] 15.9 Extend `SRC/features/menu/SettingsModal.test.tsx`
+  - [x] 15.9 Extend `SRC/features/menu/SettingsModal.test.tsx`
     - Example tests: each new control renders, is keyboard operable, writes the right field, and conditional controls appear only in their condition; labels exist in both locales.
     - Edit only this file.
     - _Requirements: 11.1, 11.8_
 
-- [~] 16. Checkpoint C - voice player and settings
+- [x] 16. Checkpoint C - voice player and settings
   - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 17. Commits: voice player, settings
-  - [~] 17.1 Commit the voice player and audio engine
+  - [-] 17.1 Commit the voice player and audio engine
     - Stage by name the files of tasks 14.1 to 14.14 (including `SRC/test/fakeAudioPort.ts`). Commit `feat(game): add voice dialogue player, choice gate and Web Audio engine` with the trailer.
     - _Requirements: 18.2_
   - [~] 17.2 Commit settings and migration
@@ -720,6 +720,7 @@ Filled in by tasks 1.1, 1.2, 5.x, 8.2, 10.1, 10.3, 14.3, 19.6, 24.1 and copied i
 - Missing-clips report: after task 10.3 no clip is `missing` (0 in en, 0 in vi); task 24.1 still owns the final report.
 - Final content counts: (not recorded yet)
 - Deviations: (not recorded yet)
+  - 14.3: gate extracted into pure VOICE/optionsGate.ts with elapsed-time fields instead of endedAt, so Property 14 can test it.
 
 ## Task Dependency Graph
 
@@ -759,3 +760,4 @@ Filled in by tasks 1.1, 1.2, 5.x, 8.2, 10.1, 10.3, 14.3, 19.6, 24.1 and copied i
   ]
 }
 ```
+- Checkpoint C (task 16): first runs: `pnpm test` exit 1 (104 files: 103 passed, 1 failed; 903 tests: 902 passed, 1 failed; 0 skipped); `pnpm typecheck` exit 2 and `pnpm build` exit 2 (type errors in test files). Test-file fixes only, no assertion removed or weakened: (1) `game/voice/webAudioEngine.test.ts`: the fake compressor was typed `FakeNode & Record<string, FakeParam>` (TS2322, no string index signature); replaced by a `FakeCompressor extends FakeNode` class with `threshold`, `knee`, `ratio`, `attack`, `release` params. (2) `features/chapter1/comfort/comfort.property.test.ts` line 32: TS2769, `ComfortProvider` requires `children`; passed `children: probe` in the props object. (3) `app/App.i18n.test.tsx` "keeps every other settings field when the language changes": the stored fixture was a 6-field partial, but saving now writes the six new settings with defaults (known test update, design.md item 4 / task 15.4); the fixture now spreads `DEFAULT_SETTINGS`, the `toEqual` assertions are unchanged. After the fixes: `pnpm test` exit 0, 104 files passed, 903 tests passed, 0 failed, 0 skipped; `pnpm typecheck` exit 0; `pnpm build` exit 0 (game built in 13.31 s, landing built in 0.92 s). No production-code bug found. Temp logs deleted. Not committed.

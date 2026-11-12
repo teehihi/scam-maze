@@ -1424,6 +1424,11 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794481842080
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481960515
       }
     ],
     "13.2 Commit the voice contracts, generator scripts and content validator": [
@@ -1436,6 +1441,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476612882
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481999971
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482019231
       }
     ],
     "13.3 Commit the generated manifest and clips": [
@@ -1448,6 +1463,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476612995
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482000580
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482019738
       }
     ],
     "14.1 Create `VOICE/audioPort.ts` and `VOICE/mixPlan.ts`": [
@@ -1460,6 +1485,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613154
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482029313
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482220159
       }
     ],
     "14.2 Create the test double `SRC/test/fakeAudioPort.ts`": [
@@ -1472,6 +1507,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613255
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482230775
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482386222
       }
     ],
     "14.3 Create the pure choice gate `VOICE/optionsGate.ts`": [
@@ -1484,6 +1529,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613357
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482030524
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482218441
       }
     ],
     "14.4 Create `VOICE/VoiceDialoguePlayer.ts`": [
@@ -1496,6 +1551,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613455
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482232002
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482383161
       }
     ],
     "14.5 Create `VOICE/devSpeechPreview.ts`": [
@@ -1508,6 +1573,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613561
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482233677
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482386962
       }
     ],
     "14.6 Create `VOICE/webAudioEngine.ts`": [
@@ -1520,6 +1595,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613667
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482232803
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482385136
       }
     ],
     "14.7 Write Property 19 in `VOICE/mixPlan.property.test.ts`": [
@@ -1532,6 +1617,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613772
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482405611
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482510170
       }
     ],
     "14.8 Write Property 10 and Property 11 in `VOICE/VoiceDialoguePlayer.property.test.ts`": [
@@ -1544,6 +1639,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613865
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482528977
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482876754
       }
     ],
     "14.9 Write Property 12 and Property 13 in `VOICE/VoiceDialoguePlayer.failures.property.test.ts`": [
@@ -1556,6 +1661,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476613959
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482530465
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482877587
       }
     ],
     "14.10 Write Property 14 in `VOICE/optionsGate.property.test.ts`": [
@@ -1568,6 +1683,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614049
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482404952
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482511942
       }
     ],
     "14.11 Write Property 18 in `VOICE/devSpeechPreview.property.test.ts`": [
@@ -1580,6 +1705,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614151
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482888212
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483019145
       }
     ],
     "14.12 Write example tests in `VOICE/VoiceDialoguePlayer.test.ts`": [
@@ -1592,6 +1727,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614301
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482533513
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482878424
       }
     ],
     "14.13 Write `VOICE/webAudioEngine.test.ts`": [
@@ -1604,6 +1749,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614411
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482532064
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482879558
       }
     ],
     "14.14 Write `VOICE/boundaries.test.ts`": [
@@ -1616,6 +1771,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614529
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482890177
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483021173
       }
     ],
     "15.1 Extend `GameSettings` in `packages/shared-types/src/index.ts`": [
@@ -1628,6 +1793,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614635
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482028266
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482221878
       }
     ],
     "15.2 Update `SRC/app/settingsStorage.ts`": [
@@ -1640,6 +1815,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614748
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482229982
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482384178
       }
     ],
     "15.3 Write Property 15 (parsing) in `SRC/app/settingsStorage.property.test.ts`": [
@@ -1652,6 +1837,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614849
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482890887
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483020225
       }
     ],
     "15.4 Add the six fields to `GameSettings` fixtures in other tests": [
@@ -1664,6 +1859,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476614955
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482533161
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482877009
       }
     ],
     "15.5 Create `SRC/components/ui/useReducedMotion.ts` and `F1/comfort/ComfortProvider.tsx`": [
@@ -1676,6 +1881,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476615246
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482402816
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482512758
       }
     ],
     "15.6 Write the motion part of Property 15 in `F1/comfort/comfort.property.test.ts`": [
@@ -1688,6 +1903,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476615341
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482887231
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483018148
       }
     ],
     "15.7 Add settings and prologue strings in `SRC/i18n/locales/{en,vi}/settings.ts` and `menu.ts`": [
@@ -1700,6 +1925,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476615453
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482031270
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482219361
       }
     ],
     "15.8 Add the \"Voice and comfort\" section to `SRC/features/menu/SettingsModal.tsx`": [
@@ -1712,6 +1947,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476615572
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482403740
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482509030
       }
     ],
     "15.9 Extend `SRC/features/menu/SettingsModal.test.tsx`": [
@@ -1724,6 +1969,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476615699
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482889222
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483021941
       }
     ],
     "16. Checkpoint C - voice player and settings": [
@@ -1736,6 +1991,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476615815
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483039653
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483551535
       }
     ],
     "17.1 Commit the voice player and audio engine": [
@@ -1748,6 +2013,11 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476615934
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483551772
       }
     ],
     "17.2 Commit settings and migration": [
@@ -2370,6 +2640,27 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794481477351
+      }
+    ],
+    "13. Commits: validator, voice contracts, clips": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794482019886
+      }
+    ],
+    "14. Voice player and Web Audio graph": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483021338
+      }
+    ],
+    "15. Settings, migration and Settings screen": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794483022089
       }
     ]
   }

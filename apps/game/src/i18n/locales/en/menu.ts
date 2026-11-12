@@ -14,7 +14,7 @@ const menu = {
   prologue: {
     title: "Prologue: An Ordinary Morning",
     subtitle: "Chapter 1 — Street & Digital Intersection",
-    location: "District 4 · Morning",
+    location: "A city street · Morning",
     heading: "The notification arrives before breakfast.",
     intro:
       "The sun is rising over the low-poly brick buildings and quiet storefronts along your street. You poured yourself a fresh cup of coffee when your smartphone buzzes with a high-priority alert:",

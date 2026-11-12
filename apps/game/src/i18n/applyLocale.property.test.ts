@@ -20,6 +20,12 @@ function generateSettings(next: () => number): GameSettings {
     sfxVolume: pick(next, [0, 1, next()]),
     fov: pick(next, [60, 85, randomInt(next, 60, 85), 60 + next() * 25]),
     language: pick(next, LOCALES),
+    voiceVolume: 1,
+    subtitlesEnabled: true,
+    reducedStress: false,
+    reducedMotion: "system",
+    phoneVoiceFilter: true,
+    englishVoiceFallback: false,
   };
 }
 
