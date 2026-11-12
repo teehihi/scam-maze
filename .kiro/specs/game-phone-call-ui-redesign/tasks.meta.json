@@ -1,0 +1,474 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Create and check out `feat/game-phone-call-ui-redesign`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510061
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498520328
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498574374
+      }
+    ],
+    "2.1 Add the subtitle rectangle to `call/callLayout.ts`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510150
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498583889
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498763197
+      }
+    ],
+    "2.2 Extend `call/callLayout.property.test.ts` with the subtitle assertions": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510233
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498769994
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498888231
+      }
+    ],
+    "2.3 Create `call/callTimer.ts` and `call/callDialogueView.ts`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510307
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498584879
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498764594
+      }
+    ],
+    "2.4 Write the timer property test `call/callTimer.property.test.ts`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510377
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498771647
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498888323
+      }
+    ],
+    "3.1 Update `i18n/locales/{en,vi}/chapter1/phone.ts` and `features/chapter1/theme.ts`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510454
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498585701
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498765122
+      }
+    ],
+    "3.2 Add the End call pair to `call/contrast.test.ts`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510528
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498772649
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498888500
+      }
+    ],
+    "4.1 Rename and rewrite the phone screen as `call/PhoneCallScreen.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510638
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498773080
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498888665
+      }
+    ],
+    "4.2 Create `call/CallSubtitleOverlay.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510694
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498773593
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498889303
+      }
+    ],
+    "4.3 Refactor `call/CallPresentation.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510755
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498893984
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499009979
+      }
+    ],
+    "4.4 Wire the Speaker toggle in `features/chapter1/ChapterOnePage.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510820
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499017199
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499184833
+      }
+    ],
+    "5.1 Rename and update `call/PhoneScreenUI.test.tsx` to `call/PhoneCallScreen.test.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510887
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498895170
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499010103
+      }
+    ],
+    "5.2 Rename and update `call/PhoneScreenUI.controls.test.tsx` to `call/PhoneCallScreen.controls.test.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498510951
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498896391
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499011308
+      }
+    ],
+    "5.3 Create `call/CallSubtitleOverlay.test.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511015
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498897198
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499011576
+      }
+    ],
+    "5.4 Update `call/callPresentation.content.property.test.tsx` (Property 1)": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511082
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499018012
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499185026
+      }
+    ],
+    "5.5 Create `call/callSubtitle.property.test.tsx` (Property 2)": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511145
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499019209
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499186469
+      }
+    ],
+    "5.6 Re-point the presentation equivalence tests (Property 5)": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511209
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499020007
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499187054
+      }
+    ],
+    "5.7 Update `features/chapter1/call/ChapterOnePage.call.test.tsx` and `features/chapter1/ChapterOnePage.voice.test.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511279
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499195686
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499422114
+      }
+    ],
+    "5.8 Update `features/chapter1/accessibility.test.tsx`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511365
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499196718
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499423096
+      }
+    ],
+    "5.9 Update `call/importBoundaries.test.ts`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511424
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499020774
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499187817
+      }
+    ],
+    "6. Checkpoint - full verification": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511490
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499450540
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499770743
+      }
+    ],
+    "7.1 Add the `docs/PROJECT_PROGRESS.md` entry (newest first)": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511549
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499775202
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499917150
+      }
+    ],
+    "7.2 Update `ACCESSIBILITY.md` and `docs/architecture/OVERVIEW.md`": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511616
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499776411
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499917284
+      }
+    ],
+    "8.1 Commit the code and tests": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511688
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499776927
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499917500
+      }
+    ],
+    "8.2 Commit the docs and the spec": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511761
+      },
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499922501
+      }
+    ],
+    "8.3 Push without force": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498511829
+      }
+    ],
+    "1. Create the feature branch": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498574448
+      }
+    ],
+    "2. Pure modules: layout, timer, call dialogue view": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498888395
+      }
+    ],
+    "3. Locale keys and the End call style": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794498888572
+      }
+    ],
+    "4. Components and wiring": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499184920
+      }
+    ],
+    "5. Update and add tests": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499423167
+      }
+    ],
+    "7. Documentation": [
+      {
+        "executionId": "c566aa37-689a-4eec-acef-4df3303528ad",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794499917379
+      }
+    ]
+  }
+}

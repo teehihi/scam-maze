@@ -28,6 +28,13 @@
     voice clips (54 en, 54 vi, 0 missing). `pnpm test` (117 files, 1061 tests), `pnpm typecheck`
     and `pnpm build` pass. Not played by a human, not checked in a browser, clip quality and
     MP3 playback not verified. Not complete.
+  - Phone call UI redesign (spec `game-phone-call-ui-redesign`), on branch
+    `feat/game-phone-call-ui-redesign` (from `feat/chapter-01-voice-narrative` @ `f5694a6`, not
+    merged, not pushed yet): code and tests are committed in `a9f1573`, docs and spec in the
+    next commit. The phone screen shows only device content, and the caller line moved to a
+    subtitle overlay outside the phone.
+    `pnpm test` (121 files, 1107 tests), `pnpm typecheck` and `pnpm build` pass. No manual visual
+    check was run.
   - Shared contracts (`packages/shared-types`): pure TypeScript types.
 - **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
 - **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
@@ -36,7 +43,7 @@
 - **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
   ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
-- **Last updated:** 2026-11-12 (Chapter 1 voice and narrative expansion recorded)
+- **Last updated:** 2026-11-12 (phone call UI redesign recorded)
 
 ## Completed
 
@@ -93,6 +100,12 @@ Verified against merged pull requests on GitHub and local workspace builds.
       manual playtest checklist in the task history entry of 2026-11-12 (playtime, listening to
       108 clips, browser MP3 playback, autoplay, screen reader, keyboard-only, offline
       generator run, redistribution terms of the generated audio), option count above target.
+- [ ] Phone call UI redesign (spec `game-phone-call-ui-redesign`, branch
+      `feat/game-phone-call-ui-redesign`). Code and tests are written and pass automated checks
+      (121 files, 1107 tests; typecheck; build). Code is committed in `a9f1573`; docs and spec are
+      committed in the following docs commit. Push pending (task 8.3).
+      Open: manual visual checks at 320, 768 and 1920 px, real-speaker sound check of the Speaker
+      toggle, native-speaker review of the new Vietnamese strings.
 - [ ] Chapter 1 manual browser playthrough: all endings, prop position calibration, play time,
       FPS, keyboard-only and screen-reader checks.
 
@@ -197,6 +210,30 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+
+### 2026-11-12 — Phone call UI redesign (game-phone-call-ui-redesign)
+
+- **Objective:** Make the in-game call screen look like a real phone call screen. The phone shows only device content. The caller line, connecting text and voice notice move outside the phone, so the screen stays clean and readable at small sizes. Choices stay in `PlayerChoiceOverlay`.
+- **Completed work:**
+  - Branch `feat/game-phone-call-ui-redesign`, created from `feat/chapter-01-voice-narrative` @ `f5694a6`.
+  - The phone screen (`PhoneCallScreen`) shows an avatar (`User` icon), status, name, number, an `mm:ss` timer and the buttons Mute, Speaker, Replay and End call. While ringing it shows Decline ("Decline" / "Từ chối") and Accept.
+  - New `CallSubtitleOverlay` outside the phone (`pointer-events: none`, polite live regions) holds the caller line, the connecting text and the voice notice. It is visible when Subtitles is on or when nothing is audible.
+  - Speaker is a per-call override of `phoneVoiceFilter` in `ChapterOnePage.tsx`. It is never saved and resets when the call changes. It applies from the next line or Replay.
+  - New pure modules: `callTimer.ts` (`formatCallDuration`) and `callDialogueView.ts` (`deriveCallDialogueView`, `isSubtitleVisible`). `callLayout.ts` has a new `subtitle` rectangle.
+  - End call style `UI.buttonEndCall` (`#c93c47`, hover `#b3343e`). Locale keys: `hangUp` "End call" / "Kết thúc cuộc gọi", `speaker`, `replayAria`, `subtitle.label`, and Vietnamese `replay` "Nghe lại".
+- **Files created:** in `apps/game/src/features/chapter1/call/`: `callTimer.ts`, `callDialogueView.ts`, `CallSubtitleOverlay.tsx`, `CallSubtitleOverlay.test.tsx`, `callTimer.property.test.ts`, `callSubtitle.property.test.tsx`. The spec folder `.kiro/specs/game-phone-call-ui-redesign/` is also new.
+- **Files renamed (`git mv`):** `PhoneScreenUI.tsx` to `PhoneCallScreen.tsx`, `PhoneScreenUI.test.tsx` to `PhoneCallScreen.test.tsx`, `PhoneScreenUI.controls.test.tsx` to `PhoneCallScreen.controls.test.tsx` (all under `call/`). Git shows these as delete plus add in the commit.
+- **Files modified** (from `git status --short`; paths under `apps/game/src/`): `features/chapter1/ChapterOnePage.tsx`, `features/chapter1/theme.ts`, `features/chapter1/call/callLayout.ts`, `features/chapter1/call/CallPresentation.tsx`, `i18n/locales/en/chapter1/phone.ts`, `i18n/locales/vi/chapter1/phone.ts`. Tests: `features/chapter1/call/callLayout.property.test.ts`, `contrast.test.ts`, `callPresentation.content.property.test.tsx`, `callPresentation.equivalence.property.test.tsx`, `callPresentation.parity.property.test.tsx`, `callPresentation.voiceEquivalence.property.test.tsx`, `callButtons.property.test.tsx`, `PhoneScreenHost.test.tsx` (comment only), `importBoundaries.test.ts`, `ChapterOnePage.call.test.tsx`, `features/chapter1/ChapterOnePage.voice.test.tsx`, `features/chapter1/accessibility.test.tsx`, `features/chapter1/noAuthoredText.test.ts` (file list; strips `motion-safe:` before the word scan). Docs: `docs/PROJECT_PROGRESS.md`, `ACCESSIBILITY.md` and `docs/architecture/OVERVIEW.md` (task 7.2). Git recorded the `PhoneScreenUI` to `PhoneCallScreen` renames as delete plus add, because the content was rewritten. Commits: code and tests in `a9f1573` (`feat(game): redesign the phone call screen with external subtitles`); docs and spec in the docs commit that follows it.
+- **Validation commands executed:** `pnpm test`, `pnpm typecheck`, `pnpm build`, each on its own; `git status --short`.
+- **Build and test results:** `pnpm test` 121 of 121 files and 1107 of 1107 tests passed. The first run had 1 failure in `noAuthoredText` because the class `motion-safe:` matched the "safe" word scan; fixed by stripping `motion-safe:` before the scan. `pnpm typecheck` exit 0. `pnpm build` exit 0 (chunk-size warning only). Not executed: manual visual checks at 320, 768 and 1920 px; a real-speaker sound check; a browser run.
+- **Unresolved issues and known limitations:**
+  - The "Call ended" status is not displayed, because the call overlay closes when the call ends.
+  - Keypad and Hold are omitted.
+  - Speaker applies from the next line or Replay, not to audio already playing.
+  - `PhoneScreenHost.tsx` comments still mention `PhoneScreenUI` (the file is locked by the spec).
+  - The new Vietnamese strings have no native-speaker review.
+- **Deviations from the documented architecture and design:** `PhoneScreenUI` renamed to `PhoneCallScreen`; the caller line, connecting text and voice notice moved from the phone to `CallSubtitleOverlay`; the End call hover color is `#b3343e` instead of the design's `#d9505b`, to reach a 4.5:1 contrast with white text; Decline uses the `incomingCall.decline` string instead of `hangUp`.
+- **Follow-up tasks:** manual visual QA at 320, 768 and 1920 px and a real-speaker check; update the `PhoneScreenHost.tsx` comments; consider the same subtitle treatment for the face-to-face `DialoguePanel` later; push the branch (task 8.3).
 
 ### 2026-11-12 — Music credits and license notice
 
