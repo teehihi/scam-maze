@@ -585,71 +585,71 @@ Honesty rules
 - [x] 21. Checkpoint D - phone UI, follow-up, endings, saves
   - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 22. Commits: phone UI, follow-up and endings, saves
-  - [-] 22.1 Commit the phone call UI
+- [x] 22. Commits: phone UI, follow-up and endings, saves
+  - [x] 22.1 Commit the phone call UI
     - Stage by name the files of tasks 18.1 to 18.13. Commit `feat(game): add voice-call controls, captions and choice gate to the phone UI` with the trailer.
     - _Requirements: 18.2_
-  - [~] 22.2 Commit follow-up call, endings, act label and credits
+  - [x] 22.2 Commit follow-up call, endings, act label and credits
     - Stage by name the files of tasks 19.1 to 19.8. Commit `feat(game): add follow-up call trigger, investigator ending icon, act label and voice credits` with the trailer.
     - _Requirements: 18.2_
-  - [~] 22.3 Commit lenient save restore
+  - [x] 22.3 Commit lenient save restore
     - Stage by name the files of tasks 20.1 to 20.5. Commit `feat(game): restore old saves to the last accepted action with a notice` with the trailer.
     - _Requirements: 18.2_
 
-- [ ] 23. Page integration and new tests
-  - [~] 23.1 Wire everything in `F1/ChapterOnePage.tsx`
+- [x] 23. Page integration and new tests
+  - [x] 23.1 Wire everything in `F1/ChapterOnePage.tsx`
     - Create the voice controller (`useVoicePlayback`, `useCallAudio`, `useCallDuration`), call `voice.unlock()` inside `handleBegin` and `handleAnswerCall`, pass `voice` and settings to `CallPresentation` and the dialogue overlay, wrap the content in `ComfortProvider`, apply the follow-up trigger, show `SaveTrimmedNotice` from the loader result, and keep `pause`/`resume` tied to the pause overlay. Verify `ChapterOneCanvas.tsx` already receives the effective `reducedMotion` and change it only if it does not.
     - Edit only `ChapterOnePage.tsx` (and `ChapterOneCanvas.tsx` only if required, naming it in the final message).
     - _Requirements: 5.5, 11.3, 11.4, 13.5, 16.3_
-  - [~] 23.2 Write `F1/ChapterOnePage.voice.test.tsx`
+  - [x] 23.2 Write `F1/ChapterOnePage.voice.test.tsx`
     - With `fakeAudioPort` injected: pressing Begin and Answer unlock audio; a full run reaches an ending and the debrief with AI off and no microphone; the caption and replay work with sound off; a language switch keeps the state and stops the clip; the trimmed notice appears for a drifted save; the 3D phone UI is used and choices render outside the phone.
     - Create only this file.
     - _Requirements: 17.2, 17.3, 17.4, 16.6_
-  - [~] 23.3 Write Property 7 in the existing equivalence test `F1/call/callPresentation.voiceEquivalence.property.test.tsx`
+  - [x] 23.3 Write Property 7 in the existing equivalence test `F1/call/callPresentation.voiceEquivalence.property.test.tsx`
     - **Property 7: Presentation equivalence**
     - **Validates: Requirements 8.1, 8.4, 8.8**
     - At least 100 seeded cases per call graph, each with `PROPERTY_TIMEOUT_MS = 60_000`. Create this new file next to the existing equivalence tests and leave those untouched.
     - Create only this file.
     - _Requirements: 8.1, 8.4, 8.8, 17.5_
-  - [~] 23.4 Write Property 8 in `NARR/properties/audioIndependence.property.test.ts`
+  - [x] 23.4 Write Property 8 in `NARR/properties/audioIndependence.property.test.ts`
     - **Property 8: The core is independent of audio, locale and settings**
     - **Validates: Requirements 5.8, 5.10, 7.7, 8.5, 12.6, 13.6**
     - Create only this file.
     - _Requirements: 5.8, 5.10, 12.6, 13.6_
-  - [~] 23.5 Add new playthrough runs to `NARR/chapter1/playthroughs.test.ts`
+  - [x] 23.5 Add new playthrough runs to `NARR/chapter1/playthroughs.test.ts`
     - Add four runs: investigator ending (report filed, 8 of 11 evidence items), callback exposed after the official line, follow-up with money moved (risky), follow-up hang-up. Use real option IDs; do not edit the existing four runs.
     - Edit only this file.
     - _Requirements: 14.1, 17.1_
-  - [~] 23.6 Extend `F1/accessibility.test.tsx`
+  - [x] 23.6 Extend `F1/accessibility.test.tsx`
     - Add: keyboard-only flow for answering, muting, replaying, choosing an option and reading the debrief; the new controls have accessible names and visible focus classes; Settings voice controls are labeled.
     - Edit only this file.
     - _Requirements: 11.8, 11.9, 17.4_
-  - [~] 23.7 Write `F1/noAuthoredText.test.ts`
+  - [x] 23.7 Write `F1/noAuthoredText.test.ts`
     - Scan the new and changed components (`PhoneScreenUI.tsx`, `PlayerChoiceOverlay.tsx`, `CallPresentation.tsx`, `DialoguePanel.tsx`, `SaveTrimmedNotice.tsx`, `useVoicePlayback.ts`, `useCallAudio.ts`) and fail on string literals that look like authored dialogue or user-facing sentences outside i18n calls; also fail on emoji and on the word "safe" in UI strings.
     - Create only this file.
     - _Requirements: 16.1, 12.3_
 
-- [ ] 24. Missing-clips report and counts
-  - [~] 24.1 Produce the missing-clips report and the content counts
+- [x] 24. Missing-clips report and counts
+  - [x] 24.1 Produce the missing-clips report and the content counts
     - Run `pnpm --filter @scammaze/game voice:report` and record in the Baseline Record the counts per locale and status and origin, the full list of `missing` clips (clipId, locale, speaker, line text), and the number of voice clips implemented vs missing. Measure node, Spoken_Node, option, evidence, objective, call and ending counts with a temporary script under `apps/game/scripts/tmp-count.mjs` (load the scenario with Vite `ssrLoadModule`), record them, then delete the script. State that playtime is not measured.
     - Edit only this tasks.md file (and create then delete the temporary script).
     - _Requirements: 3.1, 3.5, 4.8, 18.6_
 
-- [ ] 25. Architecture and accessibility documentation
-  - [~] 25.1 Update `docs/architecture/OVERVIEW.md`
+- [x] 25. Architecture and accessibility documentation
+  - [x] 25.1 Update `docs/architecture/OVERVIEW.md`
     - In sections 4.2 and 4.3 describe the voice module, the audio graph, the manifest, the generator and lenient restore with status labels (`IMPLEMENTED` only for what was verified in this feature, `PLANNED` otherwise). In section 9 keep the seeded-generator deviation note. Record the optionsGate extraction. No cost change: no new service was added.
     - Edit only this file.
     - _Requirements: 18.7_
-  - [~] 25.2 Update `ACCESSIBILITY.md`
+  - [x] 25.2 Update `ACCESSIBILITY.md`
     - Document captions, mute, replay, reduced-stress, reduced motion and the keyboard flow, and list what is not verified (screen reader behavior, sound quality).
     - Edit only this file.
     - _Requirements: 11.5, 11.8, 18.7_
 
-- [~] 26. Checkpoint E - final verification
+- [x] 26. Checkpoint E - final verification
   - Run, one after the other, from `d:\scam-maze`: `pnpm test`, then `pnpm typecheck`, then `pnpm build`, and then the two `tsc --noEmit` commands (`tsconfig.app.json`, `tsconfig.test.json`). Record exit status and counts. Run `pnpm --filter @scammaze/game voice:report` once more. Fix failures; do not describe the feature as complete if any command fails. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 27. Progress document
-  - [~] 27.1 Update `docs/PROJECT_PROGRESS.md`
+- [x] 27. Progress document
+  - [x] 27.1 Update `docs/PROJECT_PROGRESS.md`
     - Add one entry (newest first) with the nine mandatory items of AGENTS.md section 6: date and title; objective; completed work (voice clips implemented vs missing per locale, node counts, option count against the 80 to 120 target, evidence, objectives, endings); files created, modified, deleted; validation commands; real baseline and final test, typecheck and build counts from the Baseline Record and checkpoint E; unresolved issues (redistribution terms not verified, one male Vietnamese voice, quality not judged, MP3 playback not verified in browsers, playtime not measured, option count above target, `apartment` scene absent, credits missing for older audio); deviations (MP3 not Opus, `/audio/chapter01/` path, `placeholder-tts` unused, extracted `optionsGate.ts`, seeded generator instead of a property library, Act 1 in the street, lenient restore, Act 1 title "morning"); follow-ups.
     - Inside the same entry add a "Manual playtest checklist" subsection with these unchecked items: play start to end and time it with the ending reached; listen to every English and Vietnamese clip for clarity; confirm MP3 playback in Chrome, Firefox, Safari and on a phone; test autoplay in a fresh browser profile; test the blocked-autoplay notice; test screen reader behavior on the caption and notice lines; confirm keyboard-only play; run the generator once with the network off; owner check of the redistribution terms of the generated audio before any public release.
     - Also record: the update list of existing tests with reasons, the audit results of task 1.2, and the missing-clips report from task 24.1. Mark nothing complete that was not verified. Chapter 1 is not "complete" until a human has played it.
@@ -657,10 +657,10 @@ Honesty rules
     - _Requirements: 1.1, 1.3, 1.4, 13.7, 14.8, 14.9, 17.7, 17.8, 18.5, 18.6_
 
 - [ ] 28. Commits: integration and documentation
-  - [~] 28.1 Commit page integration and new tests
+  - [x] 28.1 Commit page integration and new tests
     - Stage by name the files of tasks 23.1 to 23.7 (plus `ChapterOneCanvas.tsx` only if 23.1 changed it). Commit `feat(game): wire Chapter 1 voice playback into the chapter page and add integration tests` with the trailer.
     - _Requirements: 18.2_
-  - [~] 28.2 Commit documentation
+  - [-] 28.2 Commit documentation
     - Stage by name `docs/architecture/OVERVIEW.md`, `ACCESSIBILITY.md`, `docs/PROJECT_PROGRESS.md` and this `tasks.md` (only if `git ls-files .kiro/specs` shows the specs are tracked). Commit `docs: record Chapter 1 voice narrative results and architecture` with the trailer.
     - _Requirements: 18.2, 18.5_
 
@@ -718,7 +718,14 @@ Filled in by tasks 1.1, 1.2, 5.x, 8.2, 10.1, 10.3, 14.3, 19.6, 24.1 and copied i
   - `pnpm --filter @scammaze/game exec vitest run src/game/content`: 1 file passed, 1 test passed, 0 failed (checks the real manifest against V5 to V7).
   - Not verified: sound quality, intelligibility, browser playback of the MP3 files, and redistribution terms of the generated audio. No human has listened to the clips.
 - Missing-clips report: after task 10.3 no clip is `missing` (0 in en, 0 in vi); task 24.1 still owns the final report.
-- Final content counts: (not recorded yet)
+- Final missing-clips report (task 24.1, `pnpm --filter @scammaze/game voice:report`, exit 0, branch `feat/chapter-01-voice-narrative`): 108 clip entries. By locale: en 54, vi 54. By status: present 108 (missing 0, placeholder-tts 0). By origin: tts-generated 108. By locale and status: en present 54; vi present 54. The `missing` list is empty: no clipId, locale, speaker or line text to list. Voice clips implemented 108 (54 en + 54 vi) vs missing 0. This counts manifest entries only. Sound quality, intelligibility, browser playback of the MP3 files and redistribution terms are not verified. The command printed no Vite port 24678 warning in this run.
+- Final content counts (task 24.1, measured with a temporary script `apps/game/scripts/tmp-count.mjs` that loaded `game/narrative/chapter1/scenario.ts` through Vite `ssrLoadModule`; Spoken_Node = node with speaker `caller` or `npc`, same rule as `isSpokenNode`; options = sum of `node.options` lengths). The script was deleted afterwards; `Test-Path apps/game/scripts/tmp-count.mjs` returned False and `git status --short apps/game/scripts` listed nothing.
+  - Dialogue graphs 5 (baseline 4).
+  - Nodes 64 (baseline 26): scam-call 21, callback 12, shopkeeper 9, official-line 13, followup 9.
+  - Spoken_Nodes 54 (baseline 18): 18, 10, 8, 11, 7 in the same graph order. This equals the 54 clips per locale in the manifest.
+  - Options 138 (baseline 39): 57, 28, 13, 23, 17. Above the target, as already listed among the unresolved issues.
+  - Evidence items 15 (baseline 11). Objectives 8 (baseline 5). Calls 4. Acts 6. Endings 4. For reference: decisions 3, warning signs 10.
+  - Playtime is not measured. No human has played Chapter 1 start to end, and no duration figure is claimed.
 - Deviations: (not recorded yet)
   - 14.3: gate extracted into pure VOICE/optionsGate.ts with elapsed-time fields instead of endedAt, so Property 14 can test it.
 
@@ -768,3 +775,20 @@ Filled in by tasks 1.1, 1.2, 5.x, 8.2, 10.1, 10.3, 14.3, 19.6, 24.1 and copied i
   - `apps/game/src/game/loading/chapterLoader.test.ts`: the case "fails with invalid-save for tampered progress (a rejected action)" was stale by design, because a rejected action now trims the restore (Req. 13.5, `restoreSession` lenient). Replaced by "trims a rejected action and restores the accepted prefix with saveTrimmed", which expects a ready session with `saveTrimmed: true` and the state of the accepted prefix. The damaged-data case stays: a non-finite pose still fails with `invalid-save`, and a new case with 1001 actions (above `SAVE_MAX_ACTIONS`) also fails with `invalid-save`. No other assertion changed.
   - `apps/game/src/game/narrative/chapter1/evidenceCoverage.test.ts` and new `apps/game/src/features/chapter1/world/noNewWorldObjects.test.ts`: `boundaries.test.ts` (unchanged, boundary is correct) rejected the imports of `chapterRegistry` and `propLayout` inside `game/narrative`. The four G14 "no new interactable or 3D object" tests moved with identical assertions to the new file outside `game/narrative`. The pure narrative checks stay in `evidenceCoverage.test.ts` with no outside imports.
 - `useCallTriggers.test.ts`: callback-once test now counts callback rings because the follow-up call rings after the callback by design. The `call.current === null` expectation was removed; the existing `ringCount(store, "call.callback")` equals 1 assertions stay (owner-approved, task 19.1).
+
+
+### Task 23.1 test update (owner approved)
+
+- File: `apps/game/src/features/chapter1/call/ChapterOnePage.call.test.tsx`, test "wraps Tab and Shift+Tab inside the call dialog".
+- Reason: the active call screen now has the designed voice controls (Mute, Replay) before Hang up (`PhoneScreenUI.tsx`). The old expectation `[hang-up, ...options]` was stale.
+- New expectation: tab order is Mute, Replay (only when enabled; a disabled button is not tabbable), Hang up, then the options. The wrap checks (Tab from the last option to the first call control, Shift+Tab back to the last option) are kept.
+- Result: `pnpm --filter @scammaze/game exec vitest run src/features/chapter1 src/app` gave 39 files passed, 339 tests passed, 0 failed.
+
+- Checkpoint E (task 26), all run sequentially from `d:\scam-maze`; no failures, so no code was changed:
+  - `pnpm test` exit 0: 117 test files passed, 1061 tests passed, 0 failed, 0 skipped (no skipped count in the output), 73.24 s.
+  - `pnpm typecheck` exit 0.
+  - `pnpm build` exit 0. Game main JS chunk `dist/assets/index-ByzuU0UT.js` 2,041.10 kB (gzip 568.31 kB); baseline 1,894.05 kB (+147.05 kB), Checkpoint D 1,971.73 kB (+69.37 kB). Landing JS `index-DW2A16ld.js` 300.55 kB (gzip 92.95 kB), unchanged. The existing "chunks larger than 1500 kB" warning was not checked again.
+  - `pnpm --filter @scammaze/game exec tsc --noEmit -p tsconfig.app.json` exit 0; `-p tsconfig.test.json` exit 0.
+  - Dist audio: `dist/audio/chapter01/en` 54 files, 2,764,098 bytes; `.../vi` 54 files, 2,968,002 bytes; chapter01 total 108 files, 5,732,100 bytes (about 5.47 MiB). Older audio in `dist/assets/audio` 10 files, 8,123,512 bytes; `dist/reality` 1 file, 6,247,012 bytes.
+  - `pnpm --filter @scammaze/game voice:report` exit 0: 108 clip entries; by locale en 54, vi 54; by status present 108 (missing 0); by origin tts-generated 108.
+  - Not verified: sound quality, MP3 playback in browsers, playtime (manual playtest checklist in task 27.1). The full list of tests and commands passing does not make Chapter 1 complete; a human has not played it. Temp logs deleted. Not committed.

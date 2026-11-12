@@ -22,6 +22,12 @@
   - Chapter 1 calls on a 3D phone with a separate choice overlay, on branch
     `feat/game-3d-phone-call-ui` (built on `feat/game-i18n-en-vi`, not merged). `pnpm test`
     (80 files, 747 tests), `pnpm typecheck` and `pnpm build` pass. Not yet checked in a browser.
+  - Chapter 1 voice and narrative expansion (spec `chapter-01-voice-narrative`), on branch
+    `feat/chapter-01-voice-narrative` (built on the phone branch, not merged): 5 dialogue graphs,
+    64 nodes, 138 options, 15 evidence items, 8 objectives, 6 acts, 4 endings, and 108 generated
+    voice clips (54 en, 54 vi, 0 missing). `pnpm test` (117 files, 1061 tests), `pnpm typecheck`
+    and `pnpm build` pass. Not played by a human, not checked in a browser, clip quality and
+    MP3 playback not verified. Not complete.
   - Shared contracts (`packages/shared-types`): pure TypeScript types.
 - **Current milestone:** Phase B — 3D Vertical Slice & Narrative Foundation.
 - **Architecture status:** pnpm monorepo structure `IMPLEMENTED`. 3D rendering pipeline `IMPLEMENTED`.
@@ -30,7 +36,7 @@
 - **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
   ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
-- **Last updated:** 2026-11-12
+- **Last updated:** 2026-11-12 (Chapter 1 voice and narrative expansion recorded)
 
 ## Completed
 
@@ -81,6 +87,12 @@ Verified against merged pull requests on GitHub and local workspace builds.
 - [ ] Chapter 1 "The Urgent Call" documentation commit (spec task 16.5). Gameplay document,
       architecture overview update and the quality gate record (task 16.4: 48 files, 392 tests,
       typecheck and build passed) are done but not committed.
+- [ ] Chapter 1 voice and narrative expansion (spec `chapter-01-voice-narrative`, branch
+      `feat/chapter-01-voice-narrative`). Automated checks pass (117 files, 1061 tests;
+      typecheck; build). Documentation commit and push pending (tasks 28.2 and 29.1). Open: the
+      manual playtest checklist in the task history entry of 2026-11-12 (playtime, listening to
+      108 clips, browser MP3 playback, autoplay, screen reader, keyboard-only, offline
+      generator run, redistribution terms of the generated audio), option count above target.
 - [ ] Chapter 1 manual browser playthrough: all endings, prop position calibration, play time,
       FPS, keyboard-only and screen-reader checks.
 
@@ -178,8 +190,98 @@ Resolved:
   1,500 kB Vite warning limit.
 - The game localization (branch `feat/game-i18n-en-vi`) has not been checked in a browser or
   with a screen reader, and its Vietnamese text has not had a native-speaker review.
+- Chapter 1 voice clips (branch `feat/chapter-01-voice-narrative`): sound quality, browser MP3
+  playback and the redistribution terms of the generated audio are not verified; Vietnamese has
+  one male voice; the option count (138) is above the 80 to 120 target; the `apartment` scene
+  is absent; the game JS chunk is 2,041.10 kB. Two accessibility gaps (2D fallback wobble and
+  the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+
+### 2026-11-12 — Chapter 1 voice and narrative expansion (spec `chapter-01-voice-narrative`, task 27.1)
+
+- **Objective:** Expand Chapter 1 "The Urgent Call" from 4 to 5 dialogue graphs with acts, a follow-up call and an investigator ending, and add generated English and Vietnamese voice clips with captions, voice controls and comfort settings. The deterministic core stays the owner of state, evidence, decisions and outcomes; voice, captions and sound never change them.
+- **Completed work** (all verified by automated checks only; no human has played Chapter 1):
+  - Content counts (task 24.1, measured with a temporary script that was deleted): 5 dialogue graphs (baseline 4); 64 nodes (baseline 26; scam-call 21, callback 12, shopkeeper 9, official-line 13, followup 9); 54 Spoken_Nodes (baseline 18); 138 options (baseline 39); 15 evidence items (baseline 11); 8 objectives (baseline 5); 4 calls; 6 acts; 4 endings; 3 decisions; 10 warning signs. Option count 138 is above the 80 to 120 target.
+  - Voice clips: 108 implemented (54 en, 54 vi), 0 missing, 0 `placeholder-tts`. All 108 manifest entries have origin `tts-generated`, are `present`, and each has an existing non-empty MP3 whose size equals the manifest `bytes`. en 2,764,098 bytes, vi 2,968,002 bytes, 5,732,100 bytes in total (about 5.47 MiB). The 54 clips per locale equal the 54 Spoken_Nodes.
+  - Generator probe (task 10.1): the voices Microsoft David, Mark, Zira (en-US) and An (vi-VN) are installed; the dry run listed 108 jobs (en 54, vi 54). Voice assignment: caller David (en) and An (vi); shopkeeper Mark and An at pitch 0.9; Northgate agent Zira and An at pitch 1.2; case officer Mark at pitch 0.9 and An at pitch 0.8.
+  - Reachability solver (task 8.2/8.4): 59,718 states explored, not truncated (budget 100,000). Outcomes reached: investigator, risky, uncertain, verified. No unreachable node or option, 0 soft locks, available options per state max 4 and min 1.
+  - Voice playback, captions, voice controls (Mute, Replay), comfort settings (reduced-stress, caption size and others) and a voice credits entry were added and wired into the chapter page. The pure choice gate is in `VOICE/optionsGate.ts`.
+- **Files created, modified and deleted:** Many files across `apps/game/src/game/narrative/**`, `apps/game/src/i18n/narrative/chapter1.vi/**`, `apps/game/src/game/voice/**`, `apps/game/src/features/chapter1/**`, `apps/game/src/game/content/**`, `apps/game/scripts/` (voice generator and report), `apps/game/public/audio/chapter01/{en,vi}/` (108 MP3 files), `packages/shared-types/src/index.ts` (new settings), `apps/game/src/config/credits.ts` and the credits tests. The full list is in the git history of branch `feat/chapter-01-voice-narrative`; the code commits are made by another task. This task created or modified only `docs/PROJECT_PROGRESS.md`. The temporary script `apps/game/scripts/tmp-count.mjs` was created and deleted (`git status` shows nothing for it). `apps/game/.voice-cache/` is git-ignored and has 0 tracked files.
+- **Validation commands executed:** `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm --filter @scammaze/game voice:script`, `pnpm --filter @scammaze/game voice:chapter1 -- --dry-run`, `pnpm --filter @scammaze/game voice:report`, `pnpm --filter @scammaze/game exec vitest run src/game/content`, and `pnpm --filter @scammaze/game exec tsc --noEmit -p tsconfig.app.json` and `-p tsconfig.test.json`.
+- **Build and test results:**
+
+  | Point | Test files | Tests | Typecheck | Build | Game main JS |
+  |---|---|---|---|---|---|
+  | Baseline (tip `f185ccf`) | 82 | 756 | pass | pass | 1,894.05 kB (gzip 538.88 kB) |
+  | Checkpoint A | 82 | 761 | pass | pass | 1,956.83 kB |
+  | Checkpoint B | 95 | 846 | pass | pass | 1,957.05 kB |
+  | Checkpoint C | 104 | 903 | pass | pass | not recorded |
+  | Checkpoint D | 113 | 1029 | pass | pass | 1,971.73 kB |
+  | Checkpoint E (final) | 117 | 1061 | pass | pass | 2,041.10 kB (gzip 568.31 kB) |
+
+  At Checkpoint E: 0 failed, 0 skipped reported, 73.24 s; landing JS unchanged at 300.55 kB. Game JS grew by 147.05 kB over the baseline (7.8 percent). Vite still prints the existing "chunks larger than 1500 kB" warning (not rechecked at Checkpoint E). Intermediate failures were fixed in test files or tests only: Checkpoint A (1 stale test), B (8 type errors in test files), C (1 failing test and type errors in test files). No production-code bug was found at checkpoints B to E. The full `pnpm test` was not rerun after the type-only test fixes at Checkpoint B (it was rerun at C, D and E).
+- **Existing test updates and reasons** (no assertion removed or weakened):
+  - `game/narrative/dialogueEngine.test.ts`: the Sam greeting options now include `opt.sam.greet.chat` (task 3.9 small-talk option); still an exact `toEqual`.
+  - `NARR/chapter1/playthroughs.test.ts`, `objectives` and the `ScenarioDefinition` fixture literals in other tests: updated for the new objectives, `acts: []` and persona `speakerId` (tasks 5.1 to 5.5).
+  - `game/narrative/chapter1/content.test.ts` and `i18n/narrative.test.ts`: lint walkers extended with `speakerId`, `objectiveId` and `objectives` (tasks 5.3, 5.4).
+  - Type-only fixes at Checkpoint B: `content/validateChapterContent.faults.property.test.ts`, `narrative/conditions.test.ts`, `narrative/validateScenario.test.ts`.
+  - Checkpoint C: `game/voice/webAudioEngine.test.ts` (typed fake compressor), `features/chapter1/comfort/comfort.property.test.ts` (`children` prop), `app/App.i18n.test.tsx` (stored settings fixture spreads `DEFAULT_SETTINGS`, because saving now writes the six new settings).
+  - `game/loading/chapterLoader.test.ts`: the case "fails with invalid-save for tampered progress" was replaced by a case that trims a rejected action and restores the accepted prefix with `saveTrimmed: true` (lenient restore, Req. 13.5). Damaged data (non-finite pose, 1001 actions) still fails with `invalid-save`.
+  - `game/narrative/chapter1/evidenceCoverage.test.ts`: the four "no new interactable or 3D object" tests moved with identical assertions to the new `features/chapter1/world/noNewWorldObjects.test.ts`, because `boundaries.test.ts` (unchanged) forbids those imports inside `game/narrative`.
+  - `features/chapter1/call/useCallTriggers.test.ts`: callback-once test counts callback rings, because the follow-up call rings after the callback by design; the `call.current === null` expectation was removed.
+  - `config/credits.callPhone.test.ts` and `features/menu/CreditsModal.test.tsx`: new credit IDs, en and vi parity kept (task 19.8).
+  - `features/chapter1/call/ChapterOnePage.call.test.tsx` ("wraps Tab and Shift+Tab inside the call dialog"): tab order is now Mute, Replay (when enabled), Hang up, then the options, because the active call screen has the new voice controls.
+- **Audit results of task 1.2** (read-only; every design.md "Audit findings" row was confirmed; no contradiction changed behavior):
+  - Branch base: the branch already existed with tip `f185ccf`, not the `8c93d27` written in task 1.1.
+  - Caller line: one `aria-live="polite"` `aria-atomic` region in `PhoneScreenUI.tsx` with the speaker name and text; no duration, mute, replay or caption-size props; only the OS reduced-motion query is used.
+  - Stored settings are merged with defaults (`{ ...DEFAULT_SETTINGS, ...parsed }`); only `language` is validated. Correction: the `GameSettings` type lives in `packages/shared-types/src/index.ts`, so the new settings needed an edit there.
+  - `playthroughs.test.ts` hard-codes four runs (verified, risky, risky-locked, uncertain), their option IDs, event indices (`events[9]`, `events[7]`, `events[2]`, `events[5]`) and exact objective timelines.
+  - `WARNING_SIGN_IDS` is in `game/narrative/chapter1/ids.ts`; definitions are in `evidence.ts`; the Vietnamese warning sign text is in `OVL/core.ts`, not the overlay `evidence.ts` (correction for task 4.5). `startNodeWhen` is typed in `game/narrative/types.ts`, evaluated in `dialogueEngine.ts`, validated in `validateScenario.ts`, and was used only by the shopkeeper before this feature.
+  - Baseline counts re-confirmed: 4 graphs, 26 nodes, 18 Spoken_Nodes, 39 options, 11 evidence items, 5 objectives.
+- **Missing-clips report (task 24.1, `voice:report`, exit 0):** 108 clip entries; by locale en 54, vi 54; by status present 108 (missing 0, placeholder-tts 0); by origin tts-generated 108. The `missing` list is empty, so there is no clip ID, locale, speaker or line text to list. Implemented 108 vs missing 0. This counts manifest entries only.
+- **Unresolved issues and known limitations:**
+  - Redistribution terms of the generated Microsoft voice audio are not verified.
+  - There is one male Vietnamese voice (Microsoft An); the Vietnamese speakers are told apart by pitch only.
+  - Sound quality and intelligibility were not judged; no human has listened to the clips.
+  - MP3 playback in real browsers (and autoplay rules) is not verified.
+  - Playtime is not measured; no duration figure is claimed.
+  - The option count (138) is above the 80 to 120 target.
+  - The `apartment` scene is absent from the 3D world (`sceneIds: ["apartment", "street"]`, `startSceneId: "street"`); Act 1 is played in the street.
+  - Credits are missing for the older audio in `apps/game/public/assets/audio/` and `public/reality/` (gap G16, not part of this feature).
+  - Known accessibility gaps recorded in `ACCESSIBILITY.md`: on the 2D fallback phone screen the ringing icon wobble follows only the operating system "reduce motion" setting, not the in-game "Reduce motion" setting; the reduced-stress Settings text mentions "no ring vibration", but the code that turns off the 3D ring vibration is controlled by "Reduce motion", not by reduced-stress mode.
+  - Locale copy found by Property 8: `call.log[].displayName` is a display copy of the caller name taken from the scenario when the call record is created. `selectCallLog` re-resolves it by call ID from the active (localized) scenario, so it is the one display-only field excluded from the locale-independence comparison (`i18n/localeIndependence.property.test.ts`) and the audio-independence comparison (`game/narrative/properties/audioIndependence.property.test.ts`). The stored copy can differ between locales; the shown value follows the active locale.
+  - Vite prints the existing "chunks larger than 1500 kB" warning; the game JS chunk is now 2,041.10 kB. The dry run printed a harmless Vite "WebSocket server error: Port 24678 is already in use" line once.
+  - The Vietnamese text and captions have no native-speaker review. Test count rose from 756 to 761 at Checkpoint A without the cause being investigated.
+- **Deviations from the documented architecture and plan:**
+  - Clips are MP3, not Opus, and are served from `/audio/chapter01/` (`apps/game/public/audio/chapter01/{en,vi}/`).
+  - The `placeholder-tts` status exists but is unused: all 108 clips are `tts-generated`.
+  - The choice gate is extracted into the pure `VOICE/optionsGate.ts` with elapsed-time fields instead of `endedAt`, so Property 14 can test it (task 14.3).
+  - Property tests use a seeded generator (at least 100 cases) instead of a property library such as fast-check.
+  - Act 1 takes place in the street, because the `apartment` scene is absent.
+  - Lenient restore: a rejected action in a saved game trims the replay to the accepted prefix and shows a notice, instead of failing with `invalid-save`.
+  - Act 1 title uses the word "morning" (owner decision).
+  - The branch base was `f185ccf`, not `8c93d27`.
+- **Follow-up tasks:**
+  - Complete the manual playtest checklist below, then update this entry.
+  - Native-speaker review of the Vietnamese narrative, captions and voice script; consider a second Vietnamese voice.
+  - Reduce the option count toward 80 to 120 or record an owner decision to keep 138.
+  - Fix the two `ACCESSIBILITY.md` gaps (2D fallback wobble should follow the in-game reduced-motion setting; correct the reduced-stress hint text or make it control ring vibration).
+  - Add the `apartment` scene, or revise the Act 1 location.
+  - Add credits for the older audio (gap G16).
+  - Code-split the chapter page to reduce the game JS chunk.
+  - Commit and push (tasks 28.2 and 29.1); the owner or another person merges.
+- **Manual playtest checklist (all unchecked, none done):**
+  - [ ] Play start to end and time it, with an ending reached.
+  - [ ] Listen to every English and Vietnamese clip for clarity (108 clips).
+  - [ ] Confirm MP3 playback in Chrome, Firefox, Safari and on a phone.
+  - [ ] Test autoplay in a fresh browser profile.
+  - [ ] Test the blocked-autoplay notice.
+  - [ ] Test screen reader behavior on the caption and notice lines.
+  - [ ] Confirm keyboard-only play.
+  - [ ] Run the voice generator once with the network off.
+  - [ ] Owner check of the redistribution terms of the generated audio before any public release.
+- **Status:** Chapter 1 is not marked complete. Automated checks pass, but no human has played it.
 
 ### 2026-11-12 — Drivable Lexus on the UEH map, louder vehicle audio, H toggles UEH panels
 

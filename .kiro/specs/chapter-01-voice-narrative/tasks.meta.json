@@ -2656,6 +2656,11 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794493076665
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493169836
       }
     ],
     "22.2 Commit follow-up call, endings, act label and credits": [
@@ -2668,6 +2673,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476619308
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493171417
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493172609
       }
     ],
     "22.3 Commit lenient save restore": [
@@ -2680,6 +2695,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476619418
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493170613
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493173264
       }
     ],
     "23.1 Wire everything in `F1/ChapterOnePage.tsx`": [
@@ -2692,6 +2717,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476619532
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493201783
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493535375
       }
     ],
     "23.2 Write `F1/ChapterOnePage.voice.test.tsx`": [
@@ -2704,6 +2739,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476619636
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493806301
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494086003
       }
     ],
     "23.3 Write Property 7 in the existing equivalence test `F1/call/callPresentation.voiceEquivalence.property.test.tsx`": [
@@ -2716,6 +2761,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476619790
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493204975
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493454971
       }
     ],
     "23.4 Write Property 8 in `NARR/properties/audioIndependence.property.test.ts`": [
@@ -2728,6 +2783,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476619893
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493203781
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493455280
       }
     ],
     "23.5 Add new playthrough runs to `NARR/chapter1/playthroughs.test.ts`": [
@@ -2740,6 +2805,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620012
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493202645
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493454596
       }
     ],
     "23.6 Extend `F1/accessibility.test.tsx`": [
@@ -2752,6 +2827,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620123
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493804434
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494085441
       }
     ],
     "23.7 Write `F1/noAuthoredText.test.ts`": [
@@ -2764,6 +2849,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620227
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493205762
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493454807
       }
     ],
     "24.1 Produce the missing-clips report and the content counts": [
@@ -2776,6 +2871,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620329
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493805256
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494085730
       }
     ],
     "25.1 Update `docs/architecture/OVERVIEW.md`": [
@@ -2788,6 +2893,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620440
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493545549
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493791707
       }
     ],
     "25.2 Update `ACCESSIBILITY.md`": [
@@ -2800,6 +2915,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620551
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493545323
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493791916
       }
     ],
     "26. Checkpoint E - final verification": [
@@ -2812,6 +2937,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620671
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494093804
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494330909
       }
     ],
     "27.1 Update `docs/PROJECT_PROGRESS.md`": [
@@ -2824,6 +2959,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476620977
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494331262
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494428382
       }
     ],
     "28.1 Commit page integration and new tests": [
@@ -2836,6 +2981,16 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476621074
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494331443
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494430085
       }
     ],
     "28.2 Commit documentation": [
@@ -2848,6 +3003,11 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794476621185
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494429168
       }
     ],
     "29.1 Push the branch without force": [
@@ -2979,6 +3139,41 @@
         "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794492850925
+      }
+    ],
+    "22. Commits: phone UI, follow-up and endings, saves": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493173390
+      }
+    ],
+    "25. Architecture and accessibility documentation": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794493792008
+      }
+    ],
+    "24. Missing-clips report and counts": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494085818
+      }
+    ],
+    "23. Page integration and new tests": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494086178
+      }
+    ],
+    "27. Progress document": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794494428515
       }
     ]
   }
