@@ -198,6 +198,40 @@ Resolved:
 
 ## Task History
 
+### 2026-11-12 — Music credits and license notice
+
+- **Objective:** Record the authorship and usage terms of the two UEH songs.
+- **Completed work:** Owner statement (2026-11-12): both songs ("Mùa Hạ Thứ 18", "Nếu ngày mai") are works of Lê Quốc Khánh (Men Le), a SCAMMAZE contributor, used with his permission. Added a "Music" group to the in-game credits (`config/credits.ts`, en/vi strings), a "Music" section to `THIRD_PARTY_NOTICES.md` (music not covered by the MIT License, all rights reserved), a "License" section to `README.md`, and updated the `tracks.ts` note. Removed the stale Ho Chi Minh City entry from `THIRD_PARTY_NOTICES.md` (the map was removed earlier). The credits "View source" label is no longer Sketchfab-specific; the credits test now allows items without a public link.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 65 files, 607/607 passed.
+- **Unresolved issues and known limitations:** The permission is recorded from the owner's statement; no written permission is stored in the repository. "Nếu ngày mai" is performed with Hồ Đá Chà Gươm and published on Spotify; if the band or a distributor co-owns the recording, their consent is also needed, and YouTube Content ID may still claim a demo video that includes it.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Keep a short written confirmation from the author (and co-owners of "Nếu ngày mai" if any).
+
+### 2026-11-12 — UEH: rain animation fix and sitting on benches
+
+- **Objective:** The UEH rain hung still in the air; let the player sit on benches with E.
+- **Completed work:**
+  - Root cause: `useWorldUniforms()` in `features/ueh/kit.tsx` writes the shared shader clock `WU.uTime` (and the music uniforms) every frame, but it was never called, so `uTime` stayed 0 and rain streaks, splashes, roof drips and other `uTime`-driven shaders were frozen. `UEHWorld` now calls it, and it also calls `music.stepAudio()` (also never called before), so the audio-reactive uniforms follow the playing song.
+  - Seating: `features/player/seating.ts` (pure helpers, 5 unit tests) and a seating layer in `FirstPersonPlayer` (new `seats` prop): E within 1.3 m sits down (0.35 s ease, arms hidden, head look limited to ±100° yaw), E stands up in front of the seat. The car takes priority over seats. `features/ueh/seats.ts` lists 14 seats computed from the `worlds/UEH.tsx` geometry: 3 stone benches around the central tree (2 seats each; the guitar bench is excluded so E there still strums) and the 2 Student Corner picnic tables (4 benches × 2 seats).
+  - Owner play-test follow-up: standing up now eases over 0.4 s to a level standing pose before control returns (it used to snap). Picnic seats (no backrest) stand up behind the bench (`standUp: "back"`) instead of in front, which put the player inside the table; a test checks the stand-up point is clear of the table and bench.
+  - Furniture collision: `FirstPersonPlayer` gained an `obstacles` prop (oriented boxes resolved in the adapter's `resolveMovement`, together with the car body). `UEH_FURNITURE_COLLIDERS` in `features/ueh/seats.ts` covers the 4 stone benches (guitar bench included) and the 2 picnic tables with their benches. Tests check every seat lies inside its furniture box and every stand-up point lies outside all boxes. The car still drives through furniture.
+  - HUD: "[E] Sit down" / "[E] Stand up" prompts; `ueh.seat.*` strings and the controls line "Interact (Guitar / Sit)" in en and vi.
+- **Files:** `features/ueh/kit.tsx`, `features/ueh/worlds/UEH.tsx`, `features/ueh/seats.ts` (new), `features/ueh/UEHCanvas.tsx`, `features/ueh/UEHOverlay.tsx`, `features/player/seating.ts` (new), `features/player/seating.test.ts` (new), `features/player/FirstPersonPlayer.tsx`, `features/player/types.ts`, `i18n/locales/{en,vi}/worlds/ueh.ts`.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 65 files, 607/607 passed; `pnpm build` passed. Not play-tested in a browser by the agent.
+- **Unresolved issues and known limitations:** Seat positions duplicate the bench constants in `worlds/UEH.tsx`; keep both in sync if the furniture moves. Library study tables have no benches and are not sittable. Enabling `useWorldUniforms` also animates the other `uTime`/music-driven UEH shaders as originally designed; check the scene still looks as intended.
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Owner play-test of rain and sitting.
+
+### 2026-11-12 — UEH: real audio for "Mùa Hạ Thứ 18"
+
+- **Objective:** Play the owner-supplied recording when the guitar switches to "Mùa Hạ Thứ 18", without shipping a 50 MB WAV.
+- **Completed work:** Encoded `muaha18.wav` (PCM 16-bit, 284.6 s, 50.2 MB) to `public/reality/mua-ha-thu-18.mp3` (LAME V2, ≈172 kbps, 6.1 MB, same duration; same quality level as `neu-ngay-mai.mp3`) and removed the WAV. `features/ueh/music.ts` now plays each track's `audioSrc` from `tracks.ts` through one element per track, created on first play (a song is only downloaded when it is switched to), with a shared gain/analyser so the audio-reactive visuals follow both songs. Before, only "Nếu ngày mai" had real audio.
+- **Files:** `apps/game/public/reality/mua-ha-thu-18.mp3` (new), `apps/game/src/features/ueh/music.ts`, `apps/game/src/features/ueh/tracks.ts`, `docs/PROJECT_PROGRESS.md`.
+- **Validation:** `pnpm typecheck` clean; `pnpm test` 64 files, 602/602 passed; `pnpm build` passed. Not listened to in a browser by the agent.
+- **Unresolved issues and known limitations:** `tracks.ts` records rehost rights for both songs as `not_granted` in the portfolio data; the owner must confirm usage rights before public deployment or submission (rules require permission for music).
+- **Deviations from the documented architecture:** None.
+- **Follow-up tasks:** Owner listening test; confirm music rights.
+
 ### 2026-11-12 — Chapter 1 voice and narrative expansion (spec `chapter-01-voice-narrative`, task 27.1)
 
 - **Objective:** Expand Chapter 1 "The Urgent Call" from 4 to 5 dialogue graphs with acts, a follow-up call and an investigator ending, and add generated English and Vietnamese voice clips with captions, voice controls and comfort settings. The deterministic core stays the owner of state, evidence, decisions and outcomes; voice, captions and sound never change them.

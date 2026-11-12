@@ -2,7 +2,9 @@
 //
 // NGUỒN SỰ THẬT: tên bài + vai trò lấy từ nhánh portfolio/data-intake
 // (portfolio-data/SHOWTIME_SITE_CONTENT_V1.json). Ở đó quyền rehost audio/video của cả hai bài
-// đang là "not_granted", vì vậy KHÔNG có file thật nào được đóng gói trong build này.
+// đang là "not_granted". Cập nhật 2026-11-12: cả hai bài là tác phẩm của Lê Quốc Khánh (Men Le),
+// contributor của dự án, và được dùng trong SCAMMAZE với sự cho phép của tác giả (owner xác nhận).
+// Nhạc không thuộc giấy phép MIT; xem THIRD_PARTY_NOTICES.md và config/credits.ts.
 //
 // ĐỂ GẮN TÁC PHẨM THẬT (không cần sửa code khác):
 //   1. Đặt file vào  public/reality/  (ví dụ  public/reality/mua-ha-thu-18.mp3, .mp4)
@@ -37,8 +39,9 @@ export const TRACKS: Record<TrackId, TrackDef> = {
     world: 'ueh',
     worldName: 'UEH · Cơn Mưa Mùa Hạ',
     accent: '#8fc8ff',
-    highlight: { start: 0, dur: 66 },
-    audioSrc: undefined,
+    highlight: { start: 0, dur: 285 },
+    // Owner-supplied file (2026-11-12), encoded from WAV to MP3 VBR ~172 kbps (50 MB -> 6.1 MB).
+    audioSrc: '/reality/mua-ha-thu-18.mp3',
     videoSrc: undefined,
     links: [{ label: 'Xem reel gốc', url: 'https://www.facebook.com/reel/848691413758411' }],
   },

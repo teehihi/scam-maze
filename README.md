@@ -126,3 +126,10 @@ scam-maze/
 Detailed licensing and provenance are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md):
 - **Low Poly City Asset Pack:** By Calipo (Sketchfab, CC-BY 4.0).
 - **Low Poly Cars Pack:** By matisosanimation (Sketchfab, CC-BY 4.0).
+
+## License
+
+The source code is released under the [MIT License](LICENSE). Third-party assets keep their own
+licenses, listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The music in
+`apps/game/public/reality/` is by Lê Quốc Khánh (Men Le), all rights reserved, and is not covered
+by the MIT License.

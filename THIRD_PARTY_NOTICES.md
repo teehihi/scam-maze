@@ -6,16 +6,6 @@ This document records the third-party assets, 3D models, fonts, and external cre
 
 ## 1. 3D World & Environment Models
 
-### Ho Chi Minh City 2025 - Thành Phố Hồ Chí Minh
-- **Title:** Ho Chi Minh City 2025 - Thành Phố Hồ Chí Minh
-- **Creator / Author:** Saigon 3D City ([https://sketchfab.com/saigon3dcity](https://sketchfab.com/saigon3dcity))
-- **Source URL:** [https://sketchfab.com/3d-models/ho-chi-minh-city-2025-thanh-pho-ho-chi-minh-10e6d7c014a141b4a4adec54729d0968](https://sketchfab.com/3d-models/ho-chi-minh-city-2025-thanh-pho-ho-chi-minh-10e6d7c014a141b4a4adec54729d0968)
-- **License:** Creative Commons Attribution 4.0 International ([CC-BY 4.0](http://creativecommons.org/licenses/by/4.0/))
-- **Production Asset Path:** `apps/game/public/assets/3d/environments/hochiminh.glb`
-- **File Format & Size:** Binary glTF (`.glb`), 19.6 MB (53 meshes, 493,715 vertices).
-- **Optimization / Changes:** Geometry centered at origin. Dynamic procedural vertex coloring engine applied for architectural height, surface normals, Saigon river water surface, low-rise terracotta roofs, colonial ochre facades, and high-rise curtain glass with multi-theme rendering (Daylight, Cyberpunk, Sunset, Tech Blueprint).
-- **Used In:** Dedicated 3D map explorer route (`/hochiminh`).
-
 ### Sky Dome
 - **Title:** Sky
 - **Source File:** `Kiroween/Asset3D/sky.glb`
@@ -63,7 +53,21 @@ This document records the third-party assets, 3D models, fonts, and external cre
 
 ---
 
-## 3. Typography & Fonts
+## 3. Music
+
+Both songs are works of **Lê Quốc Khánh (Men Le)**, a SCAMMAZE contributor, and are used in the
+game with his permission. They are **not** covered by the repository's MIT License: all rights
+remain with the author. Do not reuse, redistribute or re-upload them outside SCAMMAZE without the
+author's permission.
+
+| Title | Author | Production asset | Notes |
+|---|---|---|---|
+| **Mùa Hạ Thứ 18** | Lê Quốc Khánh (Men Le) | `apps/game/public/reality/mua-ha-thu-18.mp3` (MP3 VBR ~172 kbps, 6.1 MB, encoded from the author's WAV) | UEH courtyard, summer rain theme |
+| **Nếu ngày mai** | Lê Quốc Khánh (Men Le), performed with Hồ Đá Chà Gươm | `apps/game/public/reality/neu-ngay-mai.mp3` | UEH courtyard, flame tree blossom theme. Published on [Spotify](https://open.spotify.com/track/2AkPSNohBGtrZMGeTtwV12) |
+
+---
+
+## 4. Typography & Fonts
 
 | Font Family | Author / Foundry | License | Distribution |
 |---|---|---|---|
@@ -76,7 +80,7 @@ This document records the third-party assets, 3D models, fonts, and external cre
 
 ---
 
-## 4. UI Icons & Software Libraries
+## 5. UI Icons & Software Libraries
 
 | Library | License | Usage |
 |---|---|---|
