@@ -656,16 +656,16 @@ Honesty rules
     - Edit only `docs/PROJECT_PROGRESS.md`.
     - _Requirements: 1.1, 1.3, 1.4, 13.7, 14.8, 14.9, 17.7, 17.8, 18.5, 18.6_
 
-- [ ] 28. Commits: integration and documentation
+- [x] 28. Commits: integration and documentation
   - [x] 28.1 Commit page integration and new tests
     - Stage by name the files of tasks 23.1 to 23.7 (plus `ChapterOneCanvas.tsx` only if 23.1 changed it). Commit `feat(game): wire Chapter 1 voice playback into the chapter page and add integration tests` with the trailer.
     - _Requirements: 18.2_
-  - [-] 28.2 Commit documentation
+  - [x] 28.2 Commit documentation
     - Stage by name `docs/architecture/OVERVIEW.md`, `ACCESSIBILITY.md`, `docs/PROJECT_PROGRESS.md` and this `tasks.md` (only if `git ls-files .kiro/specs` shows the specs are tracked). Commit `docs: record Chapter 1 voice narrative results and architecture` with the trailer.
     - _Requirements: 18.2, 18.5_
 
-- [ ] 29. Push
-  - [~] 29.1 Push the branch without force
+- [x] 29. Push
+  - [x] 29.1 Push the branch without force
     - Run `git branch --show-current` (must be `feat/chapter-01-voice-narrative`), `git status --short` (nothing of this feature left unstaged) and `git log --oneline -15`. Then `git push -u origin feat/chapter-01-voice-narrative`. No force option, no merge, no pull request merge, no push to `main`. Report the pushed commit list. The owner or another person merges.
     - _Requirements: 18.3_
 
