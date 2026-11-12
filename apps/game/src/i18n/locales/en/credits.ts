@@ -38,6 +38,9 @@ const credits = {
     lowPolyCarsPack: {
       notes: "Low-poly vehicles, sedans, utility vans, and neighborhood parked cars.",
     },
+    mercedesA45: {
+      notes: "Drivable car on the Huế map. Converted to a single Meshopt + WebP GLB and scaled to metres; shared under the same license.",
+    },
     muaHaThu18: {
       notes: "Song played in the UEH courtyard (summer rain theme). Not covered by the project's MIT License.",
     },

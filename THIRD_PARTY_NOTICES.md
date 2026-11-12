@@ -53,6 +53,18 @@ This document records the third-party assets, 3D models, fonts, and external cre
 
 ---
 
+### 2023 Mercedes-Benz A45 S AMG 4Matic
+- **Title:** 2023 Mercedes-Benz A45 S AMG 4Matic
+- **Creator / Author:** Ddiaz Design ([https://sketchfab.com/ddiaz-design](https://sketchfab.com/ddiaz-design))
+- **Source URL:** [https://sketchfab.com/3d-models/2023-mercedes-benz-a45-s-amg-4matic-7dcef373c52c44ffb0bfbd85a1da1ed2](https://sketchfab.com/3d-models/2023-mercedes-benz-a45-s-amg-4matic-7dcef373c52c44ffb0bfbd85a1da1ed2)
+- **License:** Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International ([CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/)). **No commercial use.** The modified GLB is shared under the same license and is **not** covered by the repository's MIT License.
+- **Credit line:** This work is based on "2023 Mercedes-Benz A45 S AMG 4Matic" by Ddiaz Design, licensed under CC BY-NC-SA 4.0.
+- **Production Asset Path:** `apps/game/public/assets/3d/vehicles/merc-a45.glb` (license copy: `merc-a45.LICENSE.txt`)
+- **Changes:** Converted from the Sketchfab glTF (27 MB) to one GLB (7.1 MB): Meshopt geometry compression, quantization, WebP textures (max 2048 px), scaled from the 1:100 export to metres. Geometry (540k triangles) and materials unchanged.
+- **Used In:** Drivable car on the Huế map (`/hue`).
+
+---
+
 ## 3. Music
 
 Both songs are works of **Lê Quốc Khánh (Men Le)**, a SCAMMAZE contributor, and are used in the

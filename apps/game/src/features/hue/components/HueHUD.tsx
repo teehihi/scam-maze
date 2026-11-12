@@ -164,7 +164,7 @@ export const HueHUD: React.FC<HueHUDProps> = ({
           )}
 
           {/* Live telemetry coordinates & speed */}
-          <div className="p-2.5 px-3.5 rounded-2xl bg-[#091b26]/85 backdrop-blur-md border border-[#1e4659]/80 text-[11px] font-mono text-zinc-300 shadow-xl flex items-center gap-3">
+          <div className={`p-2.5 px-3.5 rounded-2xl bg-[#091b26]/85 backdrop-blur-md border border-[#1e4659]/80 text-[11px] font-mono text-zinc-300 shadow-xl flex items-center gap-3 ${stats.isDriving ? "invisible" : ""}`}>
             <div>
               <span className="text-zinc-400">{t('hue.hud.speed')} </span>
               <span className="text-emerald-400 font-bold">{stats.speed.toFixed(1)} m/s</span>

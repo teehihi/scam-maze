@@ -339,7 +339,8 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
           // Solid car body: the player cannot walk through the Lexus.
           const car = carStateRef.current;
           push(
-            { x: car.position[0], z: car.position[2], halfWidth: CAR_HALF_WIDTH, halfLength: CAR_HALF_LENGTH, yaw: car.yaw },
+            // BoxCollider.yaw is the opposite sign of the car's Three.js Y rotation.
+            { x: car.position[0], z: car.position[2], halfWidth: CAR_HALF_WIDTH, halfLength: CAR_HALF_LENGTH, yaw: -car.yaw },
             PLAYER_CAR_RADIUS,
           );
         }

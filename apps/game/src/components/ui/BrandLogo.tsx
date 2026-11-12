@@ -30,7 +30,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ className = "", size = "md
       />
       <div className="flex flex-col">
         <span
-          className={`font-['Shojumaru',cursive] font-bold text-white leading-none ${textSizes[size]}`}
+          className={`font-brand font-bold text-white leading-none ${textSizes[size]}`}
           style={{ textShadow: "0 2px 10px rgba(0,0,0,0.7), 0 0 20px rgba(118,84,214,0.3)" }}
         >
           {t("appName")}

@@ -5,6 +5,8 @@ import { HueWorldEngine } from './engine/HueWorldEngine';
 import type { PlayerStats } from './engine/HueWorldEngine';
 import { HueHUD } from './components/HueHUD';
 import { usePlayerControls } from '../player';
+import { VehicleHud } from '../vehicle/VehicleHud';
+import { HUE_CAR_NAME } from './engine/vehicle/HueVehicle';
 import type { GameSettings } from '@scammaze/shared-types';
 
 interface HuePageProps {
@@ -116,6 +118,9 @@ export const HuePage: React.FC<HuePageProps> = ({
         bellToast={bellToast}
         onBackToMenu={onBackToMenu}
       />
+      {controls.isLocked && (
+        <VehicleHud stats={{ ...stats, isBlocking: stats.isBlocking ?? false }} carName={HUE_CAR_NAME} />
+      )}
     </div>
   );
 };

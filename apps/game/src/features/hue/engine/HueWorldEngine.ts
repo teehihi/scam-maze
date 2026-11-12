@@ -30,6 +30,7 @@ import { CharacterRuntime, type PlayerControlsState } from '../../player';
 import { HueWorldAdapter } from './HueWorldAdapter';
 import { HueCollisionSystem } from './collision/HueCollisionSystem';
 import { populateHueWorldColliders } from './collision/HueWorldColliders';
+import { HueVehicle, HUE_CAR_PARKING } from './vehicle/HueVehicle';
 
 export type MovementMode = 'walk' | 'fly' | 'boat';
 
@@ -48,6 +49,12 @@ export interface PlayerStats {
   isSprinting: boolean;
   isGrounded: boolean;
   isBlocking?: boolean;
+  /** Car telemetry (see vehicle/HueVehicle.ts). */
+  isDriving?: boolean;
+  isNearCar?: boolean;
+  carSpeed?: number;
+  carGear?: 'P' | 'D' | 'R';
+  isEngineStarting?: boolean;
 }
 
 export interface EngineCallbacks {
@@ -134,6 +141,8 @@ export class HueWorldEngine {
 
   // Physical collision system with spatial hash grid
   private collision = new HueCollisionSystem();
+  // Drivable car on the riverside lane
+  private vehicle: HueVehicle | null = null;
 
   // Melee combat aim direction
   private aimDir = new THREE.Vector3();
@@ -353,7 +362,15 @@ export class HueWorldEngine {
         consumeMovement: this.controls.consumeMovement,
         consumePunchTrigger: this.controls.consumePunchTrigger,
         consumeInspectTrigger: this.controls.consumeInspectTrigger,
-        consumeInteractTrigger: this.controls.consumeInteractTrigger,
+        // E next to the car gets in instead of the normal interact gesture.
+        consumeInteractTrigger: () => {
+          const triggered = this.controls.consumeInteractTrigger();
+          if (triggered && this.mode === 'walk' && this.vehicle?.isNearCar) {
+            this.vehicle.enter();
+            return false;
+          }
+          return triggered;
+        },
       },
       onPunchStrike: () => {
         this.camera.getWorldDirection(this.aimDir);
@@ -365,10 +382,27 @@ export class HueWorldEngine {
         }
       },
       onStatsUpdate: (stats) => {
-        this.callbacks.onStatsUpdate?.(stats);
+        this.callbacks.onStatsUpdate?.({ ...stats, ...this.vehicle?.walkingStats() });
       },
     });
 
+    this.vehicle = new HueVehicle(
+      this.scene,
+      this.renderer,
+      this.camera,
+      this.collision,
+      this.character,
+      {
+        keysRef: this.controls.keysRef as unknown as { current: PlayerControlsState | null },
+        consumeMovement: () => this.controls.consumeMovement(),
+        consumePunchTrigger: () => this.controls.consumePunchTrigger(),
+        consumeInspectTrigger: () => this.controls.consumeInspectTrigger(),
+        consumeInteractTrigger: () => this.controls.consumeInteractTrigger(),
+      },
+      (stats) => this.callbacks.onStatsUpdate?.({ ...stats, isSprinting: false, isGrounded: true, isBlocking: false }),
+    );
+    adapter.dynamicObstacle = (x, z, r) => this.vehicle?.resolvePlayer(x, z, r) ?? null;
+    this.vehicle.onFootprint = (x, z, yaw, hw, hl) => this.terrain.setGrassExclusion(x, z, yaw, hw, hl);
     this.setAtmosphere('morning');
     this.setCameraPose(
       new THREE.Vector3(-210, 6.05, -52),
@@ -395,6 +429,7 @@ export class HueWorldEngine {
     this.currentAtmos = id;
     const preset = ATMOSPHERE_PRESETS[id];
     this.applyAtmosPreset(preset, this.renderer, this.scene);
+    this.vehicle?.setEnvironmentIntensity(this.scene.environmentIntensity);
     this.setRainIntensity(preset.rainIntensity);
     this.setTerrainWetness(preset.rainIntensity);
     this.mats.setRainWetness(preset.rainIntensity);
@@ -530,6 +565,7 @@ export class HueWorldEngine {
     window.addEventListener('keydown', onKeyDown);
 
     const onWheel = (e: WheelEvent) => {
+      if (this.vehicle?.isDriving) return;
       // Smooth forward/backward dolly on scroll
       const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
       if (this.mode === 'walk') forward.y = 0;
@@ -553,9 +589,11 @@ export class HueWorldEngine {
           this.rafId = 0;
         }
         this.audio.pause();
+        this.vehicle?.pauseAudio();
       } else {
         this.clock.getDelta();
         this.audio.resume();
+        this.vehicle?.resumeAudio();
         if (!this.loopPaused && !this.rafId) {
           this.animate();
         }
@@ -577,6 +615,23 @@ export class HueWorldEngine {
 
   private exposeDebugHook() {
     (window as unknown as Record<string, unknown>).__HUE_DEBUG__ = {
+      /** Test helpers: walk to the parked car and get in. */
+      goToCar: () => {
+        this.introActive = false;
+        this.tween.active = false;
+        this.setMode('walk');
+        const { x, z, yaw } = HUE_CAR_PARKING;
+        const px = x + Math.cos(yaw) * 2.2;
+        const pz = z - Math.sin(yaw) * 2.2;
+        const y = getWalkableHeight(px, pz) + 1.85;
+        this.setCameraPose(new THREE.Vector3(px, y, pz), new THREE.Vector3(x, y - 0.6, z));
+      },
+      enterCar: () => {
+        this.vehicle?.updateProximity(this.camera.position.x, this.camera.position.z);
+        if (this.vehicle?.isNearCar) this.vehicle.enter();
+        return this.vehicle?.isDriving ?? false;
+      },
+      exitCar: () => this.vehicle?.exit(),
       teleportTo: (pos: [number, number, number], lookAt: [number, number, number]) => {
         this.introActive = false;
         this.tween.active = false;
@@ -641,6 +696,14 @@ export class HueWorldEngine {
       return;
     }
 
+    if (this.vehicle?.isDriving) {
+      if (this.mode !== 'walk') {
+        this.vehicle.exit();
+      } else {
+        this.vehicle.step(dt);
+        return;
+      }
+    }
     if (this.mode === 'boat') {
       // Ride smoothly on the bow deck of the lead Thuyền Rồng!
       const bowLocal = new THREE.Vector3(4.5, 2.35, 0);
@@ -658,6 +721,7 @@ export class HueWorldEngine {
     const bound = WORLD_SIZE * 0.45;
     this.camera.position.x = THREE.MathUtils.clamp(this.camera.position.x, -bound, bound);
     this.camera.position.z = THREE.MathUtils.clamp(this.camera.position.z, -bound, bound);
+    if (this.mode === 'walk') this.vehicle?.updateProximity(this.camera.position.x, this.camera.position.z);
   }
 
   private checkLandmarksAndProximity() {
@@ -823,6 +887,8 @@ export class HueWorldEngine {
 
     this.cleanupListeners();
     this.collision.clear();
+    this.vehicle?.dispose();
+    this.vehicle = null;
     this.audio.dispose();
     this.character.dispose();
 
