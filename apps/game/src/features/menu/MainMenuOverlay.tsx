@@ -33,7 +33,6 @@ interface MainMenuOverlayProps {
   onUpdateSettings: (settings: Partial<GameSettings>) => void;
   onToggleSound?: () => void;
   onHoverSound?: () => void;
-  onOpenHCM?: () => void;
   /** Starts loading the first chapter (after the prologue is confirmed). */
   onStartNewGame: () => void;
   onContinue: () => void;

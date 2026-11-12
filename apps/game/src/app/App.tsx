@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
-import { HCMPage } from "../features/hochiminh";
 import { TestMovePage } from "../features/testmove";
 import { UEHPage } from "../features/ueh";
 import { HuePage } from "../features/hue";
@@ -40,7 +39,7 @@ function readSavedContinueAvailability(): ContinueAvailability {
   return readContinueAvailability(saveSource);
 }
 
-type AppRoute = "menu" | "hochiminh" | "testmove" | "ueh" | "hue";
+type AppRoute = "menu" | "testmove" | "ueh" | "hue";
 
 function getAppRoute(): AppRoute {
   if (typeof window === "undefined") return "menu";
@@ -49,14 +48,6 @@ function getAppRoute(): AppRoute {
   if (path.startsWith("/testmove") || hash.includes("testmove")) return "testmove";
   if (path.startsWith("/ueh") || hash.includes("ueh")) return "ueh";
   if (path.startsWith("/hue") || hash.includes("hue")) return "hue";
-  if (
-    path.startsWith("/hochiminh") ||
-    path.startsWith("/hcm") ||
-    hash.includes("hochiminh") ||
-    hash.includes("hcm")
-  ) {
-    return "hochiminh";
-  }
   return "menu";
 }
 
@@ -91,9 +82,7 @@ export const App: React.FC = () => {
 
   const navigateTo = (newRoute: AppRoute) => {
     const targetPath =
-      newRoute === "hochiminh"
-        ? "/hochiminh"
-        : newRoute === "testmove"
+      newRoute === "testmove"
           ? "/testmove"
           : newRoute === "ueh"
             ? "/ueh"
@@ -448,10 +437,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleToggleSound]);
 
-  // Route: /hochiminh -> Standalone 3D Ho Chi Minh Map Explorer with rich colors
-  if (route === "hochiminh") {
-    return <HCMPage onBackToMenu={() => navigateTo("menu")} />;
-  }
 
   // Route: /testmove -> 3D First Person Movement & Combat Testing Playground
   if (route === "testmove") {
@@ -501,7 +486,6 @@ export const App: React.FC = () => {
           onUpdateSettings={handleUpdateSettings}
           onToggleSound={handleToggleSound}
           onHoverSound={playHoverSound}
-          onOpenHCM={() => navigateTo("hochiminh")}
           onStartNewGame={handleStartNewGame}
           onContinue={handleContinue}
           continueAvailability={continueAvailability}

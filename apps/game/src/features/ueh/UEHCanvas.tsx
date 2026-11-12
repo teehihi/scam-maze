@@ -1,8 +1,9 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useCallback, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { UEHWorld } from "./worlds/UEH";
 import { FirstPersonPlayer, type PlayerControlsState, type PlayerStats } from "../player";
+import { DEFAULT_VEHICLE_CONFIG, LexusVehicle, type VehiclePhysicsConfig } from "../vehicle";
 import type { GameSettings } from "@scammaze/shared-types";
 
 interface UEHCanvasProps {
@@ -23,6 +24,15 @@ const UEH_BOUNDS = {
   groundY: 1.85,   // Adult human standing eye level matching testmove (1.81m above ground)
 };
 
+/** Lexus parking spot: behind the spawn point, between the Signal Beacon and the Product Lab. */
+const UEH_CAR_POSITION: [number, number, number] = [0, 0, 42];
+const UEH_CAR_YAW = Math.PI; // facing the courtyard centre (-Z)
+/** The courtyard is a disc (radius 60); keep the whole car body inside the walkable area. */
+const UEH_VEHICLE_CONFIG: VehiclePhysicsConfig = {
+  ...DEFAULT_VEHICLE_CONFIG,
+  roadBounds: { minX: -60, maxX: 60, minZ: -60, maxZ: 60 },
+  roundBounds: { centerX: 0, centerZ: 0, radius: 54 },
+};
 export const UEHCanvas: React.FC<UEHCanvasProps> = ({
   settings,
   consumeMovement,
@@ -33,6 +43,10 @@ export const UEHCanvas: React.FC<UEHCanvasProps> = ({
   onStatsUpdate,
   onInteract,
 }) => {
+  const carPivotRef = useRef<THREE.Group | null>(null);
+  const handleCarLoaded = useCallback((pivot: THREE.Group) => {
+    carPivotRef.current = pivot;
+  }, []);
   return (
     <Canvas
       shadows={settings.graphicsQuality === "high"}
@@ -71,6 +85,15 @@ export const UEHCanvas: React.FC<UEHCanvasProps> = ({
       <Suspense fallback={null}>
         <UEHWorld />
       </Suspense>
+      {/* Drivable Lexus GX 550 (standalone model, ~2.6 MB) */}
+      <Suspense fallback={null}>
+        <LexusVehicle
+          position={UEH_CAR_POSITION}
+          yaw={UEH_CAR_YAW}
+          castShadow={settings.graphicsQuality === "high"}
+          onCarLoaded={handleCarLoaded}
+        />
+      </Suspense>
 
       {/* Shared Unified First Person Player with Animated Arms Viewmodel */}
       <Suspense fallback={null}>
@@ -87,6 +110,8 @@ export const UEHCanvas: React.FC<UEHCanvasProps> = ({
           onInteract={onInteract}
           soundEnabled={settings.soundEnabled}
           sfxVolume={settings.sfxVolume}
+          carPivotRef={carPivotRef}
+          vehicleConfig={UEH_VEHICLE_CONFIG}
         />
       </Suspense>
     </Canvas>

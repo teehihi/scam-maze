@@ -11,6 +11,9 @@ import {
   resolveBoxCollision,
   checkProximityToCar,
   stepVehiclePhysics,
+  stepTurnSignal,
+  INITIAL_TURN_SIGNAL,
+  type TurnSignalState,
   useVehicleAudio,
 } from "../vehicle";
 
@@ -64,6 +67,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
   sfxVolume = 1.0,
   enabled = true,
   carPivotRef,
+  vehicleConfig = DEFAULT_VEHICLE_CONFIG,
 }) => {
   const { camera } = useThree();
   const runtimeRef = useRef<CharacterRuntime | null>(null);
@@ -85,6 +89,8 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     roll: 0,
   });
   const isNearCarRef = useRef(false);
+  /** Pivot the car state was last synced from (the parked position comes from the map). */
+  const syncedPivotRef = useRef<THREE.Object3D | null>(null);
   const cockpitYawRef = useRef(0);
   const cockpitPitchRef = useRef(0);
   const wasAcceleratingRef = useRef(false);
@@ -94,7 +100,8 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
   const seatScratch = useRef(new THREE.Vector3());
   const carEulerScratch = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
 
-  const { playDoorSound, playDriveSound, playStopSound, playStopCarSound, stopAll } = useVehicleAudio({
+  const turnSignalRef = useRef<TurnSignalState>(INITIAL_TURN_SIGNAL);
+  const { playDoorSound, playDriveSound, playStopSound, playStopCarSound, setIndicator, stopAll } = useVehicleAudio({
     enabled: soundEnabled,
     volume: sfxVolume,
   });
@@ -121,6 +128,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     cockpitPitchRef.current = 0;
     wasAcceleratingRef.current = false;
     canDriveRef.current = false;
+    turnSignalRef.current = INITIAL_TURN_SIGNAL;
     // Door + engine-start sound; driving is unlocked when it finishes (or by the fallback timer).
     playDoorSound(enableDriving);
     if (engineTimerRef.current) clearTimeout(engineTimerRef.current);
@@ -139,6 +147,7 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
       clearTimeout(engineTimerRef.current);
       engineTimerRef.current = null;
     }
+    turnSignalRef.current = INITIAL_TURN_SIGNAL;
     stopAll();
     playStopCarSound();
     setDriverSeatVisible(true);
@@ -346,6 +355,18 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
     const runtime = runtimeRef.current;
     if (!runtime) return;
 
+    // Start the simulation from wherever the map parked the car.
+    const pivot = carPivotRef?.current as THREE.Object3D | null | undefined;
+    if (pivot && syncedPivotRef.current !== pivot && !carStateRef.current.isDriving) {
+      syncedPivotRef.current = pivot;
+      const car = carStateRef.current;
+      car.position = [pivot.position.x, pivot.position.y, pivot.position.z];
+      car.yaw = pivot.rotation.y;
+      car.speed = 0;
+      car.pitch = 0;
+      car.roll = 0;
+    }
+
     if (!carStateRef.current.isDriving) {
       runtime.update(dt);
       if (hasVehicle) {
@@ -388,12 +409,19 @@ export const FirstPersonPlayer: React.FC<UnifiedPlayerProps> = ({
       right: !engineStarting && Boolean(keys.right),
       handbrake: Boolean(keys.jump) || engineStarting,
     };
-    const next = stepVehiclePhysics(carStateRef.current, inputs, DEFAULT_VEHICLE_CONFIG, dt);
+    const next = stepVehiclePhysics(carStateRef.current, inputs, vehicleConfig, dt);
     if (engineStarting) {
       next.gear = "P";
       next.speed = 0;
     }
     carStateRef.current = next;
+
+    // Automatic turn signal: on after steering for a moment, off 1.5 s after steering stops.
+    const steer = inputs.left === inputs.right ? 0 : inputs.left ? -1 : 1;
+    const prevSignal = turnSignalRef.current.active;
+    turnSignalRef.current = stepTurnSignal(turnSignalRef.current, steer, dt);
+    const signal = turnSignalRef.current.active;
+    if ((signal !== 0) !== (prevSignal !== 0)) setIndicator(signal !== 0);
 
     if (!engineStarting) {
       const accelerating = inputs.forward || inputs.backward;

@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { UEHCanvas } from "./UEHCanvas";
 import { useTranslation } from "react-i18next";
 import { UEHOverlay, UEH_TRACK_TITLES } from "./UEHOverlay";
+import { VehicleHud } from "../vehicle/VehicleHud";
 import { usePlayerControls } from "../player";
 import { useReality, rt } from "./state";
 import { guitarAudio } from "./guitarAudio";
@@ -46,6 +47,18 @@ export const UEHPage: React.FC<UEHPageProps> = ({
   });
 
   const [isNearGuitar, setIsNearGuitar] = useState(false);
+  // H toggles the information panels (controls guide, telemetry, driving HUD) for a clean view.
+  const [panelsVisible, setPanelsVisible] = useState(true);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      if (e.code === "KeyH") setPanelsVisible((v) => !v);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
   const [currentTrack, setCurrentTrack] = useState<string>(() => useReality.getState().track ?? "mua-ha");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -122,7 +135,9 @@ export const UEHPage: React.FC<UEHPageProps> = ({
         currentTrack={currentTrack}
         activeToast={toastMessage}
         stats={stats}
+        panelsVisible={panelsVisible}
       />
+      {isLocked && <VehicleHud stats={stats} showPanels={panelsVisible} />}
     </div>
   );
 };

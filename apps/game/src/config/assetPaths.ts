@@ -7,7 +7,7 @@
 export const STREET_ENVIRONMENT_GLB = "/assets/3d/optimized/MenuBG.optimized.glb";
 
 /** Equirectangular sky texture used by the sky dome. */
-export const SKY_TEXTURE = "/assets/3d/textures/sky.png";
+export const SKY_TEXTURE = "/assets/3d/textures/sky.webp";
 
 /** Static cinematic artwork shown behind loading and chapter screens. */
 export const LOADING_BACKGROUND_WEBP = "/assets/ui/loading_bg.webp";

@@ -58,4 +58,6 @@ export interface FirstPersonPlayerProps {
    */
   enabled?: boolean;
   carPivotRef?: MutableRefObject<any>;
+  /** Driving limits for this map; defaults to the street in `DEFAULT_VEHICLE_CONFIG`. */
+  vehicleConfig?: import("../vehicle/types").VehiclePhysicsConfig;
 }
