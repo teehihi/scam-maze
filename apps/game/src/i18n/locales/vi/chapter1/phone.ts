@@ -6,7 +6,6 @@ const phone: LocaleShape<typeof en> = {
       name: "Điện thoại",
       close: "Đóng điện thoại",
       closeLabel: "Đóng",
-      callInProgress: "Cuộc gọi",
       decidePrompt: "Bây giờ bạn có thể quyết định cách xử lý cuộc gọi.",
       decide: "Quyết định",
     },

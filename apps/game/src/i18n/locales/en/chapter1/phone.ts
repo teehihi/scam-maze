@@ -5,7 +5,6 @@ const phone = {
       name: "Phone",
       close: "Close phone",
       closeLabel: "Close",
-      callInProgress: "Call",
       decidePrompt: "You can decide what to do about the call now.",
       decide: "Decide",
     },
