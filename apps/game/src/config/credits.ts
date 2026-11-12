@@ -1,5 +1,5 @@
 /** Stable IDs used for translation keys (`credits:groups.<id>.category`). */
-export type CreditGroupId = "environments" | "vehicles" | "project";
+export type CreditGroupId = "environments" | "vehicles" | "music" | "project";
 
 /** Stable IDs used for translation keys (`credits:items.<id>.notes`). */
 export type CreditItemId =
@@ -8,6 +8,8 @@ export type CreditItemId =
   | "lowPolyCityGameReady"
   | "lowPolyCityAssetPack"
   | "lowPolyCarsPack"
+  | "muaHaThu18"
+  | "neuNgayMai"
   | "callPhone"
   | "coreArchitecture";
 
@@ -89,6 +91,28 @@ export const GAME_CREDITS: CreditGroup[] = [
         sourceUrl: "Owner-provided file iphone-17-pro.glb (source URL not provided)",
         license: "Free to use (owner statement, 2026-11-12)",
         notes: "Handheld phone model used for phone calls. Optimized copy with the wallpaper removed and no visible brand marks.",
+      },
+    ],
+  },
+  {
+    id: "music",
+    category: "Music",
+    items: [
+      {
+        id: "muaHaThu18",
+        name: "Mùa Hạ Thứ 18",
+        creator: "Lê Quốc Khánh (Men Le), SCAMMAZE contributor",
+        sourceUrl: "Recording provided by the author (not published online)",
+        license: "All rights reserved. Used in SCAMMAZE with the author's permission",
+        notes: "Song played in the UEH courtyard (summer rain theme). Not covered by the project's MIT License.",
+      },
+      {
+        id: "neuNgayMai",
+        name: "Nếu ngày mai",
+        creator: "Lê Quốc Khánh (Men Le), SCAMMAZE contributor",
+        sourceUrl: "https://open.spotify.com/track/2AkPSNohBGtrZMGeTtwV12",
+        license: "All rights reserved. Used in SCAMMAZE with the author's permission",
+        notes: "Song played in the UEH courtyard (flame tree blossom theme), performed with Hồ Đá Chà Gươm. Not covered by the project's MIT License.",
       },
     ],
   },

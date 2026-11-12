@@ -11,7 +11,7 @@ import { canvasTex as ct, FONT } from '../gfx'
 import { patchNew } from '../mask'
 import { createConcretePBR, createHeritagePlasterPBR, createTerracottaTilePBR, createWoodPBR } from '../pbr'
 import { UEHFoliage } from '../foliage'
-import { SkyDome, Underside, WU, reel } from '../kit'
+import { SkyDome, Underside, WU, reel, useWorldUniforms } from '../kit'
 import { SummerRain } from '../weather/SummerRain'
 import { FlamboyantWind } from '../weather/FlamboyantWind'
 
@@ -1165,6 +1165,8 @@ function CampusGate() {
 }
 
 export function UEHWorld() {
+  // Drives the shared shader clock (rain, splashes, drips, sky) and the music analysis every frame.
+  useWorldUniforms()
   return (
     <group>
       <SkyDome world="ueh" />

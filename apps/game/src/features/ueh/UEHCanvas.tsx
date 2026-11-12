@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { UEHWorld } from "./worlds/UEH";
 import { FirstPersonPlayer, type PlayerControlsState, type PlayerStats } from "../player";
 import { DEFAULT_VEHICLE_CONFIG, LexusVehicle, type VehiclePhysicsConfig } from "../vehicle";
+import { UEH_FURNITURE_COLLIDERS, UEH_SEATS } from "./seats";
 import type { GameSettings } from "@scammaze/shared-types";
 
 interface UEHCanvasProps {
@@ -112,6 +113,8 @@ export const UEHCanvas: React.FC<UEHCanvasProps> = ({
           sfxVolume={settings.sfxVolume}
           carPivotRef={carPivotRef}
           vehicleConfig={UEH_VEHICLE_CONFIG}
+          seats={UEH_SEATS}
+          obstacles={UEH_FURNITURE_COLLIDERS}
         />
       </Suspense>
     </Canvas>

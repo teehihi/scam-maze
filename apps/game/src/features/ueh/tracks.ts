@@ -2,9 +2,9 @@
 //
 // NGUỒN SỰ THẬT: tên bài + vai trò lấy từ nhánh portfolio/data-intake
 // (portfolio-data/SHOWTIME_SITE_CONTENT_V1.json). Ở đó quyền rehost audio/video của cả hai bài
-// đang là "not_granted". Cập nhật 2026-11-12: owner đã tự đặt file thật cho cả hai bài
-// (public/reality/neu-ngay-mai.mp3, public/reality/mua-ha-thu-18.mp3); xác nhận quyền sử dụng
-// trước khi nộp bài / deploy công khai.
+// đang là "not_granted". Cập nhật 2026-11-12: cả hai bài là tác phẩm của Lê Quốc Khánh (Men Le),
+// contributor của dự án, và được dùng trong SCAMMAZE với sự cho phép của tác giả (owner xác nhận).
+// Nhạc không thuộc giấy phép MIT; xem THIRD_PARTY_NOTICES.md và config/credits.ts.
 //
 // ĐỂ GẮN TÁC PHẨM THẬT (không cần sửa code khác):
 //   1. Đặt file vào  public/reality/  (ví dụ  public/reality/mua-ha-thu-18.mp3, .mp4)

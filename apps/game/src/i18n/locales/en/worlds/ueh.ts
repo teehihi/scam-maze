@@ -13,6 +13,10 @@ const ueh = {
       locked: "MOUSE LOCKED (Ctrl: unlock)",
       unlocked: "MOUSE UNLOCKED (Click: lock)",
     },
+    seat: {
+      sitDown: "Sit down",
+      standUp: "Stand up",
+    },
     guitar: {
       title: "Strum the Guitar · Change the Melody",
       switchTo: "Switch to: <strong>{{track}}</strong>",
@@ -33,7 +37,7 @@ const ueh = {
       jump: "Jump",
       punch: "Punch",
       block: "Block",
-      interact: "Interact (Guitar)",
+      interact: "Interact (Guitar / Sit)",
       viewHands: "View hands",
       toggleCursor: "Hide / Show cursor",
       togglePanels: "Hide / Show panels",
