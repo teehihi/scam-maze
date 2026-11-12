@@ -24,7 +24,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ className = "", size = "md
   return (
     <div className={`flex items-center gap-3 select-none ${className}`}>
       <img
-        src="/logo.png"
+        src="/logo.webp"
         alt={t("logoAlt")}
         className={`${iconSizes[size]} object-contain drop-shadow-[0_0_12px_rgba(118,84,214,0.4)]`}
       />

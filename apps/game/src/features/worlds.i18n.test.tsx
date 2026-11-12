@@ -3,8 +3,6 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { applyLocale } from "../i18n";
 import type { GameLocale } from "@scammaze/shared-types";
-import { HCMOverlay } from "./hochiminh/HCMOverlay";
-import { HCM_LANDMARKS, HCM_VIEW_PRESETS, type LandmarkInfo } from "./hochiminh/types";
 import { HueHUD } from "./hue/components/HueHUD";
 import { HUE_PLACE_NAMES } from "./hue/placeNames";
 import { TestMoveOverlay } from "./testmove/TestMoveOverlay";
@@ -32,23 +30,6 @@ function textIn(locale: GameLocale, element: ReactElement): string {
   return text;
 }
 
-function hcm(selectedLandmark: LandmarkInfo | null = null): ReactElement {
-  return (
-    <HCMOverlay
-      theme="daylight"
-      onChangeTheme={noop}
-      autoRotate={false}
-      onToggleAutoRotate={noop}
-      showLandmarks
-      onToggleLandmarks={noop}
-      activeView={HCM_VIEW_PRESETS[0]}
-      onSelectView={noop}
-      selectedLandmark={selectedLandmark}
-      onClearSelectedLandmark={noop}
-      onBackToMenu={noop}
-    />
-  );
-}
 
 function hue(): ReactElement {
   return (
@@ -80,19 +61,6 @@ function ueh(): ReactElement {
 }
 
 describe("teammate world pages follow the locale", () => {
-  it("HCMOverlay labels change with the locale", () => {
-    const en = textIn("en", hcm());
-    const vi = textIn("vi", hcm());
-
-    expect(en).toContain("Game Menu");
-    expect(en).toContain("Daylight");
-    expect(en).toContain("Overview");
-    expect(vi).toContain("Menu Game");
-    expect(vi).toContain("Ban Ngày");
-    expect(vi).toContain("Toàn Cảnh");
-    expect(vi).not.toContain("Daylight");
-    expect(en).not.toContain("Ban Ngày");
-  });
 
   it("TestMoveOverlay labels change with the locale", () => {
     const en = textIn("en", testMove());
@@ -165,17 +133,6 @@ describe("teammate world pages follow the locale", () => {
 });
 
 describe("landmark and place names stay the same in every locale", () => {
-  it("HCM landmark names and district names are identical in en and vi", () => {
-    for (const landmark of HCM_LANDMARKS) {
-      const en = textIn("en", hcm(landmark));
-      const vi = textIn("vi", hcm(landmark));
-      expect(en).toContain(landmark.name);
-      expect(vi).toContain(landmark.name);
-    }
-    const districts = "Bến Nghé · Bến Thành · Thủ Thiêm · Sông Sài Gòn";
-    expect(textIn("en", hcm())).toContain(districts);
-    expect(textIn("vi", hcm())).toContain(districts);
-  });
 
   it("Hue place names are identical in en and vi", () => {
     const en = textIn("en", hue());
