@@ -15,3 +15,6 @@ export const LOADING_BACKGROUND_JPG = "/assets/ui/loading_bg.jpg";
 
 /** Call phone (Meshopt + WebP, produced by scripts/optimize-call-phone.cjs). */
 export const CALL_PHONE_GLB = "/assets/3d/optimized/call-phone.optimized.glb";
+
+/** Base URL of the Chapter 1 voice clips: `<base>/<locale>/<nodeId>.mp3` (locale is `en` or `vi`). */
+export const CHAPTER1_VOICE_BASE = "/audio/chapter01";

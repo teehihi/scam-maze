@@ -10,7 +10,10 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 5174",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "voice:chapter1": "node scripts/generate-chapter1-voice.mjs",
+    "voice:script": "node scripts/generate-chapter1-voice.mjs --print-script",
+    "voice:report": "node scripts/generate-chapter1-voice.mjs --report"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "5.3.0",
