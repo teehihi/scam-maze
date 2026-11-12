@@ -204,145 +204,145 @@ Honesty rules
 - [x] 6. Checkpoint A - narrative content builds and existing tests pass
   - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures in the owning files. Record real counts in the Baseline Record. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Commit: schema, engine and content
-  - [-] 7.1 Create the local commit for tasks 2 to 5
+- [x] 7. Commit: schema, engine and content
+  - [x] 7.1 Create the local commit for tasks 2 to 5
     - Run `git status --short`. Stage by name only the files edited by tasks 2.1 to 5.5 (`NARR/types.ts`, `conditions.ts`, `reducer.ts`, `outcome.ts`, `selectors.ts`, `objectives.ts`, `localize.ts`, `C1/**` data files, `OVL/**` files, `SRC/test/chapterRuns.ts`, the test files of tasks 5.1 to 5.5, and any caller fixed in 2.5). Do not stage `iphone` GLBs or anything else.
     - Commit: `git commit -m "feat(game): extend Chapter 1 scenario schema, engine and content" -m "<body listing node, option and evidence counts you measured>" -m "Co-authored-by: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>"`.
     - _Requirements: 18.2_
 
-- [ ] 8. Engine and content-validator tests
-  - [~] 8.1 Extend `NARR/validateScenario.ts` (checks V1, V3 static, V4 static)
+- [x] 8. Engine and content-validator tests
+  - [x] 8.1 Extend `NARR/validateScenario.ts` (checks V1, V3 static, V4 static)
     - Read design.md "Content validator". Add: node IDs unique across all graphs; tone required on every Spoken_Node (`speaker` is `caller` or `npc`); `speakerId` exists; `pauseBeforeMs` is 0 to 3000; act references; no more than four unconditional options per node; every pressure node reaches an end within three option steps; no cycle without an exit; conditions that can never be true (flag no effect sets, evidence with no discovery, claim status no effect produces, `callEnded` or `callRang` for a call without a graph). Return issues as `{ check, where, message }`. Reuse existing checks; never throw on bad input.
     - Edit only `validateScenario.ts`.
     - _Requirements: 13.1, 13.2, 9.2_
-  - [~] 8.2 Create `NARR/reachability.ts` (check V2 and measured V3/V4)
+  - [x] 8.2 Create `NARR/reachability.ts` (check V2 and measured V3/V4)
     - Implement the pure solver of design.md "Reachability solver": state key, moves from `enumerateCandidateActions` applied by the real `chapterReducer`, free-action saturation, `maxStates` default 100000 with `truncated`, reverse-edge soft-lock check, outputs `{ states, truncated, outcomesReached, unreachableNodes, unreachableOptions, softLocks, maxAvailableOptions, minAvailableOptions }`. Import only inside `NARR`.
     - Create only `reachability.ts`. Record the explored state count in the Baseline Record when task 8.4 runs.
     - _Requirements: 13.3_
-  - [~] 8.3 Extend `NARR/validateScenario.test.ts`
+  - [x] 8.3 Extend `NARR/validateScenario.test.ts`
     - Example tests: the real scenario returns no issue; one broken fixture per new check returns an issue naming the item.
     - Edit only `validateScenario.test.ts`.
     - _Requirements: 13.1, 17.1_
-  - [~] 8.4 Write `NARR/reachability.test.ts` and Property 3, Property 4
+  - [x] 8.4 Write `NARR/reachability.test.ts` and Property 3, Property 4
     - **Property 3: Every ending is reachable and no state is a soft lock**
     - **Property 4: Available options stay within bounds**
     - **Validates: Requirements 2.6, 2.7, 9.6, 10.6, 10.7, 13.3, 14.1, 8.2**
     - Example tests: `truncated` is false; `verified`, `investigator`, `risky`, `uncertain` are all reached; no unreachable node or option; no soft lock. Seeded tests: from random reachable states `END_CALL` is accepted with a live call, `stop-and-wait` is accepted after the first call ends, and option counts are at most four (and at least two except single-continuation nodes).
     - Create only `reachability.test.ts`.
     - _Requirements: 13.3, 14.1, 17.1_
-  - [~] 8.5 Write Property 5 in `NARR/properties/conditionedOptions.property.test.ts`
+  - [x] 8.5 Write Property 5 in `NARR/properties/conditionedOptions.property.test.ts`
     - **Property 5: Evidence-conditioned options are deterministic and local**
     - **Validates: Requirements 9.3, 9.4**
     - Include a case for each link of design.md "Where earlier choices change later dialogue" (at least eleven): adding the named evidence or flag changes available options or the start node.
     - Create only this file.
     - _Requirements: 9.3, 9.4, 9.5, 17.1_
-  - [~] 8.6 Write `C1/acts.test.ts`
+  - [x] 8.6 Write `C1/acts.test.ts`
     - Example tests: six acts in order; `exitWhen` equals the next act's `enterWhen`; each objective belongs to exactly one act; Act 1 uses only existing interactables.
     - Create only this file.
     - _Requirements: 2.1, 2.2_
-  - [~] 8.7 Write Property 1 in `NARR/properties/acts.property.test.ts`
+  - [x] 8.7 Write Property 1 in `NARR/properties/acts.property.test.ts`
     - **Property 1: Act progression is monotonic**
     - **Validates: Requirements 2.1**
     - Create only this file.
     - _Requirements: 2.1_
-  - [~] 8.8 Write Property 6 in `NARR/properties/outcome.investigator.property.test.ts`
+  - [x] 8.8 Write Property 6 in `NARR/properties/outcome.investigator.property.test.ts`
     - **Property 6: Outcomes are deterministic, exact and never reward a dangerous action**
     - **Validates: Requirements 14.2, 14.3, 14.5**
     - Create only this file.
     - _Requirements: 14.2, 14.3, 14.5_
-  - [~] 8.9 Extend `NARR/conditions.test.ts`
+  - [x] 8.9 Extend `NARR/conditions.test.ts`
     - Add example tests for `callRang`, `objectiveCompleted`, `outcomeSet`, `evidenceCountAtLeast` (true, false, boundary count).
     - Edit only `conditions.test.ts`.
     - _Requirements: 9.3_
-  - [~] 8.10 Write `NARR/reducer.followup.test.ts`
+  - [x] 8.10 Write `NARR/reducer.followup.test.ts`
     - Example tests: `RING_CALL` for `call.followup` is rejected before the callback closes, after a decision, and when already rung; accepted otherwise; sets `followup_rang`; hanging up tags `hung-up-on-followup`; `ev.second-number` is discoverable after the ring.
     - Create only this file.
     - _Requirements: 2.5, 10.7_
 
-- [ ] 9. Audio manifest contract and generator script
-  - [~] 9.1 Create `VOICE/manifestTypes.ts`, `VOICE/hash.ts` and the asset path constant
+- [x] 9. Audio manifest contract and generator script
+  - [x] 9.1 Create `VOICE/manifestTypes.ts`, `VOICE/hash.ts` and the asset path constant
     - `manifestTypes.ts`: `VOICE_MANIFEST_SCHEMA_VERSION`, `ClipStatus`, `VoiceClipEntry`, `VoiceManifest` exactly as design.md section 4. `hash.ts`: `fnv1a32(text): string` (8 hex digits). Add `CHAPTER1_VOICE_BASE = "/audio/chapter01"` to `SRC/config/assetPaths.ts`. These modules import only types from `NARR`.
     - Create `manifestTypes.ts`, `hash.ts`; edit `assetPaths.ts`.
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
-  - [~] 9.2 Create `VOICE/selectClip.ts`
+  - [x] 9.2 Create `VOICE/selectClip.ts`
     - Implement `ClipChoice` and `selectClip` with the rules of design.md section 4 (present only; `english-voice` label only for a non-`en` locale when the setting is on and the English entry is present).
     - Create only this file.
     - _Requirements: 4.5, 12.4, 12.5_
-  - [~] 9.3 Create `VOICE/renderManifest.ts`
+  - [x] 9.3 Create `VOICE/renderManifest.ts`
     - `renderManifest(manifest): string` produces deterministic TypeScript source with the header comment "Generated by `scripts/generate-chapter1-voice.mjs`. Do not edit by hand.", sorted by `clipId` then locale, stable key order, `\n` line ends. Export a `parseManifestSource` helper for tests (evaluate the exported const safely without `eval` of untrusted input; the test helper may use a small literal parser or `new Function` only inside the test file).
     - Create only this file.
     - _Requirements: 4.1, 4.2_
-  - [~] 9.4 Create `VOICE/voiceReport.ts`
+  - [x] 9.4 Create `VOICE/voiceReport.ts`
     - `buildVoiceReport(manifest, lineTextFor)` returns counts per locale, status and origin and the list of `missing` entries with `clipId`, locale, speaker and line text. A dev preview line is never counted as `present`.
     - Create only this file.
     - _Requirements: 4.8, 6.7, 6.8_
-  - [~] 9.5 Create `VOICE/buildVoiceJobs.ts`
+  - [x] 9.5 Create `VOICE/buildVoiceJobs.ts`
     - `buildVoiceJobs(scenario, overlays, cast)` returns one job per Spoken_Node and locale: `{ clipId, graphId, speakerId, tone, locale, text, textHash, voice, rate, pitch, outWav, outMp3 }` with the cast table and tone rate multipliers of design.md section 10. Include the `VoiceJob` and `VoiceJobResult` JSON shapes that the PowerShell worker reads and writes, as exported types.
     - Create only this file.
     - _Requirements: 4.7, 4.9_
-  - [~] 9.6 Write Property 9 in `VOICE/selectClip.property.test.ts`
+  - [x] 9.6 Write Property 9 in `VOICE/selectClip.property.test.ts`
     - **Property 9: Clip selection respects availability and labels**
     - **Validates: Requirements 4.4, 4.5, 5.1, 12.1, 12.4, 12.5**
     - Create only this file.
     - _Requirements: 4.5, 12.4, 12.5, 17.3_
-  - [~] 9.7 Write Property 20 in `VOICE/renderManifest.property.test.ts`
+  - [x] 9.7 Write Property 20 in `VOICE/renderManifest.property.test.ts`
     - **Property 20: Manifest source round trip**
     - **Validates: Requirements 4.1, 4.2**
     - Create only this file.
     - _Requirements: 4.1, 4.2_
-  - [~] 9.8 Write Property 17 in `VOICE/voiceReport.property.test.ts`
+  - [x] 9.8 Write Property 17 in `VOICE/voiceReport.property.test.ts`
     - **Property 17: The missing-clip report is exact**
     - **Validates: Requirements 4.8, 6.7, 6.8**
     - Create only this file.
     - _Requirements: 4.8, 6.8_
-  - [~] 9.9 Write `VOICE/buildVoiceJobs.test.ts`
+  - [x] 9.9 Write `VOICE/buildVoiceJobs.test.ts`
     - Example tests: job count equals Spoken_Nodes times 2; `system` nodes are skipped; `textHash` equals `fnv1a32(text)`; cast voices, rates and tone multipliers match the design; the Vietnamese text comes from the overlay.
     - Create only this file.
     - _Requirements: 4.7_
-  - [~] 9.10 Create `apps/game/scripts/generate-chapter1-voice.ps1`
+  - [x] 9.10 Create `apps/game/scripts/generate-chapter1-voice.ps1`
     - Read design.md section 10 step 4. Windows only. Reads a JSON job file; for each job creates a `Windows.Media.SpeechSynthesis.SpeechSynthesizer`, selects the voice by display name, sets `Options.SpeakingRate` and `Options.AudioPitch`, writes a 16 kHz mono WAV into `apps/game/.voice-cache/`, normalizes the peak to -3 dBFS in a small compiled C# helper (`Add-Type`), measures duration and RMS, encodes MP3 with `MediaTranscoder` (mono, 16000 Hz, 48000 bps, retry at 32000 bps if refused), and prints a JSON result list. No network call. Exit with a clear message before changing any file if the platform or speech API is missing; if a voice is not installed, return an error result for those jobs only.
     - Create only this file.
     - _Requirements: 4.7, 4.9, 4.10_
-  - [~] 9.11 Create `apps/game/scripts/generate-chapter1-voice.mjs`, package scripts and `.gitignore` entry
+  - [x] 9.11 Create `apps/game/scripts/generate-chapter1-voice.mjs`, package scripts and `.gitignore` entry
     - Implement the steps of design.md section 10 (Vite `createServer` in middleware mode and `ssrLoadModule` to load scenario, overlay and `buildVoiceJobs`; skip fresh work by `sourceTextHash`, cast values and file existence; run the `.ps1` worker; verify MP3 frame sync, size limits and duration within 120 ms; write the manifest with `renderManifest`; print counts and every missing clip). Flags: `--locale`, `--only`, `--force`, `--dry-run`, `--print-script`, `--report`, `--strict`. Failed jobs become `missing`, `origin: "none"`, `credit: "not provided"`. Never write `present` for a file that was not verified. Add the three scripts `voice:chapter1`, `voice:script`, `voice:report` to `apps/game/package.json` and `apps/game/.voice-cache/` to the root `.gitignore`.
     - Create the `.mjs`; edit `apps/game/package.json` and `.gitignore`.
     - _Requirements: 4.6, 4.8, 4.10, 16.5_
 
-- [ ] 10. Generate the real voice clips
-  - [~] 10.1 Probe the voices and dry-run the generator
+- [x] 10. Generate the real voice clips
+  - [x] 10.1 Probe the voices and dry-run the generator
     - From `d:\scam-maze` on Windows run `pnpm --filter @scammaze/game voice:script` and `pnpm --filter @scammaze/game voice:chapter1 -- --dry-run`. Confirm that Microsoft David, Mark, Zira (`en-US`) and Microsoft An (`vi-VN`) are installed (list the OneCore voices in a one-line PowerShell command). Record the probe result and the dry-run job count in the Baseline Record. If Microsoft An is absent, record that all Vietnamese clips will stay `missing`.
     - Edit only this tasks.md file.
     - _Requirements: 4.9, 4.6_
-  - [~] 10.2 Run the generator for real
+  - [x] 10.2 Run the generator for real
     - Run `pnpm --filter @scammaze/game voice:chapter1`. It writes `apps/game/src/game/voice/chapter1.manifest.ts` and `apps/game/public/audio/chapter01/<locale>/<nodeId>.mp3`. If the Vietnamese voice is missing, run `-- --locale en` and let the Vietnamese entries be written as `missing`. Do not hand-edit the manifest or fabricate any file.
     - Creates only generator output.
     - _Requirements: 4.4, 4.6, 4.9_
-  - [~] 10.3 Verify and record the generated clips
+  - [x] 10.3 Verify and record the generated clips
     - Check with `Get-ChildItem apps/game/public/audio/chapter01 -Recurse -File` that every `present` manifest entry has an existing, non-empty `.mp3`, that no `.wav` file is in `public/`, and that `apps/game/.voice-cache/` is not tracked. Run `pnpm --filter @scammaze/game voice:report`. Record in the Baseline Record the count of `present`, `missing` and `placeholder-tts` clips per locale, total bytes per locale and the failures. State that sound quality and browser playback are not verified.
     - Edit only this tasks.md file.
     - _Requirements: 4.6, 4.8, 6.8_
 
-- [ ] 11. Content validator for subtitles, manifest and files
-  - [~] 11.1 Create `SRC/game/content/validateChapterContent.ts` (checks V5, V6, V7)
+- [x] 11. Content validator for subtitles, manifest and files
+  - [x] 11.1 Create `SRC/game/content/validateChapterContent.ts` (checks V5, V6, V7)
     - Pure TypeScript, no Node import. Implement V5 (non-empty English line and Vietnamese overlay text for every Spoken_Node), V6 (manifest coverage, `clipId === nodeId`, `speakerId`, `sourceTextHash` freshness, known statuses, `present` has `sources`, `durationMs` and `bytes`, `missing` has none) and V7 (injected `fileInfo(publicPath)`: file exists, path under `/audio/chapter01/<locale>/`, MIME `audio/mpeg`, bytes equal, at most 150 KB per clip and 6 MB per locale, duration 0.5 to 25 s). Issues are `{ check, where, message }`.
     - Create only this file.
     - _Requirements: 13.1, 13.2, 4.5_
-  - [~] 11.2 Write `SRC/game/content/validateChapterContent.test.ts`
+  - [x] 11.2 Write `SRC/game/content/validateChapterContent.test.ts`
     - Example tests on the real scenario, overlay and committed manifest, with `fileInfo` supplied from `node:fs` over `apps/game/public`. Expect no issue. Add broken-fixture examples for each of V5, V6, V7.
     - Create only this file.
     - _Requirements: 13.1, 17.1, 17.3_
-  - [~] 11.3 Write Property 2 in `SRC/game/content/validateChapterContent.faults.property.test.ts`
+  - [x] 11.3 Write Property 2 in `SRC/game/content/validateChapterContent.faults.property.test.ts`
     - **Property 2: The content validator detects injected faults**
     - **Validates: Requirements 4.2, 4.6, 9.2, 11.7, 13.1**
     - Apply one mutation from the 24-item catalogue of design.md section 3 to a deep copy; assert at least one issue naming the mutated item; assert the unmutated inputs return none.
     - Create only this file.
     - _Requirements: 13.1, 17.1_
 
-- [~] 12. Checkpoint B - validator, manifest and generator
+- [x] 12. Checkpoint B - validator, manifest and generator
   - Run, one after the other: `pnpm test`, `pnpm typecheck`, `pnpm build`. Fix failures. If `validateChapterContent.test.ts` reports a stale hash, rerun task 10.2 for the affected clips. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 13. Commits: validator, voice contracts, clips
-  - [~] 13.1 Commit the validator, solver and engine tests
+  - [-] 13.1 Commit the validator, solver and engine tests
     - Stage by name the files of tasks 8.1 to 8.10. Commit `test(game): add scenario validator, reachability solver and engine tests` with the trailer.
     - _Requirements: 18.2_
   - [~] 13.2 Commit the voice contracts, generator scripts and content validator
@@ -699,12 +699,25 @@ Filled in by tasks 1.1, 1.2, 5.x, 8.2, 10.1, 10.3, 14.3, 19.6, 24.1 and copied i
   - `startNodeWhen` field: type in `game/narrative/types.ts` line 214 (`startNodeWhen?: Array<{ when: Condition[]; nodeId: string }>` on `DialogueGraph`); evaluated in `game/narrative/dialogueEngine.ts` (start-node selector, loop at line 104); validated in `validateScenario.ts` lines 200-203; currently used only in `chapter1/dialogues/shopkeeper.ts` line 99. So tasks 3.7 and 3.8 can use it with no type change.
   - Contradictions with design.md: none that change behavior. Two corrections: (1) the settings type lives in `packages/shared-types` (above); (2) Vietnamese warning sign text lives in `OVL/core.ts` (above).
 - Checkpoint A (task 6): first `pnpm test` run exit 1: 82 files (81 passed, 1 failed), 761 tests (760 passed, 1 failed), 0 skipped. The only failure was the stale expectation in `dialogueEngine.test.ts` (see test updates). After that fix: `pnpm test` exit 0, 82 files passed, 761 tests passed, 0 failed, 0 skipped, 53.25 s. `pnpm typecheck` exit 0 (shared-types, landing, game Done). `pnpm build` exit 0; game main JS chunk `dist/assets/index-DYdfX1y9.js` 1,956.83 kB (gzip 551.95 kB), built in 11.18 s (baseline 1,894.05 kB, +62.78 kB); landing JS `index-DW2A16ld.js` 300.55 kB (gzip 92.95 kB), unchanged. Test count rose from 756 to 761 (cause not investigated).
+- Checkpoint B (task 12): first `pnpm test` exit 0: 95 files passed, 846 tests passed, 0 failed, 0 skipped, 99.45 s. First `pnpm typecheck` exit 2: 8 type errors, all in test files of this feature (no production-code error): `content/validateChapterContent.faults.property.test.ts` (224-225, graph ID literals `dlg.sam` and `dlg.alex` are not in `DialogueGraphId`), `narrative/conditions.test.ts` (77, 78, 83, 84, `as const` made `evidenceIds` readonly), `narrative/validateScenario.test.ts` (224 `delete` of required `persona.speakerId`; 366 and 389 `as never` keys made the assigned value `never`). Fixed in those three test files only (typed `Condition` fixture, cast of `persona` and of `evidence`/`calls` to `Record<string, unknown>`, real graph IDs `dlg.shopkeeper` and `dlg.scam-call`). No assertion changed or weakened. Rerun of those three files: 3 files, 52 tests passed. After the fix: `pnpm typecheck` exit 0; `pnpm build` exit 0. The full `pnpm test` was not rerun after the type-only test fixes (only the three edited files were).
+  - Build output: `apps/game/dist/audio/chapter01/en` 54 files, 2,764,098 bytes; `.../vi` 54 files, 2,968,002 bytes; total `dist/audio` 108 files, 5,732,100 bytes (about 5.47 MiB), matching the manifest bytes of task 10.3. Game main JS chunk `dist/assets/index-ChCxAyQz.js` 1,957.05 kB (gzip 552.10 kB), built in 13.71 s; baseline 1,894.05 kB (+63.00 kB), Checkpoint A 1,956.83 kB (+0.22 kB). Vite prints the existing "chunks larger than 1500 kB" warning (also present before). Landing JS unchanged at 300.55 kB. Browser playback of the MP3 files is not verified.
 - Existing test updates and reasons:
   - `apps/game/src/game/narrative/dialogueEngine.test.ts` (test "starts at the greeting before the scam call", ~line 46): the expected Sam greeting options now include `opt.sam.greet.chat` (order `ask-notice`, `bye`, `chat`). Reason: task 3.9 intentionally added the small-talk option per the design.md shopkeeper table. No assertion weakened; the check is still an exact `toEqual`.
-- Reachability solver explored states: (not recorded yet)
-- Voice probe result: (not recorded yet)
-- Generated clips per locale (present, missing, placeholder-tts), bytes: (not recorded yet)
-- Missing-clips report: (not recorded yet)
+- Reachability solver explored states: 59,718 (`truncated` false, budget 100,000), about 6 s per run; recorded by task 8.4. Outcomes reached: investigator, risky, uncertain, verified. No unreachable node or option, 0 soft locks, option count max 4 and min 1. The state key omits flags that no Condition or engine code reads (`ENGINE_READ_FLAGS`). `NARR/reachability.test.ts` runs the full solver once (`beforeAll`, 120 s timeout) plus two seeded tests (200 cases each, 60 s timeout). Last run: 7 tests passed, about 10 s for the file.
+- Voice probe result (task 10.1, Windows, PowerShell): the OneCore voice tokens under `HKLM:\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens` list Microsoft David (English, United States), Microsoft Mark (English, United States), Microsoft Zira (English, United States) and Microsoft An (Vietnamese, Vietnam). All four required voices are installed, so no Vietnamese clip needs to stay `missing` for lack of a voice. `System.Speech` also lists the desktop voices David and Zira (en-US) only; the OneCore list is the one the generator needs. This matches the 9.10 smoke test (MP3s produced by David, Mark, Zira and An). Sound quality is not verified.
+- Dry run (task 10.1): `pnpm --filter @scammaze/game voice:script` exit 0, printed 108 lines. `pnpm --filter @scammaze/game voice:chapter1 -- --dry-run` exit 0: jobs in scope 108, up to date 0, jobs to run 108 (en 54, vi 54), nothing written. Matches the 9.11 dry run. Voice assignment: scam and callback lines (spk.alex) David (en) and An (vi); Sam (spk.sam) Mark and An pitch 0.9; Northgate agent Zira and An pitch 1.2; case officer (spk.case-officer) Mark pitch 0.9 and An pitch 0.8. The dry run printed a harmless "WebSocket server error: Port 24678 is already in use" line (a Vite dev-server port conflict from the script's startup; exit code still 0).
+- Voice probe result: see "Voice probe result (task 10.1" above.
+- Generated clips per locale (present, missing, placeholder-tts), bytes (task 10.3, verified on branch `feat/chapter-01-voice-narrative`):
+  - en: 54 present, 0 missing, 0 placeholder-tts; 2,764,098 bytes in total (smallest clip 18,791 bytes).
+  - vi: 54 present, 0 missing, 0 placeholder-tts; 2,968,002 bytes in total (smallest clip 21,167 bytes).
+  - Origin: all 108 entries are `tts-generated`. Files on disk under `apps/game/public/audio/chapter01/`: 54 `.mp3` in `en`, 54 `.mp3` in `vi`, nothing else.
+  - File check: a script parsed the real manifest; all 108 `present` entries have an existing, non-empty `.mp3` whose size equals `bytes`. Failures: 0.
+  - No generated `.wav` in `apps/game/public/`. The only `.wav` there is the pre-existing `assets/audio/drive.wav`.
+  - `apps/game/.voice-cache/` is ignored (`git check-ignore -v` matched `.gitignore:12`) and `git ls-files` lists 0 tracked files in it.
+  - `pnpm --filter @scammaze/game voice:report` exit 0: 108 clip entries, by locale en 54 and vi 54, by status present 108, by origin tts-generated 108. No missing list.
+  - `pnpm --filter @scammaze/game exec vitest run src/game/content`: 1 file passed, 1 test passed, 0 failed (checks the real manifest against V5 to V7).
+  - Not verified: sound quality, intelligibility, browser playback of the MP3 files, and redistribution terms of the generated audio. No human has listened to the clips.
+- Missing-clips report: after task 10.3 no clip is `missing` (0 in en, 0 in vi); task 24.1 still owns the final report.
 - Final content counts: (not recorded yet)
 - Deviations: (not recorded yet)
 

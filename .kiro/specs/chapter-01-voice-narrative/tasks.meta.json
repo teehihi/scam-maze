@@ -11,6 +11,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475133271
+      },
+      {
+        "executionId": "77c23928-2ce2-4b37-8801-fcd250333656",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794475917099
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476093177
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476475385
       }
     ],
     "1.2 Audit the items the requirements left unconfirmed": [
@@ -18,6 +33,16 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475108671
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476481886
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476599017
       }
     ],
     "2.1 Append new IDs to `NARR/chapter1/ids.ts`": [
@@ -25,6 +50,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475108768
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476605778
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476628026
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476713426
       }
     ],
     "2.2 Extend the scenario types in `NARR/types.ts`": [
@@ -32,6 +72,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475108855
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476605935
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476627366
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476712121
       }
     ],
     "2.3 Add the four condition kinds in `NARR/conditions.ts`": [
@@ -39,6 +94,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475108927
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606058
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476727178
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476831650
       }
     ],
     "2.4 Add the follow-up ring to `NARR/reducer.ts`": [
@@ -46,6 +116,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475108996
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606166
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476728007
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476829681
       }
     ],
     "2.5 Add the investigator outcome in `NARR/outcome.ts`": [
@@ -53,6 +138,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109066
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606270
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476729169
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476832449
       }
     ],
     "2.6 Update `NARR/selectors.ts`": [
@@ -60,6 +160,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109193
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606365
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476729997
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476833243
       }
     ],
     "2.7 Add three objective rules in `NARR/objectives.ts`": [
@@ -67,6 +182,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109307
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606463
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476730736
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476830428
       }
     ],
     "2.8 Extend the localization walker in `NARR/localize.ts`": [
@@ -74,6 +204,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109408
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606569
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476840112
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476896188
       }
     ],
     "3.1 Create `C1/acts.ts`": [
@@ -81,6 +226,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109493
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606764
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476905519
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477104228
       }
     ],
     "3.2 Add the three objectives in `C1/objectives.ts`": [
@@ -88,6 +248,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109634
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476606907
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476904713
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477105022
       }
     ],
     "3.3 Add four evidence items and warning signs in `C1/evidence.ts`": [
@@ -95,6 +270,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109738
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607005
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476906684
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477106848
       }
     ],
     "3.4 Add the follow-up call and case message in `C1/phone.ts`": [
@@ -102,6 +292,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109812
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607112
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476903867
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477103212
       }
     ],
     "3.5 Extend `C1/dialogues/scamCall.ts`": [
@@ -109,6 +314,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109888
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607220
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476907395
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477106218
       }
     ],
     "3.6 Extend `C1/dialogues/officialLine.ts`": [
@@ -116,6 +336,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475109961
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607322
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477123518
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477263642
       }
     ],
     "3.7 Extend `C1/dialogues/callback.ts`": [
@@ -123,6 +358,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110033
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607424
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477124347
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477262564
       }
     ],
     "3.8 Create `C1/dialogues/followup.ts`": [
@@ -130,6 +380,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110139
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607529
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477122696
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477264444
       }
     ],
     "3.9 Extend `C1/dialogues/shopkeeper.ts`": [
@@ -137,6 +402,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110221
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607631
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477121894
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477265257
       }
     ],
     "3.10 Add the investigator ending and debrief text in `C1/endings.ts` and `C1/debrief.ts`": [
@@ -144,6 +424,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110304
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607734
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477120729
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477262038
       }
     ],
     "3.11 Wire the new data in `C1/scenario.ts`": [
@@ -151,6 +446,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110380
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476607882
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477273937
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477445568
       }
     ],
     "3.12 Update `SRC/test/chapterRuns.ts` for the new call and reason": [
@@ -158,6 +468,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110457
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608035
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477539195
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477668970
       }
     ],
     "4.1 Add Vietnamese text for `dlg.scam-call` in `OVL/dialogues.ts`": [
@@ -165,6 +490,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110530
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608132
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477271921
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477448212
       }
     ],
     "4.2 Add Vietnamese text for `dlg.official-line` and `dlg.callback` in `OVL/dialogues.ts`": [
@@ -172,6 +512,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110600
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608233
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477540403
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477667013
       }
     ],
     "4.3 Add Vietnamese text for `dlg.followup` and `dlg.shopkeeper` in `OVL/dialogues.ts`": [
@@ -179,6 +534,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110672
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608331
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477678861
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477797152
       }
     ],
     "4.4 Add acts, objectives and world text in `OVL/core.ts`": [
@@ -186,6 +556,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110773
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608438
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477273102
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477446492
       }
     ],
     "4.5 Add evidence text in `OVL/evidence.ts`": [
@@ -193,6 +578,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475110916
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608540
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477275584
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477444700
       }
     ],
     "4.6 Add phone text in `OVL/phone.ts`": [
@@ -200,6 +600,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111040
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608646
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477274692
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477447280
       }
     ],
     "4.7 Add ending and debrief text in `OVL/decisions.ts`": [
@@ -207,6 +622,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111110
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608747
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477462133
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477529545
       }
     ],
     "5.1 Update `NARR/chapter1/playthroughs.test.ts` for the new objectives": [
@@ -214,6 +644,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111176
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608853
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477537268
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477668174
       }
     ],
     "5.2 Update `NARR/objectives.test.ts`": [
@@ -221,6 +666,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111243
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476608963
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477541051
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477670886
       }
     ],
     "5.3 Update the lint walker in `NARR/chapter1/content.test.ts`": [
@@ -228,6 +688,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111317
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609080
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477538427
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477670188
       }
     ],
     "5.4 Update the lint walker copy in `SRC/i18n/narrative.test.ts`": [
@@ -235,6 +710,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111395
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609292
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477804276
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477916327
       }
     ],
     "5.5 Fix `ScenarioDefinition` fixture literals in other tests": [
@@ -242,6 +732,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111478
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609390
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477677968
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477795694
       }
     ],
     "6. Checkpoint A - narrative content builds and existing tests pass": [
@@ -249,6 +754,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111548
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609487
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477936219
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478204444
       }
     ],
     "7.1 Create the local commit for tasks 2 to 5": [
@@ -256,6 +776,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111617
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609589
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478204685
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478343536
       }
     ],
     "8.1 Extend `NARR/validateScenario.ts` (checks V1, V3 static, V4 static)": [
@@ -263,6 +798,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111693
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609698
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478354096
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479030197
       }
     ],
     "8.2 Create `NARR/reachability.ts` (check V2 and measured V3/V4)": [
@@ -270,6 +820,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111816
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609810
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478352888
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479030480
       }
     ],
     "8.3 Extend `NARR/validateScenario.test.ts`": [
@@ -277,6 +842,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475111911
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476609919
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479171494
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480511977
       }
     ],
     "8.4 Write `NARR/reachability.test.ts` and Property 3, Property 4": [
@@ -284,6 +864,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112002
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610025
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479169445
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480511611
       }
     ],
     "8.5 Write Property 5 in `NARR/properties/conditionedOptions.property.test.ts`": [
@@ -291,6 +886,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112079
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610130
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479172274
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480513141
       }
     ],
     "8.6 Write `C1/acts.test.ts`": [
@@ -298,6 +908,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112157
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610255
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478351714
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479031702
       }
     ],
     "8.7 Write Property 1 in `NARR/properties/acts.property.test.ts`": [
@@ -305,6 +930,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112243
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610386
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478350895
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479030705
       }
     ],
     "8.8 Write Property 6 in `NARR/properties/outcome.investigator.property.test.ts`": [
@@ -312,6 +952,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112359
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610502
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478354816
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479030932
       }
     ],
     "8.9 Extend `NARR/conditions.test.ts`": [
@@ -319,6 +974,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112425
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610654
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479053714
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479160104
       }
     ],
     "8.10 Write `NARR/reducer.followup.test.ts`": [
@@ -326,6 +996,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112496
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610751
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479056851
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479161058
       }
     ],
     "9.1 Create `VOICE/manifestTypes.ts`, `VOICE/hash.ts` and the asset path constant": [
@@ -333,6 +1018,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112571
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610855
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479054918
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479162097
       }
     ],
     "9.2 Create `VOICE/selectClip.ts`": [
@@ -340,6 +1040,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112649
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476610953
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479173170
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480511390
       }
     ],
     "9.3 Create `VOICE/renderManifest.ts`": [
@@ -347,6 +1062,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112733
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611051
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794479170241
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480513956
       }
     ],
     "9.4 Create `VOICE/voiceReport.ts`": [
@@ -354,6 +1084,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112822
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611167
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480530821
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480638016
       }
     ],
     "9.5 Create `VOICE/buildVoiceJobs.ts`": [
@@ -361,6 +1106,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475112910
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611277
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480531462
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480638832
       }
     ],
     "9.6 Write Property 9 in `VOICE/selectClip.property.test.ts`": [
@@ -368,6 +1128,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113000
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611380
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480650236
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480842475
       }
     ],
     "9.7 Write Property 20 in `VOICE/renderManifest.property.test.ts`": [
@@ -375,6 +1150,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113087
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611479
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480649594
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480844448
       }
     ],
     "9.8 Write Property 17 in `VOICE/voiceReport.property.test.ts`": [
@@ -382,6 +1172,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113171
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611579
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480646388
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480841690
       }
     ],
     "9.9 Write `VOICE/buildVoiceJobs.test.ts`": [
@@ -389,6 +1194,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113251
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611681
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480648398
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480845373
       }
     ],
     "9.10 Create `apps/game/scripts/generate-chapter1-voice.ps1`": [
@@ -396,6 +1216,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113324
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611803
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480647596
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480843738
       }
     ],
     "9.11 Create `apps/game/scripts/generate-chapter1-voice.mjs`, package scripts and `.gitignore` entry": [
@@ -403,6 +1238,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113403
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476611967
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480976974
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481168988
       }
     ],
     "10.1 Probe the voices and dry-run the generator": [
@@ -410,6 +1260,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113483
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612061
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481185097
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481241173
       }
     ],
     "10.2 Run the generator for real": [
@@ -417,6 +1282,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113563
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612148
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481241760
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481300438
       }
     ],
     "10.3 Verify and record the generated clips": [
@@ -424,6 +1304,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113642
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612253
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481301097
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481404755
       }
     ],
     "11.1 Create `SRC/game/content/validateChapterContent.ts` (checks V5, V6, V7)": [
@@ -431,6 +1326,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113719
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612361
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480874262
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480964169
       }
     ],
     "11.2 Write `SRC/game/content/validateChapterContent.test.ts`": [
@@ -438,6 +1348,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113797
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612463
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481413424
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481477181
       }
     ],
     "11.3 Write Property 2 in `SRC/game/content/validateChapterContent.faults.property.test.ts`": [
@@ -445,6 +1370,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113869
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612564
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480977878
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481170469
       }
     ],
     "12. Checkpoint B - validator, manifest and generator": [
@@ -452,6 +1392,21 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475113942
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612670
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481485804
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481841806
       }
     ],
     "13.1 Commit the validator, solver and engine tests": [
@@ -459,6 +1414,16 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114013
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612769
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481842080
       }
     ],
     "13.2 Commit the voice contracts, generator scripts and content validator": [
@@ -466,6 +1431,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114084
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612882
       }
     ],
     "13.3 Commit the generated manifest and clips": [
@@ -473,6 +1443,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114162
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476612995
       }
     ],
     "14.1 Create `VOICE/audioPort.ts` and `VOICE/mixPlan.ts`": [
@@ -480,6 +1455,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114248
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613154
       }
     ],
     "14.2 Create the test double `SRC/test/fakeAudioPort.ts`": [
@@ -487,6 +1467,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114340
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613255
       }
     ],
     "14.3 Create the pure choice gate `VOICE/optionsGate.ts`": [
@@ -494,6 +1479,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114428
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613357
       }
     ],
     "14.4 Create `VOICE/VoiceDialoguePlayer.ts`": [
@@ -501,6 +1491,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114510
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613455
       }
     ],
     "14.5 Create `VOICE/devSpeechPreview.ts`": [
@@ -508,6 +1503,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114592
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613561
       }
     ],
     "14.6 Create `VOICE/webAudioEngine.ts`": [
@@ -515,6 +1515,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114760
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613667
       }
     ],
     "14.7 Write Property 19 in `VOICE/mixPlan.property.test.ts`": [
@@ -522,6 +1527,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114847
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613772
       }
     ],
     "14.8 Write Property 10 and Property 11 in `VOICE/VoiceDialoguePlayer.property.test.ts`": [
@@ -529,6 +1539,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475114956
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613865
       }
     ],
     "14.9 Write Property 12 and Property 13 in `VOICE/VoiceDialoguePlayer.failures.property.test.ts`": [
@@ -536,6 +1551,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115041
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476613959
       }
     ],
     "14.10 Write Property 14 in `VOICE/optionsGate.property.test.ts`": [
@@ -543,6 +1563,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115122
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614049
       }
     ],
     "14.11 Write Property 18 in `VOICE/devSpeechPreview.property.test.ts`": [
@@ -550,6 +1575,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115198
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614151
       }
     ],
     "14.12 Write example tests in `VOICE/VoiceDialoguePlayer.test.ts`": [
@@ -557,6 +1587,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115280
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614301
       }
     ],
     "14.13 Write `VOICE/webAudioEngine.test.ts`": [
@@ -564,6 +1599,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115363
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614411
       }
     ],
     "14.14 Write `VOICE/boundaries.test.ts`": [
@@ -571,6 +1611,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115444
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614529
       }
     ],
     "15.1 Extend `GameSettings` in `packages/shared-types/src/index.ts`": [
@@ -578,6 +1623,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115537
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614635
       }
     ],
     "15.2 Update `SRC/app/settingsStorage.ts`": [
@@ -585,6 +1635,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115641
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614748
       }
     ],
     "15.3 Write Property 15 (parsing) in `SRC/app/settingsStorage.property.test.ts`": [
@@ -592,6 +1647,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115717
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614849
       }
     ],
     "15.4 Add the six fields to `GameSettings` fixtures in other tests": [
@@ -599,6 +1659,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115783
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476614955
       }
     ],
     "15.5 Create `SRC/components/ui/useReducedMotion.ts` and `F1/comfort/ComfortProvider.tsx`": [
@@ -606,6 +1671,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115850
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476615246
       }
     ],
     "15.6 Write the motion part of Property 15 in `F1/comfort/comfort.property.test.ts`": [
@@ -613,6 +1683,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475115930
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476615341
       }
     ],
     "15.7 Add settings and prologue strings in `SRC/i18n/locales/{en,vi}/settings.ts` and `menu.ts`": [
@@ -620,6 +1695,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116042
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476615453
       }
     ],
     "15.8 Add the \"Voice and comfort\" section to `SRC/features/menu/SettingsModal.tsx`": [
@@ -627,6 +1707,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116116
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476615572
       }
     ],
     "15.9 Extend `SRC/features/menu/SettingsModal.test.tsx`": [
@@ -634,6 +1719,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116191
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476615699
       }
     ],
     "16. Checkpoint C - voice player and settings": [
@@ -641,6 +1731,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116268
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476615815
       }
     ],
     "17.1 Commit the voice player and audio engine": [
@@ -648,6 +1743,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116346
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476615934
       }
     ],
     "17.2 Commit settings and migration": [
@@ -655,6 +1755,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116422
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616050
       }
     ],
     "18.1 Add phone UI strings in `SRC/i18n/locales/{en,vi}/chapter1/phone.ts`": [
@@ -662,6 +1767,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116496
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616157
       }
     ],
     "18.2 Add HUD strings in `SRC/i18n/locales/{en,vi}/chapter1/hud.ts`": [
@@ -669,6 +1779,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116577
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616257
       }
     ],
     "18.3 Create `F1/voice/useCallDuration.ts`": [
@@ -676,6 +1791,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116661
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616387
       }
     ],
     "18.4 Update `F1/call/PhoneScreenUI.tsx`": [
@@ -683,6 +1803,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116754
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616475
       }
     ],
     "18.5 Update `F1/call/PlayerChoiceOverlay.tsx`": [
@@ -690,6 +1815,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116841
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616572
       }
     ],
     "18.6 Create `F1/voice/useVoicePlayback.ts`": [
@@ -697,6 +1827,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475116929
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616666
       }
     ],
     "18.7 Create `F1/voice/useCallAudio.ts`": [
@@ -704,6 +1839,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117007
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616779
       }
     ],
     "18.8 Update `F1/call/CallPresentation.tsx`": [
@@ -711,6 +1851,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117084
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476616898
       }
     ],
     "18.9 Update `F1/dialogue/DialoguePanel.tsx`": [
@@ -718,6 +1863,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117157
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617005
       }
     ],
     "18.10 Write Property 21 in `F1/voice/useCallDuration.property.test.tsx`": [
@@ -725,6 +1875,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117257
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617115
       }
     ],
     "18.11 Write `F1/call/PhoneScreenUI.controls.test.tsx`": [
@@ -732,6 +1887,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117368
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617224
       }
     ],
     "18.12 Write `F1/call/PlayerChoiceOverlay.gate.test.tsx`": [
@@ -739,6 +1899,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117433
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617332
       }
     ],
     "18.13 Write `F1/dialogue/DialoguePanel.voice.test.tsx`": [
@@ -746,6 +1911,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117505
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617448
       }
     ],
     "19.1 Add the follow-up trigger to `F1/useCallTriggers.ts`": [
@@ -753,6 +1923,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117572
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617592
       }
     ],
     "19.2 Write `F1/useCallTriggers.followup.test.ts`": [
@@ -760,6 +1935,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117647
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617700
       }
     ],
     "19.3 Write `C1/evidenceCoverage.test.ts`": [
@@ -767,6 +1947,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117723
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617821
       }
     ],
     "19.4 Show the act label in `F1/hud/ObjectiveTracker.tsx`": [
@@ -774,6 +1959,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117806
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476617936
       }
     ],
     "19.5 Add the investigator icon in `F1/ending/EndingTransition.tsx`": [
@@ -781,6 +1971,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117891
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618054
       }
     ],
     "19.6 Add the voice credits entry": [
@@ -788,6 +1983,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475117970
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618172
       }
     ],
     "19.7 Create `F1/hud/SaveTrimmedNotice.tsx`": [
@@ -795,6 +1995,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118051
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618287
       }
     ],
     "19.8 Update credit and chapter dictionary tests": [
@@ -802,6 +2007,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118138
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618400
       }
     ],
     "20.1 Add lenient restore to `SRC/game/saves/chapterProgress.ts`": [
@@ -809,6 +2019,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118215
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618514
       }
     ],
     "20.2 Use lenient restore in `SRC/game/loading/chapterLoader.ts` and `SRC/game/chapters/chapterSession.ts`": [
@@ -816,6 +2031,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118307
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618626
       }
     ],
     "20.3 Write Property 16 in `SRC/game/saves/chapterProgress.lenient.property.test.ts`": [
@@ -823,6 +2043,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118392
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618779
       }
     ],
     "20.4 Extend `SRC/game/saves/chapterProgress.test.ts` and `SRC/game/loading/chapterLoader.test.ts`": [
@@ -830,6 +2055,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118470
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618878
       }
     ],
     "20.5 Write `C1/savedPathsStillReplay.test.ts`": [
@@ -837,6 +2067,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118550
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476618991
       }
     ],
     "21. Checkpoint D - phone UI, follow-up, endings, saves": [
@@ -844,6 +2079,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118623
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619100
       }
     ],
     "22.1 Commit the phone call UI": [
@@ -851,6 +2091,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118699
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619204
       }
     ],
     "22.2 Commit follow-up call, endings, act label and credits": [
@@ -858,6 +2103,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118779
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619308
       }
     ],
     "22.3 Commit lenient save restore": [
@@ -865,6 +2115,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118861
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619418
       }
     ],
     "23.1 Wire everything in `F1/ChapterOnePage.tsx`": [
@@ -872,6 +2127,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475118941
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619532
       }
     ],
     "23.2 Write `F1/ChapterOnePage.voice.test.tsx`": [
@@ -879,6 +2139,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119078
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619636
       }
     ],
     "23.3 Write Property 7 in the existing equivalence test `F1/call/callPresentation.voiceEquivalence.property.test.tsx`": [
@@ -886,6 +2151,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119155
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619790
       }
     ],
     "23.4 Write Property 8 in `NARR/properties/audioIndependence.property.test.ts`": [
@@ -893,6 +2163,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119227
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476619893
       }
     ],
     "23.5 Add new playthrough runs to `NARR/chapter1/playthroughs.test.ts`": [
@@ -900,6 +2175,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119307
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620012
       }
     ],
     "23.6 Extend `F1/accessibility.test.tsx`": [
@@ -907,6 +2187,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119384
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620123
       }
     ],
     "23.7 Write `F1/noAuthoredText.test.ts`": [
@@ -914,6 +2199,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119461
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620227
       }
     ],
     "24.1 Produce the missing-clips report and the content counts": [
@@ -921,6 +2211,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119534
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620329
       }
     ],
     "25.1 Update `docs/architecture/OVERVIEW.md`": [
@@ -928,6 +2223,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119620
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620440
       }
     ],
     "25.2 Update `ACCESSIBILITY.md`": [
@@ -935,6 +2235,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119704
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620551
       }
     ],
     "26. Checkpoint E - final verification": [
@@ -942,6 +2247,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119785
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620671
       }
     ],
     "27.1 Update `docs/PROJECT_PROGRESS.md`": [
@@ -949,6 +2259,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119864
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476620977
       }
     ],
     "28.1 Commit page integration and new tests": [
@@ -956,6 +2271,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475119945
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476621074
       }
     ],
     "28.2 Commit documentation": [
@@ -963,6 +2283,11 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475120029
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476621185
       }
     ],
     "29.1 Push the branch without force": [
@@ -970,6 +2295,81 @@
         "executionId": "ad97cbe2-8d1b-4f45-bacc-ecf0895f54f3",
         "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
         "timestamp": 1794475120116
+      },
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476621295
+      }
+    ],
+    "1. Branch, baseline and audit": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476599124
+      }
+    ],
+    "2. Scenario schema and engine extension": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794476896313
+      }
+    ],
+    "3. Chapter 1 narrative content in English": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477669058
+      }
+    ],
+    "4. Vietnamese narrative overlay": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477797258
+      }
+    ],
+    "5. Keep existing tests green": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794477916468
+      }
+    ],
+    "7. Commit: schema, engine and content": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794478343625
+      }
+    ],
+    "8. Engine and content-validator tests": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794480513267
+      }
+    ],
+    "9. Audio manifest contract and generator script": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481169123
+      }
+    ],
+    "10. Generate the real voice clips": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481405090
+      }
+    ],
+    "11. Content validator for subtitles, manifest and files": [
+      {
+        "executionId": "e742a5a2-9e14-4f1f-894d-2736370e912d",
+        "chatSessionId": "sess_de262ed9-2334-40b3-bd10-0ca1413da148",
+        "timestamp": 1794481477351
       }
     ]
   }
