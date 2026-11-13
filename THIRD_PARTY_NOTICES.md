@@ -100,6 +100,8 @@ author's permission.
 | **three** | MIT License | 3D WebGL rendering engine |
 | **@react-three/fiber** | MIT License | Declarative React Three.js renderer |
 | **@react-three/drei** | MIT License | Asset loaders (`useGLTF`) & 3D helpers |
+| **n8ao** | ISC License | Ambient-occlusion pass for the Mekong Delta world (`/mientay`) |
+| **postprocessing** | Zlib License | Required peer dependency of `n8ao` |
 | **react / react-dom** | MIT License | UI component runtime |
 | **tailwindcss** | MIT License | Styling engine |
 | **vite** | MIT License | Build tool & local dev server |
