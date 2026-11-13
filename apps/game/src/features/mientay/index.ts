@@ -1,0 +1,1 @@
+export { MientayPage } from './MientayPage';

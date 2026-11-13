@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+import React, { lazy, Suspense, useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { TestMovePage } from "../features/testmove";
@@ -18,6 +18,10 @@ import { createLocalStorageSaveSource } from "../game/saves/saveGame";
 import type { GameSettings } from "@scammaze/shared-types";
 import { applyLocale } from "../i18n";
 import { loadSettings, saveSettings } from "./settingsStorage";
+
+// The Mekong world is large (its own procedural builders plus the ambient-occlusion pass), so it
+// is only downloaded when someone opens /mientay; the menu does not pay for it.
+const MientayPage = lazy(() => import("../features/mientay").then((module) => ({ default: module.MientayPage })));
 
 /** `window.localStorage` itself can throw (for example when storage is blocked). */
 function getBrowserStorage(): Storage | undefined {
@@ -39,7 +43,7 @@ function readSavedContinueAvailability(): ContinueAvailability {
   return readContinueAvailability(saveSource);
 }
 
-type AppRoute = "menu" | "testmove" | "ueh" | "hue";
+type AppRoute = "menu" | "testmove" | "ueh" | "hue" | "mientay";
 
 function getAppRoute(): AppRoute {
   if (typeof window === "undefined") return "menu";
@@ -48,6 +52,7 @@ function getAppRoute(): AppRoute {
   if (path.startsWith("/testmove") || hash.includes("testmove")) return "testmove";
   if (path.startsWith("/ueh") || hash.includes("ueh")) return "ueh";
   if (path.startsWith("/hue") || hash.includes("hue")) return "hue";
+  if (path.startsWith("/mientay") || hash.includes("mientay")) return "mientay";
   return "menu";
 }
 
@@ -88,7 +93,9 @@ export const App: React.FC = () => {
             ? "/ueh"
             : newRoute === "hue"
               ? "/hue"
-              : "/";
+              : newRoute === "mientay"
+                ? "/mientay"
+                : "/";
     window.history.pushState(null, "", targetPath);
     setRoute(newRoute);
   };
@@ -465,6 +472,18 @@ export const App: React.FC = () => {
         settings={settings}
         onBackToMenu={() => navigateTo("menu")}
       />
+    );
+  }
+
+  // Route: /mientay -> Procedural 3D Mekong Delta world (Miền Tây sông nước)
+  if (route === "mientay") {
+    return (
+      <Suspense fallback={<div className="h-screen w-screen bg-[#0b0e0c]" aria-busy="true" />}>
+        <MientayPage
+          settings={settings}
+          onBackToMenu={() => navigateTo("menu")}
+        />
+      </Suspense>
     );
   }
 
