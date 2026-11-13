@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Final code review on stop",
+      "trigger": "Stop",
+      "description": "When an agent finishes, if source files changed since the last review: group the diff by area, flag edits spanning unrelated areas, run the incremental type check of changed packages and only the Vitest files related to the changed files. Problems trigger one more agent turn; an unchanged diff is never re-reported (fingerprint in .git/kiro).",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/scripts/final-review.mjs",
+        "timeout": 300
+      }
+    }
+  ]
+}

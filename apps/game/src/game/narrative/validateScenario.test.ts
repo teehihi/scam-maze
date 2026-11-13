@@ -31,6 +31,25 @@ describe("validateScenario", () => {
     expect(JSON.stringify(CHAPTER_1_SCENARIO)).toBe(before);
   });
 
+  it("rejects a root that is not an object instead of calling it valid", () => {
+    for (const junk of [null, undefined, [], "x", 42, true]) {
+      const issues = validateScenarioIssues(junk as unknown as ScenarioDefinition);
+      expect(issues, String(junk)).toHaveLength(1);
+      expect(issues[0].check).toBe("V1");
+      expect(issues[0].message).toMatch(/^Scenario must be an object, got /);
+    }
+  });
+
+  it("rejects a scenario without the collections it needs to be played", () => {
+    const messages = validateScenario({} as ScenarioDefinition);
+    for (const key of ["objectives", "dialogues", "decisions", "endings", "acts"]) {
+      expect(messages).toContain(`Scenario has no ${key}; it needs at least one.`);
+    }
+    const s = cloneScenario();
+    (s as { dialogues: unknown }).dialogues = {};
+    expect(validateScenario(s)).toContain("Scenario has no dialogues; it needs at least one.");
+  });
+
   it("reports an option that points to a missing node", () => {
     const s = cloneScenario();
     s.dialogues["dlg.scam-call"].nodes["scam.open"].options[0].next = "scam.missing";

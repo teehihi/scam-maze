@@ -11,3 +11,5 @@ dist
 apps/game/.voice-cache/
 # Large third-party source exports (production assets live in apps/game/public)
 apps/game/assets-src/vehicles/*-gltf/
+# Playwright MCP output (screenshots, console logs, page snapshots from QA runs)
+.kiro/qa-output/

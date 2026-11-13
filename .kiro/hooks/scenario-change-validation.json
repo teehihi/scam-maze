@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Scenario change validation",
+      "trigger": "PostFileSave",
+      "description": "When an agent saves a narrative-core, Chapter 1 data or chapter text file, run the scenario gate (validator V1/V3/V4, reachability solver, content lint, scenario-validation properties) and warn if scenario data changed without a test change.",
+      "matcher": "apps/game/src/(game/narrative/|i18n/locales/(en|vi)/chapter1/)",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/scripts/check-scenarios.mjs",
+        "timeout": 120
+      }
+    }
+  ]
+}

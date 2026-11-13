@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Scenario file creation validation",
+      "trigger": "PostFileCreate",
+      "description": "Same scenario gate as 'Scenario change validation', for newly created narrative or chapter text files (new dialogue graphs, new chapter data).",
+      "matcher": "apps/game/src/(game/narrative/|i18n/locales/(en|vi)/chapter1/)",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/scripts/check-scenarios.mjs",
+        "timeout": 120
+      }
+    }
+  ]
+}

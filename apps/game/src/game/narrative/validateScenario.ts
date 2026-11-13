@@ -116,7 +116,38 @@ function add(issues: Issues, check: ValidatorCheck, where: string, message: stri
   issues.push({ check, where, message });
 }
 
+/** Collections a playable scenario cannot be without (non-empty records, plus a non-empty `acts` list). */
+const REQUIRED_RECORDS = ["objectives", "dialogues", "decisions", "endings"] as const;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Root shape. Without it a junk value (`{}`, `[]`, `"x"`, `42`) produced no issue at all and
+ * passed as a valid scenario (found by the scenario-validation properties, Requirement 3.1).
+ * Returns false when nothing else can be checked.
+ */
+function checkRoot(errors: Issues, scenario: unknown): boolean {
+  if (!isPlainRecord(scenario)) {
+    const kind = scenario === null ? "null" : Array.isArray(scenario) ? "an array" : typeof scenario;
+    add(errors, "V1", "Scenario", `Scenario must be an object, got ${kind}.`);
+    return false;
+  }
+  for (const key of REQUIRED_RECORDS) {
+    const value = scenario[key];
+    if (!isPlainRecord(value) || Object.keys(value).length === 0) {
+      add(errors, "V1", "Scenario", `Scenario has no ${key}; it needs at least one.`);
+    }
+  }
+  if (!Array.isArray(scenario.acts) || scenario.acts.length === 0) {
+    add(errors, "V1", "Scenario", "Scenario has no acts; it needs at least one.");
+  }
+  return true;
+}
+
 function runChecks(errors: Issues, scenario: ScenarioDefinition): void {
+  if (!checkRoot(errors, scenario)) return;
   const dialogues = scenario.dialogues ?? {};
   const graphs = Object.values(dialogues);
   const refs: RefSets = {

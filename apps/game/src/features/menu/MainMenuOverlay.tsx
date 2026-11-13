@@ -93,15 +93,19 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
 
   // The highlighted item follows the mouse and the keyboard; it starts on NEW GAME.
   const [activeId, setActiveId] = useState<MenuEntry["id"]>("newGame");
+  // Mirror of `activeId` for event handlers. Side effects (sound, focus) run in the handlers, never
+  // inside a state updater: React may call updaters twice (StrictMode), and focus() inside one
+  // fired onFocus mid-update, so one ArrowDown moved two items in development.
+  const activeRef = useRef<MenuEntry["id"]>("newGame");
   const buttonRefs = useRef(new Map<MenuEntry["id"], HTMLButtonElement>());
   const modalOpen = settingsOpen || creditsOpen;
 
   const activate = useCallback(
     (id: MenuEntry["id"], withSound = true) => {
-      setActiveId((prev) => {
-        if (prev !== id && withSound) onHoverSound?.();
-        return id;
-      });
+      if (activeRef.current === id) return;
+      activeRef.current = id;
+      if (withSound) onHoverSound?.();
+      setActiveId(id);
     },
     [onHoverSound],
   );
@@ -119,13 +123,15 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
       const up = e.key === "ArrowUp" || e.code === "KeyW";
       if (!down && !up) return;
       e.preventDefault();
-      setActiveId((prev) => {
-        const i = Math.max(0, ids.indexOf(prev));
-        const next = ids[(i + (down ? 1 : ids.length - 1)) % ids.length];
-        if (next !== prev) onHoverSound?.();
-        buttonRefs.current.get(next)?.focus({ preventScroll: true });
-        return next;
-      });
+      const prev = activeRef.current;
+      const i = Math.max(0, ids.indexOf(prev));
+      const next = ids[(i + (down ? 1 : ids.length - 1)) % ids.length];
+      if (next === prev) return;
+      activeRef.current = next;
+      onHoverSound?.();
+      setActiveId(next);
+      // Focus last: its onFocus sees activeRef already on `next` and does nothing.
+      buttonRefs.current.get(next)?.focus({ preventScroll: true });
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
