@@ -1,21 +1,29 @@
 // Opening screen of a chapter: the street is already visible behind it, and a friendly voice
-// greets the player with typed-out text. It never shows the chapter number or title, so the
-// player is not told in advance what is coming. A click skips the typing, a second click starts
-// the story (the page dispatches START_CHAPTER in `onBegin`).
+// greets the player one paragraph at a time. Each paragraph plays its voice clip and is typed in
+// step with it. A click shows the whole paragraph; the next click cuts the voice and moves on.
+// After the last paragraph the controls appear and a click starts the story (the page
+// dispatches START_CHAPTER in `onBegin`). It never shows the chapter number or title, so the
+// player is not told in advance what is coming.
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useTypewriter } from "./useTypewriter";
+import { useGameLocale } from "../../../i18n";
+import { RESUME_SCRIPT, welcomeScript } from "./introScript";
+import { useIntroNarration, type NarrationLine } from "./useIntroNarration";
 
 export type IntroMode = "begin" | "continue";
 
 export interface ChapterIntroOverlayProps {
-  /** True once the Chapter_Canvas has reported scene readiness. Typing starts then. */
+  /** True once the Chapter_Canvas has reported scene readiness. Voice and typing start then. */
   ready: boolean;
   /** "continue" when a saved run is being restored. */
   mode: IntroMode;
+  /** Voice gain 0..1 from the settings (0 when sound is off). */
+  voiceGain: number;
   onBegin: () => void;
+  /** Test seam for the voice clips. */
+  createAudio?: (src: string) => HTMLAudioElement;
 }
 
 /** Key caps are physical labels and stay the same in every language ("mouse" is translated). */
@@ -28,26 +36,41 @@ const CONTROLS = [
   { id: "pause", keys: ["Esc"] },
 ] as const;
 
-export const ChapterIntroOverlay: React.FC<ChapterIntroOverlayProps> = ({ ready, mode, onBegin }) => {
+export const ChapterIntroOverlay: React.FC<ChapterIntroOverlayProps> = ({
+  ready,
+  mode,
+  voiceGain,
+  onBegin,
+  createAudio,
+}) => {
   const { t } = useTranslation("chapter1");
+  const locale = useGameLocale();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const text =
-    mode === "continue"
-      ? t("intro.resume")
-      : [t("intro.welcome.p1"), t("intro.welcome.p2"), t("intro.welcome.p3")].join("\n\n");
-  const { shown, done, skip } = useTypewriter(text, ready);
-  const canContinue = ready && done;
+  const script = mode === "continue" ? RESUME_SCRIPT : welcomeScript(locale);
+  const lineTexts = script.map((line) => t(line.textKey));
+  const linesKey = `${script.map((line) => line.src ?? "").join("|")}\n${lineTexts.join("\n")}`;
+  const lines: NarrationLine[] = useMemo(
+    () => script.map((line, i) => ({ text: lineTexts[i], src: line.src })),
+    // Rebuilt only when the clips or the translated text change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [linesKey],
+  );
+  const narration = useIntroNarration({ lines, active: ready, gain: voiceGain, createAudio });
+  const { shown, text, lineDone, isLast } = narration;
+  const canContinue = ready && isLast && lineDone;
 
   useEffect(() => {
     headingRef.current?.focus();
   }, []);
 
-  /** First click shows all the text; the next one continues. Ignored while the scene loads. */
+  /**
+   * First click shows the whole paragraph; the next one moves to the next paragraph (cutting the
+   * voice), and after the last paragraph it starts the story. Ignored while the scene loads.
+   */
   const advance = () => {
     if (!ready) return;
-    if (done) onBegin();
-    else skip();
+    if (narration.advance() === "finished") onBegin();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
@@ -85,8 +108,22 @@ export const ChapterIntroOverlay: React.FC<ChapterIntroOverlayProps> = ({ ready,
 
         {ready ? (
           <>
-            {/* Screen readers get the whole text at once instead of letter by letter. */}
-            <p className="sr-only">{text}</p>
+            {/* Screen readers get each whole paragraph at once (announced when it changes). */}
+            <p className="sr-only" aria-live="polite">
+              {text}
+            </p>
+            {narration.total > 1 && (
+              <div aria-hidden="true" data-testid="chapter-intro-step" className="mb-4 flex items-center gap-1.5">
+                {Array.from({ length: narration.total }, (_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1 transition-all duration-300 ${
+                      i === narration.index ? "w-8 bg-[#f3efe4]" : i < narration.index ? "w-4 bg-[#7654d6]" : "w-4 bg-white/20"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
             <p
               aria-hidden="true"
               data-testid="chapter-intro-text"
@@ -94,7 +131,7 @@ export const ChapterIntroOverlay: React.FC<ChapterIntroOverlayProps> = ({ ready,
               style={{ textShadow: "0 2px 14px rgba(0,0,0,0.85)" }}
             >
               {shown}
-              {!done && <span className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[0.15em] bg-[#b9a5f5] motion-safe:animate-pulse" />}
+              {!lineDone && <span className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[0.15em] bg-[#b9a5f5] motion-safe:animate-pulse" />}
             </p>
           </>
         ) : (
@@ -151,9 +188,9 @@ export const ChapterIntroOverlay: React.FC<ChapterIntroOverlayProps> = ({ ready,
           </button>
         </div>
 
-        {ready && !done && (
+        {ready && !canContinue && (
           <p className="mt-4 text-xs text-[#a9a4c4]" aria-hidden="true">
-            {t("intro.skip")}
+            {lineDone ? t("intro.next") : t("intro.skip")}
           </p>
         )}
       </div>

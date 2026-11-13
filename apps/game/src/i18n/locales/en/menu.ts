@@ -2,7 +2,7 @@
 const menu = {
   nav: { label: "Game Main Menu" },
   /** Line under the logo. Deliberately names no chapter, so the start is not spoiled. */
-  kicker: "A first-person story about scams",
+  kicker: "Trust no one. Question everything.",
   hints: { navigate: "Select", select: "Confirm" },
   buttons: {
     newGame: { label: "NEW GAME", sublabel: "Start a new story" },

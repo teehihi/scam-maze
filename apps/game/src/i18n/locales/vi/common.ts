@@ -14,7 +14,7 @@ const common: LocaleShape<typeof en> = {
   },
   audio: {
     on: "ÂM THANH BẬT",
-    muted: "ĐÃ TẮT TIẾNG",
+    muted: "ÂM THANH TẮT",
     muteTitle: "Tắt âm thanh nền (M)",
     unmuteTitle: "Bật âm thanh nền (M)",
   },

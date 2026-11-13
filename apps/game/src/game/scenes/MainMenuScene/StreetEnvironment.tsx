@@ -53,15 +53,20 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
   const foliageRef = useRef<FoliageAnimSystem>({});
   const readyNotified = useRef(false);
 
-  // Prepare and calibrate the Vietnamese street environment
-  // In-place traversal with static transform freezing and frustum culling
+  // Prepare and calibrate the Vietnamese street environment.
+  // Every StreetEnvironment renders its own clone of the cached GLTF scene. The menu canvas stays
+  // mounted under Chapter 1, and a three.js object can only have one parent: sharing the cached
+  // scene let the chapter canvas take it, so the menu was left with only the sky after "Back to
+  // menu". Clones share geometry, materials and textures (cheap); only the node tree is copied.
   const primaryCityScene = useMemo(() => {
-    const scene = cityGltf.scene;
+    const source = cityGltf.scene;
+    const scene = source.clone(true);
     const npcs: AnimatedPedestrian[] = [];
     const foliage: FoliageAnimSystem = {};
 
     let npcIndex = 0;
-    const alreadyCalibrated = Boolean(scene.userData.calibrated);
+    // Materials are shared by every clone, so they are calibrated once (flag on the cached source).
+    const alreadyCalibrated = Boolean(source.userData.calibrated);
 
     // Helper to enable matrix auto update on an object and all its children
     const enableDynamicMatrix = (obj: THREE.Object3D) => {
@@ -206,17 +211,15 @@ export const StreetEnvironment: React.FC<StreetEnvironmentProps> = ({
       }
     });
 
-    // Setup dynamic car pivot if not already done
-    if (!scene.userData.carPivot) {
-      const lexusObj = findLexusNode(scene);
-      if (lexusObj) {
-        scene.updateMatrixWorld(true);
-        const carPivot = buildLexusPivot(lexusObj);
-        scene.add(carPivot);
-        scene.userData.carPivot = carPivot;
-      }
+    // Drivable car pivot for this clone (each clone has its own Lexus nodes).
+    const lexusObj = findLexusNode(scene);
+    if (lexusObj) {
+      scene.updateMatrixWorld(true);
+      const carPivot = buildLexusPivot(lexusObj);
+      scene.add(carPivot);
+      scene.userData.carPivot = carPivot;
     }
-    scene.userData.calibrated = true;
+    source.userData.calibrated = true;
     npcsRef.current = npcs;
     foliageRef.current = foliage;
     return scene;

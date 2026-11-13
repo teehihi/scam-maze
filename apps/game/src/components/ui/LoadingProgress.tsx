@@ -29,11 +29,11 @@ export const LoadingProgress: React.FC<LoadingProgressProps> = ({ progress, stat
         aria-valuetext={percentText ?? status}
         aria-busy={percent === null || percent < 100}
         data-state={determinate ? "determinate" : "indeterminate"}
-        className="relative h-[3px] w-full overflow-hidden rounded-full bg-[#f7f5ff]/12"
+        className="relative h-1 w-full overflow-hidden bg-[#f7f5ff]/10"
       >
         {determinate ? (
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#7654d6] to-[#b9a5f5] motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-out"
+            className="h-full bg-gradient-to-r from-[#7654d6] to-[#f3efe4] shadow-[0_0_12px_rgba(118,84,214,0.8)] motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-out"
             style={{ width: `${percent}%` }}
           />
         ) : (
@@ -45,13 +45,13 @@ export const LoadingProgress: React.FC<LoadingProgressProps> = ({ progress, stat
         )}
       </div>
 
-      <div className="flex items-baseline justify-between gap-4 font-mono text-[11px] sm:text-xs">
-        <p className="min-w-0 truncate text-[#f7f5ff]" aria-live="polite">
+      <div className="flex items-baseline justify-between gap-4 font-menu">
+        <p className="min-w-0 truncate text-sm font-semibold uppercase tracking-[0.18em] text-zinc-200" aria-live="polite">
           {status}
-          {detail && <span className="ml-2 text-[#a9a4c4]">· {detail}</span>}
+          {detail && <span className="ml-2 font-medium normal-case tracking-normal text-zinc-400">· {detail}</span>}
         </p>
         {percentText !== null && (
-          <span className="shrink-0 font-semibold tabular-nums text-[#b9a5f5]" aria-hidden="true">
+          <span className="shrink-0 text-2xl font-bold tabular-nums leading-none text-[#f3efe4]" aria-hidden="true">
             {percentText}
           </span>
         )}

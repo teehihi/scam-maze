@@ -12,6 +12,9 @@ export const SKY_TEXTURE = "/assets/3d/textures/sky.webp";
 /** Static cinematic artwork shown behind loading and chapter screens. */
 export const LOADING_BACKGROUND_WEBP = "/assets/ui/loading_bg.webp";
 export const LOADING_BACKGROUND_JPG = "/assets/ui/loading_bg.jpg";
+/** SCAMMAZE logo (1400 × 439, transparent) used on the main menu and loading screens. */
+export const BRAND_LOGO_WEBP = "/assets/branding/scammaze-logo.webp";
+export const BRAND_LOGO_PNG = "/assets/branding/scammaze-logo.png";
 
 /** Call phone (Meshopt + WebP, produced by scripts/optimize-call-phone.cjs). */
 export const CALL_PHONE_GLB = "/assets/3d/optimized/call-phone.optimized.glb";

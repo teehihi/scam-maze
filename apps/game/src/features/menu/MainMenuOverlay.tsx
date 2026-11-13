@@ -4,6 +4,7 @@ import { Lock, Volume2, VolumeX } from "lucide-react";
 import type { GameSettings } from "@scammaze/shared-types";
 import { SettingsModal } from "./SettingsModal";
 import { CreditsModal } from "./CreditsModal";
+import { BRAND_LOGO_PNG as LOGO_PNG, BRAND_LOGO_WEBP as LOGO_WEBP } from "../../config/assetPaths";
 
 export type ContinueAvailability =
   | { available: true }
@@ -26,8 +27,6 @@ interface MainMenuOverlayProps {
   continueAvailability: ContinueAvailability;
 }
 
-const LOGO_WEBP = "/assets/branding/scammaze-logo.webp";
-const LOGO_PNG = "/assets/branding/scammaze-logo.png";
 
 interface MenuEntry {
   id: "newGame" | "continue" | "settings" | "credits";
@@ -141,7 +140,11 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
         key={entry.id}
         className="menu-rise"
         style={{ animationDelay: `${0.35 + index * 0.07}s` }}
-        onPointerEnter={() => activate(entry.id)}
+        onPointerEnter={() => {
+          activate(entry.id);
+          // Focus follows the highlight, so Enter always opens the highlighted item.
+          if (!entry.disabled && !modalOpen) buttonRefs.current.get(entry.id)?.focus({ preventScroll: true });
+        }}
       >
         <button
           ref={(el) => {
@@ -154,7 +157,7 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
           aria-current={active ? "true" : undefined}
           onClick={entry.onSelect}
           onFocus={() => activate(entry.id, false)}
-          className={`group relative flex w-full items-center gap-3 text-left font-menu uppercase leading-none outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#b9a5f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black/60 ${
+          className={`group relative flex w-full items-center gap-3 text-left font-menu uppercase leading-none outline-none transition-colors duration-150 ${
             primary ? "py-2.5 pl-5 pr-4 text-[clamp(1.6rem,2.5vw,2.4rem)] font-bold" : "py-1.5 pl-5 pr-4 text-[clamp(1.15rem,1.6vw,1.55rem)] font-semibold"
           } ${
             entry.disabled
@@ -180,13 +183,8 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
           {entry.disabled && <Lock className="relative h-[0.6em] w-[0.6em] shrink-0" aria-hidden="true" />}
           <span className="relative tracking-[0.04em]">{entry.label}</span>
         </button>
-        {/* Description of the current item (always available to screen readers) */}
-        <p
-          id={descId}
-          className={`overflow-hidden pl-5 font-sans text-[13px] leading-snug transition-all duration-200 ${
-            active ? "max-h-10 py-1.5 opacity-100" : "sr-only"
-          } ${entry.disabled ? "text-amber-200/90" : "text-zinc-200/90"}`}
-        >
+        {/* Not shown on screen; screen readers read it through aria-describedby. */}
+        <p id={descId} className="sr-only">
           {entry.description}
         </p>
       </li>
@@ -207,27 +205,41 @@ export const MainMenuOverlay: React.FC<MainMenuOverlayProps> = ({
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-[linear-gradient(0deg,rgba(8,7,14,0.7),rgba(8,7,14,0))]"
       />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 top-0 h-48 w-[28rem] max-w-full bg-[radial-gradient(ellipse_at_top_right,rgba(8,7,14,0.6),rgba(8,7,14,0)_70%)]"
+      />
       <div aria-hidden="true" className="menu-grain pointer-events-none absolute inset-0 opacity-[0.07] mix-blend-overlay" />
 
       {/* Top right: sound */}
-      <header className="absolute right-5 top-5 sm:right-8 sm:top-7">
+      <header className="absolute right-[clamp(1.5rem,6vw,6rem)] top-5 sm:top-7">
         <button
           type="button"
           onClick={onToggleSound || (() => onUpdateSettings({ soundEnabled: !settings.soundEnabled }))}
-          className="flex items-center gap-2 border border-white/15 bg-black/35 px-3 py-1.5 font-menu text-sm font-semibold uppercase tracking-[0.12em] text-zinc-200 backdrop-blur-sm transition-colors hover:border-[#b9a5f5] hover:text-white cursor-pointer focus-visible:outline-2 focus-visible:outline-[#b9a5f5]"
+          className="group flex items-center gap-1.5 font-menu text-sm font-semibold uppercase tracking-[0.14em] text-zinc-300 [text-shadow:0_1px_6px_rgba(0,0,0,0.8)] outline-none transition-colors hover:text-zinc-100 focus-visible:text-zinc-100 cursor-pointer"
           title={settings.soundEnabled ? t("common:audio.muteTitle") : t("common:audio.unmuteTitle")}
         >
-          {settings.soundEnabled ? (
-            <>
-              <Volume2 className="h-4 w-4 text-emerald-300" aria-hidden="true" />
-              <span>{t("common:audio.on")}</span>
-            </>
-          ) : (
-            <>
-              <VolumeX className="h-4 w-4 text-zinc-400" aria-hidden="true" />
-              <span className="text-zinc-400">{t("common:audio.muted")}</span>
-            </>
-          )}
+          {/* Same key-cap box as the hints in the footer */}
+          <span
+            aria-hidden="true"
+            className="flex items-center border border-white/20 bg-black/40 px-1.5 py-[0.3rem] text-zinc-200 transition-colors group-hover:border-white/50 group-focus-visible:border-[#f3efe4]"
+          >
+            {settings.soundEnabled ? (
+              <Volume2 className="h-3.5 w-3.5" />
+            ) : (
+              <VolumeX className="h-3.5 w-3.5 text-zinc-500" />
+            )}
+          </span>
+          {/* Both labels share one grid cell, so the width fits the longer one in any language and
+              the icon does not move when the label changes; the hidden label is aria-hidden. */}
+          <span className="grid text-left">
+            <span className={`col-start-1 row-start-1 ${settings.soundEnabled ? "" : "invisible"}`} aria-hidden={!settings.soundEnabled}>
+              {t("common:audio.on")}
+            </span>
+            <span className={`col-start-1 row-start-1 ${settings.soundEnabled ? "invisible" : ""}`} aria-hidden={settings.soundEnabled}>
+              {t("common:audio.muted")}
+            </span>
+          </span>
         </button>
       </header>
 

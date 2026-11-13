@@ -211,6 +211,31 @@ Resolved:
 
 ## Task History
 
+### 2026-11-13 — Fix: empty menu (sky only) after "Return to menu"
+
+- **Problem:** after leaving Chapter 1 through the pause menu, the main menu showed only the sky.
+- **Cause:** `StreetEnvironment` rendered the cached GLTF scene object (`useLoader` result) directly, and both the menu canvas and the Chapter 1 canvas use it. A three.js object has one parent, so the chapter canvas took the street out of the menu scene (which stays mounted and paused underneath) and removed it when the chapter unmounted.
+- **Fix:** each `StreetEnvironment` now renders `source.clone(true)`. Geometry, materials and textures stay shared; only the node tree is copied. Material calibration runs once (flag on the cached source), and each clone builds its own Lexus pivot.
+- **Files:** `game/scenes/MainMenuScene/StreetEnvironment.tsx`.
+- **Validation:** `pnpm typecheck`, `pnpm test` 1133/1133, `pnpm build` pass. Headless Chrome on the owner's dev server (port 5174): menu, New Game, intro, in game, pause, Return to menu; the street is visible again.
+- **Limitations:** memory for the second node tree was not measured (geometry and textures are not duplicated).
+
+### 2026-11-13 — Voiced Chapter 1 intro, one paragraph at a time
+
+- **Objective:** play the owner's recorded intro voices and show one paragraph per clip, typed at the speed of the voice.
+- **Completed:**
+  - `intro/useIntroNarration.ts` (new): one line on screen at a time. Its clip plays through an `HTMLAudioElement` at the voice gain (`voiceGain`, same formula as the dialogue voices), and the text is revealed from `currentTime / duration`, so typing follows the voice. A click shows the whole paragraph while the voice keeps playing; the next click pauses the clip and starts the next line. If a clip cannot play (error, refused autoplay) the text types at 14 characters per second, close to the recordings; a clip slow to load only bridges the wait, then the text follows the voice again without moving backwards. With reduce motion the whole paragraph shows at once and the voice still plays. The restore line has no clip and types at the old speed.
+  - `intro/introScript.ts` (new): per-language script. English plays `chapter1_voice{1..3}start_en.mp3` with paragraphs p1 to p3; Vietnamese plays `chapter1_voice{1..4}start_vi.mp3` with p1 to p4.
+  - `ChapterIntroOverlay`: uses the narration, shows a step bar (current paragraph), the hint "Click for the next part" / "Nhấn chuột để nghe tiếp" between paragraphs, and the controls and continue button only after the last paragraph. The screen-reader copy of the current paragraph is a polite live region. `ChapterOnePage` passes the voice gain.
+  - Text: the owner's four Vietnamese paragraphs replace p1 to p3. English keeps its three paragraphs; its p4 is an English translation of the Vietnamese p4, used only as the fallback (the locale shape needs the same keys, and the resource tests reject empty strings).
+  - Audio: the owner put the `_vi` clips in `public/audio/chapter01/en/`; they were moved to `public/audio/chapter01/vi/`.
+  - Removed the now unused `intro/useTypewriter.ts`.
+- **Tests:** `test/setup.ts` stubs `HTMLMediaElement.play`/`pause` (jsdom has no media playback). `passIntro` clicks through every paragraph. New page test: one clip per paragraph, revealing keeps the voice, moving on pauses it; the first page test now checks each English paragraph in turn.
+- **Validation:** `pnpm typecheck` pass, `pnpm test` 1133/1133, `pnpm build` pass. Headless Chrome (autoplay allowed) sampled the text against the clip: en 18 characters at 1.44 s of 8.44 s (expected 19), vi 17 at 1.5 s of 7.16 s (expected 18); the clip ended before the next line started, and moving on paused it.
+- **Limitations:** in headless software rendering the main thread sometimes stalls for over a second, so one sample lagged before catching up; not measured on a real GPU or with real speakers. The intro clips are not in the voice manifest, so the content validator does not check them. Browsers that refuse autoplay fall back to fixed-speed typing for the first line until the next click.
+- **Deviations:** the intro uses its own small audio hook instead of `VoiceDialoguePlayer`, which is built around dialogue nodes.
+- **Follow-up:** add the intro clips to the asset checks; a restore-line recording if one is made.
+
 ### 2026-11-13 — Main menu redesign with the new logo
 
 - **Objective:** replace the purple framed menu panel with a title-screen menu (Insurgency / Portal 2 style) over the live street, using the owner's new SCAMMAZE logo.
@@ -224,6 +249,11 @@ Resolved:
 - **Validation:** `pnpm typecheck`, `pnpm test` (1080/1080), `pnpm build` pass. Headless Chrome screenshots at 1366×768 in en and vi (keyboard focus and hover on the disabled CONTINUE).
 - **Limitations:** checked only at 1366×768 with software WebGL; menu sounds and real mouse feel were not checked by hand.
 - **Deviations:** none.
+- **Owner follow-up:** item descriptions are no longer shown on screen (they stay as `sr-only` text linked with `aria-describedby`, including the CONTINUE reason; the lock icon still marks it as unavailable). The purple focus ring is removed; the ivory highlight is the focus indicator, and hovering an enabled item also focuses it, so the highlight and keyboard focus always match. Checked with headless screenshots (keyboard and hover); tests, typecheck and build pass.
+- **Owner follow-up 2:** tagline is now "Trust no one. Question everything." (vi "Đừng tin ai. Nghi ngờ mọi thứ."). The sound toggle uses the same key-cap box and label style as the footer hints, with a soft top-right fade so it stays readable over the bright sky. Labels are now "AUDIO ON" / "AUDIO OFF" (vi "ÂM THANH BẬT" / "ÂM THANH TẮT"); both labels share one grid cell, so the button keeps one width and the icon does not move when the state changes (measured in en and vi).
+- **Settings and Credits dialogs:** `ModalDialog` (used only by these two) now matches the menu: square dark panel, purple top edge and slanted accent, Barlow Condensed caps title, sans subtitle (no mono), and a key-cap "Esc ×" close button whose accessible name is the translated `common:actions.close` (was the hard-coded English "Close dialog"). Settings: square options with the ivory selected slab and purple accent, key-cap On/Off toggles instead of green pills, condensed caps headings and values, and a flat `.menu-range` slider (purple fill through `--fill`, square ivory thumb, ivory focus outline). Credits: square cards, purple-accent group headings, a notice with a purple left border; license names stay verbatim. Checked with headless screenshots; tests, typecheck and build pass. Not checked: Firefox slider rendering (`::-moz-range-thumb` is styled but untested).
+- **Landscape dialogs:** `ModalDialog` has a `wide` size (`max-w-[min(72rem,94vw)]`). Settings uses it with two columns on `lg` screens (left: language, graphics, field of view; right: sound, voice and comfort) and fits without scrolling at 1366×768; at 1024×560 it still scrolls a little. Credits uses it with two cards per row; the license badge now sits on its own line under the name instead of wrapping beside it. Checked with headless screenshots at both sizes.
+- **Loading screens:** `LoadingScreen`, `LoadingProgress` and `LoadingTip` (menu startup and chapter loading) now match the menu: the new logo instead of the small `BrandLogo` wordmark, Barlow Condensed caps for the eyebrow, title, status and percentage (no more mono text), a skewed purple accent, the same dark fades and grain, and a flat tip panel with a purple left border. The logo paths moved to `config/assetPaths.ts` (`BRAND_LOGO_WEBP`, `BRAND_LOGO_PNG`). Checked with headless screenshots in en and vi while assets were held back; tests 1120/1120, typecheck and build pass. Not checked: the error state and the slow-loading notice by eye.
 - **Merge:** owner asked to combine this branch with PR #26 (`feat/game-phone-call-ui-redesign`). Merged into `feat/game-menu-redesign`; the only conflict was this file (both entries kept). The PR #26 test "names the Speaker and Replay buttons in Vietnamese" used the removed title card and now starts the chapter through the intro overlay. After the merge: `pnpm typecheck` pass, `pnpm test` 1120/1120 (123 files), `pnpm build` pass.
 - **Follow-up:** check small screens and very wide screens.
 

@@ -23,6 +23,7 @@ import type { SaveGameSource, SaveReadResult, SavedGameV2 } from "../../game/sav
 import { FALLBACK_OPTION_ID, FALLBACK_OPTION_TEXT } from "../../game/narrative/dialogueEngine";
 import type { DialogueView } from "../../game/narrative/selectors";
 import { applyLocale } from "../../i18n";
+import enHud from "../../i18n/locales/en/chapter1/hud";
 import viHud from "../../i18n/locales/vi/chapter1/hud";
 import viOutcome from "../../i18n/locales/vi/chapter1/outcome";
 import viStory from "../../i18n/locales/vi/chapter1/story";
@@ -207,10 +208,49 @@ describe("ChapterOnePage", () => {
     expect(canvas().enabled).toBe(false);
 
     sceneReady();
-    // Typing starts when the scene is ready; the button waits for the full text.
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN }).disabled).toBe(true);
-    fireEvent.click(screen.getByTestId("chapter-intro"));
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN }).disabled).toBe(false);
+    // One paragraph at a time: a click shows all of it, the next click moves on. The button
+    // waits for the last paragraph.
+    const continueButton = () => screen.getByRole<HTMLButtonElement>("button", { name: INTRO_CONTINUE_EN });
+    const intro = screen.getByTestId("chapter-intro");
+    const paragraphs = [enHud.intro.welcome.p1, enHud.intro.welcome.p2, enHud.intro.welcome.p3];
+    paragraphs.forEach((paragraph, i) => {
+      expect(continueButton().disabled).toBe(true);
+      fireEvent.click(intro);
+      expect(screen.getByTestId("chapter-intro-text").textContent).toBe(paragraph);
+      if (i < paragraphs.length - 1) fireEvent.click(intro);
+    });
+    expect(continueButton().disabled).toBe(false);
+    expect(dispatched("START_CHAPTER")).toHaveLength(0);
+  });
+
+  it("plays one voice clip per paragraph and cuts it when the player moves on", () => {
+    const played: string[] = [];
+    const paused: string[] = [];
+    const playSpy = vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(function (this: HTMLMediaElement) {
+      played.push(new URL(this.src).pathname);
+      return Promise.resolve();
+    });
+    const pauseSpy = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function (this: HTMLMediaElement) {
+      paused.push(new URL(this.src).pathname);
+    });
+    try {
+      renderPage();
+      sceneReady();
+      const intro = screen.getByTestId("chapter-intro");
+      expect(played).toEqual(["/audio/chapter01/en/chapter1_voice1start_en.mp3"]);
+      fireEvent.click(intro); // show all of paragraph 1; the voice keeps playing
+      expect(paused).toEqual([]);
+      fireEvent.click(intro); // next paragraph: voice 1 is cut, voice 2 starts
+      expect(paused).toEqual(["/audio/chapter01/en/chapter1_voice1start_en.mp3"]);
+      expect(played.at(-1)).toBe("/audio/chapter01/en/chapter1_voice2start_en.mp3");
+      fireEvent.click(intro);
+      fireEvent.click(intro);
+      expect(played.at(-1)).toBe("/audio/chapter01/en/chapter1_voice3start_en.mp3");
+      expect(played).toHaveLength(3);
+    } finally {
+      playSpy.mockRestore();
+      pauseSpy.mockRestore();
+    }
   });
 
   it("dispatches START_CHAPTER on Begin and shows the first objective", () => {
