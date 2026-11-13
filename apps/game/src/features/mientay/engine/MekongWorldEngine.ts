@@ -27,9 +27,9 @@ import {
   chunkInstancedMeshes,
   splitIndexedMeshIntoTiles,
   splitInstancedGeometryMesh,
-} from '../world/optimize/spatialChunking';
+} from '../../../game/world/optimize/spatialChunking';
 import type { MientayZoneId } from '../placeNames';
-import { auditGroups, auditLights, auditTextures, topMeshes } from './profiling';
+import { auditGroups, auditLights, auditTextures, topMeshes } from '../../../game/world/profiling';
 import { DEFAULT_BOOKMARK, WORLD_BOOKMARKS, type TraversalMode, type WorldBookmark } from './bookmarks';
 import { MekongWorldAdapter } from './MekongWorldAdapter';
 
@@ -136,7 +136,7 @@ const REFLECTION_INTERVAL = 2;
  */
 const MAX_PIXEL_RATIO = 1.0;
 const MIN_PIXEL_RATIO = 0.7;
-/** Ground-cell sizes (metres) for spatial chunking; see world/optimize/spatialChunking.ts. */
+/** Ground-cell sizes (metres) for spatial chunking; see game/world/optimize/spatialChunking.ts. */
 const FLORA_CHUNK_SIZE = 150;
 const TERRAIN_TILE_SIZE = 140;
 const GRASS_CHUNK_SIZE = 60;
