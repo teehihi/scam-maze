@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Spec task completion evidence",
+      "trigger": "PostTaskExec",
+      "description": "After a spec task is marked complete, require evidence for each acceptance criterion before moving on.",
+      "action": {
+        "type": "agent",
+        "prompt": "A spec task was just marked complete. Before starting another task, verify it with evidence, not intent:\n1. Re-read the task's `_Requirements:` references in tasks.md and the matching acceptance criteria in requirements.md (or bugfix.md).\n2. For each criterion, name the evidence: a test (file + test name) that passed in a command you ran in this session, a type check, or an observed run. \"Implemented\" without a run is not evidence.\n3. Run the tests for the files the task touched (`pnpm --filter @scammaze/game exec vitest related --run <files>`), plus any property test named in the task.\n4. If a criterion has no evidence or a test failed, set the task back to in progress and say what is missing. Do not tick optional or skipped sub-tasks.\n5. Reply with a 3-5 line summary: what changed, which criteria are proven, what remains."
+      }
+    }
+  ]
+}

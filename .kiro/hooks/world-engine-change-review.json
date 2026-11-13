@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "World engine change review",
+      "trigger": "PostFileSave",
+      "description": "When an agent saves a rendering, map, player or vehicle file, scan the lines added since HEAD for duplicated engine pieces (WebGLRenderer, GLTF loader, AudioContext), GPU resources without dispose, listeners without removal and global quality cuts. Static scan only (< 1 s); no profiling.",
+      "matcher": "apps/game/src/(features/(hue|mientay|ueh|testmove|vehicle|player|chapter1/world)/|game/(scenes|core)/|features/chapter1/ChapterOneCanvas\\.tsx)",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/scripts/world-change-check.mjs",
+        "timeout": 30
+      }
+    }
+  ]
+}
