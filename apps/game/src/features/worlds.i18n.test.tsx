@@ -5,6 +5,10 @@ import { applyLocale } from "../i18n";
 import type { GameLocale } from "@scammaze/shared-types";
 import { HueHUD } from "./hue/components/HueHUD";
 import { HUE_PLACE_NAMES } from "./hue/placeNames";
+import { MientayHUD } from "./mientay/components/MientayHUD";
+import { createLiveValue } from "./mientay/liveValue";
+import { MIENTAY_PLACE_NAMES, MIENTAY_ZONE_NAMES } from "./mientay/placeNames";
+import { WORLD_BOOKMARKS } from "./mientay/engine/bookmarks";
 import { TestMoveOverlay } from "./testmove/TestMoveOverlay";
 import { UEHOverlay, UEH_TRACK_TITLES } from "./ueh/UEHOverlay";
 
@@ -43,6 +47,32 @@ function hue(): ReactElement {
   );
 }
 
+function mientay(): ReactElement {
+  return (
+    <MientayHUD
+      isLocked={false}
+      onToggleLock={noop}
+      stats={createLiveValue(stats)}
+      fps={createLiveValue(58)}
+      telemetry={{
+        mode: "walk",
+        nearBoat: true,
+        zone: "ferryPier",
+        timeOfDay: 6.9,
+        audioOn: false,
+        performanceMode: false,
+      }}
+      visible
+      onToggleVisible={noop}
+      onBackToMenu={noop}
+      onModeChange={noop}
+      onBookmark={noop}
+      onTimeChange={noop}
+      onToggleAudio={noop}
+      onTogglePerformance={noop}
+    />
+  );
+}
 function testMove(): ReactElement {
   return <TestMoveOverlay isLocked={false} onToggleLock={noop} onBackToMenu={noop} stats={stats} />;
 }
@@ -121,6 +151,21 @@ describe("teammate world pages follow the locale", () => {
     expect(vi).not.toContain("Speed:");
   });
 
+  it("MientayHUD labels change with the locale", () => {
+    const en = textIn("en", mientay());
+    const vi = textIn("vi", mientay());
+    expect(en).toContain("Back to Main Menu");
+    expect(en).toContain("On foot");
+    expect(en).toContain("Firefly night");
+    expect(en).toContain("to step into the sampan");
+    expect(en).toContain("Speed:");
+    expect(vi).toContain("Về Menu Chính");
+    expect(vi).toContain("Đi bộ");
+    expect(vi).toContain("Đêm đom đóm");
+    expect(vi).toContain("để bước xuống xuồng ba lá");
+    expect(vi).toContain("Tốc độ:");
+    expect(vi).not.toContain("On foot");
+  });
   it("a mounted overlay updates when the locale changes", () => {
     applyLocale("en");
     render(testMove());
@@ -143,6 +188,15 @@ describe("landmark and place names stay the same in every locale", () => {
     }
   });
 
+  it("Mekong place names, zones and quick-travel spots are identical in en and vi", () => {
+    const en = textIn("en", mientay());
+    const vi = textIn("vi", mientay());
+    for (const text of [en, vi]) {
+      expect(text).toContain(MIENTAY_PLACE_NAMES.regionUpper);
+      expect(text).toContain(MIENTAY_ZONE_NAMES.ferryPier);
+      for (const bookmark of WORLD_BOOKMARKS) expect(text).toContain(bookmark.name);
+    }
+  });
   it("UEH track titles are identical in en and vi", () => {
     const en = textIn("en", ueh());
     const vi = textIn("vi", ueh());
