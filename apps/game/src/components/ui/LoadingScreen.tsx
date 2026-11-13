@@ -1,12 +1,16 @@
 import React, { useEffect } from "react";
 import { ArrowLeft, Clock } from "lucide-react";
-import { BrandLogo } from "./BrandLogo";
 import { LoadingProgress } from "./LoadingProgress";
 import { LoadingTip } from "./LoadingTip";
 import { LoadingErrorState } from "./LoadingErrorState";
 import { useTranslation } from "react-i18next";
 import type { LoadingError } from "../../game/loading/loadingErrors";
-import { LOADING_BACKGROUND_JPG, LOADING_BACKGROUND_WEBP } from "../../config/assetPaths";
+import {
+  BRAND_LOGO_PNG as LOGO_PNG,
+  BRAND_LOGO_WEBP as LOGO_WEBP,
+  LOADING_BACKGROUND_JPG,
+  LOADING_BACKGROUND_WEBP,
+} from "../../config/assetPaths";
 
 export interface LoadingNotice {
   message: string;
@@ -88,25 +92,41 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
             className="h-full w-full object-cover object-center brightness-[0.62] contrast-[1.05]"
           />
         </picture>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#171521] via-[#171521]/55 to-[#171521]/70" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#171521]/80 via-transparent to-transparent" />
+        {/* Same readability layers as the main menu: bottom and left fades plus fine grain. */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0c14] via-[#0d0c14]/45 to-[#0d0c14]/35" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0d0c14]/90 via-[#0d0c14]/30 to-transparent" />
+        <div className="menu-grain absolute inset-0 opacity-[0.07] mix-blend-overlay" />
       </div>
 
-      <header className="relative z-10 flex items-center p-6 sm:p-10">
-        <BrandLogo size="sm" />
+      <header className="relative z-10 flex items-center px-[clamp(1.5rem,6vw,6rem)] pt-[clamp(1.5rem,6vh,3.5rem)]">
+        <picture className="block">
+          <source srcSet={LOGO_WEBP} type="image/webp" />
+          <img
+            src={LOGO_PNG}
+            alt=""
+            width={1400}
+            height={439}
+            draggable={false}
+            className="h-auto w-[clamp(10rem,16vw,15rem)] drop-shadow-[0_6px_18px_rgba(0,0,0,0.6)]"
+          />
+        </picture>
+        <span className="sr-only">SCAMMAZE</span>
       </header>
 
-      <div className="relative z-10 mt-auto flex w-full flex-col gap-6 px-6 pb-7 sm:px-10 sm:pb-10">
-        <div className="w-full max-w-2xl space-y-2">
-          <p className="font-mono text-xs uppercase tracking-[0.28em] text-[#b9a5f5]">{eyebrow}</p>
+      <div className="relative z-10 mt-auto flex w-full flex-col gap-7 px-[clamp(1.5rem,6vw,6rem)] pb-[clamp(1.75rem,6vh,3.5rem)]">
+        <div className="menu-rise w-full max-w-3xl">
+          <p className="flex items-center gap-3 font-menu text-sm font-semibold uppercase tracking-[0.3em] text-[#c9bbf7]">
+            <span className="inline-block h-4 w-1.5 -skew-x-[18deg] bg-[#7654d6]" aria-hidden="true" />
+            {eyebrow}
+          </p>
           <h2
             id="loading-screen-title"
-            className="font-display text-4xl leading-[1.05] text-[#f7f5ff] sm:text-5xl lg:text-6xl"
-            style={{ textShadow: "0 2px 18px rgba(0,0,0,0.6)" }}
+            className="mt-2 font-menu text-5xl font-bold uppercase leading-[0.95] tracking-[0.01em] text-[#f3efe4] sm:text-6xl lg:text-7xl"
+            style={{ textShadow: "0 4px 24px rgba(0,0,0,0.7)" }}
           >
             {chapterTitle}
           </h2>
-          {subtitle && <p className="pt-1 text-base text-[#a9a4c4] sm:text-lg">{subtitle}</p>}
+          {subtitle && <p className="mt-3 text-base text-zinc-300 sm:text-lg">{subtitle}</p>}
         </div>
 
         {error ? (

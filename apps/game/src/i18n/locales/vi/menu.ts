@@ -3,7 +3,7 @@ import type { LocaleShape } from "../../types";
 
 const menu: LocaleShape<typeof en> = {
   nav: { label: "Menu chính của trò chơi" },
-  kicker: "Câu chuyện góc nhìn thứ nhất về lừa đảo",
+  kicker: "Đừng tin ai. Nghi ngờ mọi thứ.",
   hints: { navigate: "Chọn", select: "Xác nhận" },
   buttons: {
     newGame: { label: "TRÒ CHƠI MỚI", sublabel: "Bắt đầu một câu chuyện mới" },

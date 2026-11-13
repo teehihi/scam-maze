@@ -5,12 +5,15 @@ const hud: LocaleShape<typeof en> = {
     heading: "Chào mừng trở lại",
     preparing: "Đang quay lại con phố",
     welcome: {
-      p1: "Ơ, cậu đây rồi! Lâu lắm rồi không gặp. Mình còn tưởng cậu quên đường về con phố này luôn rồi chứ.",
-      p2: "Mọi thứ cũng không đổi mấy đâu. Xe máy vẫn chạy ngang qua, tiệm bánh mì ở góc phố đã thơm lừng từ sớm, mấy bác hàng xóm vẫn vẫy tay chào cậu như mọi khi. Cậu thuộc về nơi này mà, ai cũng quen mặt cậu.",
-      p3: "Nên hôm nay cứ thong thả nhé. Cậu muốn ngó nghiêng, đi dạo đâu cũng được, gặp ai thì cứ trò chuyện. Con phố này để cậu tự do khám phá.",
+      // One paragraph per voice clip (chapter1_voice1start_vi.mp3 ... chapter1_voice4start_vi.mp3).
+      p1: "Ụa! Cậu về rồi nè! Lâu quá trời luôn á! Tớ còn tưởng cậu quên mất chỗ này rồi chứ!",
+      p2: "Mà ở đây vẫn vậy hà, chẳng thay đổi gì mấy. Ngoài đường xe cộ vẫn chạy tấp nập, tiệm bánh mì ở góc đường sáng nào cũng thơm phức. Mấy cô chú trong xóm vẫn ngồi trước nhà trò chuyện rôm rả như mọi ngày. Chắc thấy cậu về, ai cũng vui lắm cho coi!",
+      p3: "Thôi nè, hôm nay cứ đi chơi thoải mái nha! Muốn ghé đâu thì ghé, muốn đi đâu thì đi. Biết đâu trên đường lại gặp được người quen, hay khám phá ra chuyện gì thú vị thì sao?",
+      p4: "Đi thôi nào! Tớ sẽ ở đây đồng hành cùng cậu. Cứ từ từ khám phá, còn nhiều điều hay ho đang chờ phía trước lắm đó!",
     },
     resume: "Chào mừng cậu quay lại! Mình đã giữ chỗ cho cậu rồi. Khi nào sẵn sàng, mình cùng tiếp tục từ chỗ cậu đã dừng nhé.",
     skip: "Nhấn chuột để hiện toàn bộ chữ",
+    next: "Nhấn chuột để nghe tiếp",
     continue: "Nhấn chuột để tiếp tục",
     controls: {
       heading: "Điều khiển",

@@ -12,7 +12,7 @@ const common = {
   },
   audio: {
     on: "AUDIO ON",
-    muted: "MUTED",
+    muted: "AUDIO OFF",
     muteTitle: "Mute Ambience (M)",
     unmuteTitle: "Enable Ambience (M)",
   },

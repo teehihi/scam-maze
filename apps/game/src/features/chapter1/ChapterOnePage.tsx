@@ -74,6 +74,7 @@ import { useChapterState } from "./useChapterState";
 import { useCallAudio } from "./voice/useCallAudio";
 import { useCallDuration } from "./voice/useCallDuration";
 import { useVoicePlayback, type VoiceController } from "./voice/useVoicePlayback";
+import { voiceGain } from "../../game/voice/mixPlan";
 import { useCheckpointSaver } from "./useCheckpointSaver";
 
 export interface ChapterOnePageProps {
@@ -967,7 +968,17 @@ export const ChapterOnePage: React.FC<ChapterOnePageProps> = ({
         </div>
       )}
 
-      {titleCardOpen && <ChapterIntroOverlay ready={sceneReady} mode={titleMode} onBegin={handleBegin} />}
+      {titleCardOpen && (
+        <ChapterIntroOverlay
+          ready={sceneReady}
+          mode={titleMode}
+          voiceGain={voiceGain(
+            { soundEnabled: settings.soundEnabled, masterVolume: settings.sfxVolume, voiceVolume: settings.voiceVolume },
+            false,
+          )}
+          onBegin={handleBegin}
+        />
+      )}
     </div>
     </ComfortProvider>
   );

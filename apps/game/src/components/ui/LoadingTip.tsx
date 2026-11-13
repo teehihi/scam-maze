@@ -27,14 +27,14 @@ export const LoadingTip: React.FC<LoadingTipProps> = ({ tips, intervalMs = 8000,
   return (
     <aside
       aria-label={t("tipLabel")}
-      className="w-full rounded-xl border border-[#38344f] bg-[#1d1b2b]/85 p-4 sm:p-5"
+      className="w-full border-l-2 border-[#7654d6] bg-[#0d0c14]/70 px-4 py-3.5 backdrop-blur-sm sm:px-5"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-[#b9a5f5]">
+        <span className="flex items-center gap-2 font-menu text-sm font-semibold uppercase tracking-[0.2em] text-[#c9bbf7]">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
           {t("tipLabel")}
         </span>
@@ -42,7 +42,7 @@ export const LoadingTip: React.FC<LoadingTipProps> = ({ tips, intervalMs = 8000,
           <button
             type="button"
             onClick={() => setIndex((value) => (value + 1) % tips.length)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[11px] text-[#a9a4c4] transition-colors hover:bg-white/5 hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
+            className="flex items-center gap-1 rounded-md px-2 py-1 font-menu text-sm font-medium uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:bg-white/5 hover:text-[#f7f5ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b9a5f5] cursor-pointer"
           >
             {t("nextTip")}
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />

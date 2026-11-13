@@ -9,9 +9,14 @@ const hud = {
       p1: "Oh, there you are! It has been so long. I was starting to think you had forgotten the way back to this street.",
       p2: "Nothing has changed much. Scooters hum past, the bakery on the corner is already warm, and the neighbors still wave at you the way they always do. You belong here. Everyone knows your face.",
       p3: "So take your time today. Look around, wander wherever you like, and talk to anyone you meet. The street is yours to explore.",
+      // One paragraph per voice clip (`intro/introScript.ts`). English has three clips, so its
+      // script stops at p3. p4 belongs to the four-clip Vietnamese script; this English text is
+      // its translation and the fallback if the Vietnamese line is missing.
+      p4: "Let's go! I'll be right here with you. Take your time exploring; there is plenty waiting for you up ahead.",
     },
     resume: "Welcome back! I kept your place for you. Whenever you are ready, we can pick up right where you left off.",
     skip: "Click to show all the text",
+    next: "Click for the next part",
     continue: "Click to continue",
     controls: {
       heading: "Controls",
