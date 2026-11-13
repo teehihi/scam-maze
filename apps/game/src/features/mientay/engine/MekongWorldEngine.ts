@@ -23,7 +23,13 @@ import { createBridgesAndLife } from '../world/architecture/BridgesAndLife';
 import { MekongAudioEngine } from '../world/audio/MekongAudio';
 import { clamp, lerp } from '../world/math/Noise';
 import { freezeStaticTransforms, mergeStaticMeshes } from '../world/optimize/mergeStaticMeshes';
+import {
+  chunkInstancedMeshes,
+  splitIndexedMeshIntoTiles,
+  splitInstancedGeometryMesh,
+} from '../world/optimize/spatialChunking';
 import type { MientayZoneId } from '../placeNames';
+import { auditGroups, auditLights, auditTextures, topMeshes } from './profiling';
 import { DEFAULT_BOOKMARK, WORLD_BOOKMARKS, type TraversalMode, type WorldBookmark } from './bookmarks';
 import { MekongWorldAdapter } from './MekongWorldAdapter';
 
@@ -86,6 +92,11 @@ export interface MekongEngineOptions {
   /** "low" starts in performance mode; "medium" and "high" keep every effect at full quality. */
   graphicsQuality: 'low' | 'medium' | 'high';
   soundEnabled: boolean;
+  /**
+   * Profiling switch (`?mientay-baseline=1`): turns off spatial chunking and the still-camera shadow
+   * saving, so the same build can be measured with and without them.
+   */
+  baseline?: boolean;
 }
 
 /** Thrown inside the staged build when the page unmounts before the world is ready. */
@@ -125,6 +136,14 @@ const REFLECTION_INTERVAL = 2;
  */
 const MAX_PIXEL_RATIO = 1.0;
 const MIN_PIXEL_RATIO = 0.7;
+/** Ground-cell sizes (metres) for spatial chunking; see world/optimize/spatialChunking.ts. */
+const FLORA_CHUNK_SIZE = 150;
+const TERRAIN_TILE_SIZE = 140;
+const GRASS_CHUNK_SIZE = 60;
+/** Blade height plus wind sway, added to the bounds of each grass cell. */
+const GRASS_BOUNDS_MARGIN = 2.5;
+/** The grass shader fades blades out completely by 108 m; cells farther than this are skipped. */
+const GRASS_CULL_DISTANCE = 110;
 /** The performance mode renders at this scale. */
 const PERFORMANCE_PIXEL_RATIO = 0.8;
 const PIXEL_RATIO_STEP = 0.15;
@@ -158,7 +177,9 @@ export class MekongWorldEngine {
   private audio = new MekongAudioEngine();
   private adapter = new MekongWorldAdapter();
   private character!: CharacterRuntime;
-  private grassMesh: THREE.Object3D | null = null;
+  private grassChunks: THREE.Mesh[] = [];
+  private chunkTimer = 0;
+  private readonly chunkStats = { instancedSplit: 0, instancedParts: 0, grassCells: 0, terrainTiles: 0, waterTiles: 0 };
 
   private mode: TraversalMode = 'walk';
   private boatSpeed = 0;
@@ -200,6 +221,10 @@ export class MekongWorldEngine {
   private lastTelemetryKey = '';
   private userMutedAudio = false;
   private lastBoatStatsMs = 0;
+  private stageMs: Record<string, number> | null = null;
+  private lapStart = 0;
+  private readonly lastShadowCameraPosition = new THREE.Vector3(1e9, 0, 0);
+  private readonly lastShadowCameraQuaternion = new THREE.Quaternion();
   private lastRafMs = 0;
   private refreshIntervalMs = 16.7;
   private skipThisFrame = false;
@@ -317,7 +342,6 @@ export class MekongWorldEngine {
     await run('flora', () => {
       this.flora = createMekongFlora(this.mats);
       this.scene.add(this.flora.group);
-      this.grassMesh = this.flora.group.getObjectByName('MekongRiverGrass') ?? null;
     });
 
     await run('boats', () => {
@@ -366,6 +390,7 @@ export class MekongWorldEngine {
         this.mergeStats.created += merged.created;
         freezeStaticTransforms(group);
       }
+      if (!this.options.baseline) this.chunkWorld();
       // Cascaded shadows on every standard material, then the starting time of day.
       this.atmosphere.applyCSMToScene(this.scene);
       this.atmosphere.setTimeOfDay(DEFAULT_START_HOURS, this.renderer, true);
@@ -432,8 +457,68 @@ export class MekongWorldEngine {
     if (signal?.aborted || this.disposed) throw new BuildCancelled();
     this.callbacks.onProgress?.({ stage: 'shaders', fraction: 1 });
     this.clock.getDelta();
+    this.updateGrassDistanceCulling();
     this.emitTelemetry(true);
     this.animate();
+  }
+
+  /**
+   * Splits the world-sized draw calls into ground cells so frustum culling works on them:
+   * instanced trees and palms, the grass field, the terrain and the water surface. Cells share the
+   * original vertex buffers and materials, so memory does not grow and the picture is unchanged.
+   */
+  private chunkWorld(): void {
+    const instanced = chunkInstancedMeshes(this.flora.group, FLORA_CHUNK_SIZE);
+    this.chunkStats.instancedSplit = instanced.split;
+    this.chunkStats.instancedParts = instanced.created;
+
+    const grass = this.flora.group.getObjectByName('MekongRiverGrass') as THREE.Mesh | undefined;
+    if (grass) {
+      const cells = splitInstancedGeometryMesh(grass, GRASS_CHUNK_SIZE, 'aPositionRotation', GRASS_BOUNDS_MARGIN);
+      if (cells.length > 1 || cells[0] !== grass) {
+        grass.parent?.add(...cells);
+        grass.removeFromParent();
+        grass.geometry.dispose();
+      }
+      this.grassChunks = cells;
+      this.chunkStats.grassCells = cells.length;
+    }
+
+    const terrain = this.terrain.group.getObjectByName('MekongTerrainMesh') as THREE.Mesh | undefined;
+    if (terrain) {
+      const tiles = splitIndexedMeshIntoTiles(terrain, TERRAIN_TILE_SIZE);
+      if (tiles.length > 1) {
+        this.terrain.group.add(...tiles);
+        terrain.removeFromParent();
+      }
+      this.chunkStats.terrainTiles = tiles.length;
+    }
+
+    // The water object itself stays (the reflection pass hides it, and its children with it) but
+    // draws nothing; the tiles are its children. Waves move vertices up to a few metres.
+    const water = this.water.mesh;
+    const waterTiles = splitIndexedMeshIntoTiles(water, TERRAIN_TILE_SIZE, 3);
+    if (waterTiles.length > 1) {
+      for (const tile of waterTiles) {
+        tile.position.set(0, 0, 0);
+        tile.quaternion.identity();
+        tile.scale.set(1, 1, 1);
+        tile.updateMatrix();
+      }
+      water.add(...waterTiles);
+      water.geometry.setDrawRange(0, 0);
+    }
+    this.chunkStats.waterTiles = waterTiles.length;
+  }
+
+  /** Grass cells beyond the shader's fade distance contribute nothing, so they are skipped. */
+  private updateGrassDistanceCulling(): void {
+    const camera = this.camera.position;
+    for (const cell of this.grassChunks) {
+      const sphere = cell.geometry.boundingSphere;
+      if (!sphere) continue;
+      cell.visible = camera.distanceTo(sphere.center) - sphere.radius <= GRASS_CULL_DISTANCE;
+    }
   }
 
   /**
@@ -742,6 +827,7 @@ export class MekongWorldEngine {
   }
 
   private renderFrame(dt: number): void {
+    if (this.stageMs) this.lapStart = performance.now();
     if (this.mode === 'boat') {
       this.updateBoat(dt);
     } else {
@@ -756,8 +842,10 @@ export class MekongWorldEngine {
     // The camera matrices feed CSM, the light pool, the reflection and the water; refresh them
     // once here instead of letting each system trigger its own update.
     this.camera.updateMatrixWorld(true);
+    this.lap('player');
 
     this.updateWorldSystems(dt);
+    this.lap('worldUpdate');
     const atmo = this.atmosphere.state;
     this.water.updateUniforms({
       time: this.elapsed,
@@ -772,20 +860,32 @@ export class MekongWorldEngine {
     });
 
     this.scheduleShadowCascades();
+    this.lap('waterAndShadowSetup');
 
     // The planar reflection is a full second scene pass: redraw it every other frame (the water
     // is moving, so nobody can tell) and reuse the last image in between.
     const shadowsReady = this.atmosphere.csm.lights.every((light) => Boolean(light.shadow.map));
     if (shadowsReady && (this.reflectionDue || this.frameIndex % REFLECTION_INTERVAL === 0)) {
-      this.water.renderReflection(this.renderer, this.scene, this.camera, this.grassMesh ? [this.grassMesh] : []);
+      this.water.renderReflection(this.renderer, this.scene, this.camera, this.grassChunks);
       this.reflectionDue = false;
     }
+    this.lap('reflectionSubmit');
 
     // Nothing in daylight is bright enough for the bloom threshold; skip its passes then.
     this.bloomPass.enabled = atmo.nightFactor > 0.1;
     this.commitQuality();
     this.composer.render(dt);
+    this.lap('composerSubmit');
     this.frameIndex++;
+  }
+
+  /** Accumulates profiling time since the previous lap; does nothing outside `profile()`. */
+  private lap(name: string): void {
+    const stages = this.stageMs;
+    if (!stages) return;
+    const now = performance.now();
+    stages[name] = (stages[name] ?? 0) + now - this.lapStart;
+    this.lapStart = now;
   }
 
   /**
@@ -794,7 +894,7 @@ export class MekongWorldEngine {
    * stutter even when the average frame rate is fine.
    *
    *   even frames: near shadows + water reflection
-   *   odd frames:  near shadows + mid and far shadows
+   *   odd frames:  near shadows + mid and far shadows (every 30th frame while the camera is still)
    *
    * The mid and far cascades cover large areas with coarse texels, so a one-frame delay moves a
    * shadow edge by far less than a texel's worth of error.
@@ -802,11 +902,24 @@ export class MekongWorldEngine {
   private scheduleShadowCascades(): void {
     const lights = this.atmosphere.csm.lights;
     const all = this.shadowRefreshPending || this.frameIndex < 3;
-    const odd = this.frameIndex % 2 === 1;
+
+    // The mid and far cascades hold static scenery (foliage wind is not part of the depth pass), so
+    // when the camera is still they only need a refresh now and then to follow boats and birds.
+    const camera = this.camera;
+    const still =
+      !this.options.baseline &&
+      camera.position.distanceToSquared(this.lastShadowCameraPosition) < 0.0004 &&
+      Math.abs(camera.quaternion.dot(this.lastShadowCameraQuaternion)) > 0.999995;
+    if (!still) {
+      this.lastShadowCameraPosition.copy(camera.position);
+      this.lastShadowCameraQuaternion.copy(camera.quaternion);
+    }
+    const farTurn = still ? this.frameIndex % 30 === 1 : this.frameIndex % 2 === 1;
+
     for (let index = 0; index < lights.length; index++) {
       const light = lights[index];
       light.shadow.autoUpdate = false;
-      if (all || index === 0 || odd) light.shadow.needsUpdate = true;
+      if (all || index === 0 || farTurn) light.shadow.needsUpdate = true;
     }
     this.shadowRefreshPending = false;
   }
@@ -824,6 +937,12 @@ export class MekongWorldEngine {
         this.mode === 'boat' ? this.boatSpeed : 0,
         Math.max(0, terrainY) * 14,
       );
+    }
+
+    this.chunkTimer += dt;
+    if (this.chunkTimer >= 0.12) {
+      this.chunkTimer = 0;
+      this.updateGrassDistanceCulling();
     }
 
     this.telemetryTimer += dt;
@@ -1030,6 +1149,7 @@ export class MekongWorldEngine {
         calls: this.renderer.info.render.calls,
         triangles: this.renderer.info.render.triangles,
         merged: { ...this.mergeStats },
+        chunks: { ...this.chunkStats },
         geometries: this.renderer.info.memory.geometries,
         textures: this.renderer.info.memory.textures,
         programs: this.renderer.info.programs?.length ?? 0,
@@ -1040,6 +1160,72 @@ export class MekongWorldEngine {
         };
       },
       /** Per top-level group: meshes, distinct materials, shadow casters (profiling aid). */
+      /**
+       * Runs full frames and reports CPU time per stage (main-thread submit time, not GPU time),
+       * draw calls and triangles per frame as the renderer counts them (every pass: shadows,
+       * reflection, scene), and an audit of the scene. `bookmark` moves to a spot first; `moving`
+       * walks forward while turning, like gameplay. Ten warm-up frames are not counted.
+       */
+      profile: (frames = 60, bookmark?: string, moving = false) => {
+        const spot = WORLD_BOOKMARKS.find((b) => b.id === bookmark);
+        if (spot) this.applyBookmark(spot);
+        const heading = new THREE.Vector3();
+        const walk = (step: number) => {
+          if (!moving) return;
+          this.camera.getWorldDirection(heading);
+          heading.y = 0;
+          const position = this.camera.position.clone().addScaledVector(heading.normalize(), 6 / 60);
+          const yaw = Math.atan2(-heading.x, -heading.z) + 0.3 / 60;
+          this.character.setCameraPose(position, this.lookTarget(position, yaw, 0));
+          void step;
+        };
+        for (let i = 0; i < 10; i++) {
+          walk(i);
+          this.renderFrame(1 / 60);
+        }
+        const info = this.renderer.info;
+        info.autoReset = false;
+        this.stageMs = {};
+        const frameMs: number[] = [];
+        let calls = 0;
+        let triangles = 0;
+        for (let i = 0; i < frames; i++) {
+          walk(i);
+          info.reset();
+          const start = performance.now();
+          this.renderFrame(1 / 60);
+          frameMs.push(performance.now() - start);
+          calls += info.render.calls;
+          triangles += info.render.triangles;
+        }
+        const stages = this.stageMs;
+        this.stageMs = null;
+        info.autoReset = true;
+        const sorted = [...frameMs].sort((a, b) => a - b);
+        const average = frameMs.reduce((a, b) => a + b, 0) / frames;
+        const round = (v: number) => Math.round(v * 100) / 100;
+        return {
+          frames,
+          bookmark: bookmark ?? 'current',
+          moving,
+          cpuFrameMs: {
+            average: round(average),
+            p50: round(sorted[Math.floor(frames * 0.5)]),
+            p99: round(sorted[Math.min(frames - 1, Math.floor(frames * 0.99))]),
+            max: round(sorted[frames - 1]),
+          },
+          stageAverageMs: Object.fromEntries(Object.entries(stages).map(([k, v]) => [k, round(v / frames)])),
+          drawCallsPerFrame: Math.round(calls / frames),
+          trianglesPerFrame: Math.round(triangles / frames),
+          chunks: { ...this.chunkStats },
+          memory: { geometries: info.memory.geometries, textures: info.memory.textures },
+          programs: info.programs?.length ?? 0,
+          groups: auditGroups(this.scene),
+          textures: auditTextures(this.scene),
+          lights: auditLights(this.scene),
+          topMeshes: topMeshes(this.scene),
+        };
+      },
       describeScene: () =>
         this.scene.children.map((child) => {
           let meshes = 0;
