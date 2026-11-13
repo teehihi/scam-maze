@@ -96,6 +96,7 @@ export const MientayPage: React.FC<MientayPageProps> = ({ settings, onBackToMenu
         fov: settingsRef.current.fov,
         graphicsQuality: settingsRef.current.graphicsQuality,
         soundEnabled: settingsRef.current.soundEnabled,
+        baseline: new URLSearchParams(window.location.search).has('mientay-baseline'),
       },
       abort.signal,
     )

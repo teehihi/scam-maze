@@ -34,6 +34,18 @@ export function sampleRiverWave(x: number, z: number, time: number): {
   };
 }
 
+// Scratch objects for the reflection camera, reused every call (it runs every other frame).
+const scratchCamPos = new THREE.Vector3();
+const scratchReflector = new THREE.Vector3();
+const scratchView = new THREE.Vector3();
+const scratchLook = new THREE.Vector3();
+const scratchTarget = new THREE.Vector3();
+const scratchUp = new THREE.Vector3();
+const scratchRotation = new THREE.Matrix4();
+const scratchPlane = new THREE.Plane();
+const scratchClip = new THREE.Vector4();
+const scratchQ = new THREE.Vector4();
+
 function updatePlanarReflectionCamera(
   sourceCamera: THREE.PerspectiveCamera,
   reflectionCamera: THREE.PerspectiveCamera,
@@ -42,60 +54,34 @@ function updatePlanarReflectionCamera(
 ): void {
   sourceCamera.updateMatrixWorld(true);
   reflectionCamera.copy(sourceCamera);
-
-  const camPos = sourceCamera.getWorldPosition(new THREE.Vector3());
-  const rotMat = new THREE.Matrix4().extractRotation(sourceCamera.matrixWorld);
-  const reflectorPos = new THREE.Vector3(0, seaLevel, 0);
-
-  const view = reflectorPos
-    .clone()
-    .sub(camPos)
-    .reflect(WATER_PLANE_NORMAL)
-    .negate()
-    .add(reflectorPos);
-
-  const lookTarget = new THREE.Vector3(0, 0, -1)
-    .applyMatrix4(rotMat)
-    .add(camPos);
-
-  const target = reflectorPos
-    .clone()
-    .sub(lookTarget)
-    .reflect(WATER_PLANE_NORMAL)
-    .negate()
-    .add(reflectorPos);
-
-  const up = new THREE.Vector3(0, 1, 0)
-    .applyMatrix4(rotMat)
-    .reflect(WATER_PLANE_NORMAL);
-
-  reflectionCamera.position.copy(view);
-  reflectionCamera.up.copy(up);
-  reflectionCamera.lookAt(target);
+  sourceCamera.getWorldPosition(scratchCamPos);
+  scratchRotation.extractRotation(sourceCamera.matrixWorld);
+  scratchReflector.set(0, seaLevel, 0);
+  scratchView.copy(scratchReflector).sub(scratchCamPos).reflect(WATER_PLANE_NORMAL).negate().add(scratchReflector);
+  scratchLook.set(0, 0, -1).applyMatrix4(scratchRotation).add(scratchCamPos);
+  scratchTarget.copy(scratchReflector).sub(scratchLook).reflect(WATER_PLANE_NORMAL).negate().add(scratchReflector);
+  scratchUp.set(0, 1, 0).applyMatrix4(scratchRotation).reflect(WATER_PLANE_NORMAL);
+  reflectionCamera.position.copy(scratchView);
+  reflectionCamera.up.copy(scratchUp);
+  reflectionCamera.lookAt(scratchTarget);
   reflectionCamera.updateMatrixWorld(true);
   reflectionCamera.projectionMatrix.copy(sourceCamera.projectionMatrix);
-
-  const reflectorPlane = new THREE.Plane(WATER_PLANE_NORMAL.clone(), -seaLevel);
-  reflectorPlane.applyMatrix4(reflectionCamera.matrixWorldInverse);
-  const clipPlane = new THREE.Vector4(
-    reflectorPlane.normal.x,
-    reflectorPlane.normal.y,
-    reflectorPlane.normal.z,
-    reflectorPlane.constant,
-  );
+  scratchPlane.set(WATER_PLANE_NORMAL, -seaLevel);
+  scratchPlane.applyMatrix4(reflectionCamera.matrixWorldInverse);
+  scratchClip.set(scratchPlane.normal.x, scratchPlane.normal.y, scratchPlane.normal.z, scratchPlane.constant);
   const projection = reflectionCamera.projectionMatrix;
   const e = projection.elements;
-  const q = new THREE.Vector4(
-    (Math.sign(clipPlane.x) + e[8]) / e[0],
-    (Math.sign(clipPlane.y) + e[9]) / e[5],
+  scratchQ.set(
+    (Math.sign(scratchClip.x) + e[8]) / e[0],
+    (Math.sign(scratchClip.y) + e[9]) / e[5],
     -1,
     (1 + e[10]) / e[14],
   );
-  clipPlane.multiplyScalar(2.0 / clipPlane.dot(q));
-  e[2] = clipPlane.x;
-  e[6] = clipPlane.y;
-  e[10] = clipPlane.z + 1.0 - clipBias;
-  e[14] = clipPlane.w;
+  scratchClip.multiplyScalar(2.0 / scratchClip.dot(scratchQ));
+  e[2] = scratchClip.x;
+  e[6] = scratchClip.y;
+  e[10] = scratchClip.z + 1.0 - clipBias;
+  e[14] = scratchClip.w;
   reflectionCamera.projectionMatrixInverse.copy(projection).invert();
 }
 

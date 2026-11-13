@@ -35,7 +35,8 @@ function makeDataTex(
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(repeatX, repeatY);
-  tex.anisotropy = 8;
+  // 4x is visually the same as 8x on these surfaces and cheaper on integrated GPUs.
+  tex.anisotropy = 4;
   tex.magFilter = THREE.LinearFilter;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.generateMipmaps = true;
@@ -88,29 +89,17 @@ function heightToNormalRGBA(height: Float32Array, size: number, strength = 2.6):
   return out;
 }
 
-function grayToRGBA(gray: Uint8Array, size: number): Uint8Array {
+/**
+ * Packs ambient occlusion (R), roughness (G) and metalness (B) into one texture, the layout
+ * three.js already reads (aoMap uses .r, roughnessMap .g, metalnessMap .b). Same values as three
+ * separate grayscale textures, but one texture to generate, upload and keep in GPU memory.
+ */
+function packOcclusionRoughnessMetalness(buffers: PBRChannelBuffers, size: number): Uint8Array {
   const out = new Uint8Array(size * size * 4);
   for (let i = 0; i < size * size; i++) {
-    const v = gray[i];
-    out[i * 4] = v;
-    out[i * 4 + 1] = v;
-    out[i * 4 + 2] = v;
-    out[i * 4 + 3] = 255;
-  }
-  return out;
-}
-
-function heightToGrayRGBA(height: Float32Array, size: number, ao = false): Uint8Array {
-  const out = new Uint8Array(size * size * 4);
-  for (let i = 0; i < size * size; i++) {
-    // AO is intentionally soft: seams and pores lose indirect light, while the
-    // raised grain remains available to the sun and image-based lighting.
-    const v = ao
-      ? clamp(Math.round((0.58 + height[i] * 0.42) * 255), 92, 255)
-      : clamp(Math.round(height[i] * 255), 0, 255);
-    out[i * 4] = v;
-    out[i * 4 + 1] = v;
-    out[i * 4 + 2] = v;
+    out[i * 4] = clamp(Math.round((0.58 + buffers.height[i] * 0.42) * 255), 92, 255);
+    out[i * 4 + 1] = buffers.roughness[i];
+    out[i * 4 + 2] = buffers.metalness ? buffers.metalness[i] : 0;
     out[i * 4 + 3] = 255;
   }
   return out;
@@ -849,16 +838,15 @@ export class MekongMaterialLibrary {
       const buffers = createBuffers();
       const map = makeDataTex(buffers.albedo, size, true, 1, 1);
       const normalMap = makeDataTex(heightToNormalRGBA(buffers.height, size, 3.0), size, false, 1, 1);
-      const roughnessMap = makeDataTex(grayToRGBA(buffers.roughness, size), size, false, 1, 1);
-      const aoMap = makeDataTex(heightToGrayRGBA(buffers.height, size, true), size, false, 1, 1);
-      this.textures.push(map, normalMap, roughnessMap, aoMap);
-
-      let metalnessMap: THREE.DataTexture | undefined;
-      if (buffers.metalness) {
-        metalnessMap = makeDataTex(grayToRGBA(buffers.metalness, size), size, false, 1, 1);
-        this.textures.push(metalnessMap);
-      }
-      base = { map, normalMap, roughnessMap, aoMap, metalnessMap };
+      const ormMap = makeDataTex(packOcclusionRoughnessMetalness(buffers, size), size, false, 1, 1);
+      this.textures.push(map, normalMap, ormMap);
+      base = {
+        map,
+        normalMap,
+        roughnessMap: ormMap,
+        aoMap: ormMap,
+        metalnessMap: buffers.metalness ? ormMap : undefined,
+      };
       this.baseTextures.set(familyKey, base);
     }
 
@@ -873,9 +861,11 @@ export class MekongMaterialLibrary {
 
     const map = withRepeat(base.map);
     const normalMap = withRepeat(base.normalMap);
-    const roughnessMap = withRepeat(base.roughnessMap);
-    const aoMap = withRepeat(base.aoMap);
-    const metalnessMap = base.metalnessMap ? withRepeat(base.metalnessMap) : undefined;
+    // One packed occlusion/roughness/metalness texture serves all three slots.
+    const ormMap = withRepeat(base.roughnessMap);
+    const roughnessMap = ormMap;
+    const aoMap = ormMap;
+    const metalnessMap = base.metalnessMap ? ormMap : undefined;
 
     const matParams: THREE.MeshStandardMaterialParameters = {
       name: cfg.id,
