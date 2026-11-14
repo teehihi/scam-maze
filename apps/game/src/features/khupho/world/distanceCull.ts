@@ -38,6 +38,8 @@ interface Entry {
   caster: boolean;
   /** House whose interior this mesh belongs to, if any. */
   house: House | null;
+  /** Merged small interior parts (staticMerge.mergeDevices): hidden from outside the house like single fittings. */
+  fitting: boolean;
 }
 
 export class DistanceCuller {
@@ -75,9 +77,9 @@ export class DistanceCuller {
           mesh.matrixWorld.decompose(this.world, q, scale);
           const radius = sphere.radius * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
           if (radius < TINY_SHADOW_RADIUS) mesh.castShadow = false;
-          if (radius < SHADOW_CULL_RADIUS) {
+          if (radius < SHADOW_CULL_RADIUS || mesh.userData.interiorFitting) {
             this.seen.add(mesh);
-            this.entries.push({ mesh, center: sphere.center.clone(), radius, caster: mesh.castShadow, house: h });
+            this.entries.push({ mesh, center: sphere.center.clone(), radius, caster: mesh.castShadow, house: h, fitting: !!mesh.userData.interiorFitting });
           }
         }
       }
@@ -125,7 +127,10 @@ export class DistanceCuller {
       const d = this.world.distanceTo(eye);
       if (entry.caster) entry.mesh.castShadow = d <= Math.min(this.shadowDistance, 8 + entry.radius * 40) + entry.radius;
       let culled = false;
-      if (entry.radius < MAX_CULL_RADIUS) {
+      if (entry.fitting) {
+        // Distance to the nearest part of the merged mesh, so nothing that a single fitting would show is hidden.
+        culled = !!entry.house && entry.house !== inside && d - entry.radius > FITTING_DISTANCE;
+      } else if (entry.radius < MAX_CULL_RADIUS) {
         culled = entry.radius * this.sizeFactor < d;
         if (!culled && entry.house && entry.house !== inside && entry.radius < FITTING_RADIUS && d > FITTING_DISTANCE) culled = true;
       }

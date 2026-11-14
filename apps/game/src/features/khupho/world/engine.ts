@@ -20,7 +20,7 @@ import { tr } from './strings';
 import { DistanceCuller } from './distanceCull';
 import { probeDrawCategories, probeTimings } from './perfProbe';
 import { buildShadowProxies } from './shadowProxy';
-import { mergeHouseShells, mergeRigidParts } from './staticMerge';
+import { mergeDevices, mergeHouseShells, mergeRigidParts } from './staticMerge';
 import { CharacterArmsViewmodel } from '../../player/runtime/CharacterArmsViewmodel';
 import { CharacterAssetCache } from '../../player/runtime/CharacterAssetCache';
 import { loadStreetProps, STORY_SPAWN, type PlacedProp } from './streetProps';
@@ -180,6 +180,8 @@ export class Engine {
     // Shadow proxies first: they read the shells' cast-shadow flag, then the shells are merged for drawing.
     buildShadowProxies(this.ctx.root);
     mergeHouseShells(this.houses, this.ctx.root);
+    // After the shadow proxies, so merged device parts keep their own shadow flag and the culler's shadow reach.
+    mergeDevices(this.houses);
     this.culler.collect(this.ctx.root, this.houses);
     this.houseCenters = this.houses.map((h) => { const c = h.wp(h.W / 2, 0, h.D / 2); return { h, x: c.x, z: c.z }; });
   }

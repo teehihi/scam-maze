@@ -124,3 +124,90 @@ export function mergeRigidParts(group: THREE.Object3D): void {
     flush(buckets, parent, 'MergedPart');
   }
 }
+
+/** Invisible stand-in kept where a merged part was a raycast target for an interaction. */
+const PROXY_MATERIAL = new THREE.MeshBasicMaterial({ visible: false });
+/** Parts under this radius are interior fittings: the culler hides their merged mesh from outside the house. */
+const FITTING_RADIUS = 0.3;
+
+function isStaticDevice(mesh: THREE.Object3D, house: THREE.Object3D): boolean {
+  for (let o: THREE.Object3D | null = mesh; o && o !== house; o = o.parent) if (o.userData.staticDevice) return true;
+  return false;
+}
+
+/** True when the mesh is (part of) the object an interaction raycasts against. */
+function isInteractionTarget(mesh: THREE.Object3D, house: THREE.Object3D): boolean {
+  for (let o: THREE.Object3D | null = mesh; o && o !== house; o = o.parent) if (o.userData.interactable) return true;
+  return false;
+}
+
+/**
+ * Merges the device parts marked static in devices.ts (`userData.staticDevice`), per house, per
+ * floor, per size class and per material, into meshes held by the house group (house-local
+ * geometry, so the house transform still applies). Parts that an interaction raycasts against are
+ * kept as invisible stand-ins, so prompts and clicks behave as before; the others are removed.
+ * Small parts are flagged `interiorFitting` so the culler still hides them from outside the house.
+ */
+export function mergeDevices(houses: readonly House[]): { before: number; after: number; proxies: number } {
+  let before = 0;
+  let after = 0;
+  let proxies = 0;
+  const local = new THREE.Matrix4();
+  const scale = new THREE.Vector3();
+  const pos = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  for (const h of houses) {
+    h.group.updateMatrixWorld(true);
+    const inverse = new THREE.Matrix4().copy(h.group.matrixWorld).invert();
+    const buckets = new Map<string, Bucket & { fitting: boolean }>();
+    h.group.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || mesh.parent === h.group && !mesh.matrixAutoUpdate) return; // house shell pieces
+      if (!isStaticDevice(mesh, h.group) || !mergeable(mesh) || mesh.children.length || !mesh.visible) return;
+      const g = mesh.geometry;
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      mesh.matrixWorld.decompose(pos, quat, scale);
+      const radius = g.boundingSphere!.radius * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+      local.multiplyMatrices(inverse, mesh.matrixWorld);
+      const centerY = new THREE.Vector3().copy(g.boundingSphere!.center).applyMatrix4(local).y;
+      const floor = Math.max(0, Math.floor((centerY - h.F(0) + 0.3) / h.FH));
+      const fitting = radius < FITTING_RADIUS;
+      const m = mesh.material as THREE.Material;
+      const key = `${floor}:${fitting}:${m.uuid}:${mesh.castShadow}:${mesh.receiveShadow}:${mesh.renderOrder}`;
+      let b = buckets.get(key);
+      if (!b) buckets.set(key, (b = { material: m, renderOrder: mesh.renderOrder, receiveShadow: mesh.receiveShadow, castShadow: mesh.castShadow, parts: [], sources: [], fitting }));
+      b.parts.push(strip(g, local));
+      b.sources.push(mesh);
+    });
+    buckets.forEach((b) => {
+      if (b.sources.length < 2) { b.parts.forEach((g) => g.dispose()); return; }
+      const geometry = mergeGeometries(b.parts, false);
+      b.parts.forEach((g) => g.dispose());
+      if (!geometry) return;
+      geometry.computeBoundingSphere();
+      geometry.computeBoundingBox();
+      const merged = new THREE.Mesh(geometry, b.material);
+      merged.name = 'MergedDevices';
+      merged.renderOrder = b.renderOrder;
+      merged.castShadow = b.castShadow;
+      merged.receiveShadow = b.receiveShadow;
+      merged.matrixAutoUpdate = false;
+      if (b.fitting) merged.userData.interiorFitting = true;
+      h.group.add(merged);
+      merged.updateMatrixWorld(true);
+      before += b.sources.length;
+      after++;
+      for (const src of b.sources) {
+        if (isInteractionTarget(src, h.group)) {
+          // Raycasts ignore `visible` on the material, the renderer skips it: no draw, same hit.
+          src.material = PROXY_MATERIAL;
+          src.castShadow = false;
+          proxies++;
+        } else {
+          src.removeFromParent();
+        }
+      }
+    });
+  }
+  return { before, after, proxies };
+}

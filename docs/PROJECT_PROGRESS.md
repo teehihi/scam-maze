@@ -210,6 +210,21 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Khupho performance slice 3: merge static device parts
+- **Objective:** merge device meshes that never move, toggle or change material, to cut draw calls.
+- **Audit** (`features/khupho/world/devices.ts`):
+  - Static, merged: light fixture rims, tube heat sinks and bulb cords; switch plates and LEDs; curtain panels (one material per room, shared by all its panels, so merging keeps the room-light glow), rings and rods; ceiling-fan canopy, rod, motor, bowl and chain; faucet body; shower pipe and head; flush button; gas-stove body and pot; rice-cooker body; radio; air-conditioner body; TV bezel, back, chin, LED, neck and stand; fridge cabinet; wall-clock face and rim; incense holder.
+  - Dynamic, not merged: doors, windows and shutters (swing/roll); fan rotor; switch rocker; light emissive parts (one material per room light, its glow follows that room); faucet stream and shower cone; stove flames; rice-cooker lid; air-con flap and LED; TV screen; fridge door; clock hands; incense tips; the whole washer (it shakes while running).
+  - Materials that were created per device with identical constant values are now shared: switch LED, fan bowl, TV standby LED. Per-room light and curtain materials were not shared: their emissive level changes per room at run time, so sharing would light other rooms.
+- **How:** `markStatic` tags the parts at build; `mergeDevices` (staticMerge.ts) merges them per house, floor, size class and material into house-local meshes. Parts that an interaction raycasts against stay as invisible stand-ins (no draw, same hit); the others are removed. Merged small parts are flagged `interiorFitting`, and the culler hides them from outside the house as before (distance measured to the nearest part).
+- **Measured** (headless Chrome, dev server, `/khupho`, medium, time frozen at 17:12; normal frame / shadow frame draw calls):
+  - spawn 465 / 1,127 → 468 / 1,121; alley 1,322 / 2,347 → 1,307 / 2,303; living room 2,532 / 3,447 → 2,447 / 3,348; kitchen 1,848 / 2,874 → 1,764 / 2,769. Meshes in the scene 11,778 → 10,325.
+  - The gain (about 0-15 on the street, about 85 indoors) is far below the 300-800 target. Measured where the living-room draws go: merged house shells 669 (per-house paint colors make many materials per cell), door/window/shutter leaves 301 (interactive and moving), merged device parts 173, people 168, single house meshes 153 (mostly per-room light emissives). The static devices were a smaller reservoir than estimated.
+- **Checks:** all 1,139 interactables still have a raycast mesh; toggling all 735 devices and doors twice and stepping 120 frames raised no error; screenshot inside the living room matches by eye.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for khupho, prologue and app (5 files, 31 tests) pass.
+- **Not verified:** a by-hand pass toggling lights, fans and doors in a real browser; FPS on a real GPU.
+- **Follow-up:** the larger reservoirs are the merged shells' material count and the door/window leaves (e.g. one material per paint color shared across houses, or instancing the leaves).
+
 ### 2026-11-14 — Khupho performance slice 2: staggered culler, no per-frame allocations
 - **Objective:** remove CPU hitches in the neighborhood frame loop without any visual change.
 - **Completed** (`features/khupho/world/`):

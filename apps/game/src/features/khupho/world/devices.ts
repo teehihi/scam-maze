@@ -11,6 +11,26 @@ let _glow: THREE.Texture | null = null;
 const glow = () => (_glow ??= glowTex());
 const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
+/**
+ * Marks device parts that never move, never toggle and never change material after build, so
+ * `mergeDevices` (staticMerge.ts) may merge them. A marked group marks all of its meshes; only mark
+ * a group whose own transform is fixed. Everything that moves or toggles stays unmarked.
+ */
+function markStatic(...objs: THREE.Object3D[]) {
+  for (const o of objs) o.userData.staticDevice = true;
+}
+/** `makeGroup` whose result is marked static. */
+function markStaticGroup(fn: Parameters<typeof makeGroup>[0]): THREE.Group {
+  const g = makeGroup(fn);
+  markStatic(g);
+  return g;
+}
+
+/** Materials that were created per device with identical constant values; shared so merged parts collapse into one draw. */
+const SWITCH_LED_MAT = new THREE.MeshBasicMaterial({ color: '#ff5a2a' });
+const FAN_BOWL_MAT = new THREE.MeshStandardMaterial({ color: '#f4efe0', roughness: 0.3, emissive: '#fff1c8', emissiveIntensity: 0.05, side: THREE.DoubleSide });
+const TV_LED_MAT = new THREE.MeshStandardMaterial({ color: '#111', emissive: '#ff2020', emissiveIntensity: 1.2 });
+
 export function mkDevice(set: (on: boolean) => void, init = false): Device {
   const d: Device = { on: init, set(on) { d.on = on; set(on); }, toggle() { d.set(!d.on); } };
   set(init);
@@ -112,12 +132,12 @@ export function makeRoomLight(h: House, room: Room, x: number, y: number, z: num
   const g = new THREE.Group(); g.position.set(x, y, z);
   if (type === 'disc') {
     g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 20), emat)); (g.children[0] as THREE.Mesh).position.y = -0.025;
-    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.012, 20), mat('r:#e8e6e0')); rim.position.y = -0.006; g.add(rim);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.012, 20), mat('r:#e8e6e0')); rim.position.y = -0.006; g.add(rim); markStatic(rim);
   } else if (type === 'tube') {
     const m = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.035, 0.07), emat); m.position.y = -0.03; g.add(m);
-    const hs = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.02, 0.1), mat('r:#dddad2')); hs.position.y = -0.008; g.add(hs);
+    const hs = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.02, 0.1), mat('r:#dddad2')); hs.position.y = -0.008; g.add(hs); markStatic(hs);
   } else {
-    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.3), mat('r:#222')); cord.position.y = -0.15; g.add(cord);
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.3), mat('r:#222')); cord.position.y = -0.15; g.add(cord); markStatic(cord);
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), emat); bulb.position.y = -0.32; g.add(bulb);
   }
   g.children.forEach((c) => { (c as THREE.Mesh).castShadow = false; });
@@ -136,8 +156,8 @@ export function lightSwitch(h: House, room: Room, x: number, y: number, z: numbe
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = rotFor[nrm];
   const plate = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.125, 0.012), mat('g:#f1efe8')); plate.position.z = 0.006;
   const rock = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.01), mat('g:#e2dfd6')); rock.position.z = 0.016;
-  const led = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 0.004), new THREE.MeshBasicMaterial({ color: '#ff5a2a' })); led.position.set(0.025, 0.045, 0.013);
-  g.add(plate, rock, led); h.group.add(g);
+  const led = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 0.004), SWITCH_LED_MAT); led.position.set(0.025, 0.045, 0.013);
+  g.add(plate, rock, led); h.group.add(g); markStatic(plate, led);
   h.addInteract(g, () => (room.light?.target ? tr('verb.turnOff') : tr('verb.turnOn')) + label, () => {
     if (!room.light) return;
     setRoomLight(h, room, room.light.target < 0.5, true); rock.rotation.x = room.light.target > 0.5 ? 0.3 : -0.3;
@@ -158,10 +178,10 @@ export function curtain(h: House, room: Room, x: number, y: number, z: number, w
       p.setY(i, py + Math.sin(px * 46) * 0.004 * tt);
     }
     geo.computeVertexNormals();
-    const m = new THREE.Mesh(geo, room.curtainMat); m.position.set(sgn * w * 0.35, hgt / 2, 0.035); m.castShadow = false; g.add(m);
-    for (let k = 0; k < 7; k++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.003, 5, 10), mat('m:#6a6a6a')); ring.position.set(sgn * w * 0.35 + (k / 6 - 0.5) * pw, hgt + 0.015, 0.03); g.add(ring); }
+    const m = new THREE.Mesh(geo, room.curtainMat); m.position.set(sgn * w * 0.35, hgt / 2, 0.035); m.castShadow = false; g.add(m); markStatic(m);
+    for (let k = 0; k < 7; k++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.003, 5, 10), mat('m:#6a6a6a')); ring.position.set(sgn * w * 0.35 + (k / 6 - 0.5) * pw, hgt + 0.015, 0.03); g.add(ring); markStatic(ring); }
   }
-  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, w + 0.2, 6), mat('m:#555')); rod.rotation.z = Math.PI / 2; rod.position.set(0, hgt + 0.03, 0.03); g.add(rod);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, w + 0.2, 6), mat('m:#555')); rod.rotation.z = Math.PI / 2; rod.position.set(0, hgt + 0.03, 0.03); g.add(rod); markStatic(rod);
   h.group.add(g);
 }
 
@@ -171,7 +191,7 @@ export function ceilingFan(h: House, x: number, y: number, z: number, id: string
   const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8), mat('m:#d8d8d4')); rod.position.y = -0.1;
   const canopy = new THREE.Mesh(new THREE.LatheGeometry([[0.07, 0], [0.075, -0.02], [0.05, -0.045], [0.02, -0.05]].map(([r, y]) => new THREE.Vector2(r, y)), 20), mat('m:#e4e4de')); canopy.position.y = 0;
   const motor = new THREE.Mesh(new THREE.LatheGeometry([[0.0, 0], [0.07, 0.0], [0.11, 0.02], [0.115, 0.055], [0.09, 0.085], [0.0, 0.09]].map(([r, y]) => new THREE.Vector2(r, y)), 24), mat('m:#e2e2dc')); motor.position.y = -0.33;
-  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.085, 18, 10, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), new THREE.MeshStandardMaterial({ color: '#f4efe0', roughness: 0.3, emissive: '#fff1c8', emissiveIntensity: 0.05, side: THREE.DoubleSide })); bowl.position.y = -0.33; bowl.scale.y = 0.7;
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.085, 18, 10, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), FAN_BOWL_MAT); bowl.position.y = -0.33; bowl.scale.y = 0.7;
   const rot = new THREE.Group(); rot.position.y = -0.27;
   // blade: tapered paddle with rounded tip, slight camber, steel iron arm
   const sh = new THREE.Shape(); sh.moveTo(0.0, -0.045); sh.lineTo(0.5, -0.07); sh.quadraticCurveTo(0.6, -0.07, 0.6, 0); sh.quadraticCurveTo(0.6, 0.07, 0.5, 0.07); sh.lineTo(0.0, 0.045); sh.closePath();
@@ -188,6 +208,7 @@ export function ceilingFan(h: House, x: number, y: number, z: number, id: string
   const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.18, 4), mat('m:#b0b0a0')); chain.position.set(0.04, -0.45, 0.02);
   g.add(canopy, chain, bowl);
   g.add(rod, motor, rot); h.group.add(g);
+  markStatic(canopy, chain, bowl, rod, motor);
   const wpos = h.wp(x, y - 0.3, z);
   let speed = 0, tgt = 0;
   const dev = mkDevice((o) => { tgt = o ? 7 : 0; h.ctx.sfx.play('click', wpos); h.ctx.sfx.loop(id, 'fan', wpos, o); }, on);
@@ -227,7 +248,7 @@ export function faucet(h: House, id: string, x: number, y: number, z: number, ya
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.12, 10), chrome); base.position.y = 0.06;
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.16, 8), chrome); neck.rotation.x = Math.PI / 2; neck.position.set(0, 0.12, 0.08);
   const knob = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.025, 0.03), chrome); knob.position.set(0, 0.1, 0);
-  g.add(base, neck, knob);
+  g.add(base, neck, knob); markStatic(base, neck, knob);
   const L = y + 0.12 - targetY;
   const st = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.006, L, 6, 1, true), new THREE.MeshBasicMaterial({ color: '#d7edff', transparent: true, opacity: 0.6, map: streak(), depthWrite: false, side: THREE.DoubleSide }));
   st.position.set(0, 0.12 - L / 2, 0.16); st.visible = false; g.add(st);
@@ -247,7 +268,7 @@ export function shower(h: House, id: string, x: number, y: number, z: number, fl
   const hgt = y - floorY;
   const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.3, hgt - 0.1, 14, 1, true), new THREE.MeshBasicMaterial({ color: '#dff2ff', transparent: true, opacity: 0.35, map: streak(), depthWrite: false, side: THREE.DoubleSide }));
   cone.position.set(0, -(hgt - 0.1) / 2 - 0.05, 0.27); cone.visible = false;
-  g.add(pipe, head, cone); h.group.add(g);
+  g.add(pipe, head, cone); h.group.add(g); markStatic(pipe, head);
   const st = steam(h, x + Math.sin(yaw) * 0.3, floorY + 0.8, z + Math.cos(yaw) * 0.3, { n: 16, size: 0.5, spread: 0.12, rise: 0.8, op: 0.22 });
   const wpos = h.wp(x + Math.sin(yaw) * 0.2, y, z + Math.cos(yaw) * 0.2);
   const dev = mkDevice((on) => { cone.visible = on; st.active = on; h.ctx.sfx.loop(id, 'shower', wpos, on); }, false);
@@ -259,7 +280,7 @@ export function shower(h: House, id: string, x: number, y: number, z: number, fl
 export function flush(h: House, x: number, y: number, z: number, yaw: number) {
   const m = hit(h, x, y, z, 0.16, 0.1, 0.1, tr('act.flush'), () => h.ctx.sfx.play('flush', h.wp(x, y, z)), yaw);
   void m;
-  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.015, 12), mat('m:#e5e5e5')); b.rotation.x = Math.PI / 2; b.position.set(x, y + 0.05, z); b.rotation.y = yaw; h.group.add(b);
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.015, 12), mat('m:#e5e5e5')); b.rotation.x = Math.PI / 2; b.position.set(x, y + 0.05, z); b.rotation.y = yaw; h.group.add(b); markStatic(b);
 }
 
 // ---------------- stove / rice cooker / radio / ac / washer / tv / fridge ----------------
@@ -272,7 +293,7 @@ export function gasStove(h: House, id: string, x: number, y: number, z: number, 
   });
   g.add(body);
   const pot = makeGroup((b) => { b.cyl(0, 0.1, 0, 0.13, 0.15, 'm:#aab0b5', 16); b.cyl(0, 0.255, 0, 0.133, 0.02, 'm:#9aa0a5', 16); b.box(0.13, 0.2, -0.015, 0.1, 0.02, 0.03, 'm:#2a2a2a'); });
-  pot.position.x = -0.17; g.add(pot);
+  pot.position.x = -0.17; g.add(pot); markStatic(body, pot);
   const flames: THREE.Mesh[] = [];
   for (const px of [-0.17, 0.17]) {
     const f = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.045, 12, 1, true), new THREE.MeshBasicMaterial({ color: '#4f8dff', transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
@@ -289,7 +310,8 @@ export function gasStove(h: House, id: string, x: number, y: number, z: number, 
 }
 export function riceCooker(h: House, id: string, x: number, y: number, z: number, yaw: number): Device {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
-  g.add(makeGroup((b) => { b.cyl(0, 0, 0, 0.13, 0.2, 'g:#f1efe6', 16); b.cyl(0, 0.08, 0, 0.134, 0.03, 'm:#6b6e72', 16); b.box(-0.03, 0.04, 0.125, 0.06, 0.04, 0.012, 'emit:#ff3b1a'); }));
+  const cookerBody = makeGroup((b) => { b.cyl(0, 0, 0, 0.13, 0.2, 'g:#f1efe6', 16); b.cyl(0, 0.08, 0, 0.134, 0.03, 'm:#6b6e72', 16); b.box(-0.03, 0.04, 0.125, 0.06, 0.04, 0.012, 'emit:#ff3b1a'); });
+  g.add(cookerBody); markStatic(cookerBody);
   const lid = makeGroup((b) => { b.cyl(0, 0, 0, 0.13, 0.05, 'g:#f1efe6', 16, 0.1); b.cyl(0, 0.05, 0, 0.03, 0.02, 'm:#aaa', 8); });
   lid.position.set(0, 0.2, 0); g.add(lid); h.group.add(g);
   const st = steam(h, x, y + 0.25, z, { n: 10, size: 0.22, spread: 0.04, rise: 0.5, op: 0.25 });
@@ -301,7 +323,7 @@ export function riceCooker(h: House, id: string, x: number, y: number, z: number
 }
 export function radio(h: House, id: string, x: number, y: number, z: number, yaw: number): Device {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
-  g.add(makeGroup((b) => {
+  g.add(markStaticGroup((b) => {
     b.box(-0.14, 0, -0.045, 0.28, 0.16, 0.09, 'woodF:#6b4a32'); b.box(-0.12, 0.03, 0.044, 0.12, 0.1, 0.004, 'r:#1a1a1a');
     b.box(0.02, 0.09, 0.044, 0.1, 0.04, 0.004, 'g:#d9c9a0'); b.cyl(0.07, 0.04, 0.046, 0.02, 0.01, 'm:#aaa', 8);
     b.box(0.1, 0.16, -0.02, 0.006, 0.28, 0.006, 'm:#ccc');
@@ -314,7 +336,7 @@ export function radio(h: House, id: string, x: number, y: number, z: number, yaw
 }
 export function aircon(h: House, room: Room, id: string, x: number, y: number, z: number, nrm: 'px' | 'nx' | 'pz' | 'nz'): Device {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = rotFor[nrm];
-  g.add(makeGroup((b) => { b.box(-0.45, 0, 0, 0.9, 0.29, 0.22, 'g:#f4f4f1'); b.box(-0.4, 0.2, 0.22, 0.8, 0.012, 0.001, 'g:#d7d7d3'); b.box(0.3, 0.2, 0.2, 0.05, 0.02, 0.025, 'r:#2b2b2b'); }));
+  g.add(markStaticGroup((b) => { b.box(-0.45, 0, 0, 0.9, 0.29, 0.22, 'g:#f4f4f1'); b.box(-0.4, 0.2, 0.22, 0.8, 0.012, 0.001, 'g:#d7d7d3'); b.box(0.3, 0.2, 0.2, 0.05, 0.02, 0.025, 'r:#2b2b2b'); }));
   const flap = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.012, 0.06), mat('g:#f1f1ee')); flap.position.set(0, 0.025, 0.2); g.add(flap);
   const led = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.004), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#22ff66', emissiveIntensity: 0 })); led.position.set(0.37, 0.2, 0.222); g.add(led);
   h.group.add(g);
@@ -356,12 +378,12 @@ export function tv(h: House, room: Room, id: string, x: number, y: number, z: nu
   const bezel = new THREE.Mesh(new RoundedBoxGeometry(w + 0.024, hg + 0.024, 0.026, 2, 0.008), blk); bezel.position.set(0, hg / 2, 0.0);
   const rear = new THREE.Mesh(new RoundedBoxGeometry(w * 0.62, hg * 0.62, 0.035, 2, 0.012), mat('r:#17171a')); rear.position.set(0, hg / 2, -0.028);
   const chin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.006, 0.004), mat('m:#8c8f93')); chin.position.set(0, -0.004, 0.0145);
-  const led = new THREE.Mesh(new THREE.SphereGeometry(0.0025, 6, 5), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#ff2020', emissiveIntensity: 1.2 })); led.position.set(w * 0.42, -0.004, 0.0145);
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.0025, 6, 5), TV_LED_MAT); led.position.set(w * 0.42, -0.004, 0.0145);
   const scr = new THREE.Mesh(new THREE.PlaneGeometry(w, hg), smat); scr.position.set(0, hg / 2, 0.0135);
   const neck = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.02), mat('m:#1c1c1e')); neck.position.set(0, -0.04, -0.03);
   const stand = new THREE.Mesh(new RoundedBoxGeometry(Math.min(0.5, w * 0.4), 0.012, 0.18, 2, 0.005), mat('m:#1c1c1e')); stand.position.set(0, -0.09, -0.02);
   g.add(bezel, rear, chin, led, neck);
-  g.add(scr, stand); h.group.add(g);
+  g.add(scr, stand); h.group.add(g); markStatic(bezel, rear, chin, led, neck, stand);
   const wpos = h.wp(x, y + hg / 2, z);
   const rl: RoomLight = { pos: h.wp(x + Math.sin(yaw) * 0.8, y + hg / 2, z + Math.cos(yaw) * 0.8), level: 0, target: 0, manual: true, color: 0x8fb4ff, power: 0.45, mats: [], curtainMats: [], roomId: room.id + ':tv', houseId: h.id };
   h.ctx.roomLights.push(rl);
@@ -387,7 +409,7 @@ export function tv(h: House, room: Room, id: string, x: number, y: number, z: nu
 export function fridge(h: House, id: string, x: number, y: number, z: number, yaw: number, wd = 0.62, hg = 1.72): Device {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
   const d = 0.64, T = 0.03;
-  g.add(makeGroup((b) => {
+  g.add(markStaticGroup((b) => {
     b.box(-wd / 2, 0, -d / 2, T, hg, d - 0.04, 'g:#dfe2e4'); b.box(wd / 2 - T, 0, -d / 2, T, hg, d - 0.04, 'g:#dfe2e4');
     b.box(-wd / 2, hg - T, -d / 2, wd, T, d - 0.04, 'g:#dfe2e4'); b.box(-wd / 2, 0.06, -d / 2, wd, T, d - 0.04, 'g:#dfe2e4'); b.box(-wd / 2, 0, -d / 2, wd, hg, T, 'g:#d4d7d9');
     b.box(-wd / 2 + T, 0.06, -d / 2 + T, wd - 2 * T, 0.0, 0.0, 'g:#fff');
@@ -415,14 +437,14 @@ export function wallClock(h: House, x: number, y: number, z: number, nrm: 'px' |
   const rim = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.012, 8, 24), mat('woodF:#5c3b22')); rim.position.z = 0.03;
   const hand = (len: number, wd: number) => { const p = new THREE.Group(); const m = new THREE.Mesh(new THREE.BoxGeometry(wd, len, 0.004), mat('r:#111')); m.position.y = len / 2 - 0.01; p.add(m); p.position.z = 0.036; g.add(p); return p; };
   const hh = hand(0.07, 0.008), mm = hand(0.11, 0.005);
-  g.add(face, rim); h.group.add(g);
+  g.add(face, rim); h.group.add(g); markStatic(face, rim);
   h.ctx.dyn.push(() => { const hr = h.ctx.env.hour; mm.rotation.z = -((hr % 1) * Math.PI * 2); hh.rotation.z = -(((hr % 12) / 12) * Math.PI * 2); });
 }
 
 export function incense(h: House, id: string, x: number, y: number, z: number, yaw: number): Device {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
   const tips: THREE.Mesh[] = [];
-  g.add(makeGroup((b) => { b.cyl(0, 0, 0, 0.045, 0.07, 'g:#7a3b22', 12, 0.05); for (let i = -1; i <= 1; i++) b.cyl(i * 0.015, 0.07, 0, 0.0025, 0.18, 'r:#8a4a2a', 5); }));
+  g.add(markStaticGroup((b) => { b.cyl(0, 0, 0, 0.045, 0.07, 'g:#7a3b22', 12, 0.05); for (let i = -1; i <= 1; i++) b.cyl(i * 0.015, 0.07, 0, 0.0025, 0.18, 'r:#8a4a2a', 5); }));
   for (let i = -1; i <= 1; i++) { const t = new THREE.Mesh(new THREE.SphereGeometry(0.005, 6, 6), new THREE.MeshBasicMaterial({ color: '#ff4a1a' })); t.position.set(i * 0.015, 0.255, 0); t.visible = false; g.add(t); tips.push(t); }
   h.group.add(g);
   const sm = steam(h, x, y + 0.26, z, { n: 12, size: 0.1, spread: 0.03, rise: 0.8, color: 0xdddddd, op: 0.28 });
