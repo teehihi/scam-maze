@@ -27,10 +27,21 @@
 
 ### 🧭 Quick Navigation
 
-| [![About The Game](docs/assets/buttons/btn-about.png)](#about-the-game) | [![Gameplay Loop](docs/assets/buttons/btn-gameplay.png)](#core-gameplay-loop) | [![Scam Scenarios](docs/assets/buttons/btn-scenarios.png)](#scam-scenarios-and-vectors) |
-| :---: | :---: | :---: |
-| [![UI & Systems](docs/assets/buttons/btn-ui.png)](#ui--systems-showcase) | [![3D Worlds](docs/assets/buttons/btn-worlds.png)](#immersive-3d-worlds) | [![Tech Stack](docs/assets/buttons/btn-tech.png)](#technology-stack) |
-| [![Controls](docs/assets/buttons/btn-controls.png)](#controls) | [![Quickstart](docs/assets/buttons/btn-quickstart.png)](#getting-started) | [![Safety & Ethics](docs/assets/buttons/btn-safety.png)](#safety--ethics) |
+<p align="center">
+  <a href="#about-the-game"><img src="docs/assets/buttons/btn-about.png" width="31%" alt="About The Game" /></a>
+  <a href="#core-gameplay-loop"><img src="docs/assets/buttons/btn-gameplay.png" width="31%" alt="Gameplay Loop" /></a>
+  <a href="#scam-scenarios-and-vectors"><img src="docs/assets/buttons/btn-scenarios.png" width="31%" alt="Scam Scenarios" /></a>
+</p>
+<p align="center">
+  <a href="#ui--systems-showcase"><img src="docs/assets/buttons/btn-ui.png" width="31%" alt="UI &amp; Systems" /></a>
+  <a href="#immersive-3d-worlds"><img src="docs/assets/buttons/btn-worlds.png" width="31%" alt="3D Worlds" /></a>
+  <a href="#technology-stack"><img src="docs/assets/buttons/btn-tech.png" width="31%" alt="Tech Stack" /></a>
+</p>
+<p align="center">
+  <a href="#controls"><img src="docs/assets/buttons/btn-controls.png" width="31%" alt="Controls" /></a>
+  <a href="#getting-started"><img src="docs/assets/buttons/btn-quickstart.png" width="31%" alt="Quickstart" /></a>
+  <a href="#safety--ethics"><img src="docs/assets/buttons/btn-safety.png" width="31%" alt="Safety &amp; Ethics" /></a>
+</p>
 
 </div>
 
