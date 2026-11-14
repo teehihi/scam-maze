@@ -210,6 +210,11 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Room v2 sound: only the recorded rain and the phone vibration
+- **Owner request:** remove the room's current sounds (the constant "tok tok"), add our rain, leave the phone ringtone for later, keep the vibration.
+- **Completed** (`features/roomv2/game/audio.ts`): the room now plays only `rain.mp3` (the neighborhood's recording; muffled through the closed window, louder and clearer when it is opened) and the existing phone vibration chain. Removed: room tone, city bed, fridge hum, laptop fan, kettle, clock tick, footsteps, switch clicks, door, keys, paper, clinks, chair, sit, sigh, typing, fridge door and beep, drips, tyre hiss, horn, siren, synthesized thunder and the stinger. Those methods stay as no-ops so the engine's calls are unchanged. There was no ringtone sound; the call only vibrated, so nothing changed there.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for prologue and app pass. Not checked by ear.
+
 ### 2026-11-14 — Prologue: menu hover sound, Go home without icon, narration over the rain
 - **Owner requests:** drop the house icon from Go home; the main menu's hover sound in the in-game menus; the call-home voice was too quiet under the rain.
 - **Completed:** Go home shows only its `H` key cap and label. The pause menu now keeps one highlighted entry like the main menu (pointer, focus, arrow keys and W/S) and plays the menu hover blip (`playHoverSound` from App) on each change; the top-bar buttons and Go home play it on hover. Narration: the voice gain is 1.6x the settings value (capped at full volume), and while the intro or the call-home lines play, the neighborhood's outdoor bus (street, rain, thunder) is ducked to 28% (`AudioSys.setDuck`) and restored after.
