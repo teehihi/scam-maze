@@ -26,15 +26,15 @@
 <p align="center">
   <a href="#about-the-game"><kbd>&nbsp;🎮 About&nbsp;</kbd></a> &nbsp;
   <a href="#core-gameplay-loop"><kbd>&nbsp;🔄 Gameplay Loop&nbsp;</kbd></a> &nbsp;
+  <a href="#scam-scenarios-and-vectors"><kbd>&nbsp;🕵️ Scam Scenarios&nbsp;</kbd></a> &nbsp;
   <a href="#ui--systems-showcase"><kbd>&nbsp;📱 UI Showcase&nbsp;</kbd></a> &nbsp;
-  <a href="#immersive-3d-worlds"><kbd>&nbsp;🗺️ 3D Worlds&nbsp;</kbd></a> &nbsp;
-  <a href="#technology-stack"><kbd>&nbsp;🛠️ Tech Stack&nbsp;</kbd></a>
+  <a href="#immersive-3d-worlds"><kbd>&nbsp;🗺️ 3D Worlds&nbsp;</kbd></a>
   <br/><br/>
+  <a href="#technology-stack"><kbd>&nbsp;🛠️ Tech Stack&nbsp;</kbd></a> &nbsp;
   <a href="#controls"><kbd>&nbsp;⌨️ Controls&nbsp;</kbd></a> &nbsp;
   <a href="#getting-started"><kbd>&nbsp;🚀 Quickstart&nbsp;</kbd></a> &nbsp;
   <a href="#project-structure"><kbd>&nbsp;📁 Structure&nbsp;</kbd></a> &nbsp;
-  <a href="#safety--ethics"><kbd>&nbsp;🛡️ Safety & Ethics&nbsp;</kbd></a> &nbsp;
-  <a href="#license--credits"><kbd>&nbsp;📜 Credits&nbsp;</kbd></a>
+  <a href="#safety--ethics"><kbd>&nbsp;🛡️ Safety & Ethics&nbsp;</kbd></a>
 </p>
 
 ---
@@ -44,9 +44,11 @@
 
 **SCAMMAZE** is an interactive, browser-based, first-person 3D narrative game built for **Kiroween 2026** (Frankenstein category).
 
-In the real world, scams never look like multiple-choice quizzes or dry security warnings. They happen while you are walking down your street, relaxing in your room, or heading to work. An urgent phone call rings, a convincing message pops up, or a friendly stranger asks for help. 
+In the real world, scams never look like multiple-choice quizzes or dry security warnings. They happen while you are walking down your street, relaxing in your room, or heading to work. 
 
-In **SCAMMAZE**, you live an ordinary life in a living fictional neighborhood. Scams reach you through your **in-game smartphone** and people in the physical environment. You must inspect both physical clues and digital signals to uncover contradictions, resist psychological manipulation, and make high-stakes decisions with lasting consequences.
+Crucially, **scams do not only happen on phones**. While an in-game smartphone serves as one prominent digital interaction surface, SCAMMAZE is designed around a **multi-channel threat landscape**. Players experience diverse, evolving scam vectors that manifest across both digital devices (calls, SMS, emails, rogue portals) and physical in-person interactions (street recruiters, counterfeit goods, fraudulent flyers, impersonated service agents).
+
+In **SCAMMAZE**, you live an ordinary life in a living fictional neighborhood. You must inspect both physical clues and digital signals to uncover contradictions, resist psychological manipulation, and make high-stakes decisions with lasting consequences.
 
 * **Target Audience:** Young adults, university students, and everyday internet users in Vietnam and worldwide (equal weight).
 * **Core North Star:** *A safe, living world where people learn to spot scams before facing them in real life.*
@@ -62,9 +64,9 @@ The detective loop connects the physical world with the digital world:
 
 ```
 ┌────────────────────────┐      ┌────────────────────────┐      ┌────────────────────────┐
-│  1. Physical 3D World  │ ───► │ 2. Digital Disruption  │ ───► │ 3. Cross Investigation │
-│  Explore neighborhood, │      │ Urgent phone call, SMS │      │ Compare phone evidence │
-│  talk to local NPCs    │      │ or mock banking alert  │      │ against physical world │
+│  1. Physical 3D World  │ ───► │ 2. Deception Trigger   │ ───► │ 3. Cross Investigation │
+│  Explore neighborhood, │      │ Urgent call, street NPC│      │ Compare physical clues │
+│  talk to local NPCs    │      │ SMS, or suspicious flyer│     │ against digital claims │
 └────────────────────────┘      └────────────────────────┘      └────────────────────────┘
                                                                             │
                                                                             ▼
@@ -76,21 +78,39 @@ The detective loop connects the physical world with the digital world:
 ```
 
 1. **Physical World Exploration:** Walk freely in first person through a living 3D environment.
-2. **Digital Disruption:** Receive realistic incoming voice calls, SMS alerts, or phishing emails on your smartphone.
-3. **Cross-World Investigation:** Clues in the physical world contradict digital claims (e.g. an "undelivered package" notice arrives when you already have the package on your desk).
-4. **Critical Decision:** Confront the scammer's psychological pressure (authority impersonation, fake urgency, guilt trips). Choose how to respond.
+2. **Deception Trigger:** Encounter a suspicious situation through phone calls, street flyers, stranger requests, or SMS alerts.
+3. **Cross-World Investigation:** Clues in the physical world contradict deceptive claims (e.g. an "undelivered package" message arrives when you already collected it from the locker downstairs; or an in-person flyer promises unrealistic wages).
+4. **Critical Decision:** Confront psychological pressure (authority impersonation, fake urgency, guilt trips, too-good-to-be-true deals). Choose how to respond.
 5. **Branching Consequences:** Choices trigger deterministic scenario outcomes that carry forward across chapters.
 6. **Forensic Debrief:** Every chapter concludes with an educational breakdown detailing every red flag and where it could have been detected.
+
+---
+
+<a id="scam-scenarios-and-vectors"></a>
+## 🕵️ Diverse Scam Scenarios & Vectors (Under Continuous Development)
+
+SCAMMAZE is designed as an extensible platform for a wide spectrum of modern social engineering and fraud techniques. The scam vectors span digital channels, physical street life, and hybrid interactions:
+
+| Scam Vector | Channel | Attack Mechanism & Scenario | Key Defensive Reflex |
+|---|---|---|---|
+| **The Urgent Voice Call (Vishing)** | Audio Call | Scammer impersonates a bank security officer or police authority demanding immediate verification under threat of legal action. | Never share OTPs; hang up and call official public hotline. |
+| **The Missing Parcel (Smishing & Quishing)** | SMS / QR Code | Look-alike logistics tracking link claiming a parcel is held, asking for fee payment or identity upload. Physical parcel locker contradicts the claim. | Verify tracking code directly on the official courier portal. |
+| **The Dream Job (Advance-Fee Recruitment)** | Café Flyer / Chat | High-paying remote tasks or job flyers placed around campus/cafés requiring an upfront "equipment deposit" or "training fee". | Legitimate employers never ask candidates to pay for employment. |
+| **The Impossible Deal (Marketplace Fraud)** | Marketplace / In-Person | Second-hand electronics sale meeting on the street; seller insists on off-platform gift cards or fake escrow payment apps. | Inspect physical item carefully; refuse off-platform payment methods. |
+| **The Family Emergency (Social Engineering)** | Voice / Message | Spoofed message or voice claiming a loved one is hospitalized or arrested, demanding instant money transfers. | Perform out-of-band verification by contacting family directly. |
+| **Street Impersonation & Rogue Solicitations** | In-Person NPC | Shady street encounters, bogus donation drives, fake building utility inspectors requesting cash or personal data. | Demand official physical credentials; verify with building management. |
+
+> *Note: New scenario modules, in-person street interactions, and multi-channel scam archetypes are actively being designed and added to the scenario engine.*
 
 ---
 
 <a id="ui--systems-showcase"></a>
 ## 📱 UI & Systems Showcase
 
-The interface is engineered to seamlessly blend a 3D game engine with an authentic, interactive smartphone and forensic HUD:
+The interface is engineered to seamlessly blend a 3D game engine with an authentic, interactive smartphone, in-world physical inspection, and forensic HUD:
 
-### 1. In-Game Smartphone (Phishing & Social Engineering Interface)
-The player's smartphone is always accessible via `[Tab]` or `[P]`:
+### 1. In-Game Smartphone (Digital Interaction Gateway)
+The player's smartphone is accessible via `[Tab]` or `[P]`:
 * **Incoming Audio Call Screen:** Displays simulated caller ID, pulsating audio waveform, and voiced dialogue playback with real-time text sync.
 * **SMS & Messaging App:** Threaded chats with spoofed corporate accounts, urgent delivery deadlines, and disguised links.
 * **Simulated Mobile Web Browser:** Displays fictional corporate portals and landing pages built exclusively on reserved domains (`.test`, `.example`, `.invalid`).
@@ -118,8 +138,8 @@ The player's smartphone is always accessible via `[Tab]` or `[P]`:
 * **Bilingual Switcher:** Instant runtime language toggle between **English** and **Tiếng Việt**.
 * **Settings & Credits Modals:** Full control over graphics quality tiers, audio volume, and verified asset licenses.
 
-### 3. Investigation HUD & Evidence Journal
-* **Contextual Reticle:** Dynamic hover feedback when targeting interactable world items (`[E] Inspect`).
+### 3. In-World Inspection & Evidence Journal
+* **Contextual Reticle:** Dynamic hover feedback when targeting interactable world items (`[E] Inspect`, examining flyers, posters, lockers, or talking to NPCs).
 * **Clue Journal:** Automatically logs collected evidence, conflicting statements, and suspicious URL strings.
 * **Dual-Language Subtitles:** Synchronized with professional voice narration for both English and Vietnamese clips.
 
