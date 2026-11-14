@@ -51,7 +51,7 @@ export class SkySys {
     u.turbidity.value = lerp(4.5, 18, rain); u.rayleigh.value = lerp(1.3, 0.35, rain) * (0.3 + 0.7 * day) + 0.15; u.mieCoefficient.value = lerp(0.004, 0.02, rain);
     this.sky.position.copy(cam); this.stars.position.copy(cam);
     (this.stars.material as THREE.PointsMaterial).opacity = clamp(env.night * (1 - rain) * 0.95, 0, 1);
-    const moonDir = this.sunDir.clone().multiplyScalar(-1);
+    const moonDir = this.moonDir.copy(this.sunDir).multiplyScalar(-1);
     this.moon.position.copy(cam).addScaledVector(moonDir, 1200); (this.moon.material as THREE.SpriteMaterial).opacity = moonDir.y > 0 ? env.night * (1 - rain) * 0.55 : 0;
     // directional light = sun by day, moon by night
     const useSun = y > -0.03;
@@ -60,7 +60,7 @@ export class SkySys {
     this.sun.target.position.copy(this.snap); this.sun.target.updateMatrixWorld();
     this.sun.position.copy(this.snap).addScaledVector(d, 120);
     if (useSun) {
-      this.tmp.set('#ff8a3c').lerp(this.tmp2(), smoothstep(0.0, 0.5, y));
+      this.tmp.set('#ff8a3c').lerp(this.noon, smoothstep(0.0, 0.5, y));
       this.sun.color.copy(this.tmp);
       this.sun.intensity = 3.4 * smoothstep(-0.02, 0.3, y) * (1 - 0.82 * rain) + 0.05;
     } else {
@@ -81,7 +81,9 @@ export class SkySys {
     (this.scene.fog as THREE.FogExp2).density = lerp(0.0036, 0.011, rain) * lerp(1, 1.3, env.night);
     this.renderer.toneMappingExposure = lerp(1.15, 0.78, day) * lerp(1, 1.8, indoor) * (1 + 0.2 * (1 - day) * 0);
   }
-  private tmp2() { return new THREE.Color('#fff3e0'); }
+  /** Scratch objects reused every frame (no allocation in `update`). */
+  private readonly moonDir = new THREE.Vector3();
+  private readonly noon = new THREE.Color('#fff3e0');
 }
 
 export function makeEnvMap(renderer: THREE.WebGLRenderer): THREE.Texture {

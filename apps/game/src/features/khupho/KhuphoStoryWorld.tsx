@@ -39,7 +39,7 @@ export const KhuphoStoryWorld: React.FC<KhuphoStoryWorldProps> = ({ settings, on
     Engine.create(
       el,
       (hud) => callbacks.current.onHud(hud),
-      { story: true, onStory: (event) => callbacks.current.onStory(event) },
+      { story: true, onStory: (event) => callbacks.current.onStory(event), quality: ENGINE_QUALITY[qualityRef.current] },
       (step, fraction) => callbacks.current.onProgress(step, fraction),
       () => cancelled,
     )
@@ -49,7 +49,6 @@ export const KhuphoStoryWorld: React.FC<KhuphoStoryWorldProps> = ({ settings, on
           return;
         }
         engine = built;
-        built.applyQuality(ENGINE_QUALITY[qualityRef.current]);
         callbacks.current.onReady(built);
       })
       .catch((err: unknown) => {

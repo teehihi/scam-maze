@@ -210,6 +210,92 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Neighborhood doors closed by default; room ringtone
+- **Owner requests:** houses keep their front doors closed by default; use the new `ringtone.ogg` for the incoming call.
+- **Completed:** the daily schedule in `khupho/world/people.ts` no longer opens the full houses' front doors between 6:30 and 21:30; they stay closed until the player opens them (shop shutters keep their opening hours). Room: the incoming call now loops the ringtone at the phone's positional emitter together with the vibration, and stops on answer, decline or missed call. `ringtone.mp3` (made from the Ogg with ffmpeg, 128 kbps) is the fallback for browsers that report no Ogg Vorbis support (`canPlayType`).
+- **Audio format review (not applied):** converting with Opus would shrink the large files a lot (measured with ffmpeg: menu music 5.3 MB → 1.5 MB at 48 kbps mono / 3.0 MB at 96 kbps stereo; rain 2.2 MB → 0.36 / 0.77 MB; one song 6.1 MB → 1.9 / 3.8 MB; clock 259 KB → 44 / 94 KB). The 30-80 KB voice clips gain little (scam.open 60 KB → 48 KB mono, larger at 96 kbps). Opus only changes download size, not frame rate; decoding is done once at load.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for prologue, app and khupho pass. Ringtone not checked by ear.
+
+### 2026-11-14 — Neighborhood textures restored; room city bed, thunder, clock, switches, door, typing
+- **Owner report:** the houses had textures in the original source and now look flat; the shutters seem gone. Room: bring back a quiet city sound, thunder, switches, door and typing; the clock uses the new `clock.mp3`.
+- **Cause and fix (textures):** `materials.ts` loads scanned textures from `features/khupho/assets/tex/*.jpg` (`import.meta.glob`), but that folder was never in the source zip (the prototype README says so), so every surface fell back to flat procedural color. The owner's single-file build `Asset3D/khupho/evidence/stable_v1/hue_textured_v1.html` embeds all 39 files; they were extracted unchanged (5.6 MB, CC0 Poly Haven, noted in `THIRD_PARTY_NOTICES.md`).
+- **Shutters:** not lost. Compared at the same camera (in front of the south-row shops at x -21.6) with the original stable build: the pictures are the same. Closed shutters are on the house fronts; open shops have them rolled up by day, as in the original. Their slats are faint in the original too.
+- **Room audio** (`features/roomv2/game/audio.ts`): low city bed (room tone 0.04, window bed 0.07, 0.25 with the window open) and quiet tyre hiss; distant thunder from `thunder.mp3` once at 18 s, then every 60-130 s (darker through the closed window); `clock.mp3` looped on the wall clock's positional emitter (replaces the per-second synthesized tick); light switch clicks, door close and laptop typing restored. Rain and vibration unchanged; the other removed sounds stay removed.
+- **Validation:** `pnpm typecheck`, `pnpm build` and vitest for prologue, app and khupho pass. Headless screenshots at the same camera, original vs now, match. Sound not checked by ear.
+
+### 2026-11-14 — Room v2 sound: only the recorded rain and the phone vibration
+- **Owner request:** remove the room's current sounds (the constant "tok tok"), add our rain, leave the phone ringtone for later, keep the vibration.
+- **Completed** (`features/roomv2/game/audio.ts`): the room now plays only `rain.mp3` (the neighborhood's recording; muffled through the closed window, louder and clearer when it is opened) and the existing phone vibration chain. Removed: room tone, city bed, fridge hum, laptop fan, kettle, clock tick, footsteps, switch clicks, door, keys, paper, clinks, chair, sit, sigh, typing, fridge door and beep, drips, tyre hiss, horn, siren, synthesized thunder and the stinger. Those methods stay as no-ops so the engine's calls are unchanged. There was no ringtone sound; the call only vibrated, so nothing changed there.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for prologue and app pass. Not checked by ear.
+
+### 2026-11-14 — Prologue: menu hover sound, Go home without icon, narration over the rain
+- **Owner requests:** drop the house icon from Go home; the main menu's hover sound in the in-game menus; the call-home voice was too quiet under the rain.
+- **Completed:** Go home shows only its `H` key cap and label. The pause menu now keeps one highlighted entry like the main menu (pointer, focus, arrow keys and W/S) and plays the menu hover blip (`playHoverSound` from App) on each change; the top-bar buttons and Go home play it on hover. Narration: the voice gain is 1.6x the settings value (capped at full volume), and while the intro or the call-home lines play, the neighborhood's outdoor bus (street, rain, thunder) is ducked to 28% (`AudioSys.setDuck`) and restored after.
+- **Files:** `features/prologue/{PrologueHud,ProloguePage}.tsx`, `features/khupho/world/audio.ts`, `app/App.tsx`.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for prologue, app and khupho (5 files, 31 tests) pass. The voice/rain balance was not checked by ear.
+
+### 2026-11-14 — Prologue HUD in the game's style, Ctrl cursor, clock, thunderstorm, phone pickup
+- **Objective (owner):** objective and Go home in the game's look; sound and settings in the top-right on every in-game screen; Ctrl shows/hides the cursor everywhere (camera stops turning, everything else works); a clock in the neighborhood; random thunder with lightning while it rains, using the owner's `rain.mp3` and `thunder.mp3`; in the room, picking up the phone plays the take animation only.
+- **Completed:**
+  - `features/prologue/PrologueHud.tsx` rewritten in the main menu's style (Barlow Condensed uppercase, key caps, slanted purple accent, no panels): clock with weather and place, objective, prompt with key cap, `Ctrl`/`Esc` hints, Go home with its `H` key cap; `PrologueTopBar` (sound on/off like the menu, Settings) on the neighborhood and in the room; pause menu restyled like the main menu (Resume, Settings opens the shared `SettingsModal`, Return to main menu). The sound toggle writes the global setting and mutes both worlds' own audio (`AudioSys.setMuted`, new `AudioEngine.setMuted` in the room).
+  - Ctrl (the Control key on Mac and Windows, never Command): `Engine.setCursorMode` in the neighborhood and the room releases the pointer; the camera does not turn, moving, E, clicks and the HUD keep working; Ctrl again takes the pointer back. The "click to resume" hint is not shown in cursor mode. Also works on `/khupho` and `/roomv2`.
+  - Thunderstorm (`khupho/world/engine.ts › updateLightning`): while rain is above 0.55, a strike every 9-26 s flickers the sky light three times (hemisphere and exposure boost, no new light, so no shader recompiles; softer indoors), and `thunder.mp3` follows 0.3-2.5 s later, louder and brighter for near strikes. The rain bed is now `rain.mp3` through the outdoor bus (muffled indoors).
+  - Room: inspected small objects (phone, note, receipts, mug, photo) play the take animation instead of the look-at-hand clip. In the story the room's own help text is hidden (the HUD shows the hints); its crosshair and prompt also show in cursor mode.
+- **Files:** `app/App.tsx`, `features/prologue/{PrologueHud,ProloguePage}.tsx`, `features/khupho/world/{engine,audio}.ts`, `features/roomv2/{RoomV2Page.tsx,game/engine.ts,game/audio.ts}`, `i18n/locales/{en,vi}/worlds/khupho.ts`, new `public/audio/{rain,thunder}.mp3` (owner).
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for app, prologue, khupho, loading, i18n and menu (18 files, 219 tests) pass. Headless run of New Game → intro → neighborhood: HUD renders as described; a forced strike brightens the scene.
+- **Not verified:** Ctrl and pointer lock by hand (headless has no pointer lock), the thunder sound level, the settings dialog on top of the pause menu in a real browser.
+- **Known limitation:** the Chapter 1 street screens were not changed (they have their own HUD and pause menu).
+
+### 2026-11-14 — Khupho performance slice 3: merge static device parts
+- **Objective:** merge device meshes that never move, toggle or change material, to cut draw calls.
+- **Audit** (`features/khupho/world/devices.ts`):
+  - Static, merged: light fixture rims, tube heat sinks and bulb cords; switch plates and LEDs; curtain panels (one material per room, shared by all its panels, so merging keeps the room-light glow), rings and rods; ceiling-fan canopy, rod, motor, bowl and chain; faucet body; shower pipe and head; flush button; gas-stove body and pot; rice-cooker body; radio; air-conditioner body; TV bezel, back, chin, LED, neck and stand; fridge cabinet; wall-clock face and rim; incense holder.
+  - Dynamic, not merged: doors, windows and shutters (swing/roll); fan rotor; switch rocker; light emissive parts (one material per room light, its glow follows that room); faucet stream and shower cone; stove flames; rice-cooker lid; air-con flap and LED; TV screen; fridge door; clock hands; incense tips; the whole washer (it shakes while running).
+  - Materials that were created per device with identical constant values are now shared: switch LED, fan bowl, TV standby LED. Per-room light and curtain materials were not shared: their emissive level changes per room at run time, so sharing would light other rooms.
+- **How:** `markStatic` tags the parts at build; `mergeDevices` (staticMerge.ts) merges them per house, floor, size class and material into house-local meshes. Parts that an interaction raycasts against stay as invisible stand-ins (no draw, same hit); the others are removed. Merged small parts are flagged `interiorFitting`, and the culler hides them from outside the house as before (distance measured to the nearest part).
+- **Measured** (headless Chrome, dev server, `/khupho`, medium, time frozen at 17:12; normal frame / shadow frame draw calls):
+  - spawn 465 / 1,127 → 468 / 1,121; alley 1,322 / 2,347 → 1,307 / 2,303; living room 2,532 / 3,447 → 2,447 / 3,348; kitchen 1,848 / 2,874 → 1,764 / 2,769. Meshes in the scene 11,778 → 10,325.
+  - The gain (about 0-15 on the street, about 85 indoors) is far below the 300-800 target. Measured where the living-room draws go: merged house shells 669 (per-house paint colors make many materials per cell), door/window/shutter leaves 301 (interactive and moving), merged device parts 173, people 168, single house meshes 153 (mostly per-room light emissives). The static devices were a smaller reservoir than estimated.
+- **Checks:** all 1,139 interactables still have a raycast mesh; toggling all 735 devices and doors twice and stepping 120 frames raised no error; screenshot inside the living room matches by eye.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for khupho, prologue and app (5 files, 31 tests) pass.
+- **Not verified:** a by-hand pass toggling lights, fans and doors in a real browser; FPS on a real GPU.
+- **Follow-up:** the larger reservoirs are the merged shells' material count and the door/window leaves (e.g. one material per paint color shared across houses, or instancing the leaves).
+
+### 2026-11-14 — Khupho performance slice 2: staggered culler, no per-frame allocations
+- **Objective:** remove CPU hitches in the neighborhood frame loop without any visual change.
+- **Completed** (`features/khupho/world/`):
+  - `DistanceCuller`: a sweep still starts every 0.15 s, but is spread over 4 frames (a quarter of the 11,177 entries per frame); same rules and thresholds. `force` still runs a whole sweep at once (warm-up, teleports).
+  - Scratch reuse: `SkySys.update` no longer clones the moon direction or creates a Color per frame; `House.toLocal` (used by `contains` several times per frame per house) returns a shared scratch vector; open doors counted in place instead of `doors.filter`; light candidates come from a reused array and object pool; street lamps sorted in place, at most once per second (or after a 4 m move, or a new lamp set).
+  - `freezeFarTransforms`: the house distance loop runs only after the camera moved 0.5 m; the people loop still runs every frame, because people show and hide at any time and a frozen matrix would show them at an old position.
+- **Measured** (headless Chrome, dev server, `/khupho`, medium, walking 3.6 m/s along the street, 4 × 270 simulated frames per run, two runs each; "old" = the previous full sweep every 9th frame in the same page):
+  - Culler time per frame: max 4.2-5.2 ms → 1.0-1.6 ms, p95 1.2-2.1 ms → 0.3-0.9 ms, average about the same (0.17-0.24 → 0.09-0.20 ms).
+  - `update()` time: no change beyond noise (average 0.2-0.35 ms in both).
+  - Draw calls unchanged: spawn 1,133 / 465 → 1,130 / 465 (shadow / normal frame), alley 2,347 / 1,322 → 2,347 / 1,322.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for khupho and prologue pass. Screenshot at the spawn: same scene.
+- **Not verified:** frame-time spikes on a real GPU and the GC effect of the removed allocations (not visible in headless numbers).
+
+### 2026-11-14 — Khupho performance slice 1: config-only GPU cuts (branch `perf/khupho-slice1-config`)
+- **Objective:** cut GPU and per-frame cost of the neighborhood street engine with configuration only (no geometry change).
+- **Completed** (`features/khupho/world/engine.ts`, `KhuphoStoryWorld.tsx`, `KhuphoPage.tsx`):
+  - Composer multisampling per quality: 0 samples on low and medium, 4 on high (was 4 everywhere). Bloom and the composer chain are unchanged. Changing quality frees and reallocates both composer targets.
+  - Sun shadow map redrawn every 4th frame (was every 2nd); medium shadow map 1024 px (was 1536); high stays 2048, low stays off.
+  - Adaptive resolution steps down after 1 slow second (was 2); medium ceiling 0.85 (was 1.0); floor 0.6 on every quality (was 0.7 on medium/high). Step sizes and settle times unchanged.
+  - The requested quality is passed into `Engine.create` (`EngineOptions.quality`) and applied once in `initLightsAndPost`, so the build and warm-up no longer run at 'high' for a medium/low player; the second `applyQuality` after the build was removed from both pages.
+- **Measured** (headless Chrome, SwiftShader, `vite build --mode development` + `vite preview`, `/khupho`, `renderer.info`, same build before/after; spawn = (-1.2, -1.4), alley = (10, 25)):
+
+  | | shadow frame | normal frame | avg draws per frame over 8 real frames |
+  |---|---|---|---|
+  | medium, spawn | 1,133 → 1,125 | 465 → 465 | 798 → 630 (-21%) |
+  | medium, alley | 2,347 → 2,348 | 1,322 → 1,322 | 1,835 → 1,579 (-14%) |
+  | high, spawn | 1,596 → 1,596 | 795 → 797 | 1,206 → 1,010 (-16%) |
+  | high, alley | 3,592 → 3,592 | 2,517 → 2,517 | 3,055 → 2,786 (-9%) |
+
+  A shadow frame costs the same number of draws (map size does not change draws); there are half as many of them, and on medium each one fills 44% of the texels (1024² vs 1536²). MSAA cost on medium is gone; that does not show in draw counts.
+- **Visual:** screenshot at the spawn matches by eye. Known tradeoffs: on medium, edges are no longer multisampled (slightly more aliasing) and sun shadows are softer/blurrier at 1024 px; shadows can lag the sun by up to 3 frames (not visible at this sun speed).
+- **Validation:** `pnpm typecheck`, `pnpm build` and vitest for khupho, prologue and app (5 files, 31 tests) pass.
+- **Not verified:** FPS and the 2-frame frame-time oscillation on a real GPU (the headless renderer drew about 3 frames in 6 s, so its frame times say nothing); needs a check on the owner's Mac.
+- **Follow-up:** slice 2 (stagger the culler, remove per-frame allocations), slice 3 (merge static devices); gate bloom to high in the story only if measurements still show the composer dominating.
+
 ### 2026-11-14 — Prologue: one loading screen, chapter-style UI, hands, audio, draw-call pass
 - **Objective (owner, 9 points):** build the neighborhood behind "Back on your street"; fix camera-turn stutter; remove harsh noise; hands in the neighborhood; drop Ctrl crouch; chapter-style HUD with pause menu (no back button); much higher FPS; call-home lines one at a time like the intro; enter the room directly.
 - **Completed:** `Engine.create` builds in steps with yields, compiles all shaders (`compileAsync`) and draws a warm-up frame with culling off, then waits for steady frames; `ChapterLoadingFlow` takes a `hold` (files 55% + world 45%) and App mounts `ProloguePage` under it during a new-game load. New `KhuphoStoryWorld` (3D only); `ProloguePage` owns intro, HUD (`PrologueHud`: objective, prompt, resume hint, Go home / H), pause menu on Esc, the call overlay (now `useIntroNarration`, one line at a time) and the room (`RoomV2Page embedded`: no title card, auto begin, no back button). Hands (`CharacterArmsViewmodel`) in the neighborhood: E reach, F look, sprint. Ctrl no longer crouches; debug keys T/R/M/G only on `/khupho`. Audio: removed synthesized crickets, cicadas, rain hiss, TV/radio static; rain is a soft low rumble. Performance: house shells merged per material per 24 m cell, people's rigid parts merged per bone group, size-based and interior culling, hidden people and far houses skip matrix updates, 6 instead of 9 point lights, PCF shadows, GTAO never in the story, pixel ratio capped at 1.0 on medium and adapted to frame time (0.7 minimum). Dev-only `__khuphoProbe` (draw categories, timings).

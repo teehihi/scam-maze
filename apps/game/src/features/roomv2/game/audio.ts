@@ -15,6 +15,31 @@ export class Emitter {
   }
 }
 
+/** Recorded rain, shared with the neighborhood. Muffled through the closed window, clearer when it is open. */
+const RAIN_URL = '/audio/rain.mp3';
+const RAIN_CLOSED = 0.22;
+const RAIN_OPEN = 0.5;
+/** Owner-supplied sounds: thunder (shared with the neighborhood) and the wall clock's ticking loop. */
+const THUNDER_URL = '/audio/thunder.mp3';
+const CLOCK_URL = '/audio/clock.mp3';
+/** Phone ringtone (owner-supplied Ogg Vorbis, with an MP3 copy for browsers that cannot decode Ogg). */
+const RINGTONE_URLS = ['/audio/ringtone.ogg', '/audio/ringtone.mp3'];
+
+/** First URL whose format this browser reports it can play (Ogg is not decodable on older Safari). */
+function playableUrl(urls: readonly string[]): string {
+  if (typeof document === 'undefined') return urls[urls.length - 1];
+  const probe = document.createElement('audio');
+  for (const url of urls) {
+    const type = url.endsWith('.ogg') ? 'audio/ogg; codecs="vorbis"' : url.endsWith('.opus') ? 'audio/ogg; codecs="opus"' : 'audio/mpeg';
+    if (probe.canPlayType(type) !== '') return url;
+  }
+  return urls[urls.length - 1];
+}
+/** City heard through the walls and the window, kept low because the player is indoors. */
+const CITY_ROOM = 0.04;
+const CITY_WINDOW_CLOSED = 0.07;
+const CITY_WINDOW_OPEN = 0.25;
+
 export class AudioEngine {
   listener: THREE.AudioListener;
   ctx: AudioContext;
@@ -32,6 +57,8 @@ export class AudioEngine {
   kettleGain!: GainNode;
   kettleNoise?: AudioBufferSourceNode;
   started = false;
+  private rainGain?: GainNode;
+  private rainFilter?: BiquadFilterNode;
   timers: number[] = [];
 
   constructor(camera: THREE.Camera) {
@@ -87,31 +114,42 @@ export class AudioEngine {
     this.cityDuck = this.gain(1);
     this.cityDuck.connect(out);
 
-    // Room tone: very low brown rumble of the city through walls
-    this.room = this.gain(0.09);
-    const lp = this.filt('lowpass', 180);
-    this.loop(this.brown, lp); lp.connect(this.room); this.room.connect(this.cityDuck);
-
-    // City through the window glass (positional, grows when window opens)
-    this.windowBed = this.gain(0.16);
+    // The room plays (owner): a low city bed, the recorded rain, distant thunder, the wall clock, the
+    // light switches, the door, typing, and the phone vibrating. The other synthesized sounds were removed.
+    this.room = this.gain(CITY_ROOM);
+    const roomLp = this.filt('lowpass', 180);
+    this.loop(this.brown, roomLp); roomLp.connect(this.room); this.room.connect(this.cityDuck);
+    this.windowBed = this.gain(CITY_WINDOW_CLOSED);
     const wlp = this.filt('lowpass', 700);
     this.loop(this.pink, wlp, 0.9); wlp.connect(this.windowBed);
     this.windowBed.connect(this.emit.window.input);
-
-    // Fridge hum
-    this.fridgeGain = this.gain(0);
-    [50, 100, 150, 201].forEach((f, i) => {
-      const o = this.ctx.createOscillator(); o.frequency.value = f + Math.random() * 0.4;
-      const g = this.gain([0.5, 0.35, 0.12, 0.05][i]); o.connect(g); g.connect(this.fridgeGain); o.start();
-    });
-    const fn = this.filt('bandpass', 420, 2); this.loop(this.white, fn); const fng = this.gain(0.05); fn.connect(fng); fng.connect(this.fridgeGain);
-    this.fridgeGain.connect(this.emit.fridge.input);
-    this.fridgeGain.gain.setTargetAtTime(0.035, this.ctx.currentTime, 2);
-
-    // Laptop fan
-    this.fanGain = this.gain(0);
-    const ff = this.filt('bandpass', 2600, 0.8); this.loop(this.white, ff, 0.7); ff.connect(this.fanGain);
-    this.fanGain.connect(this.emit.laptop.input);
+    const load = (url: string) => fetch(url).then((res) => res.arrayBuffer()).then((data) => this.ctx.decodeAudioData(data));
+    load(playableUrl(RINGTONE_URLS)).then((buf) => { this.ringBuf = buf; }).catch((err) => console.warn('[room] ringtone failed to load', err));
+    load(THUNDER_URL).then((buf) => { this.thunderBuf = buf; }).catch((err) => console.warn('[room] thunder sound failed to load', err));
+    load(CLOCK_URL)
+      .then((buf) => {
+        const e = this.emit.clock; if (!e || this.ctx.state === 'closed') return;
+        const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+        const g = this.gain(0.6); src.connect(g); g.connect(e.input); src.start();
+      })
+      .catch((err) => console.warn('[room] clock sound failed to load', err));
+    // Thunder far away, the storm moving off: once early, then now and then.
+    this.timers.push(window.setTimeout(() => this.thunder(0.55), 18000));
+    this.every(60, 130, () => this.thunder(0.3 + Math.random() * 0.25));
+    this.every(5, 12, () => this.tireHiss());
+    this.rainFilter = this.filt('lowpass', 900);
+    this.rainGain = this.gain(0);
+    this.rainFilter.connect(this.rainGain); this.rainGain.connect(this.cityDuck);
+    fetch(RAIN_URL)
+      .then((res) => res.arrayBuffer())
+      .then((data) => this.ctx.decodeAudioData(data))
+      .then((buf) => {
+        if (this.ctx.state === 'closed') return;
+        const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(this.rainFilter!);
+        src.start(0, Math.random() * Math.max(0, buf.duration - 1));
+        this.rainGain!.gain.setTargetAtTime(RAIN_CLOSED, this.ctx.currentTime, 1.5);
+      })
+      .catch((err) => console.warn('[room] rain sound failed to load', err));
 
     // Phone vibration chain
     this.vibeGain = this.gain(0);
@@ -123,83 +161,36 @@ export class AudioEngine {
     const vmix = this.gain(1); vlp.connect(vmix); const rg = this.gain(0.9); ram.connect(rg); rg.connect(vmix);
     vmix.connect(this.vibeGain); this.vibeGain.connect(this.emit.phone.input);
 
-    // Kettle
-    this.kettleGain = this.gain(0);
-    const kf = this.filt('bandpass', 900, 0.6); this.kettleNoise = this.loop(this.pink, kf); kf.connect(this.kettleGain);
-    this.kettleGain.connect(this.emit.kettle.input);
-
-    this.scheduleAmbience();
   }
 
+  drip(..._args: unknown[]): void {}
+  horn(..._args: unknown[]): void {}
+  siren(..._args: unknown[]): void {}
   private every(minS: number, maxS: number, fn: () => void) {
     const tick = () => { fn(); this.timers.push(window.setTimeout(tick, (minS + Math.random() * (maxS - minS)) * 1000)); };
     this.timers.push(window.setTimeout(tick, (minS + Math.random() * (maxS - minS)) * 1000));
   }
-
-  private scheduleAmbience() {
-    // tires hissing on wet asphalt
-    this.every(3, 9, () => this.tireHiss());
-    // drips from the AC unit / window ledge outside
-    this.every(0.5, 2.4, () => this.drip('window', 1500 + Math.random() * 900, 0.18));
-    // umbrella dripping into the little puddle by the door (slows down over time)
-    let um = 0;
-    const umbrella = () => { um++; this.drip('umbrella', 900 + Math.random() * 500, 0.12); this.timers.push(window.setTimeout(umbrella, (1.2 + um * 0.04 + Math.random() * 1.8) * 1000)); };
-    this.timers.push(window.setTimeout(umbrella, 1500));
-    // distant motorbike horn / siren
-    this.every(25, 60, () => (Math.random() < 0.6 ? this.horn() : this.siren()));
-    // thunder far away (the storm moving off)
-    this.timers.push(window.setTimeout(() => this.thunder(0.5), 18000));
-    this.every(70, 140, () => this.thunder(0.3));
+  private thunderBuf: AudioBuffer | null = null;
+  private ringBuf: AudioBuffer | null = null;
+  private ringSrc: AudioBufferSourceNode | null = null;
+  private ringGain: GainNode | null = null;
+  /** Starts (looping) or stops the ringtone at the phone. */
+  ring(on: boolean) {
+    const e = this.emit.phone;
+    if (!on) {
+      if (this.ringSrc && this.ringGain) {
+        const t = this.ctx.currentTime;
+        this.ringGain.gain.setTargetAtTime(0, t, 0.05);
+        const src = this.ringSrc; this.timers.push(window.setTimeout(() => { try { src.stop(); } catch { /* already stopped */ } }, 300));
+      }
+      this.ringSrc = null; this.ringGain = null;
+      return;
+    }
+    if (this.ringSrc || !this.ringBuf || !e || this.ctx.state === 'closed') return;
+    const src = this.ctx.createBufferSource(); src.buffer = this.ringBuf; src.loop = true;
+    const g = this.gain(0.9); src.connect(g); g.connect(e.input); src.start();
+    this.ringSrc = src; this.ringGain = g;
   }
-
-  tireHiss() {
-    const t = this.ctx.currentTime, dur = 2.5 + Math.random() * 2;
-    const s = this.ctx.createBufferSource(); s.buffer = this.white;
-    const bp = this.filt('bandpass', 600, 0.8);
-    bp.frequency.setValueAtTime(500, t); bp.frequency.linearRampToValueAtTime(2200 + Math.random() * 800, t + dur * 0.5); bp.frequency.linearRampToValueAtTime(500, t + dur);
-    const g = this.gain(0);
-    const peak = 0.05 + Math.random() * 0.06 + this.windowOpen * 0.12;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + dur * 0.5); g.gain.linearRampToValueAtTime(0, t + dur);
-    const lp = this.filt('lowpass', 1800 + this.windowOpen * 4000);
-    s.connect(bp); bp.connect(lp); lp.connect(g); g.connect(this.emit.window.input);
-    s.start(t, Math.random() * 2); s.stop(t + dur + 0.1);
-  }
-
-  drip(where: string, f: number, vol: number) {
-    const e = this.emit[where]; if (!e) return;
-    const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator(); o.type = 'sine';
-    o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.45, t + 0.06);
-    const g = this.gain(0); g.gain.setValueAtTime(vol * (where === 'window' ? 0.5 + this.windowOpen : 1), t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
-    o.connect(g); g.connect(e.input); o.start(t); o.stop(t + 0.12);
-  }
-
-  horn() {
-    const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 420 + Math.random() * 80;
-    const lp = this.filt('lowpass', 900); const g = this.gain(0);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.015 + this.windowOpen * 0.02, t + 0.03); g.gain.setValueAtTime(0.015, t + 0.25); g.gain.linearRampToValueAtTime(0, t + 0.3);
-    o.connect(lp); lp.connect(g); g.connect(this.emit.window.input); o.start(t); o.stop(t + 0.35);
-  }
-
-  siren() {
-    const t = this.ctx.currentTime, dur = 7;
-    const o = this.ctx.createOscillator(); o.type = 'triangle';
-    const lfo = this.ctx.createOscillator(); lfo.frequency.value = 0.35; const lg = this.gain(180); lfo.connect(lg); lg.connect(o.frequency); o.frequency.value = 760;
-    const lp = this.filt('lowpass', 1200); const g = this.gain(0);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.012, t + 2.5); g.gain.linearRampToValueAtTime(0, t + dur);
-    o.connect(lp); lp.connect(g); g.connect(this.emit.window.input); o.start(t); lfo.start(t); o.stop(t + dur); lfo.stop(t + dur);
-  }
-
-  thunder(v: number) {
-    const t = this.ctx.currentTime, dur = 6;
-    const s = this.ctx.createBufferSource(); s.buffer = this.brown;
-    const lp = this.filt('lowpass', 140); const g = this.gain(0);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.8); g.gain.exponentialRampToValueAtTime(v * 0.4, t + 2); g.gain.linearRampToValueAtTime(0, t + dur);
-    s.connect(lp); lp.connect(g); g.connect(this.cityDuck); s.start(t, Math.random()); s.stop(t + dur);
-  }
-
-  /* ---------- one-shots ---------- */
   private burst(dest: AudioNode, opts: { f: number; q?: number; type?: BiquadFilterType; dur: number; vol: number; delay?: number; buf?: AudioBuffer }) {
     const t = this.ctx.currentTime + (opts.delay ?? 0);
     const s = this.ctx.createBufferSource(); s.buffer = opts.buf ?? this.white;
@@ -213,115 +204,37 @@ export class AudioEngine {
     const g = this.gain(0); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
   }
-
+  /** Tyres on the wet street below, quiet (part of the city bed). */
+  tireHiss() {
+    const t = this.ctx.currentTime, dur = 2.5 + Math.random() * 2;
+    const s = this.ctx.createBufferSource(); s.buffer = this.white;
+    const bp = this.filt('bandpass', 600, 0.8);
+    bp.frequency.setValueAtTime(500, t); bp.frequency.linearRampToValueAtTime(2200 + Math.random() * 800, t + dur * 0.5); bp.frequency.linearRampToValueAtTime(500, t + dur);
+    const g = this.gain(0);
+    const peak = (0.03 + Math.random() * 0.03) * (1 + this.windowOpen * 2);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + dur * 0.5); g.gain.linearRampToValueAtTime(0, t + dur);
+    const lp = this.filt('lowpass', 1800 + this.windowOpen * 4000);
+    s.connect(bp); bp.connect(lp); lp.connect(g); g.connect(this.emit.window.input);
+    s.start(t, Math.random() * 2); s.stop(t + dur + 0.1);
+  }
+  /** Distant thunder (the recorded clap, darker and through the window). */
+  thunder(v: number) {
+    const buf = this.thunderBuf; if (!buf || this.ctx.state === 'closed') return;
+    const s = this.ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = 0.8 + Math.random() * 0.15;
+    const lp = this.filt('lowpass', 700 + this.windowOpen * 3000); const g = this.gain(v * (1 + this.windowOpen * 0.6));
+    s.connect(lp); lp.connect(g); g.connect(this.cityDuck); s.start();
+  }
   switchClick(at: string) {
     const e = this.emit[at]; if (!e) return;
     this.burst(e.input, { f: 3200, q: 2, dur: 0.03, vol: 0.5 });
     this.tone(e.input, 1900, 0.03, 0.08);
     this.burst(e.input, { f: 1400, q: 3, dur: 0.02, vol: 0.25, delay: 0.045 });
   }
-  footstep(intensity = 1) {
-    const dest = this.listener.getInput();
-    this.burst(dest, { f: 160 + Math.random() * 60, type: 'lowpass', dur: 0.12, vol: 0.22 * intensity, buf: this.brown });
-    this.burst(dest, { f: 2500 + Math.random() * 1500, q: 0.9, dur: 0.04, vol: 0.012 * intensity });
-  }
   doorClose() {
-    const e = this.emit.door;
+    const e = this.emit.door; if (!e) return;
     this.burst(e.input, { f: 90, type: 'lowpass', dur: 0.5, vol: 1.2, buf: this.brown });
     this.burst(e.input, { f: 2400, q: 4, dur: 0.05, vol: 0.4, delay: 0.08 });
     this.burst(e.input, { f: 3600, q: 6, dur: 0.04, vol: 0.3, delay: 0.16 });
-  }
-  keys() {
-    const e = this.emit.keys;
-    for (let i = 0; i < 9; i++) this.tone(e.input, 3500 + Math.random() * 3000, 0.15 + Math.random() * 0.2, 0.04, 0.9 + i * 0.03 + Math.random() * 0.05);
-    this.tone(e.input, 1250, 0.4, 0.05, 1.05);
-  }
-  paper(at: string) {
-    const e = this.emit[at] ?? { input: this.listener.getInput() };
-    for (let i = 0; i < 5; i++) this.burst(e.input, { f: 4000 + Math.random() * 3000, q: 0.6, dur: 0.05 + Math.random() * 0.08, vol: 0.08, delay: i * 0.04 + Math.random() * 0.05 });
-  }
-  clink(at: string) {
-    const e = this.emit[at]; if (!e) return;
-    this.tone(e.input, 2350, 0.5, 0.05); this.tone(e.input, 3810, 0.3, 0.03); this.tone(e.input, 5600, 0.2, 0.015);
-    this.burst(e.input, { f: 400, type: 'lowpass', dur: 0.05, vol: 0.2, buf: this.brown });
-  }
-  windowSlide(open: boolean) {
-    const e = this.emit.window;
-    const t = this.ctx.currentTime;
-    const s = this.ctx.createBufferSource(); s.buffer = this.white;
-    const bp = this.filt('bandpass', open ? 700 : 900, 1.5); const g = this.gain(0);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.1); g.gain.linearRampToValueAtTime(0.0001, t + 0.7);
-    s.connect(bp); bp.connect(g); g.connect(e.input); s.start(t); s.stop(t + 0.8);
-    this.burst(e.input, { f: 150, type: 'lowpass', dur: 0.2, vol: 0.4, buf: this.brown, delay: 0.65 });
-    this.windowOpen = open ? 1 : 0;
-    this.windowBed.gain.setTargetAtTime(open ? 0.55 : 0.16, t, 0.4);
-  }
-  setFan(on: boolean) { this.fanGain?.gain.setTargetAtTime(on ? 0.012 : 0, this.ctx.currentTime, 1.5); }
-  setFridge(on: boolean) {
-    if (!this.fridgeGain) return;
-    const t = this.ctx.currentTime;
-    if (!on) { this.burst(this.emit.fridge.input, { f: 120, type: 'lowpass', dur: 0.25, vol: 0.35, buf: this.brown }); this.tone(this.emit.fridge.input, 80, 0.4, 0.05); }
-    this.fridgeGain.gain.setTargetAtTime(on ? 0.035 : 0, t, on ? 1.5 : 0.08);
-  }
-  setVibe(on: boolean) { this.vibeGain?.gain.setTargetAtTime(on ? 0.22 : 0, this.ctx.currentTime, 0.012); }
-  duckCity(v: number) {
-    this.cityDuck?.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
-    this.emit.window?.pa.gain.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
-  }
-  kettle(on: boolean) {
-    const t = this.ctx.currentTime;
-    if (on) { this.switchClick('kettle'); this.kettleGain.gain.cancelScheduledValues(t); this.kettleGain.gain.setValueAtTime(0.001, t); this.kettleGain.gain.linearRampToValueAtTime(0.09, t + 16); }
-    else { this.kettleGain.gain.cancelScheduledValues(t); this.kettleGain.gain.setTargetAtTime(0, t, 0.3); this.switchClick('kettle'); }
-  }
-  bedRustle() {
-    for (let i = 0; i < 8; i++) this.burst(this.listener.getInput(), { f: 1200 + Math.random() * 1500, q: 0.5, dur: 0.15 + Math.random() * 0.2, vol: 0.06, delay: i * 0.08 });
-    this.burst(this.listener.getInput(), { f: 120, type: 'lowpass', dur: 0.4, vol: 0.4, buf: this.brown, delay: 0.1 });
-  }
-  sigh() {
-    // a tired exhale: breathy filtered noise
-    const t = this.ctx.currentTime + 0.3;
-    const s = this.ctx.createBufferSource(); s.buffer = this.pink;
-    const bp = this.filt('bandpass', 700, 0.7); const g = this.gain(0);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.06, t + 0.4); g.gain.linearRampToValueAtTime(0, t + 1.6);
-    bp.frequency.setValueAtTime(900, t); bp.frequency.linearRampToValueAtTime(500, t + 1.6);
-    s.connect(bp); bp.connect(g); g.connect(this.listener.getInput()); s.start(t); s.stop(t + 1.7);
-  }
-  stinger() {
-    // a low, almost subliminal swell when the phone first buzzes
-    const t = this.ctx.currentTime;
-    [55, 82.4].forEach((f) => {
-      const o = this.ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
-      const g = this.gain(0); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t + 3); g.gain.linearRampToValueAtTime(0, t + 9);
-      o.connect(g); g.connect(this.listener.getInput()); o.start(t); o.stop(t + 9.2);
-    });
-  }
-  fridgeDoor(open: boolean) {
-    const e = this.emit.fridge; if (!e) return;
-    if (open) {
-      this.burst(e.input, { f: 260, type: 'lowpass', dur: 0.16, vol: 0.5, buf: this.brown });
-      this.burst(e.input, { f: 1800, q: 1.5, dur: 0.1, vol: 0.22, delay: 0.02 });
-      this.burst(e.input, { f: 5200, q: 0.8, dur: 0.3, vol: 0.05, delay: 0.05 });
-    } else {
-      this.burst(e.input, { f: 120, type: 'lowpass', dur: 0.3, vol: 1.0, buf: this.brown, delay: 0.38 });
-      this.burst(e.input, { f: 1300, q: 1.2, dur: 0.06, vol: 0.3, delay: 0.38 });
-      this.burst(e.input, { f: 4000, q: 1, dur: 0.1, vol: 0.06, delay: 0.42 });
-    }
-  }
-  beep() { const e = this.emit.fridge; if (!e) return; this.tone(e.input, 2300, 0.14, 0.05); this.tone(e.input, 2300, 0.14, 0.05, 0.22); }
-  chairRoll() {
-    const d = this.listener.getInput();
-    this.burst(d, { f: 240, type: 'lowpass', dur: 0.9, vol: 0.14, buf: this.brown });
-    for (let i = 0; i < 6; i++) this.burst(d, { f: 2600 + Math.random() * 1500, q: 2, dur: 0.02, vol: 0.03, delay: 0.1 + i * 0.13 + Math.random() * 0.05 });
-  }
-  sit() {
-    const t = this.ctx.currentTime, d = this.listener.getInput();
-    const o = this.ctx.createOscillator(); o.type = 'sawtooth';
-    o.frequency.setValueAtTime(190, t); o.frequency.linearRampToValueAtTime(128, t + 0.45);
-    const bp = this.filt('bandpass', 600, 3); const g = this.gain(0);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.022, t + 0.08); g.gain.linearRampToValueAtTime(0, t + 0.5);
-    o.connect(bp); bp.connect(g); g.connect(d); o.start(t); o.stop(t + 0.55);
-    this.burst(d, { f: 130, type: 'lowpass', dur: 0.3, vol: 0.35, buf: this.brown });
-    this.sigh();
   }
   typing() {
     const e = this.emit.laptop; if (!e) return;
@@ -331,6 +244,36 @@ export class AudioEngine {
       this.tone(e.input, 180 + Math.random() * 60, 0.03, 0.12, dl);
     }
   }
-  tick() { const e = this.emit.clock; if (!e) return; this.burst(e.input, { f: 2400, q: 4, dur: 0.012, vol: 0.12 }); }
+  // Removed (owner): the sounds below stay as no-ops so the engine's calls keep working.
+  footstep(..._args: unknown[]): void {}
+  keys(..._args: unknown[]): void {}
+  paper(..._args: unknown[]): void {}
+  clink(..._args: unknown[]): void {}
+  windowSlide(open: boolean) {
+    this.windowOpen = open ? 1 : 0;
+    const t = this.ctx.currentTime;
+    this.rainGain?.gain.setTargetAtTime(open ? RAIN_OPEN : RAIN_CLOSED, t, 0.5);
+    this.rainFilter?.frequency.setTargetAtTime(open ? 7000 : 900, t, 0.5);
+    this.windowBed?.gain.setTargetAtTime(open ? CITY_WINDOW_OPEN : CITY_WINDOW_CLOSED, t, 0.4);
+  }
+  setFan(..._args: unknown[]): void {}
+  setFridge(..._args: unknown[]): void {}
+  setVibe(on: boolean) { this.vibeGain?.gain.setTargetAtTime(on ? 0.22 : 0, this.ctx.currentTime, 0.012); }
+  duckCity(v: number) {
+    this.cityDuck?.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
+    this.emit.window?.pa.gain.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
+  }
+  kettle(..._args: unknown[]): void {}
+  bedRustle(..._args: unknown[]): void {}
+  sigh(..._args: unknown[]): void {}
+  stinger(..._args: unknown[]): void {}
+  fridgeDoor(..._args: unknown[]): void {}
+  beep(..._args: unknown[]): void {}
+  chairRoll(..._args: unknown[]): void {}
+  sit(..._args: unknown[]): void {}
+  /** The wall clock plays its recorded ticking loop (started in `start`); the per-second call does nothing. */
+  tick(..._args: unknown[]): void {}
+  /** Silences (or restores) everything the room plays. */
+  setMuted(muted: boolean) { this.listener.setMasterVolume(muted ? 0 : 1); }
   dispose() { this.timers.forEach(clearTimeout); this.ctx.close(); }
 }

@@ -54,11 +54,10 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
     let cancelled = false;
     // Prompts, room names and the weather label all read from the active language.
     setTranslator((key, options) => (t as unknown as (k: string, o?: object) => string)(key, options));
-    Engine.create(el, setHud, {}, undefined, () => cancelled)
+    Engine.create(el, setHud, { quality: ENGINE_QUALITY[qualityRef.current] }, undefined, () => cancelled)
       .then((built) => {
         if (cancelled) { built.dispose(); return; }
         engine = built;
-        built.applyQuality(ENGINE_QUALITY[qualityRef.current]);
         engineRef.current = built;
         setLoading(false);
       })

@@ -12,7 +12,8 @@ import { KhuphoStoryWorld } from "../khupho/KhuphoStoryWorld";
 import { BUILD_STEPS, type BuildStep, type Engine as StreetEngine, type Hud, type StoryEvent } from "../khupho/world/engine";
 import type { Engine as RoomEngine, UIState as RoomUI } from "../roomv2/game/engine";
 import { HomeCallOverlay } from "./HomeCallOverlay";
-import { GO_HOME_KEY, PrologueHud, ProloguePauseMenu } from "./PrologueHud";
+import { GO_HOME_KEY, PrologueHud, ProloguePauseMenu, PrologueTopBar } from "./PrologueHud";
+import { SettingsModal } from "../menu/SettingsModal";
 
 // The room is its own chunk, downloaded in the background while the player walks around.
 const loadRoomModule = () => import("../roomv2");
@@ -31,6 +32,9 @@ export interface PrologueBuildProgress {
 
 interface ProloguePageProps {
   settings: GameSettings;
+  onUpdateSettings: (updates: Partial<GameSettings>) => void;
+  /** The main menu's hover blip, reused by the in-game menus. */
+  onHoverSound?: () => void;
   onBackToMenu: () => void;
   /**
    * False while the chapter loading screen still covers the page: the world is built and
@@ -51,13 +55,15 @@ const PROLOGUE_CONTROLS: readonly IntroControlId[] = ["move", "look", "interact"
  * home to the apartment. This page owns the whole interface, in the chapter's style; the two
  * world pages only draw the 3D view.
  */
-export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMenu, revealed, onBuildProgress }) => {
+export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSettings, onHoverSound, onBackToMenu, revealed, onBuildProgress }) => {
   const { t, i18n } = useTranslation(["worlds", "loading"]);
   const [stage, setStage] = useState<Stage>("neighborhood");
   const [worldReady, setWorldReady] = useState(false);
   const [worldError, setWorldError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [prompt, setPrompt] = useState<string | null>(null);
+  const [streetHud, setStreetHud] = useState<Hud | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [locked, setLocked] = useState(false);
   const [paused, setPaused] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
@@ -117,7 +123,16 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
 
   const handleHud = useCallback((hud: Hud) => {
     setPrompt(hud.prompt);
+    setStreetHud(hud);
   }, []);
+
+  // The sound setting mutes both worlds' own audio (they do not read the settings themselves).
+  const soundOn = settings.soundEnabled;
+  useEffect(() => {
+    streetRef.current?.audio.setMuted(!soundOn);
+    roomRef.current?.audio.setMuted(!soundOn);
+  }, [soundOn, worldReady, roomBuilt]);
+  const toggleSound = useCallback(() => onUpdateSettings({ soundEnabled: !soundOn }), [onUpdateSettings, soundOn]);
 
   const beginWalk = useCallback(() => {
     const engine = streetRef.current;
@@ -134,12 +149,14 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
   }, []);
 
   const openPause = useCallback(() => {
+    if (stage === "room") roomRef.current?.setCursorMode(false);
     setPaused(true);
     streetRef.current?.setPaused(true);
     if (document.pointerLockElement) document.exitPointerLock();
   }, []);
 
   const resume = useCallback(() => {
+    setSettingsOpen(false);
     setPaused(false);
     if (stage === "neighborhood") {
       streetRef.current?.setPaused(false);
@@ -157,6 +174,7 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
     const onKey = (event: KeyboardEvent) => {
       if (event.repeat) return;
       if (event.key === "Escape") {
+        if (settingsOpen) return; // the settings dialog closes itself
         if (paused) {
           event.preventDefault();
           resume();
@@ -173,7 +191,7 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [paused, playingStreet, playingRoom, resume, openPause, goHome]);
+  }, [paused, settingsOpen, playingStreet, playingRoom, resume, openPause, goHome]);
 
   const handleProgress = useCallback((step: BuildStep, fraction: number) => {
     const index = BUILD_STEPS.indexOf(step);
@@ -192,7 +210,12 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
   }, []);
 
   const locale = i18n.language === "vi" ? "vi" : "en";
-  const gain = voiceGain({ soundEnabled: settings.soundEnabled, masterVolume: settings.sfxVolume, voiceVolume: settings.voiceVolume }, false);
+  // Narration must stay clear over the rain: a 1.6x boost (capped at full volume) while the world is ducked below.
+  const gain = Math.min(1, 1.6 * voiceGain({ soundEnabled: settings.soundEnabled, masterVolume: settings.sfxVolume, voiceVolume: settings.voiceVolume }, false));
+  const narrating = stage === "neighborhood" && revealed && worldReady && (!started || callOpen);
+  useEffect(() => {
+    streetRef.current?.audio.setDuck(narrating);
+  }, [narrating, worldReady]);
 
   const tips = LOADING_TIP_IDS.map((id) => t(`loading:tips.${id}`));
   const done = [roomChunk, hands, roomBuilt].filter(Boolean).length;
@@ -205,8 +228,15 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
         : t("loading:prologueHome.stage.ready");
   const showRoomLoading = stage === "room" && !(roomBuilt && minElapsed);
 
+  const streetCursor = !!streetHud?.cursorMode;
+  const roomCursor = !!roomUI?.cursorMode;
   const showResume =
-    !paused && ((playingStreet && !locked) || (playingRoom && !roomUI?.locked && !roomUI?.inspecting));
+    !paused &&
+    ((playingStreet && !locked && !streetCursor) || (playingRoom && !roomUI?.locked && !roomCursor && !roomUI?.inspecting));
+  const clock = streetHud
+    ? { time: streetHud.time, detail: [streetHud.weather, streetHud.loc].filter(Boolean).join(" · "), raining: streetHud.rain > 0.3 }
+    : null;
+  const inGame = (stage === "neighborhood" && revealed && worldReady && started) || (stage === "room" && roomBuilt && !showRoomLoading);
 
   return (
     <div className="absolute inset-0 bg-black">
@@ -234,7 +264,10 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
               objective={headingHome ? t("worlds:khupho.game.story.objectiveHome") : t("worlds:khupho.game.story.objectiveExplore")}
               prompt={prompt}
               showResume={showResume}
+              cursorMode={streetCursor}
+              clock={clock}
               onGoHome={goHome}
+              onHoverSound={onHoverSound}
             />
           )}
           {callOpen && <HomeCallOverlay locale={locale} voiceGain={gain} onGoHome={goHome} onStay={stayOutside} />}
@@ -265,11 +298,16 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onBackToMe
               }}
             />
           </Suspense>
-          {playingRoom && !paused && showResume && <PrologueHud objective={null} prompt={null} showResume />}
+          {playingRoom && !paused && <PrologueHud objective={null} prompt={null} showResume={showResume} cursorMode={roomCursor} crosshair={false} />}
         </>
       )}
 
-      {paused && <ProloguePauseMenu onResume={resume} onReturnToMenu={onBackToMenu} />}
+      {inGame && !callOpen && !paused && (
+        <PrologueTopBar soundEnabled={soundOn} onToggleSound={toggleSound} onOpenSettings={openPause} onHoverSound={onHoverSound} />
+      )}
+
+      {paused && !settingsOpen && <ProloguePauseMenu onHoverSound={onHoverSound} onResume={resume} onOpenSettings={() => setSettingsOpen(true)} onReturnToMenu={onBackToMenu} />}
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onUpdateSettings={onUpdateSettings} />
 
       {showRoomLoading && (
         <SceneTransition visible fadeIn className="z-[70]">

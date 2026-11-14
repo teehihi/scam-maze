@@ -36,6 +36,13 @@ This document records the third-party assets, 3D models, fonts, and external cre
 - **Optimization / Changes:** Self-contained glTF 2.0 binary with material roughness adjustments (0.85 roughness, 0.1 metalness) applied in Three.js shader pipeline.
 - **Used In:** Main menu first-person street scene (buildings B1–B5, corner facade, storefront, hospital facade, road section, benches, streetlights).
 
+### Neighborhood surface textures (Poly Haven)
+- **Title:** 13 scanned PBR texture sets (plaster x2, concrete, asphalt, pavers, floor tile, brick, roof tile, stone cladding, wood planks, wood veneer, linen, soil)
+- **Creator / Author:** Poly Haven ([https://polyhaven.com/textures](https://polyhaven.com/textures))
+- **License:** CC0 1.0 (public domain)
+- **Local Source:** fetched by `Asset3D/khupho/tools/fetch_polyhaven.py` (1K sets, albedo normalized for brightness and saturation); recovered from the owner's single-file build `Asset3D/khupho/evidence/stable_v1/hue_textured_v1.html`.
+- **Production Asset Path:** `apps/game/src/features/khupho/assets/tex/*.jpg` (39 files, 5.6 MB; `_d` albedo, `_n` normal, `_r` roughness).
+- **Used In:** Neighborhood world (`/khupho` and the new-game prologue).
 ---
 
 ## 2. 3D Vehicle & Street Props
