@@ -34,6 +34,28 @@ const loading = {
   // `count` selects the plural form; `completed` and `total` are numbers already formatted.
   fileCount_one: "{{completed}} of {{total}} file",
   fileCount_other: "{{completed}} of {{total}} files",
+  // Shown while the player walks home from the neighborhood to the apartment.
+  // Shown on the "Back on your street" screen while the neighborhood is built behind it.
+  prologueStreet: {
+    world: "Building the street and the houses",
+    life: "Waking up the neighbors",
+    optimize: "Tidying up the alley",
+    props: "Setting out the banh mi cart",
+    hands: "Getting ready to walk",
+    shaders: "Preparing the light",
+    warmup: "Almost there",
+  },
+  prologueHome: {
+    eyebrow: "On the way home",
+    title: "Back to your room",
+    subtitle: "The rain is still coming down.",
+    stage: {
+      room: "Opening the front door",
+      hands: "Warming up your hands",
+      build: "Switching on the lights",
+      ready: "Home",
+    },
+  },
   errors: {
     "invalid-chapter": {
       title: "Chapter not found",

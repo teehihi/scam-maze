@@ -1,0 +1,1 @@
+export { KhuphoPage } from "./KhuphoPage";

@@ -33,6 +33,26 @@ const loading: LocaleShape<typeof en> = {
   progressLabel: "Tiến trình tải",
   slowNotice: "Việc tải đang lâu hơn bình thường. Bạn có thể tiếp tục chờ hoặc tải lại trang.",
   fileCount_other: "{{completed}} / {{total}} tệp",
+  prologueStreet: {
+    world: "Dựng con phố và những ngôi nhà",
+    life: "Đánh thức hàng xóm",
+    optimize: "Dọn dẹp con hẻm",
+    props: "Đẩy xe bánh mì ra",
+    hands: "Chuẩn bị đi dạo",
+    shaders: "Chuẩn bị ánh sáng",
+    warmup: "Sắp xong rồi",
+  },
+  prologueHome: {
+    eyebrow: "Trên đường về nhà",
+    title: "Về phòng của bạn",
+    subtitle: "Mưa vẫn đang rơi.",
+    stage: {
+      room: "Mở cửa vào nhà",
+      hands: "Làm ấm đôi tay",
+      build: "Bật đèn trong phòng",
+      ready: "Về đến nhà",
+    },
+  },
   errors: {
     "invalid-chapter": {
       title: "Không tìm thấy chương",

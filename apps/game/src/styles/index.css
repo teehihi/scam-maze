@@ -174,3 +174,9 @@ input, textarea, [contenteditable="true"] {
     animation: none;
   }
 }
+
+/* Fade-in used by the roomv1 prototype captions and ending screen. */
+@keyframes cap {
+  from { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+  to { opacity: 1; transform: none; filter: none; }
+}

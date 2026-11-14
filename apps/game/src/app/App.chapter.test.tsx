@@ -19,6 +19,15 @@ vi.mock("../features/loading/MenuStartupLoading", () => ({ MenuStartupLoading: (
 vi.mock("../features/testmove", () => ({ TestMovePage: () => null }));
 vi.mock("../features/ueh", () => ({ UEHPage: () => null }));
 vi.mock("../features/hue", () => ({ HuePage: () => null }));
+vi.mock("../features/prologue", () => ({
+  ProloguePage: (props: { onBackToMenu: () => void }) => (
+    <div data-testid="prologue-page">
+      <button type="button" onClick={props.onBackToMenu}>
+        Stub prologue back
+      </button>
+    </div>
+  ),
+}));
 
 vi.mock("../features/loading/ChapterLoadingFlow", () => ({
   ChapterLoadingFlow: (props: {
@@ -82,7 +91,8 @@ function startNewGameAndEnterChapter() {
 
 beforeEach(() => {
   window.localStorage.clear();
-  window.history.replaceState(null, "", "/");
+  // These tests cover the street chapter itself; the prologue has its own test below.
+  window.history.replaceState(null, "", "/?skip-prologue");
   harness.sessionChapterId = "chapter-1";
   harness.loadingRequest = null;
 });
@@ -143,6 +153,19 @@ describe("App chapter routing", () => {
     expect(screen.queryByTestId("chapter-one-page")).toBeNull();
     expect(screen.getByRole("navigation", { name: "Game Main Menu" })).toBeTruthy();
     expect(continueButton().disabled).toBe(false);
+  });
+
+  it("starts a new game with the neighborhood prologue, then can return to the menu", async () => {
+    window.history.replaceState(null, "", "/");
+    render(<App />);
+    startNewGameAndEnterChapter();
+
+    expect(await screen.findByTestId("prologue-page")).toBeTruthy();
+    expect(screen.queryByTestId("chapter-one-page")).toBeNull();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Stub prologue back" }));
+    });
+    expect(screen.getByRole("navigation", { name: "Game Main Menu" })).toBeTruthy();
   });
 
   it("returns to the menu when the loading flow is left", () => {

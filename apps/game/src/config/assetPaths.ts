@@ -29,3 +29,10 @@ export const CITY_CARS_GLB = "/assets/3d/optimized/city-cars.optimized.glb";
 
 /** Base URL of the Chapter 1 voice clips: `<base>/<locale>/<nodeId>.mp3` (locale is `en` or `vi`). */
 export const CHAPTER1_VOICE_BASE = "/audio/chapter01";
+/**
+ * Banh mi cart, battery-swap station and trash bin cut out of the street environment
+ * (Meshopt + WebP, produced by scripts/extract-street-props.cjs). Used by the neighborhood world.
+ */
+export const STREET_PROPS_GLB = "/assets/3d/optimized/street-props.optimized.glb";
+/** Base URL of the prologue voice clips: `<base>/<locale>/prologue_home<n>_<locale>.mp3` (locale is `en` or `vi`). */
+export const PROLOGUE_VOICE_BASE = "/audio/prologue";
