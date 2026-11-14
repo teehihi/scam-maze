@@ -24,6 +24,7 @@ import { mergeDevices, mergeHouseShells, mergeRigidParts } from './staticMerge';
 import { CharacterArmsViewmodel } from '../../player/runtime/CharacterArmsViewmodel';
 import { CharacterAssetCache } from '../../player/runtime/CharacterAssetCache';
 import { loadStreetProps, STORY_SPAWN, type PlacedProp } from './streetProps';
+import { loadBikeRider } from './bikeRider';
 
 export interface Hud { time: string; hour: number; loc: string; prompt: string | null; indoor: boolean; fps: number; rain: number; sitting: string | null; tour: boolean; started: boolean; timeScale: number; muted: boolean; quality: string; weather: string; cursorMode: boolean }
 
@@ -152,10 +153,12 @@ export class Engine {
     const e = new Engine(el, onHud, opts);
     try {
       report('world'); await yieldFrame(); if (isCancelled()) return e;
+      // The traffic model downloads while the neighborhood is built; without it the procedural bikes are used.
+      const bikeRider = loadBikeRider().catch((err) => { console.warn('[khupho] bike rider failed to load', err); return null; });
       buildNeighborhood(e.ctx);
       if (opts.story) e.player.teleport(STORY_SPAWN.x, STORY_SPAWN.z, STORY_SPAWN.yaw);
       report('life'); await yieldFrame(); if (isCancelled()) return e;
-      e.life = buildLife(e.ctx, e.houses, e.vehicles, e.audio);
+      e.life = buildLife(e.ctx, e.houses, e.vehicles, e.audio, await bikeRider);
       report('optimize'); await yieldFrame(); if (isCancelled()) return e;
       e.optimizeStatic();
       e.initLightsAndPost();
