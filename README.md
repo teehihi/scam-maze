@@ -24,20 +24,22 @@
 </p>
 
 <p align="center">
-  <a href="#about-the-game">About</a> •
-  <a href="#core-gameplay-loop">Gameplay Loop</a> •
-  <a href="#ui--systems-showcase">UI Showcase</a> •
-  <a href="#immersive-3d-worlds">3D Worlds</a> •
-  <a href="#technology-stack">Tech Stack</a> •
-  <a href="#controls">Controls</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#project-structure">Structure</a> •
-  <a href="#safety--ethics">Safety & Ethics</a> •
-  <a href="#license--credits">Credits</a>
+  <a href="#about-the-game"><kbd>&nbsp;🎮 About&nbsp;</kbd></a> &nbsp;
+  <a href="#core-gameplay-loop"><kbd>&nbsp;🔄 Gameplay Loop&nbsp;</kbd></a> &nbsp;
+  <a href="#ui--systems-showcase"><kbd>&nbsp;📱 UI Showcase&nbsp;</kbd></a> &nbsp;
+  <a href="#immersive-3d-worlds"><kbd>&nbsp;🗺️ 3D Worlds&nbsp;</kbd></a> &nbsp;
+  <a href="#technology-stack"><kbd>&nbsp;🛠️ Tech Stack&nbsp;</kbd></a>
+  <br/><br/>
+  <a href="#controls"><kbd>&nbsp;⌨️ Controls&nbsp;</kbd></a> &nbsp;
+  <a href="#getting-started"><kbd>&nbsp;🚀 Quickstart&nbsp;</kbd></a> &nbsp;
+  <a href="#project-structure"><kbd>&nbsp;📁 Structure&nbsp;</kbd></a> &nbsp;
+  <a href="#safety--ethics"><kbd>&nbsp;🛡️ Safety & Ethics&nbsp;</kbd></a> &nbsp;
+  <a href="#license--credits"><kbd>&nbsp;📜 Credits&nbsp;</kbd></a>
 </p>
 
 ---
 
+<a id="about-the-game"></a>
 ## 🎮 About the Game
 
 **SCAMMAZE** is an interactive, browser-based, first-person 3D narrative game built for **Kiroween 2026** (Frankenstein category).
@@ -53,6 +55,7 @@ In **SCAMMAZE**, you live an ordinary life in a living fictional neighborhood. S
 
 ---
 
+<a id="core-gameplay-loop"></a>
 ## 🔄 Core Gameplay Loop
 
 The detective loop connects the physical world with the digital world:
@@ -81,6 +84,7 @@ The detective loop connects the physical world with the digital world:
 
 ---
 
+<a id="ui--systems-showcase"></a>
 ## 📱 UI & Systems Showcase
 
 The interface is engineered to seamlessly blend a 3D game engine with an authentic, interactive smartphone and forensic HUD:
@@ -121,6 +125,7 @@ The player's smartphone is always accessible via `[Tab]` or `[P]`:
 
 ---
 
+<a id="immersive-3d-worlds"></a>
 ## 🗺️ Immersive 3D Worlds
 
 SCAMMAZE features multiple custom-built 3D environments crafted with Three.js, React Three Fiber, and optimized low-poly assets:
@@ -137,6 +142,7 @@ SCAMMAZE features multiple custom-built 3D environments crafted with Three.js, R
 
 ---
 
+<a id="technology-stack"></a>
 ## 🛠️ Technology Stack
 
 SCAMMAZE is architected as an ultra-fast, modern **pnpm monorepo**:
@@ -153,6 +159,7 @@ SCAMMAZE is architected as an ultra-fast, modern **pnpm monorepo**:
 
 ---
 
+<a id="controls"></a>
 ## ⌨️ Controls
 
 | Action | Primary Key | Secondary Key |
@@ -167,6 +174,7 @@ SCAMMAZE is architected as an ultra-fast, modern **pnpm monorepo**:
 
 ---
 
+<a id="getting-started"></a>
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -205,6 +213,7 @@ pnpm build
 
 ---
 
+<a id="project-structure"></a>
 ## 📁 Project Structure
 
 ```text
@@ -244,6 +253,7 @@ scam-maze/
 
 ---
 
+<a id="safety--ethics"></a>
 ## 🛡️ Safety & Ethics
 
 SCAMMAZE is designed with strict cybersecurity education and safety guidelines:
@@ -255,6 +265,7 @@ SCAMMAZE is designed with strict cybersecurity education and safety guidelines:
 
 ---
 
+<a id="license--credits"></a>
 ## 📜 License & Credits
 
 ### Source Code
