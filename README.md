@@ -25,12 +25,12 @@
 
 <div align="center">
 
-### 🧭 Navigation & Overview
+### 🧭 Quick Navigation
 
-| 🎮 [**About The Game**](#about-the-game)<br><sub>First-person 3D detective story & living world</sub> | 🔄 [**Gameplay Loop**](#core-gameplay-loop)<br><sub>Physical inspection to forensic debrief</sub> | 🕵️ [**Scam Scenarios**](#scam-scenarios-and-vectors)<br><sub>Multi-channel digital & street fraud</sub> |
-| :--- | :--- | :--- |
-| 📱 [**UI & Systems Showcase**](#ui--systems-showcase)<br><sub>In-game smartphone, HUD & 3D menu</sub> | 🗺️ [**Immersive 3D Worlds**](#immersive-3d-worlds)<br><sub>Khu Phố, Room V2, Miền Tây, Huế & UEH</sub> | 🛠️ [**Tech Stack & Architecture**](#technology-stack)<br><sub>Three.js r174, React 19, TypeScript & Vite</sub> |
-| ⌨️ [**Controls & Keybindings**](#controls)<br><sub>Movement, interaction & smartphone keys</sub> | 🚀 [**Getting Started & Dev**](#getting-started)<br><sub>Installation, local run & test gates</sub> | 🛡️ [**Safety, Ethics & Credits**](#safety--ethics)<br><sub>Reserved domains, fictional brands & licenses</sub> |
+| [![About The Game](docs/assets/buttons/btn-about.png)](#about-the-game) | [![Gameplay Loop](docs/assets/buttons/btn-gameplay.png)](#core-gameplay-loop) | [![Scam Scenarios](docs/assets/buttons/btn-scenarios.png)](#scam-scenarios-and-vectors) |
+| :---: | :---: | :---: |
+| [![UI & Systems](docs/assets/buttons/btn-ui.png)](#ui--systems-showcase) | [![3D Worlds](docs/assets/buttons/btn-worlds.png)](#immersive-3d-worlds) | [![Tech Stack](docs/assets/buttons/btn-tech.png)](#technology-stack) |
+| [![Controls](docs/assets/buttons/btn-controls.png)](#controls) | [![Quickstart](docs/assets/buttons/btn-quickstart.png)](#getting-started) | [![Safety & Ethics](docs/assets/buttons/btn-safety.png)](#safety--ethics) |
 
 </div>
 
