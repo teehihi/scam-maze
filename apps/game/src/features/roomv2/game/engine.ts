@@ -657,6 +657,8 @@ export class Engine {
         this.phoneMode = 'ringing';
         this.audio.stinger();
         this.audio.ring(true);
+        // Rain, city bed, thunder and the clock drop well under the ringtone and the call.
+        this.audio.duckCity(0.25);
         if (this.inspect && this.inspect.id !== 'phone') this.endInspect();
         this.standYaw = -1.05;
         this.later(1.1, () => { if (this.seat === 'seated' && !this.inspect) this.standUp(); });

@@ -211,6 +211,15 @@ Resolved:
 
 ## Task History
 
+### 2026-11-13 — Room v2 call mix: quieter vibration, louder ringtone, ambience ducked
+
+- **Objective:** owner feedback after the previous fix: the vibration was still louder than the ringtone; ambience should drop during the call.
+- **Completed:** vibration gain 0.09 → 0.035, buzz low-pass 900 → 450 Hz, rattle 0.9 → 0.4; ringtone gain 1.6 → 2.2 (file peak 0.41, so about 0.9). If `ring(true)` runs before the ringtone file has loaded, it now starts once loading finishes (before, the ring was silently skipped). When the phone starts ringing, rain, city bed, thunder, window bed and the wall clock duck to 25% until the story ends (existing `duckCity(1)` restores them).
+- **Files:** `apps/game/src/features/roomv2/game/{audio,engine}.ts`, this file.
+- **Validation:** `pnpm typecheck`, `pnpm build`, `vitest --run src/features/prologue src/app` (31 passed).
+- **Not verified:** levels not checked by ear. **Deviations:** none. **Follow-up:** tune after the owner listens.
+
+
 ### 2026-11-13 — Prologue audio and room lamp fixes
 
 - **Objective:** owner feedback: desk lamp looked upside down; phone vibration louder than the ringtone; street footsteps should use recorded files (`rainWalking.mp3` in rain, faster while running; `footstep.mp3` otherwise).
