@@ -210,6 +210,12 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Room v2: smoother camera turns without visual changes
+- **Owner report:** turning the camera in the room hitches a little.
+- **Findings** (code review plus a headless CPU profile of each frame phase; the headless renderer cannot show GPU frame time): the per-frame JS is small (hover raycast about 0.5 ms, devices about 0.45 ms, the rest under 0.1 ms). The camera applies the mouse directly (no smoothing), so the turn speed itself is not the cause. Causes found: (1) while seated the chair swivels with the view, and that was part of the shadow signature, so every frame of a turn redrew all four 1024 px spot shadow maps; (2) the phone's 390x844 canvas was redrawn and re-uploaded twice a second even when nothing on it changed; (3) `updateCamera`, `movePlayer` and `updateHover` allocated new vectors, quaternions and eulers every frame (GC pauses); (4) Chrome sometimes reports a single huge pointer-lock jump.
+- **Completed** (`features/roomv2/game/engine.ts`): the chair's swivel is tracked separately and refreshes the shadows at most every 6th frame (lights, chair position, fridge door and window still refresh at once); the phone screen is redrawn only for the animated ringing/call screens, on a minute change or a mode change; scratch objects in the camera, movement and hover paths; the hover raycast runs at 30 Hz; pointer-lock events above 250 px are ignored. Mouse sensitivity unchanged.
+- **Validation:** `pnpm typecheck`, `pnpm build` and vitest for prologue and app pass; headless screenshot of the desk with lamp and shadows unchanged. Not measured on a real GPU.
+
 ### 2026-11-14 — Neighborhood doors closed by default; room ringtone
 - **Owner requests:** houses keep their front doors closed by default; use the new `ringtone.ogg` for the incoming call.
 - **Completed:** the daily schedule in `khupho/world/people.ts` no longer opens the full houses' front doors between 6:30 and 21:30; they stay closed until the player opens them (shop shutters keep their opening hours). Room: the incoming call now loops the ringtone at the phone's positional emitter together with the vibration, and stops on answer, decline or missed call. `ringtone.mp3` (made from the Ogg with ffmpeg, 128 kbps) is the fallback for browsers that report no Ogg Vorbis support (`canPlayType`).

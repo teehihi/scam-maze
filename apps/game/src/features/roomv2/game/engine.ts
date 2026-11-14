@@ -61,6 +61,12 @@ const SEAT = { x: -1.62, z: -1.17, y: 1.2, yaw: 0, pitch: -0.36 };
 const STAND = V(-0.9, 1.62, -0.72);
 const CHAIR_REST = V(-1.5, 0, -1.02);
 const CHAIR_DESK = V(-1.62, 0, -1.13);
+// Scratch objects reused every frame, so turning and walking allocate nothing (no GC pauses mid-turn).
+const _fwd = new THREE.Vector3(), _right = new THREE.Vector3(), _want = new THREE.Vector3(), _next = new THREE.Vector3();
+const _walkPos = new THREE.Vector3(), _walkQ = new THREE.Quaternion(), _walkE = new THREE.Euler(0, 0, 0, 'YXZ');
+const _center = new THREE.Vector2(0, 0);
+/** One pointer-lock event moving more than this (px) is a browser glitch (a known Chrome jump), not the player. */
+const MAX_MOUSE_STEP = 250;
 const angDiff = (a: number, b: number) => THREE.MathUtils.euclideanModulo(b - a + Math.PI, Math.PI * 2) - Math.PI;
 const easeIO = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
@@ -157,6 +163,10 @@ export class Engine {
   /** Last value of `shadowSignature()`; the shadow maps are redrawn only when it changes. */
   shadowSig = Number.NaN;
   shadowFrames = 0;
+  private chairShadowAt = Number.NaN;
+  private chairShadowWait = 0;
+  private hoverFrame = 0;
+  private lastPhoneMode = '';
 
   constructor(container: HTMLElement, onUI: (s: UIState) => void, quality: 'high' | 'low') {
     this.container = container;
@@ -373,6 +383,7 @@ export class Engine {
   /* =================== INPUT =================== */
   onMouseMove = (e: MouseEvent) => {
     if (!this.ui.locked) return;
+    if (Math.abs(e.movementX) > MAX_MOUSE_STEP || Math.abs(e.movementY) > MAX_MOUSE_STEP) return;
     const s = 0.0021;
     if (this.seat === 'sitting' || this.seat === 'standing') return;
     if (this.inspect) {
@@ -530,8 +541,13 @@ export class Engine {
     const L = this.lightLevels;
     const chair = this.apt.chair;
     return L.ceiling + L.desk * 2.1 + L.bed * 3.3 + L.kitchen * 4.7 + this.fridgeAng * 5.9 + this.sashX * 7.1
-      + chair.position.x * 11.3 + chair.position.z * 13.7 + chair.rotation.y * 17.9;
+      + chair.position.x * 11.3 + chair.position.z * 13.7;
   }
+  /**
+   * The seated chair swivels a little with the view (a quarter of the yaw). Its shadow follows at
+   * most every 6th frame instead of redrawing all four shadow maps on every frame of a turn.
+   */
+  chairTurnSignature(): number { return this.apt.chair.rotation.y; }
 
   toggleLight(k: keyof Engine['lights'], at: string) {
     this.lights[k] = !this.lights[k];
@@ -784,12 +800,12 @@ export class Engine {
     const s = (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0);
     const run = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
     const speed = (run ? 2.0 : 1.25) * (this.ui.locked || this.ui.cursorMode ? 1 : 0);
-    const fwd = V(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
-    const right = V(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    const want = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
+    const fwd = _fwd.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const right = _right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const want = _want.copy(fwd.multiplyScalar(f)).add(right.multiplyScalar(s));
     if (want.lengthSq() > 0) want.normalize().multiplyScalar(speed);
     this.vel.lerp(want, 1 - Math.exp(-dt * 7));
-    const next = this.pos.clone().addScaledVector(this.vel, dt);
+    const next = _next.copy(this.pos).addScaledVector(this.vel, dt);
     const R = 0.24;
     next.x = THREE.MathUtils.clamp(next.x, ROOM.x0 + R, ROOM.x1 - R);
     next.z = THREE.MathUtils.clamp(next.z, ROOM.z0 + R, ROOM.z1 - R);
@@ -818,8 +834,8 @@ export class Engine {
     const breathe = Math.sin(this.t * 1.1) * 0.004;
     const bob = Math.abs(Math.sin(this.bobPhase)) * 0.018 * Math.min(1, sp / 1.2);
     const sway = Math.sin(this.bobPhase) * 0.004 * Math.min(1, sp / 1.2);
-    const walkPos = V(this.pos.x, this.pos.y + breathe + bob - 0.009, this.pos.z);
-    const walkQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(this.pitch + Math.sin(this.t * 0.7) * 0.003, this.yaw + sway * 0.5, Math.sin(this.bobPhase * 0.5) * 0.003, 'YXZ'));
+    const walkPos = _walkPos.set(this.pos.x, this.pos.y + breathe + bob - 0.009, this.pos.z);
+    const walkQ = _walkQ.setFromEuler(_walkE.set(this.pitch + Math.sin(this.t * 0.7) * 0.003, this.yaw + sway * 0.5, Math.sin(this.bobPhase * 0.5) * 0.003, 'YXZ'));
     if (this.inspect) {
       const ins = this.inspect;
       ins.t = Math.min(1, ins.t + dt / (ins.dir === 1 ? 1.15 : 0.9));
@@ -851,7 +867,9 @@ export class Engine {
 
   updateHover() {
     if (this.inspect || !this.ui.started || this.seat === 'sitting' || this.seat === 'standing') { if (this.ui.prompt) { this.ui.prompt = null; this.ui.focus = false; this.emit(); } this.hovered = null; return; }
-    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+    // The prompt under the crosshair is refreshed at 30 Hz; nobody can tell, and it halves the raycasts.
+    if ((this.hoverFrame++ & 1) === 1) return;
+    this.raycaster.setFromCamera(_center, this.camera);
     this.raycaster.far = 2.3;
     const hit = this.raycaster.intersectObjects(this.apt.hits, true)[0];
     let id: string | null = (hit?.object.userData.id as string) ?? null;
@@ -930,9 +948,13 @@ export class Engine {
     const pc = a.phoneScreenMat.color.r + (bright - a.phoneScreenMat.color.r) * Math.min(1, dt * 6);
     a.phoneScreenMat.color.setScalar(pc);
     a.lights.phone.intensity = (this.phoneMode === 'aod' ? 0.0 : ringing ? 0.22 + Math.sin(this.t * 6) * 0.06 : 0.14) * (pc / 1.1);
-    if (this.t - this.lastPhoneDraw > (ringing || this.phoneMode === 'call' ? 0.06 : 0.5) || time !== this.lastClock) {
+    // Only the ringing and call screens animate; the others change with the minute or the mode, so a
+    // 390x844 canvas is no longer redrawn and re-uploaded twice a second for nothing.
+    const animated = ringing || this.phoneMode === 'call';
+    if ((animated && this.t - this.lastPhoneDraw > 0.06) || time !== this.lastClock || this.phoneMode !== this.lastPhoneMode) {
       a.phoneScreen.draw(this.phoneMode, time, this.t, this.callSec);
       this.lastPhoneDraw = this.t;
+      this.lastPhoneMode = this.phoneMode;
     }
     this.lastClock = time;
     // physical vibration: the phone walks across the wood
@@ -1064,6 +1086,9 @@ export class Engine {
     // pass 2: everything
     const sig = this.shadowSignature();
     if (sig !== this.shadowSig) { this.shadowSig = sig; this.shadowFrames = 2; }
+    this.chairShadowWait--;
+    const turn = this.chairTurnSignature();
+    if (Math.abs(turn - this.chairShadowAt) > 1e-4 && this.chairShadowWait <= 0) { this.chairShadowAt = turn; this.chairShadowWait = 6; this.shadowFrames = Math.max(this.shadowFrames, 1); }
     if (this.shadowFrames > 0) { this.shadowFrames--; r.shadowMap.needsUpdate = true; }
     this.composer.render(dt);
   }
