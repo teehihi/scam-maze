@@ -30,6 +30,8 @@ import {
 } from '../../../game/world/optimize/spatialChunking';
 import type { MientayZoneId } from '../placeNames';
 import { auditGroups, auditLights, auditTextures, topMeshes } from '../../../game/world/profiling';
+import { AdaptiveQuality } from '../../../game/world/quality';
+import { ListenerBag, disposeObjectTree, watchContextLoss } from '../../../game/world/lifecycle';
 import { DEFAULT_BOOKMARK, WORLD_BOOKMARKS, type TraversalMode, type WorldBookmark } from './bookmarks';
 import { MekongWorldAdapter } from './MekongWorldAdapter';
 
@@ -197,20 +199,12 @@ export class MekongWorldEngine {
   private reflectionDue = true;
   private shadowRefreshPending = true;
 
-  // Adaptive resolution: never below 1.0, so close-up textures stay crisp.
-  private pixelRatio = 1;
-  private maxPixelRatio = MAX_PIXEL_RATIO;
+  // Adaptive resolution: never below 1.0, so close-up textures stay crisp. The mechanism
+  // (windowed average, streaks, ratchet) is shared with Hue via AdaptiveQuality; the thresholds,
+  // floor/ceiling and the deferred-apply timing (see commitQuality) stay specific to Mekong.
+  private quality!: AdaptiveQuality;
   private aoHalfRes = false;
   private performanceMode = false;
-  private qualityFrameAcc = 0;
-  private qualityFrameCount = 0;
-  private qualityTimer = 0;
-  private slowWindows = 0;
-  private fastWindows = 0;
-  private upgradesLocked = false;
-  private lastQualityMove: 'none' | 'down' | 'up' = 'none';
-  /** Values the next frame will switch to; applied right before drawing (see commitQuality). */
-  private targetPixelRatio = 1;
   private aoDirty = false;
 
   private fpsFrames = 0;
@@ -231,7 +225,8 @@ export class MekongWorldEngine {
 
   private readonly buildTimings: Partial<Record<LoadStageId, number>> = {};
   private readonly mergeStats = { removed: 0, created: 0 };
-  private cleanupListeners: () => void = () => {};
+  private readonly listeners = new ListenerBag();
+  private contextLossUnsubscribe: (() => void) | null = null;
 
   private constructor(
     container: HTMLElement,
@@ -299,17 +294,32 @@ export class MekongWorldEngine {
     await run('renderer', () => {
       clearWorldCollisionRegistry();
       this.performanceMode = this.options.graphicsQuality === 'low';
-      this.maxPixelRatio = this.performanceMode ? PERFORMANCE_PIXEL_RATIO : MAX_PIXEL_RATIO;
+      const maxPixelRatio = this.performanceMode ? PERFORMANCE_PIXEL_RATIO : MAX_PIXEL_RATIO;
       // Ambient occlusion always runs at half resolution with depth-aware upsampling: it looks
       // the same at this strength and costs about a quarter.
       this.aoHalfRes = true;
-      this.pixelRatio = this.maxPixelRatio;
-      this.targetPixelRatio = this.maxPixelRatio;
+      this.quality = new AdaptiveQuality({
+        initial: maxPixelRatio,
+        min: MIN_PIXEL_RATIO,
+        max: maxPixelRatio,
+        step: PIXEL_RATIO_STEP,
+        windowSeconds: 2.0,
+        slowFrameSeconds: 1 / 45,
+        fastFrameSeconds: 1 / 58,
+        dropStreak: 3,
+        riseStreak: 8,
+        lockUpgradesAfterRevert: true,
+        epsilon: 0.005,
+        onChange: (ratio) => {
+          this.renderer.setPixelRatio(ratio);
+          this.composer?.setPixelRatio(ratio);
+        },
+      });
 
       // The post-processing chain does its own anti-aliasing-free HDR work, so the canvas itself
       // is plain; the linear HDR buffer is tone-mapped once, by OutputPass.
       this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-      this.renderer.setPixelRatio(this.pixelRatio);
+      this.renderer.setPixelRatio(this.quality.getCurrent());
       this.renderer.setSize(width, height);
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -400,7 +410,7 @@ export class MekongWorldEngine {
       // N8AO (linear HDR) -> subtle bloom -> OutputPass (ACES + sRGB). The composer works at the
       // adaptive pixel ratio, so the picture is as sharp as the canvas.
       this.composer = new EffectComposer(this.renderer);
-      this.composer.setPixelRatio(this.pixelRatio);
+      this.composer.setPixelRatio(this.quality.getCurrent());
       this.composer.setSize(width, height);
 
       this.n8aoPass = new N8AOPass(this.scene, this.camera, width, height);
@@ -568,11 +578,9 @@ export class MekongWorldEngine {
   setPerformanceMode(on: boolean): void {
     if (this.disposed) return;
     this.performanceMode = on;
-    this.maxPixelRatio = on ? PERFORMANCE_PIXEL_RATIO : MAX_PIXEL_RATIO;
-    this.targetPixelRatio = this.maxPixelRatio;
+    const maxPixelRatio = on ? PERFORMANCE_PIXEL_RATIO : MAX_PIXEL_RATIO;
+    this.quality.setCeiling(maxPixelRatio, { jumpTo: true });
     this.aoDirty = true;
-    this.slowWindows = 0;
-    this.fastWindows = 0;
     this.emitTelemetry(true);
   }
 
@@ -965,46 +973,12 @@ export class MekongWorldEngine {
 
   /**
    * Keeps exploration fluid on modest GPUs: when frames stay long the render scale eases down
-   * (never below 0.7), and it climbs back when there is plenty of headroom.
-   *
-   * Every change reallocates the render targets, so changes are rare: a drop needs three slow
-   * 2-second windows in a row, a rise needs eight comfortable ones, and a rise that is followed
-   * by a drop is never tried again.
+   * (never below 0.7), and it climbs back when there is plenty of headroom. The windowed
+   * average, streaks and ratchet live in the shared `AdaptiveQuality` (`game/world/quality.ts`);
+   * only the thresholds above are Mekong's own (set when `this.quality` is constructed).
    */
   private adaptQuality(dt: number): void {
-    this.qualityFrameAcc += dt;
-    this.qualityFrameCount++;
-    this.qualityTimer += dt;
-    if (this.qualityTimer < 2.0) return;
-    const average = this.qualityFrameAcc / Math.max(1, this.qualityFrameCount);
-    this.qualityFrameAcc = 0;
-    this.qualityFrameCount = 0;
-    this.qualityTimer = 0;
-
-    if (average > 1 / 45) {
-      this.slowWindows++;
-      this.fastWindows = 0;
-    } else if (average < 1 / 58) {
-      this.fastWindows++;
-      this.slowWindows = 0;
-    } else {
-      this.slowWindows = 0;
-      this.fastWindows = 0;
-    }
-
-    if (this.slowWindows >= 3) {
-      this.slowWindows = 0;
-      if (this.targetPixelRatio <= MIN_PIXEL_RATIO + 0.01) return;
-      this.targetPixelRatio = Math.max(MIN_PIXEL_RATIO, this.targetPixelRatio - PIXEL_RATIO_STEP);
-      // A rise that did not hold: stay where it is stable.
-      if (this.lastQualityMove === 'up') this.upgradesLocked = true;
-      this.lastQualityMove = 'down';
-    } else if (this.fastWindows >= 8 && !this.upgradesLocked) {
-      this.fastWindows = 0;
-      if (this.targetPixelRatio >= this.maxPixelRatio - 0.01) return;
-      this.targetPixelRatio = Math.min(this.maxPixelRatio, this.targetPixelRatio + PIXEL_RATIO_STEP);
-      this.lastQualityMove = 'up';
-    }
+    this.quality.update(dt);
   }
 
   /**
@@ -1013,11 +987,7 @@ export class MekongWorldEngine {
    * animation frame would let the browser show one blank (black) picture in between.
    */
   private commitQuality(): void {
-    if (Math.abs(this.targetPixelRatio - this.pixelRatio) > 0.005) {
-      this.pixelRatio = this.targetPixelRatio;
-      this.renderer.setPixelRatio(this.pixelRatio);
-      this.composer.setPixelRatio(this.pixelRatio);
-    }
+    this.quality.commit();
     if (this.aoDirty) {
       this.aoDirty = false;
       this.applyAmbientOcclusionQuality();
@@ -1060,7 +1030,6 @@ export class MekongWorldEngine {
       this.composer.setSize(width, height);
       this.water.resize(width, height);
     };
-    window.addEventListener('resize', onResize);
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
@@ -1068,11 +1037,9 @@ export class MekongWorldEngine {
       if (event.code === 'KeyB') this.toggleBoatMode();
       else if (event.code === 'KeyV') this.toggleFlyMode();
     };
-    window.addEventListener('keydown', onKeyDown);
 
     const dom = this.renderer.domElement;
     const onContextMenu = (event: MouseEvent) => event.preventDefault();
-    dom.addEventListener('contextmenu', onContextMenu);
 
     // A hidden tab stops drawing and updating entirely, and the audio context is suspended, so
     // nothing runs in the background.
@@ -1090,14 +1057,28 @@ export class MekongWorldEngine {
         if (!this.loopPaused && !this.rafId && this.composer) this.animate();
       }
     };
-    document.addEventListener('visibilitychange', onVisibilityChange);
 
-    this.cleanupListeners = () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      dom.removeEventListener('contextmenu', onContextMenu);
-    };
+    this.listeners.add(window, 'resize', onResize);
+    this.listeners.add(window, 'keydown', onKeyDown);
+    this.listeners.add(document, 'visibilitychange', onVisibilityChange);
+    this.listeners.add(dom, 'contextmenu', onContextMenu);
+
+    // New: pause on GPU context loss (the browser may restore it) and resume the loop after.
+    // Unsubscribed in dispose() before forceContextLoss() fires its own webglcontextlost event.
+    this.contextLossUnsubscribe = watchContextLoss(dom, {
+      onLost: () => {
+        if (this.rafId) {
+          cancelAnimationFrame(this.rafId);
+          this.rafId = 0;
+        }
+      },
+      onRestored: () => {
+        if (!this.disposed && !this.loopPaused && !this.rafId && this.composer) {
+          this.clock.getDelta();
+          this.animate();
+        }
+      },
+    });
   }
 
   private readonly waterAnchors: THREE.Vector4[] = [
@@ -1154,7 +1135,7 @@ export class MekongWorldEngine {
         textures: this.renderer.info.memory.textures,
         programs: this.renderer.info.programs?.length ?? 0,
         fps: this.currentFps,
-        pixelRatio: this.pixelRatio,
+        pixelRatio: this.quality.getCurrent(),
         aoHalfRes: this.aoHalfRes,
         buildTimings: { ...this.buildTimings },
         };
@@ -1262,7 +1243,10 @@ export class MekongWorldEngine {
       cancelAnimationFrame(this.rafId);
       this.rafId = 0;
     }
-    this.cleanupListeners();
+    // Unsubscribed before forceContextLoss() below, which itself fires webglcontextlost.
+    this.contextLossUnsubscribe?.();
+    this.contextLossUnsubscribe = null;
+    this.listeners.removeAll();
     delete (window as unknown as Record<string, unknown>).__MEKONG_DEBUG__;
     clearWorldCollisionRegistry();
 
@@ -1281,19 +1265,7 @@ export class MekongWorldEngine {
     this.composer?.dispose();
 
     // Release every geometry, material and texture still reachable from the scene.
-    this.scene?.traverse((object) => {
-      const mesh = object as THREE.Mesh;
-      mesh.geometry?.dispose();
-      const materials = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
-      for (const material of materials) {
-        for (const value of Object.values(material as unknown as Record<string, unknown>)) {
-          if (value && typeof (value as THREE.Texture).dispose === 'function' && (value as THREE.Texture).isTexture) {
-            (value as THREE.Texture).dispose();
-          }
-        }
-        material.dispose();
-      }
-    });
+    if (this.scene) disposeObjectTree(this.scene);
     this.scene?.clear();
 
     if (this.renderer) {

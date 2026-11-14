@@ -6,6 +6,7 @@ import { MainMenuScene } from "../scenes/MainMenuScene";
 import { STREET_CONFIG } from "../scenes/MainMenuScene/StreetComposition";
 import { WebGLFallback } from "../../components/ui/WebGLFallback";
 import { checkBasicWebGLSupport } from "../loading/deviceCapabilities";
+import { StatsProbeHost } from "../world/StatsProbeHost";
 
 interface GameCanvasProps {
   settings: GameSettings;
@@ -137,6 +138,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }}
         >
           <MainMenuScene settings={settings} onSceneReady={onSceneReady} />
+          <StatsProbeHost name="menu" />
         </Canvas>
       </CanvasErrorBoundary>
     </div>

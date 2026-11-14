@@ -5,6 +5,7 @@ import { UEHWorld } from "./worlds/UEH";
 import { FirstPersonPlayer, type PlayerControlsState, type PlayerStats } from "../player";
 import { DEFAULT_VEHICLE_CONFIG, LexusVehicle, type VehiclePhysicsConfig } from "../vehicle";
 import { UEH_FURNITURE_COLLIDERS, UEH_SEATS } from "./seats";
+import { ContextLossWatcher } from "../../game/world/ContextLossWatcher";
 import type { GameSettings } from "@scammaze/shared-types";
 
 interface UEHCanvasProps {
@@ -64,6 +65,8 @@ export const UEHCanvas: React.FC<UEHCanvasProps> = ({
       }}
       className="w-full h-full"
     >
+      <ContextLossWatcher name="ueh" />
+
       {/* UEH Ambient Sunlight */}
       <ambientLight intensity={0.65} color="#fff4eb" />
       <directionalLight

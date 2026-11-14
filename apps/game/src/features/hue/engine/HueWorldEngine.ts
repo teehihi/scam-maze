@@ -31,6 +31,9 @@ import { HueWorldAdapter } from './HueWorldAdapter';
 import { HueCollisionSystem } from './collision/HueCollisionSystem';
 import { populateHueWorldColliders } from './collision/HueWorldColliders';
 import { HueVehicle, HUE_CAR_PARKING } from './vehicle/HueVehicle';
+import { AdaptiveQuality } from '../../../game/world/quality';
+import { ListenerBag, disposeObjectTree, watchContextLoss } from '../../../game/world/lifecycle';
+import { createStatsProbe, type StatsProbe } from '../../../game/world/stats';
 
 export type MovementMode = 'walk' | 'fly' | 'boat';
 
@@ -133,11 +136,14 @@ export class HueWorldEngine {
   private rafId = 0;
   private clock = new THREE.Clock();
   private elapsed = 0;
-  // Adaptive resolution keeps exploration fluid on modest GPUs
-  private maxPixelRatio = 1.5;
-  private frameAcc = 0;
-  private frameCount = 0;
-  private qualityTimer = 0;
+  // Adaptive resolution keeps exploration fluid on modest GPUs; the mechanism is shared with
+  // Mekong via AdaptiveQuality (game/world/quality.ts). Hue's own thresholds (immediate reaction,
+  // no upgrade ratchet) are set when `this.quality` is constructed.
+  private quality!: AdaptiveQuality;
+  // Live renderer.info + frame-time diagnostics, shared shape with Mekong (game/world/stats.ts).
+  // Null unless `?stats=1` is present in the URL; the whole `beginFrame`/`endFrame` pair is then a
+  // no-op check on every frame.
+  private stats: StatsProbe | null = null;
 
   // Physical collision system with spatial hash grid
   private collision = new HueCollisionSystem();
@@ -184,9 +190,24 @@ export class HueWorldEngine {
       antialias: true,
       powerPreference: 'high-performance',
     });
-    this.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
-    this.renderer.setPixelRatio(this.maxPixelRatio);
+    const maxPixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.quality = new AdaptiveQuality({
+      initial: maxPixelRatio,
+      min: 1.0,
+      max: maxPixelRatio,
+      step: 0.1,
+      windowSeconds: 2.0,
+      slowFrameSeconds: 1 / 38,
+      fastFrameSeconds: 1 / 57,
+      dropStreak: 1,
+      riseStreak: 1,
+      lockUpgradesAfterRevert: false,
+      epsilon: 0.01,
+      onChange: (ratio) => this.renderer.setPixelRatio(ratio),
+    });
+    this.renderer.setPixelRatio(this.quality.getCurrent());
     this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.stats = createStatsProbe(this.renderer);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.06;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -599,19 +620,32 @@ export class HueWorldEngine {
         }
       }
     };
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    this.listeners.add(window, 'resize', onResize);
+    this.listeners.add(window, 'keydown', onKeyDown);
+    this.listeners.add(dom, 'wheel', onWheel, { passive: true });
+    this.listeners.add(dom, 'contextmenu', onContextMenu);
+    this.listeners.add(document, 'visibilitychange', onVisibilityChange);
 
-    // Store cleanup on instance
-    this.cleanupListeners = () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      dom.removeEventListener('wheel', onWheel);
-      dom.removeEventListener('contextmenu', onContextMenu);
-    };
+    // New: pause on GPU context loss (the browser may restore it) and resume the loop after.
+    // Unsubscribed in dispose() before forceContextLoss() fires its own webglcontextlost event.
+    this.contextLossUnsubscribe = watchContextLoss(dom, {
+      onLost: () => {
+        if (this.rafId) {
+          cancelAnimationFrame(this.rafId);
+          this.rafId = 0;
+        }
+      },
+      onRestored: () => {
+        if (!this.disposed && !this.loopPaused && !this.rafId) {
+          this.clock.getDelta();
+          this.animate();
+        }
+      },
+    });
   }
 
-  private cleanupListeners: () => void = () => {};
+  private readonly listeners = new ListenerBag();
+  private contextLossUnsubscribe: (() => void) | null = null;
 
   private exposeDebugHook() {
     (window as unknown as Record<string, unknown>).__HUE_DEBUG__ = {
@@ -660,6 +694,8 @@ export class HueWorldEngine {
         atmos: this.currentAtmos,
         mode: this.mode,
       }),
+      /** Live renderer.info + frame-time snapshot; null unless `?stats=1` is in the URL. */
+      getStats: () => this.stats?.snapshot() ?? null,
     };
   }
 
@@ -814,6 +850,8 @@ export class HueWorldEngine {
   private animate = () => {
     if (this.disposed || this.loopPaused) return;
     this.rafId = requestAnimationFrame(this.animate);
+    this.stats?.beginFrame();
+    const frameStart = this.stats ? performance.now() : 0;
 
     const dt = Math.min(0.05, this.clock.getDelta());
     this.elapsed += dt;
@@ -855,28 +893,19 @@ export class HueWorldEngine {
 
     this.adaptQuality(dt);
     this.renderer.render(this.scene, this.camera);
+    this.stats?.endFrame(performance.now() - frameStart);
   };
 
   private adaptQuality(dt: number) {
-    this.frameAcc += dt;
-    this.frameCount++;
-    this.qualityTimer += dt;
-    if (this.qualityTimer < 2.0) return;
-    const avg = this.frameAcc / Math.max(1, this.frameCount);
-    this.frameAcc = 0;
-    this.frameCount = 0;
-    this.qualityTimer = 0;
-    const cur = this.renderer.getPixelRatio();
-    let next = cur;
-    // Maintain minimum pixel ratio of 1.0 so close-up heritage textures remain crisp
-    if (avg > 1 / 38) next = Math.max(1.0, cur - 0.1);
-    else if (avg < 1 / 57) next = Math.min(this.maxPixelRatio, cur + 0.1);
-    if (Math.abs(next - cur) > 0.01) {
-      this.renderer.setPixelRatio(next);
-    }
+    this.quality.update(dt);
+    // Hue has always applied a pixel-ratio change in the same frame it decided on it (unlike
+    // Mekong's deferred commit, which exists only to dodge a black flash from resizing a
+    // post-processing composer); keep that by committing right after update, before render().
+    this.quality.commit();
   }
 
   public dispose() {
+    if (this.disposed) return;
     this.disposed = true;
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
@@ -885,7 +914,12 @@ export class HueWorldEngine {
     this.prewarmTimerIds.forEach((id) => window.clearTimeout(id));
     this.prewarmTimerIds = [];
 
-    this.cleanupListeners();
+    // Unsubscribed before forceContextLoss() below, which itself fires webglcontextlost.
+    this.contextLossUnsubscribe?.();
+    this.contextLossUnsubscribe = null;
+    this.listeners.removeAll();
+    this.stats?.dispose();
+    this.stats = null;
     this.collision.clear();
     this.vehicle?.dispose();
     this.vehicle = null;
@@ -895,21 +929,9 @@ export class HueWorldEngine {
     // Release global debug handle so engine instance can be reclaimed by GC
     delete (window as unknown as Record<string, unknown>).__HUE_DEBUG__;
 
-    // Traverse and dispose all landmark chunks (both active and streaming-culled)
-    this.landmarkChunks.forEach((chunk) => {
-      chunk.group.traverse((obj) => {
-        if ((obj as THREE.Mesh).isMesh) {
-          const m = obj as THREE.Mesh;
-          m.geometry?.dispose();
-          if (Array.isArray(m.material)) {
-            m.material.forEach((mat) => mat.dispose());
-          } else {
-            m.material?.dispose();
-          }
-        }
-      });
-      chunk.group.clear();
-    });
+    // Landmark chunks are already children of `this.scene`, so the shared scene-wide dispose
+    // below covers them too; no separate per-chunk pass is needed (it used to skip their
+    // textures, which the shared pass now also frees).
     this.landmarkChunks = [];
 
     // Dispose atmosphere, sky dome, water shaders, PMREM generator, and sun shadow map
@@ -925,34 +947,8 @@ export class HueWorldEngine {
     this.mats?.dispose();
     disposeHueSurfaces();
 
-    // Deeply traverse and release all geometries, materials, and textures from GPU VRAM
-    this.scene.traverse((obj) => {
-      if ((obj as THREE.Mesh).geometry) {
-        (obj as THREE.Mesh).geometry.dispose();
-      }
-      const mat = (obj as THREE.Mesh).material;
-      if (mat) {
-        if (Array.isArray(mat)) {
-          mat.forEach((m) => {
-            m.dispose();
-            for (const key of Object.keys(m)) {
-              const val = (m as unknown as Record<string, unknown>)[key];
-              if (val && typeof (val as THREE.Texture).dispose === 'function') {
-                (val as THREE.Texture).dispose();
-              }
-            }
-          });
-        } else {
-          mat.dispose();
-          for (const key of Object.keys(mat)) {
-            const val = (mat as unknown as Record<string, unknown>)[key];
-            if (val && typeof (val as THREE.Texture).dispose === 'function') {
-              (val as THREE.Texture).dispose();
-            }
-          }
-        }
-      }
-    });
+    // Release every geometry, material and texture still reachable from the scene.
+    disposeObjectTree(this.scene);
     this.scene.clear();
 
     // Dispose WebGLRenderer first (cleans internal GL objects),
