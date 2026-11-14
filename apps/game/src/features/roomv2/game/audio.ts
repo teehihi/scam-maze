@@ -22,6 +22,19 @@ const RAIN_OPEN = 0.5;
 /** Owner-supplied sounds: thunder (shared with the neighborhood) and the wall clock's ticking loop. */
 const THUNDER_URL = '/audio/thunder.mp3';
 const CLOCK_URL = '/audio/clock.mp3';
+/** Phone ringtone (owner-supplied Ogg Vorbis, with an MP3 copy for browsers that cannot decode Ogg). */
+const RINGTONE_URLS = ['/audio/ringtone.ogg', '/audio/ringtone.mp3'];
+
+/** First URL whose format this browser reports it can play (Ogg is not decodable on older Safari). */
+function playableUrl(urls: readonly string[]): string {
+  if (typeof document === 'undefined') return urls[urls.length - 1];
+  const probe = document.createElement('audio');
+  for (const url of urls) {
+    const type = url.endsWith('.ogg') ? 'audio/ogg; codecs="vorbis"' : url.endsWith('.opus') ? 'audio/ogg; codecs="opus"' : 'audio/mpeg';
+    if (probe.canPlayType(type) !== '') return url;
+  }
+  return urls[urls.length - 1];
+}
 /** City heard through the walls and the window, kept low because the player is indoors. */
 const CITY_ROOM = 0.04;
 const CITY_WINDOW_CLOSED = 0.07;
@@ -111,6 +124,7 @@ export class AudioEngine {
     this.loop(this.pink, wlp, 0.9); wlp.connect(this.windowBed);
     this.windowBed.connect(this.emit.window.input);
     const load = (url: string) => fetch(url).then((res) => res.arrayBuffer()).then((data) => this.ctx.decodeAudioData(data));
+    load(playableUrl(RINGTONE_URLS)).then((buf) => { this.ringBuf = buf; }).catch((err) => console.warn('[room] ringtone failed to load', err));
     load(THUNDER_URL).then((buf) => { this.thunderBuf = buf; }).catch((err) => console.warn('[room] thunder sound failed to load', err));
     load(CLOCK_URL)
       .then((buf) => {
@@ -157,6 +171,26 @@ export class AudioEngine {
     this.timers.push(window.setTimeout(tick, (minS + Math.random() * (maxS - minS)) * 1000));
   }
   private thunderBuf: AudioBuffer | null = null;
+  private ringBuf: AudioBuffer | null = null;
+  private ringSrc: AudioBufferSourceNode | null = null;
+  private ringGain: GainNode | null = null;
+  /** Starts (looping) or stops the ringtone at the phone. */
+  ring(on: boolean) {
+    const e = this.emit.phone;
+    if (!on) {
+      if (this.ringSrc && this.ringGain) {
+        const t = this.ctx.currentTime;
+        this.ringGain.gain.setTargetAtTime(0, t, 0.05);
+        const src = this.ringSrc; this.timers.push(window.setTimeout(() => { try { src.stop(); } catch { /* already stopped */ } }, 300));
+      }
+      this.ringSrc = null; this.ringGain = null;
+      return;
+    }
+    if (this.ringSrc || !this.ringBuf || !e || this.ctx.state === 'closed') return;
+    const src = this.ctx.createBufferSource(); src.buffer = this.ringBuf; src.loop = true;
+    const g = this.gain(0.9); src.connect(g); g.connect(e.input); src.start();
+    this.ringSrc = src; this.ringGain = g;
+  }
   private burst(dest: AudioNode, opts: { f: number; q?: number; type?: BiquadFilterType; dur: number; vol: number; delay?: number; buf?: AudioBuffer }) {
     const t = this.ctx.currentTime + (opts.delay ?? 0);
     const s = this.ctx.createBufferSource(); s.buffer = opts.buf ?? this.white;

@@ -313,7 +313,7 @@ export function buildLife(ctx: Ctx, houses: House[], vehicles: { pos: THREE.Vect
         const shop = ['grocery', 'cafe', 'pho', 'repair', 'hair'].includes(h.spec.ground);
         const dayOpen = hour >= 6 && hour < (shop ? 21.5 : 22);
         const sh = h.devices['shutter']; if (sh && sh.on !== dayOpen) sh.set(dayOpen);
-        const door = h.devices['door']; if (door && door.on !== (hour >= 6.3 && hour < 21.5)) door.set(hour >= 6.3 && hour < 21.5);
+        // Front doors stay closed unless the player opens them (owner); the schedule no longer opens them by day.
         for (const rm of h.rooms) {
           const l = rm.light; if (!l) continue;
           const n = occ.get(rm) ?? 0, prev = (l as any)._occ ?? -1;

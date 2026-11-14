@@ -640,6 +640,7 @@ export class Engine {
         this.story = 'ringing'; this.storyT = 0; this.vibeClock = 0;
         this.phoneMode = 'ringing';
         this.audio.stinger();
+        this.audio.ring(true);
         if (this.inspect && this.inspect.id !== 'phone') this.endInspect();
         this.standYaw = -1.05;
         this.later(1.1, () => { if (this.seat === 'seated' && !this.inspect) this.standUp(); });
@@ -658,7 +659,7 @@ export class Engine {
     }
   }
 
-  stopVibe() { this.vibeOn = false; this.audio.setVibe(false); }
+  stopVibe() { this.vibeOn = false; this.audio.setVibe(false); this.audio.ring(false); }
 
   answerCall() {
     this.stopVibe();

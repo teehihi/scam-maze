@@ -210,6 +210,12 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Neighborhood doors closed by default; room ringtone
+- **Owner requests:** houses keep their front doors closed by default; use the new `ringtone.ogg` for the incoming call.
+- **Completed:** the daily schedule in `khupho/world/people.ts` no longer opens the full houses' front doors between 6:30 and 21:30; they stay closed until the player opens them (shop shutters keep their opening hours). Room: the incoming call now loops the ringtone at the phone's positional emitter together with the vibration, and stops on answer, decline or missed call. `ringtone.mp3` (made from the Ogg with ffmpeg, 128 kbps) is the fallback for browsers that report no Ogg Vorbis support (`canPlayType`).
+- **Audio format review (not applied):** converting with Opus would shrink the large files a lot (measured with ffmpeg: menu music 5.3 MB → 1.5 MB at 48 kbps mono / 3.0 MB at 96 kbps stereo; rain 2.2 MB → 0.36 / 0.77 MB; one song 6.1 MB → 1.9 / 3.8 MB; clock 259 KB → 44 / 94 KB). The 30-80 KB voice clips gain little (scam.open 60 KB → 48 KB mono, larger at 96 kbps). Opus only changes download size, not frame rate; decoding is done once at load.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for prologue, app and khupho pass. Ringtone not checked by ear.
+
 ### 2026-11-14 — Neighborhood textures restored; room city bed, thunder, clock, switches, door, typing
 - **Owner report:** the houses had textures in the original source and now look flat; the shutters seem gone. Room: bring back a quiet city sound, thunder, switches, door and typing; the clock uses the new `clock.mp3`.
 - **Cause and fix (textures):** `materials.ts` loads scanned textures from `features/khupho/assets/tex/*.jpg` (`import.meta.glob`), but that folder was never in the source zip (the prototype README says so), so every surface fell back to flat procedural color. The owner's single-file build `Asset3D/khupho/evidence/stable_v1/hue_textured_v1.html` embeds all 39 files; they were extracted unchanged (5.6 MB, CC0 Poly Haven, noted in `THIRD_PARTY_NOTICES.md`).
