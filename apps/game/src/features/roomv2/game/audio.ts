@@ -19,6 +19,13 @@ export class Emitter {
 const RAIN_URL = '/audio/rain.mp3';
 const RAIN_CLOSED = 0.22;
 const RAIN_OPEN = 0.5;
+/** Owner-supplied sounds: thunder (shared with the neighborhood) and the wall clock's ticking loop. */
+const THUNDER_URL = '/audio/thunder.mp3';
+const CLOCK_URL = '/audio/clock.mp3';
+/** City heard through the walls and the window, kept low because the player is indoors. */
+const CITY_ROOM = 0.04;
+const CITY_WINDOW_CLOSED = 0.07;
+const CITY_WINDOW_OPEN = 0.25;
 
 export class AudioEngine {
   listener: THREE.AudioListener;
@@ -94,8 +101,28 @@ export class AudioEngine {
     this.cityDuck = this.gain(1);
     this.cityDuck.connect(out);
 
-    // The room plays only two things (owner): the recorded rain outside and the phone vibrating.
-    // Every synthesized sound (room tone, clock tick, fridge, footsteps, clicks, city, thunder) was removed.
+    // The room plays (owner): a low city bed, the recorded rain, distant thunder, the wall clock, the
+    // light switches, the door, typing, and the phone vibrating. The other synthesized sounds were removed.
+    this.room = this.gain(CITY_ROOM);
+    const roomLp = this.filt('lowpass', 180);
+    this.loop(this.brown, roomLp); roomLp.connect(this.room); this.room.connect(this.cityDuck);
+    this.windowBed = this.gain(CITY_WINDOW_CLOSED);
+    const wlp = this.filt('lowpass', 700);
+    this.loop(this.pink, wlp, 0.9); wlp.connect(this.windowBed);
+    this.windowBed.connect(this.emit.window.input);
+    const load = (url: string) => fetch(url).then((res) => res.arrayBuffer()).then((data) => this.ctx.decodeAudioData(data));
+    load(THUNDER_URL).then((buf) => { this.thunderBuf = buf; }).catch((err) => console.warn('[room] thunder sound failed to load', err));
+    load(CLOCK_URL)
+      .then((buf) => {
+        const e = this.emit.clock; if (!e || this.ctx.state === 'closed') return;
+        const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+        const g = this.gain(0.6); src.connect(g); g.connect(e.input); src.start();
+      })
+      .catch((err) => console.warn('[room] clock sound failed to load', err));
+    // Thunder far away, the storm moving off: once early, then now and then.
+    this.timers.push(window.setTimeout(() => this.thunder(0.55), 18000));
+    this.every(60, 130, () => this.thunder(0.3 + Math.random() * 0.25));
+    this.every(5, 12, () => this.tireHiss());
     this.rainFilter = this.filt('lowpass', 900);
     this.rainGain = this.gain(0);
     this.rainFilter.connect(this.rainGain); this.rainGain.connect(this.cityDuck);
@@ -122,16 +149,69 @@ export class AudioEngine {
 
   }
 
-  tireHiss(..._args: unknown[]): void {}
   drip(..._args: unknown[]): void {}
   horn(..._args: unknown[]): void {}
   siren(..._args: unknown[]): void {}
-  thunder(..._args: unknown[]): void {}
-  // Removed (owner): the room plays only the recorded rain and the phone vibration. The methods
-  // below stay as no-ops so the engine's calls (clicks, steps, fridge, clock, ...) keep working.
-  switchClick(..._args: unknown[]): void {}
+  private every(minS: number, maxS: number, fn: () => void) {
+    const tick = () => { fn(); this.timers.push(window.setTimeout(tick, (minS + Math.random() * (maxS - minS)) * 1000)); };
+    this.timers.push(window.setTimeout(tick, (minS + Math.random() * (maxS - minS)) * 1000));
+  }
+  private thunderBuf: AudioBuffer | null = null;
+  private burst(dest: AudioNode, opts: { f: number; q?: number; type?: BiquadFilterType; dur: number; vol: number; delay?: number; buf?: AudioBuffer }) {
+    const t = this.ctx.currentTime + (opts.delay ?? 0);
+    const s = this.ctx.createBufferSource(); s.buffer = opts.buf ?? this.white;
+    const f = this.filt(opts.type ?? 'bandpass', opts.f, opts.q ?? 1);
+    const g = this.gain(0); g.gain.setValueAtTime(opts.vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + opts.dur);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 3); s.stop(t + opts.dur + 0.05);
+  }
+  private tone(dest: AudioNode, f: number, dur: number, vol: number, delay = 0, type: OscillatorType = 'sine') {
+    const t = this.ctx.currentTime + delay;
+    const o = this.ctx.createOscillator(); o.type = type; o.frequency.value = f;
+    const g = this.gain(0); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+  }
+  /** Tyres on the wet street below, quiet (part of the city bed). */
+  tireHiss() {
+    const t = this.ctx.currentTime, dur = 2.5 + Math.random() * 2;
+    const s = this.ctx.createBufferSource(); s.buffer = this.white;
+    const bp = this.filt('bandpass', 600, 0.8);
+    bp.frequency.setValueAtTime(500, t); bp.frequency.linearRampToValueAtTime(2200 + Math.random() * 800, t + dur * 0.5); bp.frequency.linearRampToValueAtTime(500, t + dur);
+    const g = this.gain(0);
+    const peak = (0.03 + Math.random() * 0.03) * (1 + this.windowOpen * 2);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + dur * 0.5); g.gain.linearRampToValueAtTime(0, t + dur);
+    const lp = this.filt('lowpass', 1800 + this.windowOpen * 4000);
+    s.connect(bp); bp.connect(lp); lp.connect(g); g.connect(this.emit.window.input);
+    s.start(t, Math.random() * 2); s.stop(t + dur + 0.1);
+  }
+  /** Distant thunder (the recorded clap, darker and through the window). */
+  thunder(v: number) {
+    const buf = this.thunderBuf; if (!buf || this.ctx.state === 'closed') return;
+    const s = this.ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = 0.8 + Math.random() * 0.15;
+    const lp = this.filt('lowpass', 700 + this.windowOpen * 3000); const g = this.gain(v * (1 + this.windowOpen * 0.6));
+    s.connect(lp); lp.connect(g); g.connect(this.cityDuck); s.start();
+  }
+  switchClick(at: string) {
+    const e = this.emit[at]; if (!e) return;
+    this.burst(e.input, { f: 3200, q: 2, dur: 0.03, vol: 0.5 });
+    this.tone(e.input, 1900, 0.03, 0.08);
+    this.burst(e.input, { f: 1400, q: 3, dur: 0.02, vol: 0.25, delay: 0.045 });
+  }
+  doorClose() {
+    const e = this.emit.door; if (!e) return;
+    this.burst(e.input, { f: 90, type: 'lowpass', dur: 0.5, vol: 1.2, buf: this.brown });
+    this.burst(e.input, { f: 2400, q: 4, dur: 0.05, vol: 0.4, delay: 0.08 });
+    this.burst(e.input, { f: 3600, q: 6, dur: 0.04, vol: 0.3, delay: 0.16 });
+  }
+  typing() {
+    const e = this.emit.laptop; if (!e) return;
+    for (let i = 0; i < 7; i++) {
+      const dl = i * 0.075 + Math.random() * 0.04;
+      this.burst(e.input, { f: 3400 + Math.random() * 1200, q: 2, dur: 0.018, vol: 0.35, delay: dl });
+      this.tone(e.input, 180 + Math.random() * 60, 0.03, 0.12, dl);
+    }
+  }
+  // Removed (owner): the sounds below stay as no-ops so the engine's calls keep working.
   footstep(..._args: unknown[]): void {}
-  doorClose(..._args: unknown[]): void {}
   keys(..._args: unknown[]): void {}
   paper(..._args: unknown[]): void {}
   clink(..._args: unknown[]): void {}
@@ -140,6 +220,7 @@ export class AudioEngine {
     const t = this.ctx.currentTime;
     this.rainGain?.gain.setTargetAtTime(open ? RAIN_OPEN : RAIN_CLOSED, t, 0.5);
     this.rainFilter?.frequency.setTargetAtTime(open ? 7000 : 900, t, 0.5);
+    this.windowBed?.gain.setTargetAtTime(open ? CITY_WINDOW_OPEN : CITY_WINDOW_CLOSED, t, 0.4);
   }
   setFan(..._args: unknown[]): void {}
   setFridge(..._args: unknown[]): void {}
@@ -156,7 +237,7 @@ export class AudioEngine {
   beep(..._args: unknown[]): void {}
   chairRoll(..._args: unknown[]): void {}
   sit(..._args: unknown[]): void {}
-  typing(..._args: unknown[]): void {}
+  /** The wall clock plays its recorded ticking loop (started in `start`); the per-second call does nothing. */
   tick(..._args: unknown[]): void {}
   /** Silences (or restores) everything the room plays. */
   setMuted(muted: boolean) { this.listener.setMasterVolume(muted ? 0 : 1); }
