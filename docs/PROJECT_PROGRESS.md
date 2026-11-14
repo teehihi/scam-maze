@@ -210,6 +210,13 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Neighborhood textures restored; room city bed, thunder, clock, switches, door, typing
+- **Owner report:** the houses had textures in the original source and now look flat; the shutters seem gone. Room: bring back a quiet city sound, thunder, switches, door and typing; the clock uses the new `clock.mp3`.
+- **Cause and fix (textures):** `materials.ts` loads scanned textures from `features/khupho/assets/tex/*.jpg` (`import.meta.glob`), but that folder was never in the source zip (the prototype README says so), so every surface fell back to flat procedural color. The owner's single-file build `Asset3D/khupho/evidence/stable_v1/hue_textured_v1.html` embeds all 39 files; they were extracted unchanged (5.6 MB, CC0 Poly Haven, noted in `THIRD_PARTY_NOTICES.md`).
+- **Shutters:** not lost. Compared at the same camera (in front of the south-row shops at x -21.6) with the original stable build: the pictures are the same. Closed shutters are on the house fronts; open shops have them rolled up by day, as in the original. Their slats are faint in the original too.
+- **Room audio** (`features/roomv2/game/audio.ts`): low city bed (room tone 0.04, window bed 0.07, 0.25 with the window open) and quiet tyre hiss; distant thunder from `thunder.mp3` once at 18 s, then every 60-130 s (darker through the closed window); `clock.mp3` looped on the wall clock's positional emitter (replaces the per-second synthesized tick); light switch clicks, door close and laptop typing restored. Rain and vibration unchanged; the other removed sounds stay removed.
+- **Validation:** `pnpm typecheck`, `pnpm build` and vitest for prologue, app and khupho pass. Headless screenshots at the same camera, original vs now, match. Sound not checked by ear.
+
 ### 2026-11-14 — Room v2 sound: only the recorded rain and the phone vibration
 - **Owner request:** remove the room's current sounds (the constant "tok tok"), add our rain, leave the phone ringtone for later, keep the vibration.
 - **Completed** (`features/roomv2/game/audio.ts`): the room now plays only `rain.mp3` (the neighborhood's recording; muffled through the closed window, louder and clearer when it is opened) and the existing phone vibration chain. Removed: room tone, city bed, fridge hum, laptop fan, kettle, clock tick, footsteps, switch clicks, door, keys, paper, clinks, chair, sit, sigh, typing, fridge door and beep, drips, tyre hiss, horn, siren, synthesized thunder and the stinger. Those methods stay as no-ops so the engine's calls are unchanged. There was no ringtone sound; the call only vibrated, so nothing changed there.
