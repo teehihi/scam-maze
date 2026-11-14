@@ -210,6 +210,12 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Prologue: menu hover sound, Go home without icon, narration over the rain
+- **Owner requests:** drop the house icon from Go home; the main menu's hover sound in the in-game menus; the call-home voice was too quiet under the rain.
+- **Completed:** Go home shows only its `H` key cap and label. The pause menu now keeps one highlighted entry like the main menu (pointer, focus, arrow keys and W/S) and plays the menu hover blip (`playHoverSound` from App) on each change; the top-bar buttons and Go home play it on hover. Narration: the voice gain is 1.6x the settings value (capped at full volume), and while the intro or the call-home lines play, the neighborhood's outdoor bus (street, rain, thunder) is ducked to 28% (`AudioSys.setDuck`) and restored after.
+- **Files:** `features/prologue/{PrologueHud,ProloguePage}.tsx`, `features/khupho/world/audio.ts`, `app/App.tsx`.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for prologue, app and khupho (5 files, 31 tests) pass. The voice/rain balance was not checked by ear.
+
 ### 2026-11-14 — Prologue HUD in the game's style, Ctrl cursor, clock, thunderstorm, phone pickup
 - **Objective (owner):** objective and Go home in the game's look; sound and settings in the top-right on every in-game screen; Ctrl shows/hides the cursor everywhere (camera stops turning, everything else works); a clock in the neighborhood; random thunder with lightning while it rains, using the owner's `rain.mp3` and `thunder.mp3`; in the room, picking up the phone plays the take animation only.
 - **Completed:**

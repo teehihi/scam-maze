@@ -17,6 +17,8 @@ export class AudioSys implements Sfx {
   loops = new Map<string, Loop>();
   amb: Record<string, GainNode> = {};
   muted = false; volume = 0.8;
+  /** Outdoor sound level while a voice line plays (1 = no ducking). */
+  duck = 1;
   private birdT = 2;
   private lastHorn = 0;
 
@@ -70,6 +72,8 @@ export class AudioSys implements Sfx {
     const g = ac.createGain(); g.gain.value = 0.35 + 0.65 * level;
     s.connect(f); f.connect(g); g.connect(this.outBus); s.start();
   }
+  /** Lowers rain, street and thunder under a voice line (`on`), and brings them back after. */
+  setDuck(on: boolean) { this.duck = on ? 0.28 : 1; }
   setVolume(v: number) { this.volume = v; if (this.master) this.master.gain.value = this.muted ? 0 : v; }
   setMuted(m: boolean) { this.muted = m; if (this.master) this.master.gain.value = m ? 0 : this.volume; }
 
@@ -159,7 +163,7 @@ export class AudioSys implements Sfx {
     if (L.positionX) { L.positionX.value = p.x; L.positionY.value = p.y; L.positionZ.value = p.z; L.forwardX.value = f.x; L.forwardY.value = f.y; L.forwardZ.value = f.z; L.upX.value = u.x; L.upY.value = u.y; L.upZ.value = u.z; }
     const muffle = indoor * (1 - open * 0.55);
     this.outLP.frequency.setTargetAtTime(lerp(15000, 650, muffle), t, 0.25);
-    this.outBus.gain.setTargetAtTime(lerp(1, 0.55, muffle), t, 0.25);
+    this.outBus.gain.setTargetAtTime(lerp(1, 0.55, muffle) * this.duck, t, 0.25);
     const day = env.sun, hr = env.hour;
     const rush = Math.max(Math.exp(-Math.pow((hr - 7.5) / 1.3, 2)), Math.exp(-Math.pow((hr - 17.5) / 1.6, 2)));
     const set = (n: string, v: number) => this.amb[n]?.gain.setTargetAtTime(v, t, 0.5);

@@ -33,6 +33,8 @@ export interface PrologueBuildProgress {
 interface ProloguePageProps {
   settings: GameSettings;
   onUpdateSettings: (updates: Partial<GameSettings>) => void;
+  /** The main menu's hover blip, reused by the in-game menus. */
+  onHoverSound?: () => void;
   onBackToMenu: () => void;
   /**
    * False while the chapter loading screen still covers the page: the world is built and
@@ -53,7 +55,7 @@ const PROLOGUE_CONTROLS: readonly IntroControlId[] = ["move", "look", "interact"
  * home to the apartment. This page owns the whole interface, in the chapter's style; the two
  * world pages only draw the 3D view.
  */
-export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSettings, onBackToMenu, revealed, onBuildProgress }) => {
+export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSettings, onHoverSound, onBackToMenu, revealed, onBuildProgress }) => {
   const { t, i18n } = useTranslation(["worlds", "loading"]);
   const [stage, setStage] = useState<Stage>("neighborhood");
   const [worldReady, setWorldReady] = useState(false);
@@ -208,7 +210,12 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
   }, []);
 
   const locale = i18n.language === "vi" ? "vi" : "en";
-  const gain = voiceGain({ soundEnabled: settings.soundEnabled, masterVolume: settings.sfxVolume, voiceVolume: settings.voiceVolume }, false);
+  // Narration must stay clear over the rain: a 1.6x boost (capped at full volume) while the world is ducked below.
+  const gain = Math.min(1, 1.6 * voiceGain({ soundEnabled: settings.soundEnabled, masterVolume: settings.sfxVolume, voiceVolume: settings.voiceVolume }, false));
+  const narrating = stage === "neighborhood" && revealed && worldReady && (!started || callOpen);
+  useEffect(() => {
+    streetRef.current?.audio.setDuck(narrating);
+  }, [narrating, worldReady]);
 
   const tips = LOADING_TIP_IDS.map((id) => t(`loading:tips.${id}`));
   const done = [roomChunk, hands, roomBuilt].filter(Boolean).length;
@@ -260,6 +267,7 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
               cursorMode={streetCursor}
               clock={clock}
               onGoHome={goHome}
+              onHoverSound={onHoverSound}
             />
           )}
           {callOpen && <HomeCallOverlay locale={locale} voiceGain={gain} onGoHome={goHome} onStay={stayOutside} />}
@@ -295,10 +303,10 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
       )}
 
       {inGame && !callOpen && !paused && (
-        <PrologueTopBar soundEnabled={soundOn} onToggleSound={toggleSound} onOpenSettings={openPause} />
+        <PrologueTopBar soundEnabled={soundOn} onToggleSound={toggleSound} onOpenSettings={openPause} onHoverSound={onHoverSound} />
       )}
 
-      {paused && !settingsOpen && <ProloguePauseMenu onResume={resume} onOpenSettings={() => setSettingsOpen(true)} onReturnToMenu={onBackToMenu} />}
+      {paused && !settingsOpen && <ProloguePauseMenu onHoverSound={onHoverSound} onResume={resume} onOpenSettings={() => setSettingsOpen(true)} onReturnToMenu={onBackToMenu} />}
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onUpdateSettings={onUpdateSettings} />
 
       {showRoomLoading && (

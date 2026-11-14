@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CloudRain, DoorOpen, House, MousePointerClick, Play, Settings, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
+import { CloudRain, DoorOpen, MousePointerClick, Play, Settings, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
 
 /** Keyboard keys are literal text in every language. */
 export const GO_HOME_KEY = "H";
@@ -19,16 +19,19 @@ export interface PrologueTopBarProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenSettings: () => void;
+  /** Menu hover sound (the same blip as the main menu). */
+  onHoverSound?: () => void;
 }
 
 /** Top-right controls, the same on every in-game screen: sound and the settings/pause menu. */
-export const PrologueTopBar: React.FC<PrologueTopBarProps> = ({ soundEnabled, onToggleSound, onOpenSettings }) => {
+export const PrologueTopBar: React.FC<PrologueTopBarProps> = ({ soundEnabled, onToggleSound, onOpenSettings, onHoverSound }) => {
   const { t } = useTranslation(["common", "worlds"]);
   return (
     <header className="absolute right-[clamp(1rem,3vw,2.5rem)] top-4 z-20 flex items-center gap-5" onMouseDown={stop} onClick={stop}>
       <button
         type="button"
         onClick={onToggleSound}
+        onPointerEnter={onHoverSound}
         className={MENU_BUTTON}
         title={soundEnabled ? t("common:audio.muteTitle") : t("common:audio.unmuteTitle")}
         aria-pressed={!soundEnabled}
@@ -45,7 +48,7 @@ export const PrologueTopBar: React.FC<PrologueTopBarProps> = ({ soundEnabled, on
           </span>
         </span>
       </button>
-      <button type="button" onClick={onOpenSettings} className={MENU_BUTTON} aria-keyshortcuts="Escape">
+      <button type="button" onClick={onOpenSettings} onPointerEnter={onHoverSound} className={MENU_BUTTON} aria-keyshortcuts="Escape">
         <span aria-hidden="true" className={`${KEYCAP} ${KEYCAP_HOVER}`}>
           <Settings className="h-3.5 w-3.5" />
         </span>
@@ -73,10 +76,11 @@ export interface PrologueHudProps {
   onGoHome?: () => void;
   /** Draw the center dot (the room draws its own). */
   crosshair?: boolean;
+  onHoverSound?: () => void;
 }
 
 /** Story HUD in the game's style: clock, objective, crosshair, prompt, resume hint, key hints. */
-export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, showResume, cursorMode, clock, onGoHome, crosshair = true }) => {
+export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, showResume, cursorMode, clock, onGoHome, crosshair = true, onHoverSound }) => {
   const { t } = useTranslation(["chapter1", "worlds"]);
   return (
     <>
@@ -136,11 +140,10 @@ export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, sho
           </span>
         </div>
         {onGoHome && (
-          <button type="button" onMouseDown={stop} onClick={onGoHome} aria-keyshortcuts={GO_HOME_KEY} className={MENU_BUTTON}>
+          <button type="button" onMouseDown={stop} onClick={onGoHome} onPointerEnter={onHoverSound} aria-keyshortcuts={GO_HOME_KEY} className={MENU_BUTTON}>
             <span aria-hidden="true" className={`${KEYCAP} ${KEYCAP_HOVER}`}>
               {GO_HOME_KEY}
             </span>
-            <House className="h-4 w-4 text-[#b9a5f5]" aria-hidden="true" />
             <span className="text-base">{t("worlds:khupho.game.story.goHome")}</span>
           </button>
         )}
@@ -153,14 +156,39 @@ export interface ProloguePauseMenuProps {
   onResume: () => void;
   onOpenSettings: () => void;
   onReturnToMenu: () => void;
+  onHoverSound?: () => void;
 }
 
 /** Pause menu in the main menu's style. The prologue has no save yet, so leaving restarts the evening. */
-export const ProloguePauseMenu: React.FC<ProloguePauseMenuProps> = ({ onResume, onOpenSettings, onReturnToMenu }) => {
+export const ProloguePauseMenu: React.FC<ProloguePauseMenuProps> = ({ onResume, onOpenSettings, onReturnToMenu, onHoverSound }) => {
   const { t } = useTranslation(["chapter1", "worlds"]);
-  const firstRef = useRef<HTMLButtonElement>(null);
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  // One highlighted entry, as on the main menu: it follows the pointer, focus and the arrow / W S keys.
+  const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  const soundRef = useRef(onHoverSound);
+  soundRef.current = onHoverSound;
+  const activate = (index: number, withSound = true) => {
+    if (activeRef.current === index) return;
+    activeRef.current = index;
+    if (withSound) soundRef.current?.();
+    setActive(index);
+  };
   useEffect(() => {
-    firstRef.current?.focus();
+    buttons.current[0]?.focus({ preventScroll: true });
+    const onKey = (event: KeyboardEvent) => {
+      const down = event.key === "ArrowDown" || event.code === "KeyS";
+      const up = event.key === "ArrowUp" || event.code === "KeyW";
+      if (!down && !up) return;
+      event.preventDefault();
+      const next = (activeRef.current + (down ? 1 : 2)) % 3;
+      activeRef.current = next;
+      soundRef.current?.();
+      setActive(next);
+      buttons.current[next]?.focus({ preventScroll: true });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
   const entries = [
     { id: "resume", icon: Play, label: t("chapter1:pause.resume"), onClick: onResume },
@@ -182,16 +210,19 @@ export const ProloguePauseMenu: React.FC<ProloguePauseMenuProps> = ({ onResume, 
         <ul className="mt-8 w-[min(24rem,100%)] space-y-1">
           {entries.map((entry, index) => {
             const Icon = entry.icon;
+            const on = index === active;
             return (
               <li key={entry.id}>
                 <button
-                  ref={index === 0 ? firstRef : undefined}
+                  ref={(el) => { buttons.current[index] = el; }}
                   type="button"
                   onClick={entry.onClick}
-                  className="group relative flex w-full items-center gap-3 px-4 py-2.5 text-left font-menu text-2xl font-semibold uppercase leading-none tracking-[0.04em] text-zinc-200 outline-none transition-colors hover:text-[#171521] focus-visible:text-[#171521] cursor-pointer"
+                  onPointerEnter={() => activate(index)}
+                  onFocus={() => activate(index)}
+                  className={`relative flex w-full items-center gap-3 px-4 py-2.5 text-left font-menu text-2xl font-semibold uppercase leading-none tracking-[0.04em] outline-none transition-colors duration-150 cursor-pointer ${on ? "text-[#171521]" : "text-zinc-200"}`}
                 >
-                  <span aria-hidden="true" className="absolute inset-0 origin-left scale-x-0 bg-[#f3efe4] transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100" />
-                  <span aria-hidden="true" className="absolute -left-1 bottom-0 top-0 w-2 -skew-x-12 bg-[#7654d6] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
+                  <span aria-hidden="true" className={`absolute inset-0 origin-left bg-[#f3efe4] transition-transform duration-200 ease-out ${on ? "scale-x-100" : "scale-x-0"}`} />
+                  <span aria-hidden="true" className={`absolute -left-1 bottom-0 top-0 w-2 -skew-x-12 bg-[#7654d6] transition-opacity duration-200 ${on ? "opacity-100" : "opacity-0"}`} />
                   <Icon className="relative h-[0.75em] w-[0.75em] shrink-0" aria-hidden="true" />
                   <span className="relative">{entry.label}</span>
                 </button>

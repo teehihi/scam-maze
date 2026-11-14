@@ -583,6 +583,7 @@ export const App: React.FC = () => {
             <ProloguePage
               settings={settings}
               onUpdateSettings={handleUpdateSettings}
+              onHoverSound={playHoverSound}
               onBackToMenu={handleReturnToMenu}
               revealed={screen.kind === "prologue"}
               onBuildProgress={setPrologueBuild}
