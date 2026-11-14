@@ -210,6 +210,28 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Khupho performance slice 1: config-only GPU cuts (branch `perf/khupho-slice1-config`)
+- **Objective:** cut GPU and per-frame cost of the neighborhood street engine with configuration only (no geometry change).
+- **Completed** (`features/khupho/world/engine.ts`, `KhuphoStoryWorld.tsx`, `KhuphoPage.tsx`):
+  - Composer multisampling per quality: 0 samples on low and medium, 4 on high (was 4 everywhere). Bloom and the composer chain are unchanged. Changing quality frees and reallocates both composer targets.
+  - Sun shadow map redrawn every 4th frame (was every 2nd); medium shadow map 1024 px (was 1536); high stays 2048, low stays off.
+  - Adaptive resolution steps down after 1 slow second (was 2); medium ceiling 0.85 (was 1.0); floor 0.6 on every quality (was 0.7 on medium/high). Step sizes and settle times unchanged.
+  - The requested quality is passed into `Engine.create` (`EngineOptions.quality`) and applied once in `initLightsAndPost`, so the build and warm-up no longer run at 'high' for a medium/low player; the second `applyQuality` after the build was removed from both pages.
+- **Measured** (headless Chrome, SwiftShader, `vite build --mode development` + `vite preview`, `/khupho`, `renderer.info`, same build before/after; spawn = (-1.2, -1.4), alley = (10, 25)):
+
+  | | shadow frame | normal frame | avg draws per frame over 8 real frames |
+  |---|---|---|---|
+  | medium, spawn | 1,133 → 1,125 | 465 → 465 | 798 → 630 (-21%) |
+  | medium, alley | 2,347 → 2,348 | 1,322 → 1,322 | 1,835 → 1,579 (-14%) |
+  | high, spawn | 1,596 → 1,596 | 795 → 797 | 1,206 → 1,010 (-16%) |
+  | high, alley | 3,592 → 3,592 | 2,517 → 2,517 | 3,055 → 2,786 (-9%) |
+
+  A shadow frame costs the same number of draws (map size does not change draws); there are half as many of them, and on medium each one fills 44% of the texels (1024² vs 1536²). MSAA cost on medium is gone; that does not show in draw counts.
+- **Visual:** screenshot at the spawn matches by eye. Known tradeoffs: on medium, edges are no longer multisampled (slightly more aliasing) and sun shadows are softer/blurrier at 1024 px; shadows can lag the sun by up to 3 frames (not visible at this sun speed).
+- **Validation:** `pnpm typecheck`, `pnpm build` and vitest for khupho, prologue and app (5 files, 31 tests) pass.
+- **Not verified:** FPS and the 2-frame frame-time oscillation on a real GPU (the headless renderer drew about 3 frames in 6 s, so its frame times say nothing); needs a check on the owner's Mac.
+- **Follow-up:** slice 2 (stagger the culler, remove per-frame allocations), slice 3 (merge static devices); gate bloom to high in the story only if measurements still show the composer dominating.
+
 ### 2026-11-14 — Prologue: one loading screen, chapter-style UI, hands, audio, draw-call pass
 - **Objective (owner, 9 points):** build the neighborhood behind "Back on your street"; fix camera-turn stutter; remove harsh noise; hands in the neighborhood; drop Ctrl crouch; chapter-style HUD with pause menu (no back button); much higher FPS; call-home lines one at a time like the intro; enter the room directly.
 - **Completed:** `Engine.create` builds in steps with yields, compiles all shaders (`compileAsync`) and draws a warm-up frame with culling off, then waits for steady frames; `ChapterLoadingFlow` takes a `hold` (files 55% + world 45%) and App mounts `ProloguePage` under it during a new-game load. New `KhuphoStoryWorld` (3D only); `ProloguePage` owns intro, HUD (`PrologueHud`: objective, prompt, resume hint, Go home / H), pause menu on Esc, the call overlay (now `useIntroNarration`, one line at a time) and the room (`RoomV2Page embedded`: no title card, auto begin, no back button). Hands (`CharacterArmsViewmodel`) in the neighborhood: E reach, F look, sprint. Ctrl no longer crouches; debug keys T/R/M/G only on `/khupho`. Audio: removed synthesized crickets, cicadas, rain hiss, TV/radio static; rain is a soft low rumble. Performance: house shells merged per material per 24 m cell, people's rigid parts merged per bone group, size-based and interior culling, hidden people and far houses skip matrix updates, 6 instead of 9 point lights, PCF shadows, GTAO never in the story, pixel ratio capped at 1.0 on medium and adapted to frame time (0.7 minimum). Dev-only `__khuphoProbe` (draw categories, timings).

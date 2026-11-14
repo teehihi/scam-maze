@@ -34,7 +34,12 @@ export interface EngineOptions {
   /** Start in the afternoon, advance the clock only while playing, and report the story events. */
   story?: boolean;
   onStory?: (event: StoryEvent) => void;
+  /** Graphics quality to build, warm up and run at (default 'high'). Applied once, before the first frame. */
+  quality?: EngineQuality;
 }
+export type EngineQuality = 'low' | 'med' | 'high';
+/** Multisampling of the composer target per quality: MSAA only on high. */
+const COMPOSER_SAMPLES: Record<EngineQuality, number> = { low: 0, med: 0, high: 4 };
 /** Steps of `Engine.create`, in order (each one is a loading-screen line). */
 export const BUILD_STEPS = ['world', 'life', 'optimize', 'props', 'hands', 'shaders', 'warmup'] as const;
 export type BuildStep = (typeof BUILD_STEPS)[number];
@@ -83,7 +88,7 @@ export class Engine {
     // keeping the drawing buffer (the prototype's screenshot option) forces an extra copy every frame.
     this.renderer.setPixelRatio(1); this.renderer.setSize(w, h);
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    // The sun moves slowly, so its shadow map is redrawn every second frame (see frame()).
+    // The sun moves slowly, so its shadow map is redrawn every 4th frame (see frame()).
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     el.appendChild(this.renderer.domElement);
@@ -180,7 +185,8 @@ export class Engine {
     this.initComposer(w, h);
     this.player.onStep = (s, r) => this.audio.step(s === 'wood' ? 'wood' : s === 'tile' ? 'tile' : 'concrete', r);
     this.bind();
-    this.applyQuality('high');
+    // The requested quality from the start, so the build and the warm-up never run at 'high' for a medium/low player.
+    this.applyQuality(this.opts.quality ?? 'high');
     this.update(0.016);
     // Dev-only handles for the browser console and automated checks; never set in production builds.
     if (import.meta.env.DEV) {
@@ -220,7 +226,7 @@ export class Engine {
   }
 
   initComposer(w: number, h: number) {
-    const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 });
+    const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: COMPOSER_SAMPLES[(this.opts.quality ?? 'high')] });
     this.composer = new EffectComposer(this.renderer, rt);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     // ground-truth ambient occlusion from depth+normals: contact darkening under furniture, in corners, under eaves
@@ -243,14 +249,15 @@ export class Engine {
   applyQuality(q: string) {
     this.quality = q;
     // The pixel ratio starts at the quality's ceiling (at most 1 on medium) and then adapts to the frame time (see adaptResolution).
-    this.prMax = q === 'low' ? 0.85 : q === 'med' ? Math.min(window.devicePixelRatio, 1.0) : Math.min(window.devicePixelRatio, 1.5);
-    this.prMin = q === 'low' ? 0.6 : 0.7;
+    this.prMax = q === 'low' ? 0.85 : q === 'med' ? Math.min(window.devicePixelRatio, 0.85) : Math.min(window.devicePixelRatio, 1.5);
+    this.prMin = 0.6;
     this.pr = this.prMax; this.slowWins = 0; this.fastWins = 0; this.settleT = 3;
     this.culler.sizeFactor = q === 'low' ? 300 : q === 'med' ? 420 : 520;
     this.culler.shadowDistance = q === 'low' ? 16 : q === 'med' ? 22 : 28;
     this.renderer.setPixelRatio(this.pr); this.resize();
     this.renderer.shadowMap.enabled = q !== 'low';
-    const s = q === 'high' ? 2048 : 1536;
+    const s = q === 'high' ? 2048 : 1024;
+    this.setComposerSamples(COMPOSER_SAMPLES[q as EngineQuality] ?? 0);
     if (this.sky.sun.shadow.mapSize.x !== s) { this.sky.sun.shadow.mapSize.set(s, s); this.sky.sun.shadow.map?.dispose(); (this.sky.sun.shadow as any).map = null; }
     if (this.renderer.shadowMap.enabled !== this.shadowsWereOn) { this.shadowsWereOn = this.renderer.shadowMap.enabled; this.scene.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.Material | undefined; if (m) m.needsUpdate = true; }); }
     this.useBloom = q !== 'low';
@@ -258,6 +265,17 @@ export class Engine {
     if (this.gtao) this.gtao.enabled = q === 'high' && !this.opts.story;
   }
   useBloom = true;
+
+  /** MSAA of the composer's two targets. Changing it frees the targets; they are reallocated on the next draw. */
+  private setComposerSamples(n: number) {
+    const c = this.composer;
+    if (!c) return;
+    for (const rt of [c.renderTarget1, c.renderTarget2]) {
+      if (rt.samples === n) continue;
+      rt.samples = n;
+      rt.dispose();
+    }
+  }
   private shadowsWereOn = true;
 
   resize() {
@@ -460,7 +478,8 @@ export class Engine {
     if (!this.paused) this.update(dt);
     this.updateArms(dt);
     this.culler.update(dt, this.camera.position);
-    if ((this.frameNo++ & 1) === 0) this.renderer.shadowMap.needsUpdate = true;
+    // The sun barely moves and the shadow casters are static, so the map is redrawn every 4th frame.
+    if ((this.frameNo++ & 3) === 0) this.renderer.shadowMap.needsUpdate = true;
     this.adaptResolution(raw);
     if (this.composer && this.useBloom) this.composer.render(dt); else this.renderer.render(this.scene, this.camera);
     this.frames++; this.fpsT += dt;
@@ -491,7 +510,7 @@ export class Engine {
   }
 
   /**
-   * Keeps the frame rate up on any machine: after 2 slow seconds (under ~48 fps) the render
+   * Keeps the frame rate up on any machine: after 1 slow second (under ~48 fps) the render
    * resolution steps down, after 6 smooth ones (over ~75 fps) it steps back up, never above the
    * quality's ceiling. Applied right before a frame is drawn, so the resize never shows a blank canvas.
    */
@@ -504,7 +523,7 @@ export class Engine {
     this.perfT = 0; this.perfFrames = 0;
     if (ms > 21) { this.slowWins++; this.fastWins = 0; } else if (ms < 13.5) { this.fastWins++; this.slowWins = 0; } else { this.slowWins = 0; this.fastWins = 0; }
     let next = this.pr;
-    if (this.slowWins >= 2 && this.pr > this.prMin) { next = Math.max(this.prMin, this.pr - 0.15); this.slowWins = 0; }
+    if (this.slowWins >= 1 && this.pr > this.prMin) { next = Math.max(this.prMin, this.pr - 0.15); this.slowWins = 0; }
     else if (this.fastWins >= 6 && this.pr < this.prMax) { next = Math.min(this.prMax, this.pr + 0.1); this.fastWins = 0; }
     if (next !== this.pr) { this.pr = next; this.renderer.setPixelRatio(next); this.resize(); this.settleT = 1; }
   }
