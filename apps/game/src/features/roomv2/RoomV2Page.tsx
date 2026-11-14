@@ -31,6 +31,7 @@ const INITIAL_UI: UIState = {
   ended: null,
   started: false,
   seated: false,
+  cursorMode: false,
 };
 
 const SHADOW = { textShadow: "0 1px 6px rgba(0,0,0,.9)" } as const;
@@ -104,7 +105,7 @@ export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, 
       </button>
       )}
 
-      {ui.started && ui.locked && !ui.inspecting && !ui.ended && (
+      {ui.started && (ui.locked || ui.cursorMode) && !ui.inspecting && !ui.ended && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className={`rounded-full transition-all duration-300 ${ui.focus ? "h-5 w-5 border border-white/70" : "h-1 w-1 bg-white/60"}`} />
           {ui.prompt && (
@@ -153,7 +154,7 @@ export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, 
         </div>
       )}
 
-      {ui.started && showHelp && !ui.inspecting && (
+      {!embedded && ui.started && showHelp && !ui.inspecting && (
         <div className="pointer-events-none absolute bottom-7 left-7 text-[12px] leading-6 text-white/45">
           <div>
             <b className="font-medium text-white/65">{t("roomv2.controls.moveKeys")}</b> {t("roomv2.controls.move")} ·{" "}

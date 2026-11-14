@@ -210,6 +210,18 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Prologue HUD in the game's style, Ctrl cursor, clock, thunderstorm, phone pickup
+- **Objective (owner):** objective and Go home in the game's look; sound and settings in the top-right on every in-game screen; Ctrl shows/hides the cursor everywhere (camera stops turning, everything else works); a clock in the neighborhood; random thunder with lightning while it rains, using the owner's `rain.mp3` and `thunder.mp3`; in the room, picking up the phone plays the take animation only.
+- **Completed:**
+  - `features/prologue/PrologueHud.tsx` rewritten in the main menu's style (Barlow Condensed uppercase, key caps, slanted purple accent, no panels): clock with weather and place, objective, prompt with key cap, `Ctrl`/`Esc` hints, Go home with its `H` key cap; `PrologueTopBar` (sound on/off like the menu, Settings) on the neighborhood and in the room; pause menu restyled like the main menu (Resume, Settings opens the shared `SettingsModal`, Return to main menu). The sound toggle writes the global setting and mutes both worlds' own audio (`AudioSys.setMuted`, new `AudioEngine.setMuted` in the room).
+  - Ctrl (the Control key on Mac and Windows, never Command): `Engine.setCursorMode` in the neighborhood and the room releases the pointer; the camera does not turn, moving, E, clicks and the HUD keep working; Ctrl again takes the pointer back. The "click to resume" hint is not shown in cursor mode. Also works on `/khupho` and `/roomv2`.
+  - Thunderstorm (`khupho/world/engine.ts › updateLightning`): while rain is above 0.55, a strike every 9-26 s flickers the sky light three times (hemisphere and exposure boost, no new light, so no shader recompiles; softer indoors), and `thunder.mp3` follows 0.3-2.5 s later, louder and brighter for near strikes. The rain bed is now `rain.mp3` through the outdoor bus (muffled indoors).
+  - Room: inspected small objects (phone, note, receipts, mug, photo) play the take animation instead of the look-at-hand clip. In the story the room's own help text is hidden (the HUD shows the hints); its crosshair and prompt also show in cursor mode.
+- **Files:** `app/App.tsx`, `features/prologue/{PrologueHud,ProloguePage}.tsx`, `features/khupho/world/{engine,audio}.ts`, `features/roomv2/{RoomV2Page.tsx,game/engine.ts,game/audio.ts}`, `i18n/locales/{en,vi}/worlds/khupho.ts`, new `public/audio/{rain,thunder}.mp3` (owner).
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for app, prologue, khupho, loading, i18n and menu (18 files, 219 tests) pass. Headless run of New Game → intro → neighborhood: HUD renders as described; a forced strike brightens the scene.
+- **Not verified:** Ctrl and pointer lock by hand (headless has no pointer lock), the thunder sound level, the settings dialog on top of the pause menu in a real browser.
+- **Known limitation:** the Chapter 1 street screens were not changed (they have their own HUD and pause menu).
+
 ### 2026-11-14 — Khupho performance slice 3: merge static device parts
 - **Objective:** merge device meshes that never move, toggle or change material, to cut draw calls.
 - **Audit** (`features/khupho/world/devices.ts`):

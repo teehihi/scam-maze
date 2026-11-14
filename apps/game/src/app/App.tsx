@@ -582,6 +582,7 @@ export const App: React.FC = () => {
           <Suspense fallback={<div className="h-full w-full bg-[#0d1117]" aria-busy="true" />}>
             <ProloguePage
               settings={settings}
+              onUpdateSettings={handleUpdateSettings}
               onBackToMenu={handleReturnToMenu}
               revealed={screen.kind === "prologue"}
               onBuildProgress={setPrologueBuild}

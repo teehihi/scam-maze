@@ -25,7 +25,7 @@ import { CharacterArmsViewmodel } from '../../player/runtime/CharacterArmsViewmo
 import { CharacterAssetCache } from '../../player/runtime/CharacterAssetCache';
 import { loadStreetProps, STORY_SPAWN, type PlacedProp } from './streetProps';
 
-export interface Hud { time: string; hour: number; loc: string; prompt: string | null; indoor: boolean; fps: number; rain: number; sitting: string | null; tour: boolean; started: boolean; timeScale: number; muted: boolean; quality: string; weather: string }
+export interface Hud { time: string; hour: number; loc: string; prompt: string | null; indoor: boolean; fps: number; rain: number; sitting: string | null; tour: boolean; started: boolean; timeScale: number; muted: boolean; quality: string; weather: string; cursorMode: boolean }
 
 /** Story-mode clock: the player explores from the afternoon until the rain starts and it is time to go home. */
 export const STORY_CLOCK = { startHour: 16.6, rainHour: 17.7, callHomeHour: 18.4 } as const;
@@ -68,6 +68,10 @@ export class Engine {
   private armsShadowOff = false;
   /** Paused (pause menu open): the simulation and the input stop, the picture stays. */
   paused = false;
+  /** Ctrl shows the cursor: everything keeps working except turning the camera; Ctrl again hides it. */
+  cursorMode = false;
+  /** Lightning: current flash level (0..1), time to the next strike, and the strike's flicker pattern. */
+  private flash = 0; private nextStrike = 6; private strikeT = -1; private strikeDelay = 0;
   /** Input ignored (a story overlay is open) while the world keeps running. */
   inputBlocked = false;
   /** Adaptive resolution: pixel ratio limits for the current quality, and the frame-time window. */
@@ -135,7 +139,7 @@ export class Engine {
       fragmentShader: `uniform float uOp; varying float vA; void main(){ gl_FragColor = vec4(0.78,0.84,0.9, vA*uOp); }`,
     });
     this.rain = new THREE.LineSegments(g, m); this.rain.frustumCulled = false; this.rain.renderOrder = 10; this.scene.add(this.rain);
-    this.hud = { time: '', hour: this.env.hour, loc: '', prompt: null, indoor: false, fps: 60, rain: 0, sitting: null, tour: false, started: false, timeScale: this.timeScale, muted: false, quality: this.quality, weather: '' };
+    this.hud = { time: '', hour: this.env.hour, loc: '', prompt: null, indoor: false, fps: 60, rain: 0, sitting: null, tour: false, started: false, timeScale: this.timeScale, muted: false, quality: this.quality, weather: '', cursorMode: false };
   }
 
   /**
@@ -298,6 +302,7 @@ export class Engine {
     on('resize', () => this.resize());
     on('keydown', (e) => {
       if (!this.started || this.paused || this.inputBlocked) return;
+      if ((e.key === 'Control' || e.code === 'ControlLeft' || e.code === 'ControlRight') && !e.repeat) { this.setCursorMode(!this.cursorMode); return; }
       this.player.keys.add(e.code);
       if (e.code === 'KeyE' || e.code === 'Space') { this.interact(); e.preventDefault(); }
       if (e.code === 'KeyF') this.arms.triggerInspect();
@@ -313,18 +318,18 @@ export class Engine {
     on('keyup', (e) => this.player.keys.delete(e.code));
     on('blur', () => this.player.keys.clear());
     const cv = this.renderer.domElement;
-    const onLock = () => { const was = this.locked; this.locked = document.pointerLockElement === cv; if (was && !this.locked) this.lostLock = true; };
+    const onLock = () => { const was = this.locked; this.locked = document.pointerLockElement === cv; if (this.locked) { this.lostLock = false; this.cursorMode = false; } else if (was && !this.cursorMode) this.lostLock = true; };
     document.addEventListener('pointerlockchange', onLock);
     this.disposers.push(() => document.removeEventListener('pointerlockchange', onLock));
     cv.addEventListener('mousedown', () => {
       // After the pointer was released (Esc, or an overlay), the first click takes the pointer back instead of interacting.
-      if (this.started && this.lostLock && !this.paused && !this.inputBlocked) { this.lostLock = false; this.swallowClick = true; try { void (cv.requestPointerLock() as unknown as Promise<void> | undefined)?.catch?.(() => { /* ignore */ }); } catch { /* ignore */ } }
+      if (this.started && this.lostLock && !this.paused && !this.inputBlocked && !this.cursorMode) { this.lostLock = false; this.swallowClick = true; try { void (cv.requestPointerLock() as unknown as Promise<void> | undefined)?.catch?.(() => { /* ignore */ }); } catch { /* ignore */ } }
       this.dragging = true; this.moved = 0;
     });
     on('mouseup', () => { if (this.dragging && this.moved < 4 && this.started && !this.paused && !this.inputBlocked && !this.swallowClick) this.interact(); this.swallowClick = false; this.dragging = false; });
     on('mousemove', (e) => {
       if (!this.started || this.paused || this.inputBlocked) return;
-      if (this.locked || (this.dragging && !this.opts.story)) { const k = 0.0022; this.player.look.x -= e.movementX * k; this.player.look.y -= e.movementY * k; this.moved += Math.abs(e.movementX) + Math.abs(e.movementY); }
+      if (this.locked || (this.dragging && !this.opts.story && !this.cursorMode)) { const k = 0.0022; this.player.look.x -= e.movementX * k; this.player.look.y -= e.movementY * k; this.moved += Math.abs(e.movementX) + Math.abs(e.movementY); }
     });
     cv.addEventListener('touchstart', (e) => { const t = e.touches[0]; this.lastTouch = { x: t.clientX, y: t.clientY }; this.moved = 0; }, { passive: true });
     cv.addEventListener('touchmove', (e) => {
@@ -345,8 +350,48 @@ export class Engine {
   }
   /** Takes the pointer (after a click on the page). */
   lock() { try { void (this.renderer.domElement.requestPointerLock() as unknown as Promise<void> | undefined)?.catch?.(() => { /* ignore */ }); } catch { /* ignore */ } }
+  /** Shows (true) or hides (false) the cursor. While shown the camera does not turn; moving and interacting still work. */
+  setCursorMode(on: boolean) {
+    this.cursorMode = on;
+    this.lostLock = false;
+    if (on) { if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock(); }
+    else this.lock();
+    this.hudT = 0;
+  }
   setInputBlocked(b: boolean) { this.inputBlocked = b; if (b) this.player.keys.clear(); }
-  setPaused(p: boolean) { this.paused = p; if (p) { this.player.keys.clear(); if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock(); } }
+  setPaused(p: boolean) { this.paused = p; if (!p) this.cursorMode = false; if (p) { this.player.keys.clear(); if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock(); } }
+  /**
+   * Thunderstorm while it rains hard: every 9-26 s a strike flickers the sky light two or three
+   * times (ambient and exposure boost, no extra light, so no shader recompiles), and the thunder
+   * follows 0.3-2.5 s later, as if from a random distance. Indoors the flash is softer.
+   */
+  private updateLightning(dt: number) {
+    const e = this.env;
+    if (e.rain > 0.55 && this.started) {
+      this.nextStrike -= dt;
+      if (this.nextStrike <= 0) {
+        this.nextStrike = 9 + Math.random() * 17;
+        this.strikeT = 0;
+        this.strikeDelay = 0.3 + Math.random() * 2.2;
+        const near = 1 - (this.strikeDelay - 0.3) / 2.2;
+        window.setTimeout(() => this.audio.thunder(0.45 + 0.55 * near), this.strikeDelay * 1000);
+      }
+    }
+    let f = 0;
+    if (this.strikeT >= 0) {
+      this.strikeT += dt;
+      const t = this.strikeT;
+      // Three quick pulses, the second the brightest, then a fading afterglow.
+      f = Math.max(0, 1 - Math.abs(t - 0.04) / 0.05) * 0.7 + Math.max(0, 1 - Math.abs(t - 0.16) / 0.06) + Math.max(0, 1 - Math.abs(t - 0.34) / 0.07) * 0.5;
+      if (t > 0.34) f += Math.max(0, 0.25 * (1 - (t - 0.34) / 0.5));
+      if (t > 0.9) this.strikeT = -1;
+    }
+    this.flash = f * (1 - 0.6 * this.indoor);
+    if (this.flash > 0.001) {
+      this.sky.hemi.intensity += this.flash * 2.4;
+      this.renderer.toneMappingExposure *= 1 + this.flash * 0.9;
+    }
+  }
   /** Story beats: the rain starts at dusk, then the call to go home. Each fires once. */
   private updateStory() {
     if (!this.opts.story || !this.started) return;
@@ -430,6 +475,7 @@ export class Engine {
     for (const f of this.ctx.dyn) f(dt, t);
     this.updateLights(dt, t);
     this.sky.update(e, cp, this.indoor);
+    this.updateLightning(dt);
     setNightEmit(clamp(e.night * 1.0 + 0.0, 0, 1)); setWet(this.wet);
     this.rainU.uTime.value = t; this.rainU.uCam.value.copy(cp); this.rainU.uOp.value = e.rain * (1 - this.indoor) * 0.85;
     this.rain.visible = e.rain > 0.02 && this.indoor < 0.95;
@@ -513,9 +559,10 @@ export class Engine {
       this.hud = {
         time: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, hour: h, loc: this.loc, prompt: this.player.sitting ? tr('seated') : this.current ? this.current.label() : null,
         indoor: this.indoor > 0.5, fps: this.fps, rain: this.env.rain, sitting: this.player.sitting?.label ?? null, tour: !!this.player.auto, started: this.started, timeScale: this.timeScale, muted: this.audio.muted, quality: this.quality,
+        cursorMode: this.cursorMode,
         weather: this.env.rain > 0.5 ? tr('weather.rain') : this.env.night > 0.6 ? tr('weather.night') : this.env.sun < 0.5 ? tr('weather.dusk') : tr('weather.clear'),
       };
-      const key = `${this.hud.time}|${this.hud.loc}|${this.hud.prompt}|${this.hud.fps}|${this.hud.rain > 0.3}|${this.hud.started}|${this.hud.tour}|${this.hud.timeScale}|${this.hud.muted}|${this.hud.quality}|${this.hud.weather}`;
+      const key = `${this.hud.time}|${this.hud.loc}|${this.hud.prompt}|${this.hud.fps}|${this.hud.rain > 0.3}|${this.hud.started}|${this.hud.tour}|${this.hud.timeScale}|${this.hud.muted}|${this.hud.quality}|${this.hud.weather}|${this.hud.cursorMode}`;
       if (key !== this.lastHudKey) { this.lastHudKey = key; this.onHud(this.hud); }
     }
   }

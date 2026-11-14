@@ -161,6 +161,12 @@ const khupho: LocaleShape<typeof en> = {
       },
       seated: "Nhấn phím di chuyển bất kỳ hoặc E để đứng dậy",
       story: {
+        objective: "Mục tiêu",
+        settings: "Cài đặt",
+        clock: "Giờ và thời tiết",
+        showCursor: "Hiện chuột",
+        hideCursor: "Ẩn chuột",
+        pause: "Tạm dừng",
         objectiveExplore: "Đi dạo một vòng quanh khu phố",
         objectiveHome: "Về nhà trước khi mưa nặng hạt",
         returnToMenu: "Về menu chính",

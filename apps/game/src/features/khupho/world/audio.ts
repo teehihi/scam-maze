@@ -4,6 +4,9 @@ import { clamp, lerp } from './util';
 
 /** Recorded street ambience shared with the main menu (traffic, scooters, voices). */
 const STREET_AMBIENT_URL = '/assets/audio/menu_ambient.mp3';
+/** Recorded rain bed and thunder clap (owner-supplied). */
+const RAIN_URL = '/audio/rain.mp3';
+const THUNDER_URL = '/audio/thunder.mp3';
 
 type Loop = { stop: () => void; panner: PannerNode | null; gain: GainNode; on: boolean; kind: string };
 
@@ -48,8 +51,24 @@ export class AudioSys implements Sfx {
       .catch((err) => console.warn('[khupho] street ambience failed to load', err));
     // The synthesized crickets, cicadas and rain hiss were removed (owner: too harsh). Rain is now a
     // low, soft rumble far under the street recording, and the room tone a faint hum.
-    chain('rain', this.brownBuf, [lp(520)]);
+    // Rain: the recorded bed through the outdoor bus (muffled indoors by the same low-pass).
+    const rainG = ac.createGain(); rainG.gain.value = 0; rainG.connect(this.outBus); this.amb.rain = rainG;
+    const load = (url: string) => fetch(url).then((r) => r.arrayBuffer()).then((d) => ac.decodeAudioData(d));
+    load(RAIN_URL)
+      .then((buf) => { if (this.ac !== ac) return; const s = ac.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(rainG); s.start(0, Math.random() * Math.max(0, buf.duration - 1)); })
+      .catch((err) => console.warn('[khupho] rain sound failed to load', err));
+    load(THUNDER_URL).then((buf) => { if (this.ac === ac) this.thunderBuf = buf; }).catch((err) => console.warn('[khupho] thunder sound failed to load', err));
     chain('room', this.brownBuf, [lp(160)], this.inBus);
+  }
+  private thunderBuf: AudioBuffer | null = null;
+  /** One thunder clap at `level` (0..1); a little slower and darker for distant strikes. */
+  thunder(level: number) {
+    const ac = this.ac, buf = this.thunderBuf;
+    if (!ac || !buf || this.muted) return;
+    const s = ac.createBufferSource(); s.buffer = buf; s.playbackRate.value = 0.85 + 0.25 * level;
+    const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900 + 6000 * level;
+    const g = ac.createGain(); g.gain.value = 0.35 + 0.65 * level;
+    s.connect(f); f.connect(g); g.connect(this.outBus); s.start();
   }
   setVolume(v: number) { this.volume = v; if (this.master) this.master.gain.value = this.muted ? 0 : v; }
   setMuted(m: boolean) { this.muted = m; if (this.master) this.master.gain.value = m ? 0 : this.volume; }
@@ -145,7 +164,7 @@ export class AudioSys implements Sfx {
     const rush = Math.max(Math.exp(-Math.pow((hr - 7.5) / 1.3, 2)), Math.exp(-Math.pow((hr - 17.5) / 1.6, 2)));
     const set = (n: string, v: number) => this.amb[n]?.gain.setTargetAtTime(v, t, 0.5);
     set('street', (0.32 + 0.1 * day + 0.08 * rush) * (1 - 0.35 * env.rain));
-    set('rain', 0.07 * env.rain);
+    set('rain', 0.55 * env.rain);
     set('room', 0.06 * indoor);
     // birds
     this.birdT -= dt;

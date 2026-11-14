@@ -162,6 +162,12 @@ const khupho = {
       },
       seated: "Press any movement key or E to stand up",
       story: {
+        objective: "Objective",
+        settings: "Settings",
+        clock: "Time and weather",
+        showCursor: "Show cursor",
+        hideCursor: "Hide cursor",
+        pause: "Pause",
         objectiveExplore: "Take a walk around the neighborhood",
         objectiveHome: "Go home before the rain gets heavier",
         returnToMenu: "Return to main menu",

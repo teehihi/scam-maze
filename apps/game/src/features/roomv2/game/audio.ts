@@ -332,5 +332,7 @@ export class AudioEngine {
     }
   }
   tick() { const e = this.emit.clock; if (!e) return; this.burst(e.input, { f: 2400, q: 4, dur: 0.012, vol: 0.12 }); }
+  /** Silences (or restores) everything the room plays. */
+  setMuted(muted: boolean) { this.listener.setMasterVolume(muted ? 0 : 1); }
   dispose() { this.timers.forEach(clearTimeout); this.ctx.close(); }
 }

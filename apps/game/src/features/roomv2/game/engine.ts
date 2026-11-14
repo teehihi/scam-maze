@@ -27,6 +27,8 @@ export interface UIState {
   ended: null | 'answered' | 'declined';
   started: boolean;
   seated: boolean;
+  /** Ctrl showed the cursor: the camera does not turn, everything else works. */
+  cursorMode: boolean;
 }
 
 type Pose = { pos: THREE.Vector3; look: THREE.Vector3; fov: number };
@@ -51,7 +53,7 @@ const CAPTION_COUNTS: Record<string, number> = {
 };
 const captionLines = (id: string): string[] => trLines(`inspect.${id}`, CAPTION_COUNTS[id] ?? 0);
 const typedText = () => tr('typed');
-/** Small objects the player picks up or looks over closely: the hands play the inspect animation. */
+/** Small objects the player picks up or looks over closely: the hands play the take animation. */
 const HAND_INSPECT = new Set(['note', 'receipts', 'mug', 'photo', 'phone']);
 /** Interactions that are a plain reach: switches, door handles and the like. */
 const HAND_REACH = new Set(['switch', 'desklamp', 'bedlamp', 'kitchenlight', 'kettle', 'fridge', 'window', 'jacket', 'umbrella', 'door']);
@@ -91,7 +93,7 @@ export class Engine {
   neonSpot!: THREE.SpotLight;
   winRect!: THREE.RectAreaLight;
 
-  ui: UIState = { prompt: null, focus: false, captions: [], inspecting: null, locked: false, fade: 1, ended: null, started: false, seated: false };
+  ui: UIState = { prompt: null, focus: false, captions: [], inspecting: null, locked: false, fade: 1, ended: null, started: false, seated: false, cursorMode: false };
   onUI: (s: UIState) => void;
 
   // player
@@ -383,6 +385,10 @@ export class Engine {
     this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * s, -1.45, 1.45);
   };
   onKeyDown = (e: KeyboardEvent) => {
+    if (this.ui.started && !this.ui.ended && (e.key === 'Control' || e.code === 'ControlLeft' || e.code === 'ControlRight')) {
+      if (!e.repeat) this.setCursorMode(!this.ui.cursorMode);
+      return;
+    }
     this.keys.add(e.code);
     if (!this.ui.started) return;
     if (e.code === 'KeyE') { if (this.inspect && this.inspect.dir === 1) this.endInspect(); else this.interact(); }
@@ -393,12 +399,13 @@ export class Engine {
   onKeyUp = (e: KeyboardEvent) => { this.keys.delete(e.code); };
   onMouseDown = (e: MouseEvent) => {
     if (!this.ui.started) return;
-    if (!this.ui.locked) { this.lock(); return; }
+    if (!this.ui.locked && !this.ui.cursorMode) { this.lock(); return; }
     if (e.button === 0) { if (this.inspect && this.inspect.dir === 1) { /* click = primary action if any */ if (!this.inspectAction('F')) this.endInspect(); } else this.interact(); }
     if (e.button === 2) { if (this.inspect) this.endInspect(); else if (this.seat === 'seated') this.standUp(); }
   };
   onLockChange = () => {
     this.ui.locked = document.pointerLockElement === this.renderer.domElement;
+    if (this.ui.locked) this.ui.cursorMode = false;
     this.emit();
   };
   onResize = () => {
@@ -420,6 +427,13 @@ export class Engine {
     window.addEventListener('resize', this.onResize);
   }
 
+  /** Shows (true) or hides (false) the cursor. While shown the camera does not turn; moving and interacting still work. */
+  setCursorMode(on: boolean) {
+    this.ui.cursorMode = on;
+    if (on) { if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock(); }
+    else this.lock();
+    this.emit();
+  }
   lock() {
     try { (this.renderer.domElement.requestPointerLock() as unknown as Promise<void>)?.catch?.(() => {}); } catch { /* ignore */ }
   }
@@ -536,7 +550,8 @@ export class Engine {
     const to = POSES[id];
     this.inspect = { id, from: { pos: this.camera.position.clone(), q: this.camera.quaternion.clone(), fov: this.camera.fov }, to, t: 0, dir: 1, capIdx: 0 };
     this.lookOffset.set(0, 0);
-    if (HAND_INSPECT.has(id)) this.arms.triggerInspect();
+    // Picking it up is enough; the "look at your hand" inspect clip covered the phone (owner).
+    if (HAND_INSPECT.has(id)) this.arms.triggerInteract();
     if (id === 'laptop') { this.laptopWoken = true; this.audio.setFan(true); }
     if (id === 'phone' && this.story === 'calm') { this.phoneMode = 'lock'; this.phoneLockUntil = Infinity; }
     if (id === 'note' || id === 'receipts') this.audio.paper('desk');
@@ -767,7 +782,7 @@ export class Engine {
     const f = (this.keys.has('KeyW') || this.keys.has('ArrowUp') ? 1 : 0) - (this.keys.has('KeyS') || this.keys.has('ArrowDown') ? 1 : 0);
     const s = (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0);
     const run = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
-    const speed = (run ? 2.0 : 1.25) * (this.ui.locked ? 1 : 0);
+    const speed = (run ? 2.0 : 1.25) * (this.ui.locked || this.ui.cursorMode ? 1 : 0);
     const fwd = V(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const right = V(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     const want = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
