@@ -7,6 +7,7 @@ import { makeGroup } from './builder';
 import { motorbike } from './furniture';
 import { mulberry32, clamp } from './util';
 import { mat } from './materials';
+import { BikeRiderInstance, type BikeRiderTemplate } from './bikeRider';
 
 export interface Life { update(dt: number, t: number): void }
 
@@ -244,16 +245,25 @@ class Static {
 }
 
 class Bike {
-  g: THREE.Group; rider: Person; speed = 0; base: number; dir: 1 | -1; lane: number; x: number; info: { pos: THREE.Vector3; speed: number };
-  constructor(ctx: Ctx, r: () => number, dir: 1 | -1, x: number, vehicles: { pos: THREE.Vector3; speed: number }[]) {
+  g: THREE.Group; speed = 0; base: number; dir: 1 | -1; lane: number; x: number; info: { pos: THREE.Vector3; speed: number };
+  /** The scanned scooter and rider when its file loaded; otherwise the procedural bike and person below. */
+  private model: BikeRiderInstance | null = null;
+  constructor(ctx: Ctx, r: () => number, dir: 1 | -1, x: number, vehicles: { pos: THREE.Vector3; speed: number }[], template: BikeRiderTemplate | null) {
     const col = pick(r, ['#c92f2a', '#2a5aa0', '#222', '#e8e6e0', '#3a7a4a', '#d8a92a', '#7a2a2a']);
-    this.g = makeGroup((b) => motorbike(b, 0, 0, 0, 0, col, false));
-    this.rider = makePerson(r, { shirt: pick(r, SHIRT), helmet: true }); this.rider.g.position.set(0, 0.0, -0.1); this.g.add(this.rider.g);
-    pose(this.rider, 'ride', 0, 0, 0);
+    const shirt = pick(r, SHIRT);
+    if (template) {
+      this.g = new THREE.Group();
+      this.model = new BikeRiderInstance(template);
+      this.g.add(this.model.object);
+    } else {
+      this.g = makeGroup((b) => motorbike(b, 0, 0, 0, 0, col, false));
+      const rider = makePerson(r, { shirt, helmet: true }); rider.g.position.set(0, 0.0, -0.1); this.g.add(rider.g);
+      pose(rider, 'ride', 0, 0, 0);
+      this.g.traverse((o) => { o.castShadow = true; });
+    }
     this.dir = dir; this.lane = dir > 0 ? 1.8 + r() * 0.5 : -1.8 - r() * 0.5; this.x = x; this.base = 4.5 + r() * 5;
     this.g.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2; ctx.root.add(this.g);
     this.info = { pos: this.g.position, speed: 0 }; vehicles.push(this.info);
-    this.g.traverse((o) => { o.castShadow = true; });
   }
   update(dt: number, player: THREE.Vector3, audio: AudioSys) {
     let target = this.base;
@@ -262,11 +272,20 @@ class Bike {
     this.speed += (target - this.speed) * Math.min(1, dt * (target ? 1.2 : 3));
     this.x += this.dir * this.speed * dt; if (this.x > 72) this.x = -72; if (this.x < -72) this.x = 72;
     this.g.position.set(this.x, 0, this.lane); this.info.speed = this.speed;
+    if (this.model) {
+      // While stopped, the rider looks at the player (yaw in the bike's own frame, 0 = ahead).
+      let look: number | null = null;
+      if (this.speed < 1.5) {
+        const yaw = this.g.rotation.y, dx = player.x - this.x, dz = player.z - this.lane;
+        look = Math.atan2(dx * Math.cos(yaw) - dz * Math.sin(yaw), dx * Math.sin(yaw) + dz * Math.cos(yaw));
+      }
+      this.model.update(dt, this.speed, look);
+    }
     if (this.speed < 0.5 && ahead > 0 && ahead < 9) audio.horn(this.g.position);
   }
 }
 
-export function buildLife(ctx: Ctx, houses: House[], vehicles: { pos: THREE.Vector3; speed: number }[], audio: AudioSys): Life {
+export function buildLife(ctx: Ctx, houses: House[], vehicles: { pos: THREE.Vector3; speed: number }[], audio: AudioSys, bikeRider: BikeRiderTemplate | null = null): Life {
   PERSON_GROUPS.length = 0;
   const r = mulberry32(99);
   const residents: Resident[] = [], walkers: Walker[] = [], statics: Static[] = [], bikes: Bike[] = [];
@@ -290,7 +309,7 @@ export function buildLife(ctx: Ctx, houses: House[], vehicles: { pos: THREE.Vect
   statics.push(new Static(ctx, r, 20.6, 0.02, 45.8, Math.PI, 'sit', { elder: true }, [6, 22]));
   statics.push(new Static(ctx, r, 10.3, 0.02, 14.0, -Math.PI / 2, 'sweep', {}, [5.5, 7.2]));
   statics.push(new Static(ctx, r, 15.3, 0.02, 45.0, 0, 'phone', { kid: true }, [15.5, 22]));
-  for (let i = 0; i < 12; i++) bikes.push(new Bike(ctx, r, i % 2 ? 1 : -1, -70 + i * 12 + r() * 6, vehicles));
+  for (let i = 0; i < 12; i++) bikes.push(new Bike(ctx, r, i % 2 ? 1 : -1, -70 + i * 12 + r() * 6, vehicles, bikeRider));
   let acc = 0;
   const occ = new Map<object, number>();
   return {

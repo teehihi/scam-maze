@@ -34,5 +34,10 @@ export const CHAPTER1_VOICE_BASE = "/audio/chapter01";
  * (Meshopt + WebP, produced by scripts/extract-street-props.cjs). Used by the neighborhood world.
  */
 export const STREET_PROPS_GLB = "/assets/3d/optimized/street-props.optimized.glb";
+/**
+ * Scooter with rider for the neighborhood traffic: 3 levels of detail, rigid parts, no skin
+ * (Meshopt, produced by scripts/optimize-bike-rider.cjs).
+ */
+export const BIKE_RIDER_GLB = "/assets/3d/optimized/bike-rider.optimized.glb";
 /** Base URL of the prologue voice clips: `<base>/<locale>/prologue_home<n>_<locale>.mp3` (locale is `en` or `vi`). */
 export const PROLOGUE_VOICE_BASE = "/audio/prologue";

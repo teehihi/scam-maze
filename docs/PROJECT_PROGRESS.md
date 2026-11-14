@@ -211,6 +211,21 @@ Resolved:
 
 ## Task History
 
+### 2026-11-14 — Khupho street traffic: optimized scanned scooter riders
+
+- **Objective:** owner request: use `bike_rider_animated.glb` for the street riders in one color, optimized for smooth play without a visible quality loss; keep the current traffic logic (12 bikes).
+- **Completed:**
+  - `apps/game/scripts/optimize-bike-rider.cjs`: splits the skinned scan (every vertex follows one of 4 joints) into rigid parts (Chassis, Head, FrontWheel, RearWheel), builds 3 LODs with the Meshopt attribute-aware simplifier, removes skin, weights and clips, then quantize + meshopt. 16.42 MB → 2.95 MB; LOD0 127,080 / LOD1 32,043 / LOD2 22,011 triangles (source 300,000).
+  - `features/khupho/world/bikeRider.ts`: one `THREE.LOD` per bike with shared geometry and material (LOD1 from 6 m, LOD2 from 16 m, hidden past 60 m), scale 1.9, wheels turned from speed, head turns toward the player while the bike is stopped.
+  - `people.ts` `Bike`: uses the model when it loaded; the procedural bike and rider stay as the fallback. `engine.ts` starts the download with the world build and awaits it before `buildLife`. Traffic logic (12 bikes, lanes, speeds, stopping for the player, horn) is unchanged.
+  - Source copied to `apps/game/assets-src/vehicles/bike-rider/` (Git LFS) with `SOURCE.md`.
+- **Files:** `apps/game/scripts/optimize-bike-rider.cjs`, `apps/game/assets-src/vehicles/bike-rider/{bike_rider_animated.glb,SOURCE.md}`, `apps/game/assets-src/README.md`, `apps/game/public/assets/3d/optimized/bike-rider.optimized.glb`, `apps/game/src/config/assetPaths.ts`, `apps/game/src/features/khupho/world/{bikeRider,people,engine}.ts`, this file.
+- **Validation:** typecheck and build of this commit's tree in an isolated export; `vitest --run src/features/khupho src/features/prologue src/app` (31 passed). Side-by-side render of source vs LOD0/1/2 (LOD0 and LOD1 match the source at close range; LOD2 shows faceted tyres). Headless `/khupho` (SwiftShader): bikes in view 345,243 triangles (1 LOD0, 2 LOD1, 7 LOD2), render 56.8 ms vs 56.3 ms with the procedural bikes; bike draws 12 groups instead of ~260 person and bike pieces. SwiftShader timings are not GPU numbers.
+- **Not verified:** frame rate on a real GPU; the source license (owner-supplied, not stated).
+- **Deviations:** the asset is photographic in style, while the art direction is stylized realism; owner's choice.
+- **Follow-up:** confirm the license; if needed, a lighter LOD2 (it is limited by the ~7,500 loose scan shells).
+
+
 ### 2026-11-13 — Room v2 call mix: quieter vibration, louder ringtone, ambience ducked
 
 - **Objective:** owner feedback after the previous fix: the vibration was still louder than the ringtone; ambience should drop during the call.
