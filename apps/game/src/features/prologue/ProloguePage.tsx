@@ -11,6 +11,7 @@ import { ChapterIntroOverlay, type IntroControlId } from "../chapter1/intro/Chap
 import { KhuphoStoryWorld } from "../khupho/KhuphoStoryWorld";
 import { BUILD_STEPS, type BuildStep, type Engine as StreetEngine, type Hud, type StoryEvent } from "../khupho/world/engine";
 import type { Engine as RoomEngine, UIState as RoomUI } from "../roomv2/game/engine";
+import type { RoomOptions } from "../roomv2/game/outside";
 import { HomeCallOverlay } from "./HomeCallOverlay";
 import { GO_HOME_KEY, PrologueHud, ProloguePauseMenu, PrologueTopBar } from "./PrologueHud";
 import { SettingsModal } from "../menu/SettingsModal";
@@ -44,6 +45,11 @@ interface ProloguePageProps {
   onBuildProgress?: (progress: PrologueBuildProgress) => void;
 }
 
+/** White doorway into the room: how long the screen takes to white out, and to clear again on the other side. */
+const WHITE_IN_MS = 150;
+const WHITE_OUT_MS = 700;
+/** The room is built this long after the walk begins (and sooner when the player nears house no. 59). */
+const ROOM_BUILD_DELAY_MS = 1500;
 /** Minimum time the "walking home" screen stays up, so the cut is never a flash. */
 const HOME_LOADING_MIN_MS = 1800;
 
@@ -72,14 +78,21 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
   const [hands, setHands] = useState(false);
   const [roomBuilt, setRoomBuilt] = useState(false);
   const [roomUI, setRoomUI] = useState<RoomUI | null>(null);
+  /** The room is built in standby (no loop, shaders compiled) once the walk begins, and shown through the white doorway or by "go home". */
+  const [roomOptions, setRoomOptions] = useState<RoomOptions | null>(null);
+  const [waitingRoom, setWaitingRoom] = useState(false);
+  const [white, setWhite] = useState({ on: false, ms: WHITE_IN_MS });
+  const pendingEnter = useRef(false);
   const streetRef = useRef<StreetEngine | null>(null);
   const roomRef = useRef<RoomEngine | null>(null);
   const prefetchRef = useRef<Promise<void> | null>(null);
   const goneHome = useRef(false);
   const progressRef = useRef(onBuildProgress);
   progressRef.current = onBuildProgress;
+  const soundRef = useRef(settings.soundEnabled);
+  soundRef.current = settings.soundEnabled;
 
-  const minElapsed = useMinimumDisplayTime(HOME_LOADING_MIN_MS, stage);
+  const minElapsed = useMinimumDisplayTime(HOME_LOADING_MIN_MS, waitingRoom);
 
   // Pointer lock state, for the "click to resume" hint.
   useEffect(() => {
@@ -102,15 +115,67 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
     return prefetchRef.current;
   }, []);
 
+  /** Builds the room in standby (idempotent): everything is compiled before the player needs it. */
+  const mountRoom = useCallback(() => {
+    setRoomOptions((current) => current ?? {
+      standby: true,
+      onExitStart: () => setWhite({ on: true, ms: 500 }),
+      onExit: () => leaveRoomRef.current(),
+    });
+    void prefetchRoom();
+  }, [prefetchRoom]);
+
+  /** The screen is white: swap the street for the room. False while the room is still being built. */
+  const showRoom = useCallback(() => {
+    const street = streetRef.current;
+    const room = roomRef.current;
+    if (!street || !room) return false;
+    pendingEnter.current = false;
+    setWaitingRoom(false);
+    street.suspend();
+    room.audio.setMuted(!soundRef.current);
+    room.activate();
+    setStage("room");
+    window.setTimeout(() => setWhite({ on: false, ms: WHITE_OUT_MS }), 60);
+    return true;
+  }, []);
+  const showRoomRef = useRef(showRoom);
+  showRoomRef.current = showRoom;
+
+  /** Into the room: through the white doorway of house no. 59, or by "go home" (the call, the H key). */
   const goHome = useCallback(() => {
     if (goneHome.current) return;
     goneHome.current = true;
     if (document.pointerLockElement) document.exitPointerLock();
+    streetRef.current?.setInputBlocked(true);
     setCallOpen(false);
     setPaused(false);
-    void prefetchRoom();
-    setStage("room");
-  }, [prefetchRoom]);
+    mountRoom();
+    setWhite({ on: true, ms: WHITE_IN_MS });
+    window.setTimeout(() => {
+      if (showRoomRef.current()) return;
+      // Pressed before the room was built: the walking-home screen covers the wait.
+      pendingEnter.current = true;
+      setWaitingRoom(true);
+    }, WHITE_IN_MS + 30);
+  }, [mountRoom]);
+
+  /** Out of the room by its door: the player stands in the hall outside it, the screen clears from white. */
+  const leaveRoom = useCallback(() => {
+    const street = streetRef.current;
+    roomRef.current?.deactivate();
+    setStage("neighborhood");
+    setRoomUI(null);
+    street?.placeAtHome();
+    street?.setInputBlocked(false);
+    street?.resume();
+    street?.audio.setMuted(!soundRef.current);
+    goneHome.current = false;
+    window.setTimeout(() => street?.lock(), 150);
+    window.setTimeout(() => setWhite({ on: false, ms: WHITE_OUT_MS }), 120);
+  }, []);
+  const leaveRoomRef = useRef(leaveRoom);
+  leaveRoomRef.current = leaveRoom;
 
   const handleStory = useCallback((event: StoryEvent) => {
     if (event !== "callHome") return;
@@ -141,6 +206,13 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
     setStarted(true);
     void prefetchRoom();
   }, [prefetchRoom]);
+
+  // The room is built a moment after the walk begins, so opening its door finds it ready.
+  useEffect(() => {
+    if (!started) return;
+    const timer = window.setTimeout(mountRoom, ROOM_BUILD_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [started, mountRoom]);
 
   const stayOutside = useCallback(() => {
     setCallOpen(false);
@@ -226,7 +298,7 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
       : !roomBuilt
         ? t("loading:prologueHome.stage.build")
         : t("loading:prologueHome.stage.ready");
-  const showRoomLoading = stage === "room" && !(roomBuilt && minElapsed);
+  const showRoomLoading = waitingRoom && !(roomBuilt && minElapsed);
 
   const streetCursor = !!streetHud?.cursorMode;
   const roomCursor = !!roomUI?.cursorMode;
@@ -240,16 +312,19 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
 
   return (
     <div className="absolute inset-0 bg-black">
+      {/* The street stays mounted (stopped while the player is in the room), so coming back needs no rebuild. */}
+      <KhuphoStoryWorld
+        settings={settings}
+        onProgress={handleProgress}
+        onReady={handleReady}
+        onHud={handleHud}
+        onStory={handleStory}
+        onError={handleError}
+        onNearHome={mountRoom}
+        onEnterHome={goHome}
+      />
       {stage === "neighborhood" && (
         <>
-          <KhuphoStoryWorld
-            settings={settings}
-            onProgress={handleProgress}
-            onReady={handleReady}
-            onHud={handleHud}
-            onStory={handleStory}
-            onError={handleError}
-          />
           {revealed && worldReady && !started && (
             <ChapterIntroOverlay
               ready
@@ -284,23 +359,26 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
         </>
       )}
 
-      {stage === "room" && (
-        <>
+      {roomOptions && (
+        // Built in standby and kept: hidden, not removed, so it keeps its size and its compiled shaders.
+        <div className={`absolute inset-0 z-30 ${stage === "room" ? "" : "invisible pointer-events-none"}`}>
           <Suspense fallback={null}>
             <RoomV2Page
               settings={settings}
               onBackToMenu={onBackToMenu}
               embedded
+              options={roomOptions}
               onUI={setRoomUI}
               onReady={(engine) => {
                 roomRef.current = engine;
                 setRoomBuilt(true);
+                if (pendingEnter.current) showRoomRef.current();
               }}
             />
           </Suspense>
-          {playingRoom && !paused && <PrologueHud objective={null} prompt={null} showResume={showResume} cursorMode={roomCursor} crosshair={false} />}
-        </>
+        </div>
       )}
+      {stage === "room" && playingRoom && !paused && <PrologueHud objective={null} prompt={null} showResume={showResume} cursorMode={roomCursor} crosshair={false} />}
 
       {inGame && !callOpen && !paused && (
         <PrologueTopBar soundEnabled={soundOn} onToggleSound={toggleSound} onOpenSettings={openPause} onHoverSound={onHoverSound} />
@@ -308,6 +386,8 @@ export const ProloguePage: React.FC<ProloguePageProps> = ({ settings, onUpdateSe
 
       {paused && !settingsOpen && <ProloguePauseMenu onHoverSound={onHoverSound} onResume={resume} onOpenSettings={() => setSettingsOpen(true)} onReturnToMenu={onBackToMenu} />}
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onUpdateSettings={onUpdateSettings} />
+
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[72] bg-white" style={{ opacity: white.on ? 1 : 0, transition: `opacity ${white.ms}ms ease` }} />
 
       {showRoomLoading && (
         <SceneTransition visible fadeIn className="z-[70]">

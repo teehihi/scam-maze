@@ -25,6 +25,7 @@ import { CharacterArmsViewmodel } from '../../player/runtime/CharacterArmsViewmo
 import { CharacterAssetCache } from '../../player/runtime/CharacterAssetCache';
 import { loadStreetProps, STORY_SPAWN, type PlacedProp } from './streetProps';
 import { loadBikeRider } from './bikeRider';
+import { findHome, inDoorway, HOME_FLOOR } from './home';
 
 export interface Hud { time: string; hour: number; loc: string; prompt: string | null; indoor: boolean; fps: number; rain: number; sitting: string | null; tour: boolean; started: boolean; timeScale: number; muted: boolean; quality: string; weather: string; cursorMode: boolean }
 
@@ -37,6 +38,17 @@ export interface EngineOptions {
   onStory?: (event: StoryEvent) => void;
   /** Graphics quality to build, warm up and run at (default 'high'). Applied once, before the first frame. */
   quality?: EngineQuality;
+  /**
+   * Called once when the player gets near house no. 59: the host builds the room now, so it is
+   * ready when the player reaches the white doorway.
+   */
+  onNearHome?: () => void;
+  /**
+   * Called when the player steps into the white doorway behind the rear bedroom's door in house no.
+   * 59. The host takes over (`suspend`) and later hands back (`placeAtHome`, `resume`). Without it
+   * the doorway is just a white panel.
+   */
+  onEnterHome?: () => void;
 }
 export type EngineQuality = 'low' | 'med' | 'high';
 /** Multisampling of the composer target per quality: MSAA only on high. */
@@ -48,6 +60,8 @@ export type BuildProgress = (step: BuildStep, fraction: number) => void;
 
 /** Lets the browser paint (the loading screen) between two heavy build steps. */
 const yieldFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+/** The room is built when the player comes this close (metres) to the house. */
+const NEAR_HOME_METRES = 30;
 export class Engine {
   renderer: THREE.WebGLRenderer; scene = new THREE.Scene(); camera: THREE.PerspectiveCamera;
   composer: EffectComposer | null = null; bloom: UnrealBloomPass | null = null; gtao: GTAOPass | null = null;
@@ -92,6 +106,8 @@ export class Engine {
   /** Resolves when the street props are in the world (or failed to load). */
   propsReady: Promise<PlacedProp[]>;
   private storyRain = false; private storyCall = false;
+  /** The player's house (no. 59), a host asked to take over (`homeBusy`), and the world standing still behind it. */
+  home: House | undefined; private homeBusy = false; private nearHomeSent = false; private suspended = false; private mutedBeforeSuspend = false;
   constructor(el: HTMLElement, onHud: (h: Hud) => void, opts: EngineOptions = {}) { this.el = el; this.opts = opts;
     this.onHud = onHud;
     const w = el.clientWidth || 1280, h = el.clientHeight || 720;
@@ -156,6 +172,7 @@ export class Engine {
       // The traffic model downloads while the neighborhood is built; without it the procedural bikes are used.
       const bikeRider = loadBikeRider().catch((err) => { console.warn('[khupho] bike rider failed to load', err); return null; });
       buildNeighborhood(e.ctx);
+      e.home = findHome(e.houses);
       if (opts.story) e.player.teleport(STORY_SPAWN.x, STORY_SPAWN.z, STORY_SPAWN.yaw);
       report('life'); await yieldFrame(); if (isCancelled()) return e;
       e.life = buildLife(e.ctx, e.houses, e.vehicles, e.audio, await bikeRider);
@@ -361,6 +378,36 @@ export class Engine {
     else this.lock();
     this.hudT = 0;
   }
+  /** Stops drawing and simulating (the room has the screen) and silences the street. */
+  suspend() {
+    if (this.suspended) return;
+    this.suspended = true;
+    this.renderer.setAnimationLoop(null);
+    this.setPaused(true);
+    this.mutedBeforeSuspend = this.audio.muted;
+    this.audio.setMuted(true);
+  }
+  /** Picks the world up where `suspend` left it; the next click takes the pointer back. */
+  resume() {
+    if (!this.suspended) return;
+    this.suspended = false;
+    this.clock.getDelta();
+    this.audio.setMuted(this.mutedBeforeSuspend);
+    this.setPaused(false);
+    this.lostLock = true;
+    this.homeBusy = false;
+    this.renderer.setAnimationLoop(() => this.frame());
+  }
+  /** Puts the player back in the hall, just outside the rear bedroom's door, which closes behind them. */
+  placeAtHome() {
+    const h = this.home;
+    if (!h) return;
+    h.bedDoor?.set(false);
+    const d = h.doorway;
+    if (d) this.teleportHouse(this.houses.indexOf(h), (d.x0 + d.x1) / 2, HOME_FLOOR, d.z - 0.8, 0, -1);
+    this.player.keys.clear();
+  }
+  private homeDistance(p: THREE.Vector3) { const h = this.home!; const c = h.wp(h.W / 2, p.y, h.D / 2); return Math.hypot(c.x - p.x, c.z - p.z); }
   setInputBlocked(b: boolean) { this.inputBlocked = b; if (b) this.player.keys.clear(); }
   setPaused(p: boolean) { this.paused = p; if (!p) this.cursorMode = false; if (p) { this.player.keys.clear(); if (document.pointerLockElement === this.renderer.domElement) document.exitPointerLock(); } }
   /**
@@ -462,6 +509,12 @@ export class Engine {
     this.ctx.eye.copy(this.camera.position);
     // indoor
     const cp = this.camera.position;
+    if (this.home && this.started && !this.suspended) {
+      // walking up to the house: the host builds the room; stepping into the white doorway: it takes over
+      if (!this.nearHomeSent && this.opts.onNearHome && this.homeDistance(cp) < NEAR_HOME_METRES) { this.nearHomeSent = true; this.opts.onNearHome(); }
+      const d = this.home.doorway;
+      if (d && this.opts.onEnterHome && !this.homeBusy && !this.inputBlocked && inDoorway(d, this.home.toLocal(cp.x, cp.z), cp.y, this.home.F(HOME_FLOOR))) { this.homeBusy = true; this.opts.onEnterHome(); }
+    }
     let room = null as ReturnType<House['roomAtWorld']>, inH: House | null = null;
     for (const h of this.houses) { if (!h.contains(cp.x, cp.z) || h.spec.lite) continue; const r = h.roomAtWorld(cp.x, cp.y, cp.z); if (r) { room = r; inH = h; break; } }
     const inside = room && room.kind !== 'well' && room.kind !== 'wellup' ? 1 : 0;

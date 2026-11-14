@@ -109,6 +109,10 @@ export class AudioEngine {
     return e;
   }
 
+  /** The player left the room: stop all of its sound (nothing keeps running or queued). */
+  suspend() { void this.ctx.suspend(); }
+  /** The player is back in the room. */
+  wake() { void this.ctx.resume(); }
   /** Called on first user gesture */
   start() {
     if (this.started) return;
@@ -139,8 +143,8 @@ export class AudioEngine {
       .catch((err) => console.warn('[room] clock sound failed to load', err));
     // Thunder far away, the storm moving off: once early, then now and then.
     this.timers.push(window.setTimeout(() => this.thunder(0.55), 18000));
-    this.every(60, 130, () => this.thunder(0.3 + Math.random() * 0.25));
-    this.every(5, 12, () => this.tireHiss());
+    this.every(60, 130, () => { if (this.ctx.state === 'running') this.thunder(0.3 + Math.random() * 0.25); });
+    this.every(5, 12, () => { if (this.ctx.state === 'running') this.tireHiss(); });
     this.rainFilter = this.filt('lowpass', 900);
     this.rainGain = this.gain(0);
     this.rainFilter.connect(this.rainGain); this.rainGain.connect(this.cityDuck);

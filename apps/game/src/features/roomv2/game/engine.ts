@@ -14,6 +14,7 @@ import { clock, type PhoneMode } from './screens';
 import { tr, trLines } from './strings';
 import { CharacterArmsViewmodel } from '../../player/runtime/CharacterArmsViewmodel';
 import { dropMaskCanvas, paintDropMask, canvas, toTex } from './textures';
+import type { RoomOptions } from './outside';
 
 export type Caption = { text: string; voice?: boolean; id: number };
 export type UIAction = { key: string; label: string };
@@ -65,6 +66,8 @@ const CHAIR_DESK = V(-1.62, 0, -1.13);
 const _fwd = new THREE.Vector3(), _right = new THREE.Vector3(), _want = new THREE.Vector3(), _next = new THREE.Vector3();
 const _walkPos = new THREE.Vector3(), _walkQ = new THREE.Quaternion(), _walkE = new THREE.Euler(0, 0, 0, 'YXZ');
 const _center = new THREE.Vector2(0, 0);
+/** Time the neighborhood needs to white out the screen when the player leaves. */
+const EXIT_SECONDS = 0.6;
 /** One pointer-lock event moving more than this (px) is a browser glitch (a known Chrome jump), not the player. */
 const MAX_MOUSE_STEP = 250;
 const angDiff = (a: number, b: number) => THREE.MathUtils.euclideanModulo(b - a + Math.PI, Math.PI * 2) - Math.PI;
@@ -101,6 +104,13 @@ export class Engine {
 
   ui: UIState = { prompt: null, focus: false, captions: [], inspecting: null, locked: false, fade: 1, ended: null, started: false, seated: false, cursorMode: false };
   onUI: (s: UIState) => void;
+  /** Part of the neighborhood: built ahead in standby (`live` false), shown by `activate`, left through the door. */
+  opts: RoomOptions;
+  live = true;
+  exiting = false;
+  exitT = 0;
+  exitSent = false;
+  visits = 0;
 
   // player
   pos = V(1.3, 1.62, 1.55);
@@ -168,8 +178,10 @@ export class Engine {
   private hoverFrame = 0;
   private lastPhoneMode = '';
 
-  constructor(container: HTMLElement, onUI: (s: UIState) => void, quality: 'high' | 'low') {
+  constructor(container: HTMLElement, onUI: (s: UIState) => void, quality: 'high' | 'low', opts: RoomOptions = {}) {
     this.container = container;
+    this.opts = opts;
+    this.live = !opts.standby;
     this.onUI = onUI;
     this.quality = quality;
     const r = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
@@ -207,7 +219,50 @@ export class Engine {
     if (import.meta.env.DEV) (window as unknown as { __roomEngine?: Engine }).__roomEngine = this;
     this.bindInput();
     this.loop = this.loop.bind(this);
+    if (this.live) this.raf = requestAnimationFrame(this.loop);
+    else this.prepare();
+  }
+
+  /**
+   * Standby: build the reflection environment and compile every shader now, while the player is
+   * still on their way to the door, so the first frame in the room does not stall.
+   */
+  private prepare() {
+    this.updateEnv();
+    try { void this.renderer.compileAsync(this.scene, this.camera).catch(() => undefined); } catch { /* compile on first draw instead */ }
+  }
+
+  /** Standby -> running: the player steps into the room. */
+  activate() {
+    if (this.disposed || this.live) return;
+    this.live = true;
+    this.t = performance.now() / 1000;
+    this.exiting = false; this.exitT = 0; this.exitSent = false;
+    this.pos.set(1.3, 1.62, 1.55); this.vel.set(0, 0, 0); this.yaw = 0.62; this.pitch = -0.08;
+    this.keys.clear();
+    // the neighborhood's white doorway covers the cut, so no fade up from black
+    this.ui.fade = 0; this.finalPass.uniforms.uFade.value = 1;
+    this.audio.wake();
+    this.begin();
+    cancelAnimationFrame(this.raf);
     this.raf = requestAnimationFrame(this.loop);
+  }
+
+  /** Running -> standby (the player left); the room keeps its state for the next visit. */
+  deactivate() {
+    this.live = false;
+    cancelAnimationFrame(this.raf);
+    this.keys.clear();
+    this.audio.suspend();
+    this.ui.started = false; this.ui.locked = false; this.ui.prompt = null; this.ui.focus = false;
+    this.emit();
+  }
+
+  /** Fades out, then tells the neighborhood the player left (`RoomOptions.onExit`). */
+  requestExit() {
+    if (!this.opts.onExit || this.exiting) return;
+    this.exiting = true; this.exitT = 0;
+    this.opts.onExitStart?.();
   }
 
   /* =================== BUILD =================== */
@@ -459,7 +514,7 @@ export class Engine {
     this.audio.doorClose();
     this.audio.keys();
     this.audio.sigh();
-    this.later(2.2, () => this.say(tr('say.arrive')));
+    if (this.visits++ === 0) this.later(2.2, () => this.say(tr('say.arrive')));
     this.later(9, () => { if (!this.lights.ceiling && !this.lights.bed && !this.lights.desk) this.say(tr('say.dark')); });
     this.emit();
   }
@@ -502,7 +557,7 @@ export class Engine {
       case 'bed': return tr('label.bed');
       case 'jacket': return tr('label.jacket');
       case 'umbrella': return tr('label.umbrella');
-      case 'door': return tr('label.door');
+      case 'door': return this.opts.onExit ? tr('label.doorLeave') : tr('label.door');
     }
     return null;
   }
@@ -512,6 +567,7 @@ export class Engine {
     if (!id || this.inspect || this.seat === 'sitting' || this.seat === 'standing') return;
     this.markUsed(id);
     this.reachWithHand(id);
+    if (id === 'door' && this.opts.onExit) { this.audio.switchClick('door'); this.requestExit(); return; }
     switch (id) {
       case 'laptop': if (this.seat === 'seated') this.startInspect('laptop'); else this.startSit(); return;
       case 'chair': if (this.seat === 'none') this.startSit(); return;
@@ -1048,7 +1104,7 @@ export class Engine {
   }
 
   loop(now: number) {
-    if (this.disposed) return;
+    if (this.disposed || !this.live) return;
     this.raf = requestAnimationFrame(this.loop);
     const tNow = now / 1000;
     const rawDt = Math.min(1, tNow - (this.t || tNow));
@@ -1071,6 +1127,11 @@ export class Engine {
     const endDim = this.ui.ended ? 0.55 : 1;
     const fu = this.finalPass.uniforms;
     fu.uFade.value += ((1 - this.ui.fade) * endDim - fu.uFade.value) * Math.min(1, dt * 3);
+    if (this.exiting) {
+      // the neighborhood whites the screen out meanwhile; then it takes over
+      this.exitT += dt / EXIT_SECONDS;
+      if (this.exitT >= 1 && !this.exitSent) { this.exitSent = true; this.opts.onExit?.(); if (this.disposed) return; }
+    }
     fu.uTime.value = this.t % 100;
     const tension = this.story === 'ringing' || this.story === 'call' ? 1 : 0;
     fu.uVig.value += ((0.85 + tension * 0.35) - fu.uVig.value) * dt * 0.8;

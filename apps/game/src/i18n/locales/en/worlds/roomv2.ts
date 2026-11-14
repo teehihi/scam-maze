@@ -139,6 +139,7 @@ const roomv2 = {
         jacket: "Jacket",
         umbrella: "Umbrella",
         door: "Front door",
+        doorLeave: "Leave the room",
         seatedHint: "Press any movement key / E to stand up",
       },
       action: {

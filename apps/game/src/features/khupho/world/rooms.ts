@@ -113,13 +113,12 @@ export function furnishRoom(h: House, room: Room) {
       const zc = (room.z0 + room.z1) / 2;
       if (room.id.endsWith('.lobby')) {
         light(W / 2, (room.z0 + room.z1) / 2, 'disc', 0xfff0d0, 0.9); sw(t + 1.45, zf + ph, 'pz');
-        F.plant(B, t + 0.35, y, zf + 0.5, 1.2, 11 + k); pic(W - t, 1.6, 4.3, -PI / 2, 0.6, 0.4); F.calendar(B, W - t, y + 1.4, 4.1, -PI / 2);
+        F.plant(B, t + 1.5, y, zs - 0.28, 1.2, 11 + k); pic(W - t, 1.6, 4.3, -PI / 2, 0.6, 0.4); F.calendar(B, W - t, y + 1.4, 4.1, -PI / 2);
         B.box(W - t - 0.3, y, 4.2, 0.28, 0.75, 0.6, 'woodF:#6a4a30'); B.cyl(W - t - 0.16, y + 0.75, 4.2, 0.06, 0.22, 'g:#3a6ea5', 10, 0.04);
       } else {
         light(h.spineX, zc, 'bulb', 0xffe6b0, 0.8); sw(t, room.z0 + 0.3, 'px');
         if (k === 0) { F.shoeRack(B, t + 0.17, y, room.z0 + 1.4, PI / 2, 0.8); }
         pic(t, 1.6, zc + 0.6, PI / 2, 0.5, 0.7);
-        F.plant(B, t + 0.3, y, room.z1 - 0.5, 1.0, 21 + k);
       }
       void zs; void kz0;
       break;
