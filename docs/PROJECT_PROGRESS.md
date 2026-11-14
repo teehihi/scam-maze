@@ -43,7 +43,7 @@
 - **Deployment status:** Landing page on GitHub Pages (<https://teehihi.github.io/scam-maze/>). Game client build ready for independent Vercel project deployment.
 - **AWS budget:** $200 promotional credits, 3-month evaluation, estimate $28.68
   ([cost estimation](finops/COST_ESTIMATION.md)); no actual spend yet.
-- **Last updated:** 2026-11-12 (phone call UI redesign recorded)
+- **Last updated:** 2026-11-14 (Shared World Engine stages 1 through 3b recorded)
 
 ## Completed
 
@@ -210,6 +210,31 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+
+### 2026-11-14 — Khupho street traffic: optimized scanned scooter riders
+
+- **Objective:** owner request: use `bike_rider_animated.glb` for the street riders in one color, optimized for smooth play without a visible quality loss; keep the current traffic logic (12 bikes).
+- **Completed:**
+  - `apps/game/scripts/optimize-bike-rider.cjs`: splits the skinned scan (every vertex follows one of 4 joints) into rigid parts (Chassis, Head, FrontWheel, RearWheel), builds 3 LODs with the Meshopt attribute-aware simplifier, removes skin, weights and clips, then quantize + meshopt. 16.42 MB → 2.95 MB; LOD0 127,080 / LOD1 32,043 / LOD2 22,011 triangles (source 300,000).
+  - `features/khupho/world/bikeRider.ts`: one `THREE.LOD` per bike with shared geometry and material (LOD1 from 6 m, LOD2 from 16 m, hidden past 60 m), scale 1.9, wheels turned from speed, head turns toward the player while the bike is stopped.
+  - `people.ts` `Bike`: uses the model when it loaded; the procedural bike and rider stay as the fallback. `engine.ts` starts the download with the world build and awaits it before `buildLife`. Traffic logic (12 bikes, lanes, speeds, stopping for the player, horn) is unchanged.
+  - Source copied to `apps/game/assets-src/vehicles/bike-rider/` (Git LFS) with `SOURCE.md`.
+- **Files:** `apps/game/scripts/optimize-bike-rider.cjs`, `apps/game/assets-src/vehicles/bike-rider/{bike_rider_animated.glb,SOURCE.md}`, `apps/game/assets-src/README.md`, `apps/game/public/assets/3d/optimized/bike-rider.optimized.glb`, `apps/game/src/config/assetPaths.ts`, `apps/game/src/features/khupho/world/{bikeRider,people,engine}.ts`, this file.
+- **Validation:** typecheck and build of this commit's tree in an isolated export; `vitest --run src/features/khupho src/features/prologue src/app` (31 passed). Side-by-side render of source vs LOD0/1/2 (LOD0 and LOD1 match the source at close range; LOD2 shows faceted tyres). Headless `/khupho` (SwiftShader): bikes in view 345,243 triangles (1 LOD0, 2 LOD1, 7 LOD2), render 56.8 ms vs 56.3 ms with the procedural bikes; bike draws 12 groups instead of ~260 person and bike pieces. SwiftShader timings are not GPU numbers.
+- **Not verified:** frame rate on a real GPU; the source license (owner-supplied, not stated).
+- **Deviations:** the asset is photographic in style, while the art direction is stylized realism; owner's choice.
+- **Follow-up:** confirm the license; if needed, a lighter LOD2 (it is limited by the ~7,500 loose scan shells).
+
+
+### 2026-11-15 — Room v2 reached through a white doorway in house no. 59
+- **Objective:** Make the `/roomv2` apartment the player's room in house no. 59 of `/khupho`, without rebuilding any room of the street world (owner direction after two heavier attempts).
+- **Completed:** The master bedroom is untouched. The other second-floor room (rear bedroom) keeps its door, and behind the open door stands a plain white panel like a portal. Stepping into it whites out the screen and shows the room from `/roomv2` exactly as it was; its own door whites the screen out again and puts the player back in the hall, with the door closed behind them. The room is built in standby (shaders compiled, reflections baked, no loop) when the player comes within 30 m of the house, so it is ready when needed, and is kept for the next visit. `/roomv2` and the prologue behave as before. The earlier attempts (live street through the window, snapshot picture, balcony door, weather-driven light) were removed.
+- **Files:** new `khupho/world/home.ts`, `khupho/world/home.test.ts`, `roomv2/game/outside.ts`; modified `khupho/world/{engine,house}.ts`, `khupho/KhuphoPage.tsx`, `roomv2/RoomV2Page.tsx`, `roomv2/game/engine.ts`, `i18n/locales/{en,vi}/worlds/roomv2.ts`.
+- **Validation:** `pnpm typecheck`, `pnpm build:game` and `vitest run` pass. Headless Chrome (SwiftShader, no real frame rates) drove: standby build on approach, white doorway after opening the door, entering the room, leaving back to the hall (door closed). Screenshots checked by eye.
+- **Known limitations:** The room is a second WebGL context beside the street's; its memory stays allocated after the first approach. The room keeps its own rainy night and city outside the window whatever the street's weather. Not played with real mouse and pointer lock (a "Click to continue" layer shows if the browser refuses the lock). The white panel is also seen if the door is opened for any other reason (e.g. the house tour).
+- **Later the same day:** the white doorway is now a 0.6 m deep white block (no room visible from any angle, and the screen whites out in 0.15 s); leaving the room suspends its audio context (and resumes it on return); the lobby plant moved from beside the front bedroom's door to the middle of the lobby (`khupho/world/rooms.ts`, affects every house with a lobby).
+- **Main game route (New Game -> prologue):** `ProloguePage` now keeps the street mounted and builds the room in standby 1.5 s after the walk begins (or when the player nears house no. 59). Stepping into the white doorway, or "go home" (the call, the H key), whites the screen out and shows the room; the room's own door puts the player back in the hall. The "walking home" loading screen now shows only if the player goes home before the room is built. Files: `prologue/ProloguePage.tsx`, `khupho/KhuphoStoryWorld.tsx`. Checked by script through New Game: standby build, doorway, room live, exit and street resumed; the H key and call-home path were not exercised, and the prologue's ending screen was not reached.
+- **Follow-up:** Free the room when the player is far from the house.
 
 ### 2026-11-13 — Room v2 call mix: quieter vibration, louder ringtone, ambience ducked
 
@@ -378,6 +403,349 @@ Resolved:
 - **Known limitations:** texts produced by the engines (prompts, captions, phone lines, weather, location names) are still Vietnamese in both languages; `khupho` has no `src/assets/tex` texture set in the repo (it falls back to procedural textures, as the prototype README warns); `roomv1` canvas textures request `Patrick Hand` and `Be Vietnam Pro`, which the prototype loaded from Google Fonts and the game does not (fallback fonts are used); the mobile joystick of `khupho` was not ported; `khupho` still needs vehicle and NPC models and a performance pass.
 - **Follow-up:** `roomv1` details before integration: lighting, sitting on the chair, hand actions; localize engine texts; performance pass on `khupho`.
 
+
+### 2026-11-14 — Shared World Engine, stage 3: World Diagnostics and World Lifecycle
+
+> The Shared World Engine milestone's entries appear newest-first, like the rest of this file, so
+> they read top-to-bottom as stage 3, then 3b, then 2, then 1 — the reverse of the order the work
+> happened in. Chronologically: stage 1 (2026-11-13, below) moved `spatialChunking`/`profiling`
+> into `game/world/`; stage 2 extracted `AdaptiveQuality`; stage 3 (this entry) added `stats.ts`
+> and `lifecycle.ts`; stage 3b adopted context-loss handling in `/testmove` and `/ueh`.
+
+- **Objective:** continue the shared-world-engine milestone past the `AdaptiveQuality` extraction:
+  implement the spec's remaining `stats.ts` (renderer diagnostics probe) and `lifecycle.ts`
+  (listener/disposal primitives) modules, and adopt both into real maps, not just build them.
+  Owner decision carried forward from the prior stage: no DPR tiers for `/testmove` or `/ueh`.
+- **Preparation:** re-read both engines' `bindEvents`/`dispose` bodies fresh (not from memory).
+  Dispatched `world-architect` twice before writing code: once for the lifecycle module (found
+  that Hue's two-pass dispose has a real, undocumented texture leak — `chunk.group.clear()`
+  detaches chunk meshes before the second, fuller pass can reach them — so consolidating to one
+  `disposeObjectTree` call is a genuine fix, not a pure move, and must be reported as such) and
+  once for the stats module (corrected a wrong assumption: `renderer.info.autoReset` resets inside
+  every `render()` call, not once per animation frame, so an `EffectComposer` with several passes
+  — each its own `render()` — would otherwise report only its last pass; verified this directly in
+  the installed `three` source before building on it). Verified `@react-three/fiber`'s
+  `addEffect`/`addAfterEffect` exist and fire relative to R3F's own render (`useFrame` runs
+  *before* R3F's render for that frame, so it would read the previous frame's counters — confirmed
+  this was the wrong hook to use before writing `StatsProbeHost`).
+- **Completed:**
+  - `game/world/lifecycle.ts` (new): `ListenerBag` (typed `add`/`removeAll` overloads for
+    `Window`/`Document`/`HTMLElement`, so call sites keep correct event typing with no casts),
+    `disposeObjectTree(root)` (traverses any `THREE.Object3D`, disposes every unique
+    geometry/material/texture exactly once even when shared across meshes), `watchContextLoss`
+    (wraps `webglcontextlost`/`webglcontextrestored` with `preventDefault`, returns an unsubscribe).
+    15 unit tests.
+  - `game/world/stats.ts` (new): `StatsProbe` (takes over `renderer.info.autoReset` for its
+    lifetime — `false` on construction, `true` on `dispose()` — so `beginFrame()`/`endFrame(ms)`
+    bracket exactly one animation frame regardless of how many internal `render()` calls happen
+    inside it; `snapshot()` returns draw calls, triangles, geometries, textures, programs and
+    frame-time p50/p95/last from a preallocated ring buffer), `createStatsProbe` (returns `null`
+    unless `?stats=1` is in the URL or `force` is passed, so a disabled Host allocates nothing and
+    has nothing to call beyond a `probe?.` no-op check), `isStatsEnabled`. 14 unit tests, including
+    a composer-style multi-pass accumulation case and a ring-buffer-wrap case.
+  - `game/world/StatsProbeHost.tsx` (new): a small R3F component (renders nothing) that mounts a
+    `StatsProbe` for its `<Canvas>`'s renderer via `addEffect`/`addAfterEffect`, and exposes the
+    live snapshot at `window.__WORLD_STATS__.<name>()` while enabled.
+  - `GameCanvas.tsx`: added `<StatsProbeHost name="menu" />` inside the menu `<Canvas>`.
+  - `HueWorldEngine.ts`: `bindEvents`'s hand-written `cleanupListeners` closure replaced by
+    `ListenerBag`; the two-pass dispose (see Preparation) replaced by one `disposeObjectTree`
+    call — a real fix, now freeing chunk-mesh textures on dispose that were previously leaked;
+    added the `if (this.disposed) return;` idempotency guard it was missing (Mekong already had
+    one); added `watchContextLoss` as a genuinely new capability (Hue had no context-loss handling
+    at all before); added a `StatsProbe` wrapped around its `animate()`'s single `renderer.render`
+    call, exposed as `window.__HUE_DEBUG__.getStats()`.
+  - `MekongWorldEngine.ts`: same `ListenerBag` replacement. Its existing single dispose traversal
+    already disposed geometry+material+textures in one pass, so swapping it for `disposeObjectTree`
+    is a pure extraction (confirmed line-by-line, no behavior change). Added `watchContextLoss` as
+    a new capability (Mekong also had none before). **Not** wired to `stats.ts` in this pass — out
+    of this task's listed scope, and Mekong already has its own differently-shaped `getPerf()`/
+    `profile()` debug methods; left as a possible future addition, not done now.
+  - Not touched, deliberately: `/testmove` and `/ueh` (no context-loss handling added — the
+    task's adopters this round were the two imperative engines, not the two remaining R3F canvases
+    without it), `mergeStaticMeshes.ts`, noise files, `CharacterRuntime`/`GameWorldAdapter`, and
+    all unrelated in-progress work (`khupho`, `prologue`, `roomv2`, `App.tsx`, locale files, the
+    street-props extraction) already present in the working tree.
+- **Files:** new `apps/game/src/game/world/{lifecycle.ts,lifecycle.test.ts,stats.ts,stats.test.ts,
+  StatsProbeHost.tsx}`; edited `apps/game/src/game/core/GameCanvas.tsx`,
+  `apps/game/src/features/hue/engine/HueWorldEngine.ts`,
+  `apps/game/src/features/mientay/engine/MekongWorldEngine.ts`,
+  `.kiro/specs/shared-world-engine/tasks.md` (tasks 1 and 3 marked done, with the texture-leak fix
+  recorded there as a behavior change, not a pure move).
+- **Validation:** `pnpm typecheck` clean. `pnpm vitest run src/game/world`: 8 files, 82 tests pass
+  (includes the quality.ts tests from the prior stage). Full `pnpm vitest run`: 132 files, 1206
+  tests, all pass (the 6 pre-existing unrelated failures noted in the prior stage's entry are gone
+  — resolved by other in-progress work, not by anything in this task). `pnpm build` succeeds.
+  Checked against the running dev server on port 5174 (not restarted): `/?stats=1` reports a real
+  snapshot from `window.__WORLD_STATS__.menu()` (draw calls, triangles, geometries, textures,
+  programs, frame-time percentiles all populated with sane numbers) and is entirely absent
+  (`typeof window.__WORLD_STATS__ === "undefined"`) without the flag; `/hue?stats=1`'s
+  `window.__HUE_DEBUG__.getStats()` reports a real snapshot the same way; `/hue` and `/mientay`
+  both still load, reach their debug hooks, and report unchanged merge/chunk statistics after the
+  lifecycle rewiring (one check briefly looked hung and turned out to be this session's shared
+  machine under heavy load — SwiftShader frame times spiking, the same documented limitation as
+  every prior performance entry in this file — confirmed by retrying with a longer wait, not a
+  code issue). An independent QA pass re-read every changed line, re-ran all four new test files,
+  confirmed the scope boundary (no stray files, no leftover `cleanupListeners`/old pixel-ratio
+  fields, no stats.ts import in Mekong), and confirmed the Hue dispose-order requirement
+  (`contextLossUnsubscribe` called before `forceContextLoss()`).
+- **Not verified:** real GPU frame time (software WebGL only, as always); an actual
+  `webglcontextlost`/`webglcontextrestored` cycle in a real browser (the unit tests simulate the
+  events directly; a genuine GPU context loss was not triggered against the running server);
+  whether Hue's chunk-texture fix is visible in `renderer.info.memory.textures` before/after a
+  real play session (checked only that the code path now runs, not a measured before/after count).
+- **Follow-up:** record the spec's formal before/after Baseline table (task 1.2's other half);
+  consider wiring `stats.ts` into Mekong if its existing debug tools are ever found insufficient;
+  the `mergeStaticMeshes` predicate redesign and `game/world/loaders.ts`/`audio.ts` (tasks 4 and 6)
+  remain not started.
+
+### 2026-11-14 — Shared World Engine, stage 3b: context-loss handling for `/testmove` and `/ueh`
+
+- **Objective:** close the one concrete follow-up from the previous entry: `/testmove` and `/ueh`
+  had zero WebGL context-loss handling (no `onCreated`, no listener, no error boundary either —
+  confirmed by grep before starting), unlike the menu, Chapter 1, Hue and Mekong.
+- **Completed:**
+  - `game/world/ContextLossWatcher.tsx` (new): `contextLossLogHandlers(name)` (a pure function,
+    tested directly — no R3F test-renderer dependency exists in this repo, so the untested surface
+    is only the thin React wrapper, not the behavior) and `ContextLossWatcher({name})`, a
+    render-nothing R3F component that calls the already-tested `watchContextLoss` (from the prior
+    stage's `lifecycle.ts`) inside a `useEffect`, so the unsubscribe has a real cleanup to run
+    against, rather than using the `onCreated`-callback pattern `GameCanvas`/`ChapterOneCanvas`
+    use today (which never unsubscribes).
+  - `TestMoveCanvas.tsx` and `UEHCanvas.tsx`: added `<ContextLossWatcher name="..."/>` as the first
+    child of their `<Canvas>`. Three-line diff each (one import, one JSX element, one blank line);
+    confirmed by an independent review that `carPivotRef`/`handleCarLoaded` and every existing
+    `<Canvas>` prop (including `dpr`, which neither file touches — the owner's prior decision to
+    leave both canvases' DPR exactly as-is was explicitly re-confirmed by grepping the diff for the
+    string "dpr" and finding zero matches) are untouched.
+  - **Scope, stated honestly:** this only calls `event.preventDefault()` (so the browser is allowed
+    to restore a lost context instead of leaving the canvas permanently blank) plus
+    `console.warn`/`console.info` — the same console-only behavior `GameCanvas`'s and
+    `ChapterOneCanvas`'s inline handlers already have. It does **not** add an error boundary or
+    fallback UI; `/testmove` and `/ueh` still have neither, and a thrown render error (unrelated to
+    context loss) would still blank the page. That gap is unchanged by this entry, not fixed.
+- **Files:** new `apps/game/src/game/world/{ContextLossWatcher.tsx,ContextLossWatcher.test.ts}`;
+  edited `apps/game/src/features/testmove/TestMoveCanvas.tsx`,
+  `apps/game/src/features/ueh/UEHCanvas.tsx`.
+- **Validation:** `pnpm typecheck` clean. `pnpm vitest run src/features/testmove src/features/ueh
+  src/game/world`: 5 files, 63 tests pass. Full `pnpm vitest run`: 133 files, 1209 tests, all pass.
+  `pnpm build` succeeds (main chunk size essentially unchanged, +0.37 kB). Checked against the
+  running dev server on port 5174 (not restarted): both `/testmove` and `/ueh` load with a canvas
+  present and no console exceptions after the change. An independent QA pass confirmed the diffs
+  are minimal, the DPR decision was respected (zero "dpr" occurrences in either diff), and the
+  tests genuinely verify `preventDefault()` and unsubscribe behavior rather than just existing.
+- **Not verified:** no real GPU context-loss event was triggered against a live browser (only
+  simulated via `dispatchEvent` in the unit tests); the `ContextLossWatcher` React component
+  itself was not mounted in a live R3F tree during automated testing (no R3F test-renderer
+  dependency in this repo), only exercised indirectly by loading `/testmove` and `/ueh` in headless
+  Chrome and confirming no console errors — a real mount was not separately isolated.
+- **Follow-up:** `/testmove` and `/ueh` still have no error boundary/fallback UI (a larger, separate
+  gap); the spec's remaining open items (Baseline table, `mergeStaticMeshes` redesign,
+  `loaders.ts`/`audio.ts`) are unchanged from the previous entry.
+
+### 2026-11-14 — Shared World Engine, stage 2: AdaptiveQuality extraction
+
+- **Objective:** continue the shared-world-engine milestone (`.kiro/specs/shared-world-engine/`)
+  past the earlier `spatialChunking`/`profiling` move: extract the adaptive pixel-ratio mechanism
+  duplicated, with different thresholds, in Mekong (`MekongWorldEngine.adaptQuality`) and Hue
+  (`HueWorldEngine.adaptQuality`), and migrate both engines onto it without changing either map's
+  tuned behavior.
+- **Preparation:** re-read both engines' current source (not the earlier audit's summary) before
+  designing anything; found the real numbers differ slightly from an earlier audit pass (Mekong's
+  step is 0.15, not 0.25). Dispatched the `world-architect` agent to review the concrete plan
+  before writing code; it corrected two of my assumptions (see Decisions below).
+- **Completed:**
+  - `game/world/quality.ts` (new): `AdaptiveQuality`, a framework-agnostic class. Owns the windowed
+    average frame time, drop/rise streak counters and an upgrade ratchet as pure state; the
+    thresholds, floor, ceiling and step are constructor config, and applying a ratio change is a
+    caller-supplied `onChange` callback — the class never touches a renderer. `commit()` is a
+    separate step from `update()` so each engine keeps its own timing: Mekong defers it to right
+    before the next draw (its existing black-flash fix), Hue calls it immediately after `update()`
+    in the same place it always set the pixel ratio.
+  - `game/world/quality.test.ts` (new, 16 tests): both engines' exact policies (3-window drop
+    streak vs. streak-of-1, 8-window rise streak vs. streak-of-1, the ratchet present only for
+    Mekong), `setCeiling` with and without `jumpTo`/`unlock`, epsilon, the mid-band streak reset,
+    pending-vs-current, and `reset()`.
+  - `MekongWorldEngine.ts`: removed the ten duplicated quality fields and the `adaptQuality`/
+    `commitQuality` method bodies; both now delegate to `this.quality` (a `MIN_PIXEL_RATIO`/
+    `MAX_PIXEL_RATIO`/`PERFORMANCE_PIXEL_RATIO`/`PIXEL_RATIO_STEP`-configured instance built in the
+    `renderer` build stage). `setPerformanceMode` now calls `quality.setCeiling(ratio, { jumpTo:
+    true })` instead of hand-rolling the jump. `getPerf()`'s debug output reads
+    `quality.getCurrent()`.
+  - `HueWorldEngine.ts`: same pattern with Hue's own thresholds (immediate reaction, no ratchet,
+    floor 1.0, ceiling `min(devicePixelRatio, 1.5)`).
+- **Decisions (from the `world-architect` review, both corrected before implementation):**
+  1. I had assumed `TestMoveCanvas`/`UEHCanvas`'s missing `dpr` prop meant an uncapped pixel ratio.
+     Confirmed against the installed `@react-three/fiber` and its docs: the real default is
+     `dpr={[1, 2]}`, so both canvases already cap at 2x. Giving them the existing low/medium/high
+     static tiers (1.0/1.25/1.25/1.5) would **lower** the High tier from 2.0 to 1.5 on any
+     `devicePixelRatio >= 2` display (most phones, most Retina laptops) — a real sharpness
+     reduction for most users, not a no-op. Per `.kiro/steering/visual-quality.md`'s non-negotiable
+     rule against lowering quality for all users, this needs an owner decision and was **not**
+     done in this pass. Recorded as an open decision in `.kiro/specs/shared-world-engine/tasks.md`
+     (task 2.2) with three options (approve the drop, give High a `min(maxDpr, 2)` ceiling instead
+     to preserve today's behavior, or leave both canvases as they are).
+  2. I had assumed Hue's monument builders don't share materials across meshes the way Mekong's
+     architecture groups do, which would make `mergeStaticMeshes` a poor fit for Hue even after a
+     predicate-based redesign. Re-checked `buildTrangTienBridge.ts`/`buildThanhToanAndVillage.ts`:
+     they do reuse a shared `mats.*` palette across many meshes. Hue is a plausible second adopter
+     once `mergeStaticMeshes` is redesigned to take `isDynamic`/`isRigid` predicates instead of
+     reading `userData.dynamic`/`userData.rigid` directly — not ruled out, just not done this pass
+     (the redesign itself is separate, measured work, per the second-pass validation from the
+     previous session).
+  - Noise consolidation (Hue's `hash2`/`noise2D`/`fbm2D` vs. Mekong's `Noise.ts`) was evaluated and
+    **not done**: the base hash and bilinear interpolation are identical (same magic constants),
+    but Hue's `fbm2D` is unnormalized (octave amplitudes sum to 0.9375, not 1.0) while Mekong's
+    divides by the accumulated amplitude — a real difference, not a formatting one. Hue's
+    `getTerrainHeight` multiplies `fbm2D(...)` by tuned scale constants throughout, so sharing even
+    the 6-line `hash2`/`noise2D` base would add an import dependency for near-zero code saved,
+    while sharing the differently-normalized `fbm2D` wrappers risks a terrain-shape regression.
+    Left both files exactly as they are.
+- **Files:** new `apps/game/src/game/world/quality.ts`, `apps/game/src/game/world/quality.test.ts`;
+  edited `apps/game/src/features/mientay/engine/MekongWorldEngine.ts`,
+  `apps/game/src/features/hue/engine/HueWorldEngine.ts`,
+  `.kiro/specs/shared-world-engine/tasks.md`, `.kiro/steering/visual-quality.md` (stale path),
+  `.kiro/skills/threejs-world-engine/SKILL.md` (stale path). Not touched:
+  `mergeStaticMeshes.ts`, `Noise.ts`/`hueWorldConfig.ts`'s noise functions, any R3F canvas,
+  `CharacterRuntime`, `GameWorldAdapter`, and the unrelated in-progress `khupho`/`roomv1`/`roomv2`
+  work and `App.tsx` changes already present in the working tree (preserved as found).
+- **Validation:** `pnpm typecheck` clean. `pnpm vitest run src/features/mientay src/features/hue
+  src/game/world`: 6 files, 53 tests, all pass. Full `pnpm vitest run`: 3 files / 6 tests fail,
+  all pre-existing and unrelated (`roomv2` locale content-lint failures, and 3 `App.chapter.test.tsx`
+  failures referencing an unrelated prologue change in the already-modified `App.tsx`) — confirmed
+  by reading the assertion messages and `git diff`, not by a before/after baseline run. `pnpm
+  build` succeeds; the mientay chunk is 360.58 kB (down slightly from 384.46 kB before this pass,
+  consistent with logic being shared rather than duplicated). Checked against the running dev
+  server on port 5174 (not restarted): `/`, `/mientay`, `/hue`, `/ueh` all load with a canvas
+  present and no console exceptions; `/mientay`'s `getPerf()` debug hook reports the same merge/
+  chunk stats as before (3034 meshes merged into 264, chunking stats populated) and
+  `pixelRatio: 1`, matching the expected initial `AdaptiveQuality` state; `/hue`'s `getState()`
+  reports the correct spawn position and mode. An independent QA pass confirmed the thresholds,
+  call-timing and composer-closure-over-`this` correctness by reading the diffs line by line, and
+  found no leftover references to the removed fields.
+- **Not verified:** real-GPU frame time and whether the quality transitions feel smooth to a human
+  player (same limitation as every prior performance entry in this file — only software WebGL via
+  headless Chrome was available). Visual screenshot comparison was not re-run this pass (no
+  rendering code changed, only the quality-adaptation mechanism, so none was expected to be
+  needed; flagging this as unverified rather than claiming a check that wasn't done).
+- **Follow-up:** owner decision needed on testmove/ueh DPR tiers (see Decisions above); the
+  `mergeStaticMeshes` predicate redesign remains open for a future stage; `game/world/stats.ts`
+  (a real `renderer.info` + frame-time-percentile probe, distinct from the scene-audit
+  `profiling.ts`) and the lifecycle/loader/audio modules in the spec remain not started.
+
+### 2026-11-13 — Shared World Engine, stage 1: shared utilities extraction
+
+- **Objective:** start the shared-world-engine milestone (`.kiro/specs/shared-world-engine/`) with
+  the lowest-risk, highest-confidence step identified by a prior architecture audit and its
+  second-pass validation: promote the two Mekong-authored utilities that are already genuinely
+  framework-agnostic and have zero Mientay-specific coupling, as pure file moves with no logic
+  change, and leave `mergeStaticMeshes` where it is because it is not equally safe to move (see
+  Decision below).
+- **Preparation:** re-read both candidate files and `MekongWorldEngine.ts`'s call sites in full,
+  grepped the whole `apps/game/src` tree for every consumer of each file, and checked for any use
+  of the `userData.dynamic`/`userData.rigid` convention outside `features/mientay/` (found none).
+  Consulted the `world-architect` agent on the exact destination path and naming before moving
+  anything, since the existing spec, `.kiro/specs/shared-world-engine/design.md`, already
+  specified `game/world/optimize/` and a future `game/world/stats.ts` that must not be confused
+  with the scene-audit module being moved here.
+- **Completed:**
+  - Moved `features/mientay/world/optimize/spatialChunking.ts` (+ its test) to
+    `game/world/optimize/spatialChunking.ts`. Confirmed it operates only on plain
+    `THREE.InstancedMesh`/`THREE.Mesh`/`THREE.InstancedBufferGeometry` inputs with no Mientay type
+    or object-name coupling; its only caller-supplied string is a positional-attribute name
+    (`'aPositionRotation'` for Mientay's grass), already a parameter, not a hardcoded constant.
+  - Moved `features/mientay/engine/profiling.ts` (scene-graph audits: `auditGroups`,
+    `auditTextures`, `auditLights`, `topMeshes`) to `game/world/profiling.ts`, unchanged. Confirmed
+    it takes a plain `THREE.Scene` and returns plain data, with no Mientay-specific assumptions and
+    no caller beyond `MekongWorldEngine.ts`'s own debug hook at the time.
+  - Updated `MekongWorldEngine.ts`'s two import statements (and one doc-comment path reference) to
+    the new locations. No logic in `MekongWorldEngine.ts` changed in this step; only the import
+    paths did.
+  - No re-export stub was left at either old location: each moved file had exactly one production
+    consumer (`MekongWorldEngine.ts`) at the time, so a compatibility shim would have been dead
+    code, not a migration aid.
+- **Decision — `mergeStaticMeshes.ts` was deliberately NOT moved:** unlike the two files above, it
+  depends on conventions used nowhere outside `features/mientay/` — the `userData.dynamic`/
+  `userData.rigid` flags it reads directly, an allowlist of plain-material types, and it mutates
+  and disposes the scene graph it is given (removes and disposes the original meshes it merges).
+  That last property makes it materially riskier for a future React Three Fiber consumer than the
+  two moved files, which only rearrange or read a scene graph without destroying anything in it.
+  It remains at `features/mientay/world/optimize/mergeStaticMeshes.ts`, untouched, pending a
+  predicate-based signature redesign (caller supplies `isDynamic`/`isRigid` instead of the function
+  reading `userData` directly) before any second map adopts it — recorded as open work, not done
+  in this stage.
+- **Files:** renamed `apps/game/src/features/mientay/world/optimize/spatialChunking.ts` and
+  `spatialChunking.test.ts` to `apps/game/src/game/world/optimize/`; renamed
+  `apps/game/src/features/mientay/engine/profiling.ts` to `apps/game/src/game/world/profiling.ts`;
+  edited `apps/game/src/features/mientay/engine/MekongWorldEngine.ts` (import paths and one
+  comment only). `mergeStaticMeshes.ts` and its test were not touched.
+- **Validation:** `pnpm typecheck` clean. `pnpm vitest run src/game/world src/features/mientay` at
+  the time: 4 test files, 41 tests, all passing (the moved `spatialChunking` tests, the
+  `mergeStaticMeshes` tests left in place, and Mientay's adapter tests). `pnpm build` succeeded.
+  Checked against the running dev server on port 5174 (not restarted): `/mientay` loaded through
+  Vite's hot module reload with the new import paths, `window.__MEKONG_DEBUG__` existed and
+  `getState()` reported correct world state. An independent QA pass confirmed the moved files were
+  byte-identical to their originals, found no stale references to the old paths anywhere in the
+  repository, and confirmed `mergeStaticMeshes.ts` was unchanged at its original location.
+- **Not verified:** no real-GPU measurement (same limitation as every performance-adjacent entry in
+  this file); this stage changed no rendering logic, so none was expected to be needed beyond
+  confirming the build and the moved tests still passed.
+- **Follow-up:** this stage's own report recommended extracting `AdaptiveQuality` next, which the
+  stage-2 entry above describes; the `mergeStaticMeshes` predicate redesign and the noise/loader/
+  audio modules in the spec remained open, as later entries also note.
+
+### 2026-11-14 — Prologue: one loading screen, chapter-style UI, hands, audio, draw-call pass
+- **Objective (owner, 9 points):** build the neighborhood behind "Back on your street"; fix camera-turn stutter; remove harsh noise; hands in the neighborhood; drop Ctrl crouch; chapter-style HUD with pause menu (no back button); much higher FPS; call-home lines one at a time like the intro; enter the room directly.
+- **Completed:** `Engine.create` builds in steps with yields, compiles all shaders (`compileAsync`) and draws a warm-up frame with culling off, then waits for steady frames; `ChapterLoadingFlow` takes a `hold` (files 55% + world 45%) and App mounts `ProloguePage` under it during a new-game load. New `KhuphoStoryWorld` (3D only); `ProloguePage` owns intro, HUD (`PrologueHud`: objective, prompt, resume hint, Go home / H), pause menu on Esc, the call overlay (now `useIntroNarration`, one line at a time) and the room (`RoomV2Page embedded`: no title card, auto begin, no back button). Hands (`CharacterArmsViewmodel`) in the neighborhood: E reach, F look, sprint. Ctrl no longer crouches; debug keys T/R/M/G only on `/khupho`. Audio: removed synthesized crickets, cicadas, rain hiss, TV/radio static; rain is a soft low rumble. Performance: house shells merged per material per 24 m cell, people's rigid parts merged per bone group, size-based and interior culling, hidden people and far houses skip matrix updates, 6 instead of 9 point lights, PCF shadows, GTAO never in the story, pixel ratio capped at 1.0 on medium and adapted to frame time (0.7 minimum). Dev-only `__khuphoProbe` (draw categories, timings).
+- **Measured before the merge pass** (headless, dev probe): 1,140 draws at the spawn, 2,730 in the alley (house shells 530/1,080, devices 380/1,230, people 160/345).
+- **Validation:** `pnpm typecheck` and `pnpm build` pass; vitest for app, loading, prologue, i18n and intro (15 files, 192 tests) pass. The full suite, the new draw counts and the whole flow in a browser were not run after the last changes.
+- **Follow-up:** re-measure draws/FPS on the owner's Mac; full `pnpm test`.
+
+### 2026-11-14 — Neighborhood: battery station facing, performance pass, menu street ambience
+- **Objective (owner):** the battery-swap station faced the wall; the neighborhood lagged (about 17 FPS); replace the moving-vehicle sound with the main-menu street sound.
+- **Measured cause of the lag** (headless Chrome, `renderer.info`, spawn point): about 15,600 separate meshes; one frame drew 8,206 calls, of which only 1,398 were the main pass and the rest the sun's shadow pass (96 m shadow frustum, every house drawn once per material, every small device and body part separately), redrawn every frame.
+- **Completed:**
+  - `world/shadowProxy.ts`: static house and street pieces are merged per 24 m cell into 21 position-only shadow proxies (never visible: no color or depth writes, depth test always fails); the originals stop casting.
+  - `world/distanceCull.ts`: meshes under 0.6 m are not drawn beyond 34/26/20 m (high/medium/low) and pieces under 10 m cast sun shadows only within a reach that grows with their size (a 0.1 m pot about 12 m, larger pieces up to 28 m plus their size); meshes under 0.12 m never cast. Uses a camera layer, so it does not fight the code that shows and hides people and devices.
+  - Sun shadow map redrawn every second frame; shadow map 2048 on high (was 4096), 1536 otherwise; pixel ratio at most 1.5 on high (was 1.75); GTAO samples 12 → 8; no canvas MSAA and no preserved drawing buffer (the composer already multisamples).
+  - Result at the spawn: shadow frames 8,206 → 2,316 draw calls, other frames 1,406, about 4.4 times fewer calls on average. The headless renderer cannot show the real FPS gain.
+  - Battery-swap station turned 180° so its doors face the street; the banh mi vendor now stands beside the cart, facing the street.
+  - Audio: the synthesized traffic noise, city hiss and engine drones were replaced by `menu_ambient.mp3` (same file as the main menu), through the outdoor bus so it is muffled indoors and softer in the rain. During the prologue the menu's own copy of that sound fades out so it does not play twice.
+- **Files:** new `features/khupho/world/{shadowProxy,distanceCull}.ts`; edited `world/{engine,audio,streetProps,people}.ts`, `app/App.tsx`.
+- **Validation:** `pnpm typecheck`, `pnpm test` (132 files, 1206 tests) and `pnpm build` pass. Screenshot at the spawn: lockers face the street, tree and balcony shadows still render.
+- **Not verified:** FPS on a real GPU; possible shadow pop on small objects at the reach distance.
+
+### 2026-11-14 — Prologue opens with the Chapter 1 welcome narration
+- **Objective (owner):** remove the "Building the neighborhood..." screen and the "Hẻm 12 / Click to begin" card from the prologue and play the recorded welcome intro instead.
+- **Completed:** in story mode `KhuphoPage` no longer shows its own loading screen or intro card; `ProloguePage` renders `ChapterIntroOverlay` (the same welcome paragraphs and `chapter1_voice*start_*` clips as the street chapter) over the neighborhood. It shows "preparing" until the world and street props are built, then narrates; its final button starts the walk and takes the pointer. New optional `controlIds` prop on the overlay lists only move, look and interact here (the neighborhood has no phone, journal or pause menu). Unused strings `khupho.game.story.start/hintPlace/hintHome` removed. `/khupho` (prototype route) is unchanged.
+- **Files:** `features/khupho/KhuphoPage.tsx`, `features/prologue/ProloguePage.tsx`, `features/chapter1/intro/ChapterIntroOverlay.tsx`, `i18n/locales/{en,vi}/worlds/khupho.ts`.
+- **Validation:** `pnpm typecheck` passes; `vitest` for `src/features`, `src/app`, `src/i18n` passes (66 files, 648 tests). Not checked by hand in the browser.
+
+### 2026-11-14 — Room v2, first-person hands, room lighting, and the new-game prologue (neighborhood → home)
+- **Objective:** replace the room prototype with the owner's `Asset3D/roomv2`, add the first-person hands, fix the room lighting issues found last time without adding cost, localize every string, and make the neighborhood the start of a new game: explore, dusk and rain, a call to go home, then the room with a loading screen.
+- **Completed:**
+  - `/roomv1` became `/roomv2` (`features/roomv2/`, engine from `Asset3D/roomv2/src/game`: sitting at the desk, typing the reply e-mail, fridge that opens, wall clock, dust motes). Every engine string (prompts, inspect lines, call lines, laptop and phone screens) goes through `game/strings.ts` to `worlds:roomv2.game.*` (en/vi). Fictional details: reply address `@company.example`, phone numbers `+000 …`, no emoji in the text.
+  - Hands: the shared `CharacterArmsViewmodel` (same GLB as the other worlds) is attached to the room camera. Reach animation for switches, lamps, fridge, kettle, window, door; inspect animation for note, receipts, mug, photo, phone; stowed while seated, before start and after the ending. Hands do not cast shadows, so they never force a shadow redraw.
+  - Lighting: (1) shadows were redrawn every frame (`needsUpdate = true` in the loop, four 1024 px spot shadow maps); they are now redrawn only for two frames after something that casts or receives them changes (light levels, chair, fridge door, window sash), so switching lights or moving the chair still updates them and an idle room costs no shadow passes. (2) Desk lamp spot 1.1 → 2.6 and fill 0.25 → 0.4 so the pool of light matches the bright bulb. (3) The kitchen `RectAreaLight` (no shadows, unbounded reach, costly in every material) became a short shadowless spot (3.6 m range) that cannot light past the kitchen walls. The window `RectAreaLight` was kept: it sits outside the window and points into the room, which is what it represents.
+  - Neighborhood: the banh mi cart, the battery-swap station and the penguin trash bin come from the street GLB, cut into `public/assets/3d/optimized/street-props.optimized.glb` (1.37 MB, new `scripts/extract-street-props.cjs`), scaled to real sizes, placed on the north sidewalk with colliders, and the story spawn is in front of them. The procedural cart that stood there was removed. Engine strings are localized under `worlds:khupho.game.*` (shop signs stay Vietnamese as scenery). A click after the pointer was released now takes the pointer back instead of interacting.
+  - Prologue (`features/prologue/`): New Game → loading → `ProloguePage` (only for a playable chapter and a new game; Continue and `?skip-prologue` go to the street chapter as before). Story mode starts at 16:36 with the debug panel hidden; rain starts at 17:42; at 18:24 (once it is raining) the call-home overlay shows three narrated lines with "Go home" / "Look around a little longer". A "Go home" button is always available. The room chunk and the hands are prefetched once the player starts walking; going home shows the standard loading screen with awareness tips and real progress (room code, hands, room built), held at least 1.8 s, then the room. The flow ends in the room.
+  - Voice script for the call-home lines: `docs/voice/PROLOGUE_HOME_VOICE_SCRIPT.md` (clips go in `public/audio/prologue/{en,vi}/`; missing clips fall back to timed text).
+- **Files:** new `features/prologue/*` (+ `prologue.test.ts`), `features/khupho/world/{streetProps,strings}.ts`, `features/roomv2/game/strings.ts`, `scripts/extract-street-props.cjs`, `public/assets/3d/optimized/street-props.optimized.glb`, `docs/voice/PROLOGUE_HOME_VOICE_SCRIPT.md`; renamed `features/roomv1` → `features/roomv2`, `worlds/roomv1.ts` → `worlds/roomv2.ts`; edited `app/App.tsx`, `app/App.chapter.test.tsx`, `config/assetPaths.ts`, `i18n/locales/{en,vi}/{loading.ts,worlds/khupho.ts,worlds/index.ts}`, khupho `engine/devices/rooms/house/facade/neighborhood.ts`, `KhuphoPage.tsx`.
+- **Validation:** `pnpm typecheck`, `pnpm test` (130 files, 1177 tests) and `pnpm build:game` pass (chunks: prologue 5.7 kB, khupho 171 kB, roomv2 384 kB). Headless Chrome (software WebGL, very slow): `/roomv2` renders with the desk and kitchen lights on; `/khupho` shows the three props at the expected size on the sidewalk.
+- **Not verified:** the full New Game → prologue → room flow by hand, the hands on screen in the room, frame rate on a real GPU, and that no shadow is stale in some case not covered by the signature (for example the phone vibrating, which is not a shadow caster of note).
+- **Known limitations:** the battery-swap station texture shows a real-brand logo and the cart sign a phone-style number (both from the owner's street GLB, also visible in the main menu); the rain/dusk times are fixed; nothing is saved during the prologue (a reload restarts it); the street chapter after the room is not wired yet.
+- **Follow-up:** owner records the 6 clips; replace the branded texture; continue the story from the room.
+
+### 2026-11-13 — New prototype routes `/khupho` and `/roomv1`
+- **Objective:** add the owner prototypes `Asset3D/khupho` (Vietnamese neighborhood) and `Asset3D/roomV1` ("After the Rain" apartment) as routes, before they are integrated into the official story.
+- **Completed:**
+  - `features/khupho/` (engine ported as-is from `Asset3D/khupho/src/world`, new `KhuphoPage`, `placeNames.ts`) and `features/roomv1/` (engine from `Asset3D/roomV1/src/game`, new `RoomV1Page`). Both are standalone engines (own renderer, input, audio), lazy-loaded in `app/App.tsx` like `/mientay` (chunks `khupho` 167 kB, `roomv1` 366 kB), with a back-to-menu button.
+  - The pages' UI is localized (`i18n/locales/{en,vi}/worlds/{khupho,roomv1}.ts`), icons are `lucide-react` instead of emoji, quality follows the global graphics setting.
+  - Fixes while porting: `khupho` listeners (`mouseup`, `mousemove`, `pointerlockchange`) were never removed and its `AudioContext` was never closed, so sound would keep playing after leaving the route; both are now released in `dispose()`, and pointer lock is exited. Constructor parameter properties were rewritten because the game uses `erasableSyntaxOnly`. The `window.__engine` debug global was removed from `roomv1`.
+  - `@keyframes cap` added to `styles/index.css` (used by `roomv1` captions).
+- **Files:** new `features/khupho/**`, `features/roomv1/**`, `i18n/locales/{en,vi}/worlds/{khupho,roomv1}.ts`; edited `app/App.tsx`, `i18n/locales/{en,vi}/worlds/index.ts`, `styles/index.css`.
+- **Validation:** `pnpm typecheck`, `pnpm build:game` and `pnpm test` (128 files, 1156 tests) pass. The routes were not opened in a browser in this task.
+- **Known limitations:** texts produced by the engines (prompts, captions, phone lines, weather, location names) are still Vietnamese in both languages; `khupho` has no `src/assets/tex` texture set in the repo (it falls back to procedural textures, as the prototype README warns); `roomv1` canvas textures request `Patrick Hand` and `Be Vietnam Pro`, which the prototype loaded from Google Fonts and the game does not (fallback fonts are used); the mobile joystick of `khupho` was not ported; `khupho` still needs vehicle and NPC models and a performance pass.
+- **Follow-up:** `roomv1` details before integration: lighting, sitting on the chair, hand actions; localize engine texts; performance pass on `khupho`.
 
 ### 2026-11-13 — Kiro engineering workflow: steering, specs, agents, hooks, skills, MCP, scenario properties
 

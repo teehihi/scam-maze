@@ -6,6 +6,7 @@ import { hingeDoor, hit } from './devices';
 import type { Ctx, Device, Room, Spot } from './types';
 import { buildFacade, buildRoof, buildYard } from './facade';
 import { furnishRoom, furnishExtras } from './rooms';
+import { HOME_FLOOR, HOME_HOUSE_NO, type Doorway } from './home';
 
 /** Scratch for `House.toLocal` (called several times per frame per house). */
 const _local = new THREE.Vector3();
@@ -50,6 +51,9 @@ export class House {
   spots: Record<string, Spot> = {};
   devices: Record<string, Device> = {};
   doors: Device[] = [];
+  /** Rear bedroom door of house no. 59 and the white doorway behind it (see home.ts). */
+  bedDoor?: Device;
+  doorway?: Doorway;
   rnd: () => number;
   ext: string;
   spineX: number;
@@ -227,6 +231,22 @@ export class House {
     return { a, b, y0: y, y1: y + hg };
   }
 
+  /**
+   * Behind the rear bedroom's door of house no. 59 stands a plain white panel, as bright as a
+   * portal: opening the door shows it, and stepping into it is the way into the player's room.
+   */
+  private whiteDoorway(door: Device, x0: number, x1: number, y0: number, height: number) {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, toneMapped: false, fog: false, transparent: false, depthWrite: true });
+    mat.color.setScalar(3); // above the bloom threshold, so the edges glow
+    // A block, not a sheet: it fills the doorway to a depth of 0.6 m, so from no angle (nor with the eye
+    // right up to it) is anything of the room behind it visible.
+    const depth = 0.6;
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0 - 0.02, height, depth), mat);
+    panel.position.set((x0 + x1) / 2, y0 + height / 2, this.kz0 + 0.08 + depth / 2); // starts behind the closed door's leaf
+    this.group.add(panel);
+    this.bedDoor = door;
+    this.doorway = { x0, x1, z: this.kz0 + 0.02, z1: this.kz0 + this.ph + 0.5, height };
+  }
   // ---------- build ----------
   private buildLite() {
     const { W, D, b } = this;
@@ -309,6 +329,7 @@ export class House {
       B.wallX(t, W - t, zf, ph, y0, y1, bedPaint(zf - 0.2), bedPaint(zf + 0.3), [door1], 'woodP:#efeae0', { aoN: true, aoP: true, skirt: 'woodP:#e9e4d8' });
       const dx1 = t + 0.25, dx2 = Math.min(xs - 0.2, t + 1.1);
       const door2: Open = this.intDoor('x', kz0, ph, dx1, dx2, k, { swing: 1, hinge: 'a', label: tr('noun.bedroomDoor') });
+      if (k === HOME_FLOOR && this.spec.no === HOME_HOUSE_NO) this.whiteDoorway(this.doors[this.doors.length - 1], dx1, dx2, y0, door2.y1 - y0);
       const xsplit = this.hasWell ? xs - ph : W - t;
       B.wallX(t, xsplit, kz0, ph, y0, y1, hallPaint, bedPaint(kz0 + 0.3), [door2], 'woodP:#efeae0', { aoN: true, aoP: true, skirt: 'woodP:#e9e4d8' });
       if (this.hasWell) B.wallX(xsplit, W - t, kz0, ph, y0, y1, ext, bedPaint(kz0 + 0.3), [{ a: xs + 0.35, b: W - t - 0.35, y0: y0 + 1.0, y1: y0 + 2.35, solid: true }], 'woodP:#efeae0', { aoP: true, skirt: 'woodP:#e9e4d8' });

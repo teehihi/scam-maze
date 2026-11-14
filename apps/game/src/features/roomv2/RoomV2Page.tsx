@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import type { GameSettings } from "@scammaze/shared-types";
 import { Engine, type UIState } from "./game/engine";
+import type { RoomOptions } from "./game/outside";
 import { setTranslator } from "./game/strings";
 
 interface RoomV2PageProps {
@@ -17,6 +18,8 @@ interface RoomV2PageProps {
   embedded?: boolean;
   /** Pointer lock and started state for the story page's HUD. */
   onUI?: (ui: UIState) => void;
+  /** Part of the neighborhood (house no. 59): built in standby, shown on `activate`, left through the door. */
+  options?: RoomOptions;
 }
 
 type RoomQuality = "high" | "low";
@@ -40,7 +43,7 @@ const SHADOW = { textShadow: "0 1px 6px rgba(0,0,0,.9)" } as const;
  * Prototype route `/roomv2`: the player's apartment, "After the Rain". It is a standalone engine
  * kept apart from the story chapters until it is integrated.
  */
-export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, onReady, embedded = false, onUI }) => {
+export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, onReady, embedded = false, onUI, options }) => {
   const { t } = useTranslation("worlds");
   const mountRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<Engine | null>(null);
@@ -52,6 +55,8 @@ export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, 
   onReadyRef.current = onReady;
   const onUIRef = useRef(onUI);
   onUIRef.current = onUI;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
   const embeddedRef = useRef(embedded);
   embeddedRef.current = embedded;
 
@@ -65,10 +70,10 @@ export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, 
     // Let the loading text paint before the heavy texture generation starts.
     const timer = window.setTimeout(() => {
       try {
-        const engine = new Engine(el, (next) => { setUI(next); onUIRef.current?.(next); }, quality);
+        const engine = new Engine(el, (next) => { setUI(next); onUIRef.current?.(next); }, quality, optionsRef.current);
         engineRef.current = engine;
         // In the story the door is already open: the player walks straight in.
-        if (embeddedRef.current) engine.begin();
+        if (embeddedRef.current && !optionsRef.current?.standby) engine.begin();
         onReadyRef.current?.(engine);
       } catch (err) {
         console.error(err);

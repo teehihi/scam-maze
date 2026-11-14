@@ -1,10 +1,18 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, CloudRain, CloudSun, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { GameSettings } from "@scammaze/shared-types";
 import { Engine, type Hud } from "./world/engine";
 import { setTranslator } from "./world/strings";
 import { KHUPHO_PLACE_NAMES } from "./placeNames";
+import type { RoomOptions } from "../roomv2/game/outside";
+import type { Engine as RoomEngine, UIState as RoomUIState } from "../roomv2/game/engine";
+
+// The room is its own chunk, downloaded when the player comes near house no. 59.
+const RoomV2Page = lazy(() => import("../roomv2").then((module) => ({ default: module.RoomV2Page })));
+/** White doorway: how long the screen takes to white out, and to clear again in the other place. */
+const WHITE_IN_MS = 150;
+const WHITE_OUT_MS = 700;
 
 interface KhuphoPageProps {
   settings: GameSettings;
@@ -44,8 +52,60 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
   const [hud, setHud] = useState<Hud | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * The room from `/roomv2`: built in standby when the player comes near house no. 59 (`roomOptions`),
+   * shown while they are inside (`inRoom`). The white layer covers every cut between the two.
+   */
+  const [roomOptions, setRoomOptions] = useState<RoomOptions | null>(null);
+  const [inRoom, setInRoom] = useState(false);
+  const [roomUI, setRoomUI] = useState<RoomUIState | null>(null);
+  const [white, setWhite] = useState({ on: false, ms: WHITE_IN_MS });
+  const roomRef = useRef<RoomEngine | null>(null);
+  const wantEnter = useRef(false);
+  const timers = useRef<number[]>([]);
+  const later = useCallback((ms: number, fn: () => void) => { timers.current.push(window.setTimeout(fn, ms)); }, []);
   const qualityRef = useRef(settings.graphicsQuality);
   qualityRef.current = settings.graphicsQuality;
+
+  /** The player stepped into the doorway: the screen is white, so swap to the room (waits if it is still building). */
+  const goInside = useCallback(() => {
+    const street = engineRef.current, room = roomRef.current;
+    if (!street || !room) return false;
+    wantEnter.current = false;
+    street.suspend();
+    setInRoom(true);
+    room.activate();
+    later(60, () => setWhite({ on: false, ms: WHITE_OUT_MS }));
+    return true;
+  }, [later]);
+  const goInsideRef = useRef(goInside);
+  goInsideRef.current = goInside;
+  const enterHome = useCallback(() => {
+    setWhite({ on: true, ms: WHITE_IN_MS });
+    engineRef.current?.setInputBlocked(true);
+    later(WHITE_IN_MS + 30, () => { if (!goInsideRef.current()) wantEnter.current = true; });
+  }, [later]);
+  const enterHomeRef = useRef(enterHome);
+  enterHomeRef.current = enterHome;
+  /** Back from the room: the player stands in the hall outside its door, the screen clears from white. */
+  const leaveHome = useCallback(() => {
+    const street = engineRef.current;
+    roomRef.current?.deactivate();
+    setInRoom(false);
+    setRoomUI(null);
+    street?.placeAtHome();
+    street?.setInputBlocked(false);
+    street?.resume();
+    later(150, () => street?.lock());
+    later(120, () => setWhite({ on: false, ms: WHITE_OUT_MS }));
+  }, [later]);
+  const leaveHomeRef = useRef(leaveHome);
+  leaveHomeRef.current = leaveHome;
+  const nearHome = useCallback(() => {
+    setRoomOptions({ standby: true, onExitStart: () => setWhite({ on: true, ms: 500 }), onExit: () => leaveHomeRef.current() });
+  }, []);
+  const nearHomeRef = useRef(nearHome);
+  nearHomeRef.current = nearHome;
 
   useEffect(() => {
     const el = mountRef.current;
@@ -54,7 +114,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
     let cancelled = false;
     // Prompts, room names and the weather label all read from the active language.
     setTranslator((key, options) => (t as unknown as (k: string, o?: object) => string)(key, options));
-    Engine.create(el, setHud, { quality: ENGINE_QUALITY[qualityRef.current] }, undefined, () => cancelled)
+    Engine.create(el, setHud, { quality: ENGINE_QUALITY[qualityRef.current], onNearHome: () => nearHomeRef.current(), onEnterHome: () => enterHomeRef.current() }, undefined, () => cancelled)
       .then((built) => {
         if (cancelled) { built.dispose(); return; }
         engine = built;
@@ -67,6 +127,8 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
       });
     return () => {
       cancelled = true;
+      timers.current.forEach(window.clearTimeout);
+      timers.current = [];
       engine?.dispose();
       engineRef.current = null;
     };
@@ -74,6 +136,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
 
   const engine = () => engineRef.current;
   const started = hud?.started ?? false;
+  const roomPaused = inRoom && !!roomUI?.started && !roomUI.locked && !roomUI.cursorMode && !roomUI.inspecting;
 
   return (
     <div className="fixed inset-0 select-none overflow-hidden bg-black">
@@ -142,7 +205,32 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
         </div>
       )}
 
-      {started && hud && (
+      {roomOptions && (
+        // Built in standby, hidden (not removed) until the player is inside, so it keeps its size and its compiled shaders.
+        <div className={`absolute inset-0 z-30 ${inRoom ? "" : "invisible pointer-events-none"}`}>
+          <Suspense fallback={null}>
+            <RoomV2Page
+              settings={settings}
+              onBackToMenu={onBackToMenu}
+              embedded
+              options={roomOptions}
+              onUI={setRoomUI}
+              onReady={(roomEngine) => {
+                roomRef.current = roomEngine;
+                if (wantEnter.current) goInsideRef.current();
+              }}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {roomPaused && (
+        <button type="button" onClick={() => roomRef.current?.lock()} className="absolute inset-0 z-40 flex cursor-pointer items-center justify-center bg-black/35">
+          <span className="text-sm uppercase tracking-[0.3em] text-white/70">{t("roomv2.pause")}</span>
+        </button>
+      )}
+
+      {started && hud && !inRoom && (
         <>
           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className={`rounded-full transition-all ${hud.prompt ? "h-3 w-3 bg-amber-300/90 ring-2 ring-white/60" : "h-1.5 w-1.5 bg-white/70"}`} />
@@ -204,6 +292,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
           </div>
         </>
       )}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[45] bg-white" style={{ opacity: white.on ? 1 : 0, transition: `opacity ${white.ms}ms ease` }} />
     </div>
   );
 };
