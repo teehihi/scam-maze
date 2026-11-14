@@ -40,6 +40,10 @@ const CITY_ROOM = 0.04;
 const CITY_WINDOW_CLOSED = 0.07;
 const CITY_WINDOW_OPEN = 0.25;
 
+/** Ringtone and vibration levels at the phone; the ringtone must stay the louder of the two. */
+const RING_GAIN = 1.6;
+const VIBE_GAIN = 0.09;
+
 export class AudioEngine {
   listener: THREE.AudioListener;
   ctx: AudioContext;
@@ -188,7 +192,8 @@ export class AudioEngine {
     }
     if (this.ringSrc || !this.ringBuf || !e || this.ctx.state === 'closed') return;
     const src = this.ctx.createBufferSource(); src.buffer = this.ringBuf; src.loop = true;
-    const g = this.gain(0.9); src.connect(g); g.connect(e.input); src.start();
+    // The ringtone file peaks at -7.7 dBFS, so 1.6 stays below clipping and sits clearly above the vibration.
+    const g = this.gain(RING_GAIN); src.connect(g); g.connect(e.input); src.start();
     this.ringSrc = src; this.ringGain = g;
   }
   private burst(dest: AudioNode, opts: { f: number; q?: number; type?: BiquadFilterType; dur: number; vol: number; delay?: number; buf?: AudioBuffer }) {
@@ -258,7 +263,7 @@ export class AudioEngine {
   }
   setFan(..._args: unknown[]): void {}
   setFridge(..._args: unknown[]): void {}
-  setVibe(on: boolean) { this.vibeGain?.gain.setTargetAtTime(on ? 0.22 : 0, this.ctx.currentTime, 0.012); }
+  setVibe(on: boolean) { this.vibeGain?.gain.setTargetAtTime(on ? VIBE_GAIN : 0, this.ctx.currentTime, 0.012); }
   duckCity(v: number) {
     this.cityDuck?.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
     this.emit.window?.pa.gain.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);

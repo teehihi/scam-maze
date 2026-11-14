@@ -7,6 +7,17 @@ const STREET_AMBIENT_URL = '/assets/audio/menu_ambient.mp3';
 /** Recorded rain bed and thunder clap (owner-supplied). */
 const RAIN_URL = '/audio/rain.mp3';
 const THUNDER_URL = '/audio/thunder.mp3';
+/** Recorded footsteps (owner-supplied): one dry step, and a looping walk on a wet street. */
+const FOOTSTEP_URL = '/audio/footstep.mp3';
+const RAIN_WALK_URL = '/audio/rainWalking.mp3';
+/** The single step inside footstep.mp3 starts after ~0.37 s of silence; skip it so steps land on time. */
+const FOOTSTEP_OFFSET = 0.35;
+const FOOTSTEP_LEN = 0.3;
+/** Rain above this level (outdoors) switches footsteps to the wet walking loop. */
+const WET_RAIN = 0.3;
+/** Wet loop speed: normal walk, and a faster, more hurried pace while running. */
+const RAIN_WALK_RATE = 1;
+const RAIN_RUN_RATE = 1.5;
 
 type Loop = { stop: () => void; panner: PannerNode | null; gain: GainNode; on: boolean; kind: string };
 
@@ -60,9 +71,21 @@ export class AudioSys implements Sfx {
       .then((buf) => { if (this.ac !== ac) return; const s = ac.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(rainG); s.start(0, Math.random() * Math.max(0, buf.duration - 1)); })
       .catch((err) => console.warn('[khupho] rain sound failed to load', err));
     load(THUNDER_URL).then((buf) => { if (this.ac === ac) this.thunderBuf = buf; }).catch((err) => console.warn('[khupho] thunder sound failed to load', err));
+    load(FOOTSTEP_URL).then((buf) => { if (this.ac === ac) this.stepBuf = buf; }).catch((err) => console.warn('[khupho] footstep sound failed to load', err));
+    // Wet walking: one looping source whose gain follows the player's movement and whose rate
+    // rises while running. Player footsteps are not muffled, so it goes straight to master.
+    const wetG = ac.createGain(); wetG.gain.value = 0; wetG.connect(this.master); this.wetGain = wetG;
+    load(RAIN_WALK_URL)
+      .then((buf) => { if (this.ac !== ac) return; const s = ac.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(wetG); s.start(0, Math.random() * Math.max(0, buf.duration - 1)); this.wetSrc = s; })
+      .catch((err) => console.warn('[khupho] rain walking sound failed to load', err));
     chain('room', this.brownBuf, [lp(160)], this.inBus);
   }
   private thunderBuf: AudioBuffer | null = null;
+  private stepBuf: AudioBuffer | null = null;
+  private wetSrc: AudioBufferSourceNode | null = null;
+  private wetGain: GainNode | null = null;
+  /** True while outdoors in rain: steps come from the wet loop instead of single steps. */
+  private wet = false;
   /** One thunder clap at `level` (0..1); a little slower and darker for distant strikes. */
   thunder(level: number) {
     const ac = this.ac, buf = this.thunderBuf;
@@ -109,10 +132,32 @@ export class AudioSys implements Sfx {
     }
   }
   step(surface: string, run: boolean) {
-    if (!this.ac) return; const v = run ? 0.3 : 0.2;
+    if (!this.ac || this.muted) return;
+    // In rain outdoors the wet walking loop carries the steps (see setWalk).
+    if (this.wet && this.wetSrc) return;
+    const buf = this.stepBuf;
+    if (buf) {
+      const ac = this.ac, t = ac.currentTime;
+      const s = ac.createBufferSource(); s.buffer = buf;
+      s.playbackRate.value = (run ? 1.12 : 1) * (0.93 + Math.random() * 0.14);
+      const g = ac.createGain(); g.gain.value = (run ? 0.75 : 0.55) * (0.9 + Math.random() * 0.2);
+      s.connect(g); g.connect(this.master); s.start(t, FOOTSTEP_OFFSET, FOOTSTEP_LEN);
+      return;
+    }
+    // Synthesized fallback until footstep.mp3 has loaded.
+    const v = run ? 0.3 : 0.2;
     if (surface === 'wood') { this.burst({ dur: 0.09, type: 'lowpass', f: 700, vol: v * 1.2 }); this.tone(130, 90, 0.08, v * 0.4); if (Math.random() < 0.18) this.tone(380, 330, 0.12, 0.02, 'sawtooth'); }
     else if (surface === 'tile') { this.burst({ dur: 0.05, f: 2200, q: 1.5, vol: v * 0.8 }); this.burst({ dur: 0.08, type: 'lowpass', f: 500, vol: v * 0.5 }); }
     else this.burst({ dur: 0.08, f: 900, q: 0.8, vol: v * 0.7 });
+  }
+  /** Player ground speed (m/s) and run state each frame; drives the wet walking loop. */
+  setWalk(speed: number, running: boolean) {
+    const ac = this.ac, s = this.wetSrc, g = this.wetGain;
+    if (!ac || !s || !g) return;
+    const t = ac.currentTime;
+    const on = this.wet && speed > 0.3;
+    g.gain.setTargetAtTime(on ? (running ? 0.85 : 0.6) : 0, t, on ? 0.06 : 0.12);
+    s.playbackRate.setTargetAtTime(running ? RAIN_RUN_RATE : RAIN_WALK_RATE, t, 0.15);
   }
   horn(pos: THREE.Vector3) { const n = performance.now(); if (n - this.lastHorn > 6000) { this.lastHorn = n; this.play('horn', pos); } }
 
@@ -170,6 +215,7 @@ export class AudioSys implements Sfx {
     set('street', (0.32 + 0.1 * day + 0.08 * rush) * (1 - 0.35 * env.rain));
     set('rain', 0.55 * env.rain);
     set('room', 0.06 * indoor);
+    this.wet = env.rain > WET_RAIN && indoor < 0.5;
     // birds
     this.birdT -= dt;
     if (this.birdT < 0) {

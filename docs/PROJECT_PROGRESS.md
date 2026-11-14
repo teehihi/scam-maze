@@ -210,6 +210,19 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+
+### 2026-11-13 — Prologue audio and room lamp fixes
+
+- **Objective:** owner feedback: desk lamp looked upside down; phone vibration louder than the ringtone; street footsteps should use recorded files (`rainWalking.mp3` in rain, faster while running; `footstep.mp3` otherwise).
+- **Completed:**
+  - Room v2 desk lamp: the shade is now turned so its open end faces the desk spot's target (it faced back toward the base). The light itself is unchanged.
+  - Room v2 phone: ringtone gain 0.9 → 1.6 (file peaks at -7.7 dBFS), vibration 0.22 → 0.09, so the ringtone is clearly louder.
+  - Khupho footsteps: `footstep.mp3` plays its single step per stride (slight random pitch, a bit faster and louder when running). Outdoors with rain above 0.3, `rainWalking.mp3` loops while the player moves, at 1.0× walking and 1.5× running. The synthesized steps remain only as a fallback until the file loads.
+- **Files:** `apps/game/src/features/khupho/world/{audio,engine}.ts`, `apps/game/src/features/roomv2/game/{audio,apartment}.ts`, new `apps/game/public/audio/{footstep,rainWalking}.mp3` (owner-supplied), this file.
+- **Validation:** `pnpm typecheck`, `pnpm build`, `vitest --run src/features/prologue src/app` (31 passed). Headless screenshot of `/roomv2` with the desk lamp on confirmed the shade orientation.
+- **Not verified:** audio levels and the rain-walk loop were not checked by ear.
+- **Deviations:** none. **Follow-up:** tune gains after the owner listens.
+
 ### 2026-11-14 — Room v2: smoother camera turns without visual changes
 - **Owner report:** turning the camera in the room hitches a little.
 - **Findings** (code review plus a headless CPU profile of each frame phase; the headless renderer cannot show GPU frame time): the per-frame JS is small (hover raycast about 0.5 ms, devices about 0.45 ms, the rest under 0.1 ms). The camera applies the mouse directly (no smoothing), so the turn speed itself is not the cause. Causes found: (1) while seated the chair swivels with the view, and that was part of the shadow signature, so every frame of a turn redrew all four 1024 px spot shadow maps; (2) the phone's 390x844 canvas was redrawn and re-uploaded twice a second even when nothing on it changed; (3) `updateCamera`, `movePlayer` and `updateHover` allocated new vectors, quaternions and eulers every frame (GC pauses); (4) Chrome sometimes reports a single huge pointer-lock jump.
