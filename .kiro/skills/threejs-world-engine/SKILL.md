@@ -32,11 +32,29 @@ Shared: `features/player` (`CharacterRuntime`, `FirstPersonPlayer`, `usePlayerCo
 3. Reuse loaders: `StreetGLTFLoader` / `streetLoaderExtensions` (Meshopt + byte progress),
    `CityBackdrop` loader, `LexusVehicle` loader. No KTX2/Draco is configured.
 4. Many copies of a mesh: `InstancedMesh`; many static meshes with one material:
-   `mientay/world/optimize/mergeStaticMeshes.ts`; large instanced sets: `spatialChunking.ts`.
+   `mientay/world/optimize/mergeStaticMeshes.ts` (Mekong-only for now, see the shared-world-engine
+   spec for why); large instanced sets: `game/world/optimize/spatialChunking.ts` (shared, Mekong is
+   the only adopter today).
 5. Quality: change cost through `graphicsQuality` (R3F: DPR 1.0/1.25/1.5, shadows only on high;
-   Mekong: `performanceMode`, render scale 0.7-1.0). Never lower everyone's quality.
-6. Context loss: only `GameCanvas` and `ChapterOneCanvas` handle `webglcontextlost`; a new canvas
-   should too.
+   Mekong and Hue: adaptive pixel ratio via the shared `game/world/quality.ts` `AdaptiveQuality`,
+   each with its own thresholds). Never lower everyone's quality.
+6. Context loss: all six hosts now call `event.preventDefault()` on `webglcontextlost`, so the
+   browser is allowed to restore the context instead of leaving the canvas dead permanently. What
+   each host does beyond that differs, and none of this is a fallback UI:
+   - `GameCanvas`: logs only (`console.warn`/`console.info`); separately has a `CanvasErrorBoundary`
+     that catches thrown React render errors and shows `WebGLFallback` — a different mechanism,
+     not triggered by context loss itself.
+   - `ChapterOneCanvas`: logs, and also reports the lost/restored state up to `ChapterOnePage` via
+     `onWebGLContextChange`, which gates whether the 3D phone model is allowed to mount
+     (`modelAllowed`) — a real behavioral response, still with no dedicated fallback screen.
+   - `HueWorldEngine` / `MekongWorldEngine`: via the shared `watchContextLoss`
+     (`game/world/lifecycle.ts`); pause their own `requestAnimationFrame` loop on loss and resume
+     it on restore (both own an explicit loop, unlike the R3F hosts). No UI feedback.
+   - `TestMoveCanvas` / `UEHCanvas`: via the shared `game/world/ContextLossWatcher.tsx` (an R3F
+     component wrapping `watchContextLoss`); console-only, no loop pause (R3F's own loop keeps
+     running; three.js GL calls are no-ops while the context is lost) and no UI feedback.
+   Neither `TestMoveCanvas` nor `UEHCanvas` has an error boundary or fallback screen at all — a
+   thrown render error unrelated to context loss would still blank either page.
 7. A second WebGL context costs memory: prefer an existing canvas.
 
 ## Measuring
