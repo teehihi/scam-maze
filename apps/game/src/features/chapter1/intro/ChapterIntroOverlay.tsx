@@ -24,6 +24,8 @@ export interface ChapterIntroOverlayProps {
   onBegin: () => void;
   /** Test seam for the voice clips. */
   createAudio?: (src: string) => HTMLAudioElement;
+  /** Controls listed after the last paragraph; defaults to all of them (the street chapter). */
+  controlIds?: readonly IntroControlId[];
 }
 
 /** Key caps are physical labels and stay the same in every language ("mouse" is translated). */
@@ -36,12 +38,15 @@ const CONTROLS = [
   { id: "pause", keys: ["Esc"] },
 ] as const;
 
+export type IntroControlId = (typeof CONTROLS)[number]["id"];
+
 export const ChapterIntroOverlay: React.FC<ChapterIntroOverlayProps> = ({
   ready,
   mode,
   voiceGain,
   onBegin,
   createAudio,
+  controlIds,
 }) => {
   const { t } = useTranslation("chapter1");
   const locale = useGameLocale();
@@ -150,7 +155,7 @@ export const ChapterIntroOverlay: React.FC<ChapterIntroOverlayProps> = ({
                 {t("intro.controls.heading")}
               </p>
               <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-[#d6d1ea]">
-                {CONTROLS.map((control) => (
+                {CONTROLS.filter((control) => !controlIds || controlIds.includes(control.id)).map((control) => (
                   <li key={control.id} className="flex items-center gap-1.5">
                     {control.keys.length === 0 ? (
                       <kbd className="rounded border border-[#4a4466] bg-[#1d1b2b]/90 px-1.5 py-0.5 font-mono text-[11px] text-[#f7f5ff]">

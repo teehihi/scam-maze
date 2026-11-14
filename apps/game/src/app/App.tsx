@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { GameCanvas } from "../game/core/GameCanvas";
 import { MainMenuOverlay } from "../features/menu/MainMenuOverlay";
 import { TestMovePage } from "../features/testmove";
@@ -8,6 +9,9 @@ import { MenuStartupLoading } from "../features/loading/MenuStartupLoading";
 import { ChapterLoadingFlow } from "../features/loading/ChapterLoadingFlow";
 import { ChapterPlaceholder } from "../features/chapter/ChapterPlaceholder";
 import { ChapterOnePage } from "../features/chapter1/ChapterOnePage";
+import { shouldPlayPrologue } from "../features/prologue/prologueGate";
+import type { PrologueBuildProgress } from "../features/prologue/ProloguePage";
+import type { LoadingHold } from "../features/loading/ChapterLoadingFlow";
 import type { ContinueAvailability } from "../features/menu/MainMenuOverlay";
 import { DEFAULT_CHAPTER_ID, getChapter } from "../game/chapters/chapterRegistry";
 import { readContinueAvailability } from "./continueAvailability";
@@ -23,6 +27,13 @@ import { loadSettings, saveSettings } from "./settingsStorage";
 // is only downloaded when someone opens /mientay; the menu does not pay for it.
 const MientayPage = lazy(() => import("../features/mientay").then((module) => ({ default: module.MientayPage })));
 
+// The two prototype worlds below are standalone engines that are not part of the story chapters
+// yet. They are only downloaded when someone opens /khupho or /roomv2.
+// The new-game prologue (neighborhood, then the apartment) is also its own chunk.
+const ProloguePage = lazy(() => import("../features/prologue").then((module) => ({ default: module.ProloguePage })));
+const KhuphoPage = lazy(() => import("../features/khupho").then((module) => ({ default: module.KhuphoPage })));
+const RoomV2Page = lazy(() => import("../features/roomv2").then((module) => ({ default: module.RoomV2Page })));
+
 /** `window.localStorage` itself can throw (for example when storage is blocked). */
 function getBrowserStorage(): Storage | undefined {
   try {
@@ -35,6 +46,7 @@ function getBrowserStorage(): Storage | undefined {
 type Screen =
   | { kind: "menu" }
   | { kind: "chapter-loading"; request: ChapterLoadRequest }
+  | { kind: "prologue"; session: ChapterSession }
   | { kind: "chapter"; session: ChapterSession };
 
 const saveSource = createLocalStorageSaveSource();
@@ -43,7 +55,7 @@ function readSavedContinueAvailability(): ContinueAvailability {
   return readContinueAvailability(saveSource);
 }
 
-type AppRoute = "menu" | "testmove" | "ueh" | "hue" | "mientay";
+type AppRoute = "menu" | "testmove" | "ueh" | "hue" | "mientay" | "khupho" | "roomv2";
 
 function getAppRoute(): AppRoute {
   if (typeof window === "undefined") return "menu";
@@ -53,6 +65,8 @@ function getAppRoute(): AppRoute {
   if (path.startsWith("/ueh") || hash.includes("ueh")) return "ueh";
   if (path.startsWith("/hue") || hash.includes("hue")) return "hue";
   if (path.startsWith("/mientay") || hash.includes("mientay")) return "mientay";
+  if (path.startsWith("/khupho") || hash.includes("khupho")) return "khupho";
+  if (path.startsWith("/roomv2") || hash.includes("roomv2")) return "roomv2";
   return "menu";
 }
 
@@ -95,7 +109,11 @@ export const App: React.FC = () => {
               ? "/hue"
               : newRoute === "mientay"
                 ? "/mientay"
-                : "/";
+                : newRoute === "khupho"
+                  ? "/khupho"
+                  : newRoute === "roomv2"
+                    ? "/roomv2"
+                    : "/";
     window.history.pushState(null, "", targetPath);
     setRoute(newRoute);
   };
@@ -135,8 +153,35 @@ export const App: React.FC = () => {
   }, [startChapterLoading]);
 
   const handleEnterChapter = useCallback((session: ChapterSession) => {
-    setScreen((prev) => (prev.kind === "chapter-loading" ? { kind: "chapter", session } : prev));
+    setScreen((prev) => {
+      if (prev.kind !== "chapter-loading") return prev;
+      // A new game starts with the prologue; saved games and `?skip-prologue` go to the chapter.
+      return getChapter(session.chapterId)?.gameplayAvailable && shouldPlayPrologue(session, window.location.search)
+        ? { kind: "prologue", session }
+        : { kind: "chapter", session };
+    });
   }, []);
+
+  // A new game's prologue is built behind the chapter loading screen, which stays up until the
+  // neighborhood is ready and drawing steady frames. One loading screen, then the street.
+  const prologueRequested =
+    screen.kind === "chapter-loading" &&
+    screen.request.kind === "new-game" &&
+    !!getChapter(screen.request.chapterId)?.gameplayAvailable &&
+    shouldPlayPrologue({ origin: "new-game" }, typeof window === "undefined" ? "" : window.location.search);
+  const prologueMounted = prologueRequested || screen.kind === "prologue";
+  const [prologueBuild, setPrologueBuild] = useState<PrologueBuildProgress | null>(null);
+  useEffect(() => {
+    if (!prologueMounted) setPrologueBuild(null);
+  }, [prologueMounted]);
+  const { t: tLoading } = useTranslation("loading");
+  const loadingHold: LoadingHold | null = prologueRequested
+    ? {
+        progress: prologueBuild?.fraction ?? 0,
+        stage: tLoading(`prologueStreet.${prologueBuild?.step ?? "world"}`),
+        done: prologueBuild?.done ?? false,
+      }
+    : null;
 
   const handleReturnToMenu = useCallback(() => {
     setScreen({ kind: "menu" });
@@ -158,6 +203,8 @@ export const App: React.FC = () => {
   const ambientFadedInRef = useRef<boolean>(false);
   // Menu music is faded out on chapter screens; the street ambient keeps playing.
   const onMenuScreen = screen.kind === "menu";
+  // The prologue world plays the same street recording itself (muffled indoors), so the menu's copy fades out.
+  const inPrologue = screen.kind === "prologue";
   const onMenuScreenRef = useRef(onMenuScreen);
   onMenuScreenRef.current = onMenuScreen;
 
@@ -385,7 +432,7 @@ export const App: React.FC = () => {
     if (!ambientGain || !ctx) return;
 
     if (sceneReady && !showLoading && route === "menu") {
-      const targetAmbient = settings.soundEnabled ? Math.max(0, Math.min(1, settings.musicVolume * 0.25)) : 0;
+      const targetAmbient = settings.soundEnabled && !inPrologue ? Math.max(0, Math.min(1, settings.musicVolume * 0.25)) : 0;
       if (!ambientFadedInRef.current) {
         ambientGain.gain.cancelScheduledValues(ctx.currentTime);
         ambientGain.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -395,7 +442,7 @@ export const App: React.FC = () => {
         ambientGain.gain.setTargetAtTime(targetAmbient, ctx.currentTime, 0.06);
       }
     }
-  }, [sceneReady, showLoading, route, settings.soundEnabled, settings.musicVolume]);
+  }, [sceneReady, showLoading, route, inPrologue, settings.soundEnabled, settings.musicVolume]);
 
   // Reactive volume, route & mute synchronization with click-free 60ms transitions
   useEffect(() => {
@@ -487,6 +534,24 @@ export const App: React.FC = () => {
     );
   }
 
+  // Route: /khupho -> Prototype Vietnamese neighborhood (alley, tube houses, shops)
+  if (route === "khupho") {
+    return (
+      <Suspense fallback={<div className="h-screen w-screen bg-[#0d1117]" aria-busy="true" />}>
+        <KhuphoPage settings={settings} onBackToMenu={() => navigateTo("menu")} />
+      </Suspense>
+    );
+  }
+
+  // Route: /roomv2 -> Prototype player apartment ("After the Rain")
+  if (route === "roomv2") {
+    return (
+      <Suspense fallback={<div className="h-screen w-screen bg-black" aria-busy="true" />}>
+        <RoomV2Page settings={settings} onBackToMenu={() => navigateTo("menu")} />
+      </Suspense>
+    );
+  }
+
   // Route: / -> Original Main Menu Scene & Overlay
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none bg-[#13111f]">
@@ -511,8 +576,23 @@ export const App: React.FC = () => {
         />
       )}
 
+      {/* Same element for both screens, so the world built during loading is kept when it is revealed. */}
+      {prologueMounted && (
+        <div key="prologue" className="absolute inset-0 z-40">
+          <Suspense fallback={<div className="h-full w-full bg-[#0d1117]" aria-busy="true" />}>
+            <ProloguePage
+              settings={settings}
+              onBackToMenu={handleReturnToMenu}
+              revealed={screen.kind === "prologue"}
+              onBuildProgress={setPrologueBuild}
+            />
+          </Suspense>
+        </div>
+      )}
+
       {screen.kind === "chapter-loading" && (
         <ChapterLoadingFlow
+          hold={loadingHold}
           request={screen.request}
           onEnterChapter={handleEnterChapter}
           onBackToMenu={handleReturnToMenu}
@@ -524,6 +604,7 @@ export const App: React.FC = () => {
         (frameloop "never") underneath, so returning to the menu needs no reload.
         A chapter without a playable scene (gameplayAvailable is false) ends at the placeholder.
       */}
+
       {screen.kind === "chapter" &&
         (getChapter(screen.session.chapterId)?.gameplayAvailable ? (
           <div className="absolute inset-0 z-40">

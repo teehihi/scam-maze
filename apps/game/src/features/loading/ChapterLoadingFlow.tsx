@@ -25,7 +25,23 @@ interface ChapterLoadingFlowProps {
   /** Called once, after the loading screen has faded out because the player left. */
   onBackToMenu: () => void;
   deps?: ChapterLoaderDeps;
+  /**
+   * Extra work that must finish before the screen fades out, for example building the first 3D
+   * scene behind it. Its progress is added to the bar and its line shown once the files are in.
+   */
+  hold?: LoadingHold | null;
 }
+
+export interface LoadingHold {
+  /** 0..1 */
+  progress: number;
+  /** Text of the current step, already translated. */
+  stage: string;
+  done: boolean;
+}
+
+/** Share of the bar that belongs to the files when there is extra work (`hold`). */
+const FILES_SHARE = 0.55;
 
 /** Connects the chapter loader to the loading screen and the fade transition. */
 export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
@@ -33,6 +49,7 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
   onEnterChapter,
   onBackToMenu,
   deps,
+  hold = null,
 }) => {
   const { snapshot, retry, cancel } = useChapterLoader(request, deps);
   const [leavingToMenu, setLeavingToMenu] = useState(false);
@@ -46,7 +63,7 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
   const minElapsed = useMinimumDisplayTime(CHAPTER_LOADING_MIN_DISPLAY_MS, attempt);
 
   const session = snapshot.stage === "ready" ? snapshot.session : null;
-  const visible = shouldShowLoadingScreen({ done: session !== null, minElapsed, bypassed: leavingToMenu });
+  const visible = shouldShowLoadingScreen({ done: session !== null && (hold === null || hold.done), minElapsed, bypassed: leavingToMenu });
 
   const handleRetry = useCallback(() => {
     retry();
@@ -71,7 +88,7 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
   const eyebrow = isNewGame ? t("loading:newGameEyebrow") : t("loading:continueEyebrow");
   const title = isNewGame ? t("loading:newGameTitle") : t("loading:continueTitle");
   const subtitle = isNewGame ? t("loading:newGameSubtitle") : t("loading:continueSubtitle");
-  const stageText =
+  const filesStageText =
     snapshot.stage === "loading-assets" && chapter && snapshot.currentAssetId && snapshot.currentAssetText
       ? tChapters(`${chapter.id}.assets.${snapshot.currentAssetId}`, { defaultValue: snapshot.currentAssetText })
       : describeChapterStage(snapshot, text);
@@ -79,7 +96,13 @@ export const ChapterLoadingFlow: React.FC<ChapterLoadingFlowProps> = ({
     snapshot.stage === "loading-assets" && snapshot.filesTotal > 0
       ? formatFileCount(snapshot.filesCompleted, snapshot.filesTotal, text)
       : undefined;
-  const progress = snapshot.stage === "loading-assets" ? snapshot.progress : snapshot.stage === "ready" ? 1 : null;
+  const filesProgress = snapshot.stage === "loading-assets" ? snapshot.progress : snapshot.stage === "ready" ? 1 : null;
+  // With extra work the bar is files first, then the scene; the scene's line is shown once the files are in.
+  const progress =
+    hold === null || snapshot.error
+      ? filesProgress
+      : (filesProgress ?? 0) * FILES_SHARE + Math.min(1, Math.max(0, hold.progress)) * (1 - FILES_SHARE);
+  const stageText = hold !== null && session !== null && !hold.done ? hold.stage : filesStageText;
 
   return (
     <SceneTransition visible={visible} fadeIn={false} onHidden={handleHidden} className="z-50">
