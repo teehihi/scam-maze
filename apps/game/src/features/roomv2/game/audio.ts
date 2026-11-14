@@ -40,6 +40,10 @@ const CITY_ROOM = 0.04;
 const CITY_WINDOW_CLOSED = 0.07;
 const CITY_WINDOW_OPEN = 0.25;
 
+/** Ringtone and vibration levels at the phone; the ringtone must stay the louder of the two. */
+const RING_GAIN = 2.2;
+const VIBE_GAIN = 0.035;
+
 export class AudioEngine {
   listener: THREE.AudioListener;
   ctx: AudioContext;
@@ -124,7 +128,7 @@ export class AudioEngine {
     this.loop(this.pink, wlp, 0.9); wlp.connect(this.windowBed);
     this.windowBed.connect(this.emit.window.input);
     const load = (url: string) => fetch(url).then((res) => res.arrayBuffer()).then((data) => this.ctx.decodeAudioData(data));
-    load(playableUrl(RINGTONE_URLS)).then((buf) => { this.ringBuf = buf; }).catch((err) => console.warn('[room] ringtone failed to load', err));
+    load(playableUrl(RINGTONE_URLS)).then((buf) => { this.ringBuf = buf; if (this.ringPending) this.ring(true); }).catch((err) => console.warn('[room] ringtone failed to load', err));
     load(THUNDER_URL).then((buf) => { this.thunderBuf = buf; }).catch((err) => console.warn('[room] thunder sound failed to load', err));
     load(CLOCK_URL)
       .then((buf) => {
@@ -154,11 +158,11 @@ export class AudioEngine {
     // Phone vibration chain
     this.vibeGain = this.gain(0);
     const vo = this.ctx.createOscillator(); vo.type = 'square'; vo.frequency.value = 172;
-    const vlp = this.filt('lowpass', 900); vo.connect(vlp); vo.start();
+    const vlp = this.filt('lowpass', 450); vo.connect(vlp); vo.start();
     const rattle = this.filt('bandpass', 1200, 1.4); this.loop(this.white, rattle);
     const ram = this.gain(0); rattle.connect(ram);
     const lfo = this.ctx.createOscillator(); lfo.frequency.value = 31; const lfoG = this.gain(0.5); lfo.connect(lfoG); lfoG.connect(ram.gain); lfo.start();
-    const vmix = this.gain(1); vlp.connect(vmix); const rg = this.gain(0.9); ram.connect(rg); rg.connect(vmix);
+    const vmix = this.gain(1); vlp.connect(vmix); const rg = this.gain(0.4); ram.connect(rg); rg.connect(vmix);
     vmix.connect(this.vibeGain); this.vibeGain.connect(this.emit.phone.input);
 
   }
@@ -174,9 +178,12 @@ export class AudioEngine {
   private ringBuf: AudioBuffer | null = null;
   private ringSrc: AudioBufferSourceNode | null = null;
   private ringGain: GainNode | null = null;
+  /** ring(true) arrived before the ringtone file finished loading; start it on load. */
+  private ringPending = false;
   /** Starts (looping) or stops the ringtone at the phone. */
   ring(on: boolean) {
     const e = this.emit.phone;
+    this.ringPending = false;
     if (!on) {
       if (this.ringSrc && this.ringGain) {
         const t = this.ctx.currentTime;
@@ -186,9 +193,11 @@ export class AudioEngine {
       this.ringSrc = null; this.ringGain = null;
       return;
     }
-    if (this.ringSrc || !this.ringBuf || !e || this.ctx.state === 'closed') return;
+    if (!this.ringBuf) { this.ringPending = true; return; }
+    if (this.ringSrc || !e || this.ctx.state === 'closed') return;
     const src = this.ctx.createBufferSource(); src.buffer = this.ringBuf; src.loop = true;
-    const g = this.gain(0.9); src.connect(g); g.connect(e.input); src.start();
+    // The ringtone file peaks at -7.7 dBFS (0.41), so 2.2 peaks near 0.9 and sits clearly above the vibration.
+    const g = this.gain(RING_GAIN); src.connect(g); g.connect(e.input); src.start();
     this.ringSrc = src; this.ringGain = g;
   }
   private burst(dest: AudioNode, opts: { f: number; q?: number; type?: BiquadFilterType; dur: number; vol: number; delay?: number; buf?: AudioBuffer }) {
@@ -258,10 +267,11 @@ export class AudioEngine {
   }
   setFan(..._args: unknown[]): void {}
   setFridge(..._args: unknown[]): void {}
-  setVibe(on: boolean) { this.vibeGain?.gain.setTargetAtTime(on ? 0.22 : 0, this.ctx.currentTime, 0.012); }
+  setVibe(on: boolean) { this.vibeGain?.gain.setTargetAtTime(on ? VIBE_GAIN : 0, this.ctx.currentTime, 0.012); }
   duckCity(v: number) {
     this.cityDuck?.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
     this.emit.window?.pa.gain.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
+    this.emit.clock?.pa.gain.gain.setTargetAtTime(v, this.ctx.currentTime, 1.2);
   }
   kettle(..._args: unknown[]): void {}
   bedRustle(..._args: unknown[]): void {}

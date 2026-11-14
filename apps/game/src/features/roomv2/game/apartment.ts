@@ -266,6 +266,16 @@ export function buildApartment(scene: THREE.Scene, cityTexHook: (panes: THREE.Me
   shade.updateMatrixWorld(true);
   root.updateMatrixWorld(true);
   const sp = new THREE.Vector3(); shade.getWorldPosition(sp);
+  // The hand-set Euler left the shade's opening facing back toward the base, away from where the
+  // spot shines (it looked upside down). Turn the shade so its open end (local -Y) faces the target.
+  {
+    const tp = new THREE.Vector3(); deskTarget.getWorldPosition(tp);
+    const dir = tp.sub(sp).normalize();
+    const parentQ = new THREE.Quaternion(); lampG.getWorldQuaternion(parentQ);
+    dir.applyQuaternion(parentQ.invert());
+    shade.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+    shade.updateMatrixWorld(true);
+  }
   deskSpot.position.copy(sp).add(new THREE.Vector3(0, -0.03, 0));
   deskSpot.castShadow = true; deskSpot.shadow.mapSize.set(1024, 1024); deskSpot.shadow.bias = -0.0004; deskSpot.shadow.normalBias = 0.01; deskSpot.shadow.camera.near = 0.03;
   root.add(deskSpot);

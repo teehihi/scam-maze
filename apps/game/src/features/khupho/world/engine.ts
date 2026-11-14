@@ -480,6 +480,7 @@ export class Engine {
     this.rainU.uTime.value = t; this.rainU.uCam.value.copy(cp); this.rainU.uOp.value = e.rain * (1 - this.indoor) * 0.85;
     this.rain.visible = e.rain > 0.02 && this.indoor < 0.95;
     this.audio.update(dt, e, this.camera, this.indoor, this.openness, this.vehicles);
+    this.audio.setWalk(this.player.vy === 0 ? this.player.moving : 0, this.player.moving > 2.5);
     // interaction pick
     this.pickT -= dt; if (this.pickT <= 0) { this.pickT = 0.07; this.current = this.player.sitting ? null : this.inter.pick(this.camera, this.phys); }
     this.freezeFarTransforms();
