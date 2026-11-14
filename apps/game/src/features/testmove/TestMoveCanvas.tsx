@@ -5,6 +5,7 @@ import { EnvironmentLighting } from "../../game/scenes/MainMenuScene/Environment
 import { SkyDome } from "../../game/scenes/MainMenuScene/SkyDome";
 import { StreetEnvironment } from "../../game/scenes/MainMenuScene/StreetEnvironment";
 import { FirstPersonPlayer, type PlayerControlsState, type PlayerStats } from "../player";
+import { ContextLossWatcher } from "../../game/world/ContextLossWatcher";
 import type { GameSettings } from "@scammaze/shared-types";
 
 interface TestMoveCanvasProps {
@@ -56,6 +57,8 @@ export const TestMoveCanvas: React.FC<TestMoveCanvasProps> = ({
       }}
       className="w-full h-full"
     >
+      <ContextLossWatcher name="testmove" />
+
       {/* Sky Dome with drifting clouds */}
       <Suspense fallback={null}>
         <SkyDome />
