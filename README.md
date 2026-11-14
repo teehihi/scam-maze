@@ -23,19 +23,16 @@
   <img src="apps/game/public/assets/ui/loading_bg.jpg" alt="SCAMMAZE 3D Cinematic Street Scene" width="100%" />
 </p>
 
-<p align="center">
-  <a href="#about-the-game"><kbd>&nbsp;🎮 About&nbsp;</kbd></a> &nbsp;
-  <a href="#core-gameplay-loop"><kbd>&nbsp;🔄 Gameplay Loop&nbsp;</kbd></a> &nbsp;
-  <a href="#scam-scenarios-and-vectors"><kbd>&nbsp;🕵️ Scam Scenarios&nbsp;</kbd></a> &nbsp;
-  <a href="#ui--systems-showcase"><kbd>&nbsp;📱 UI Showcase&nbsp;</kbd></a> &nbsp;
-  <a href="#immersive-3d-worlds"><kbd>&nbsp;🗺️ 3D Worlds&nbsp;</kbd></a>
-  <br/><br/>
-  <a href="#technology-stack"><kbd>&nbsp;🛠️ Tech Stack&nbsp;</kbd></a> &nbsp;
-  <a href="#controls"><kbd>&nbsp;⌨️ Controls&nbsp;</kbd></a> &nbsp;
-  <a href="#getting-started"><kbd>&nbsp;🚀 Quickstart&nbsp;</kbd></a> &nbsp;
-  <a href="#project-structure"><kbd>&nbsp;📁 Structure&nbsp;</kbd></a> &nbsp;
-  <a href="#safety--ethics"><kbd>&nbsp;🛡️ Safety & Ethics&nbsp;</kbd></a>
-</p>
+<div align="center">
+
+### 🧭 Navigation & Overview
+
+| 🎮 [**About The Game**](#about-the-game)<br><sub>First-person 3D detective story & living world</sub> | 🔄 [**Gameplay Loop**](#core-gameplay-loop)<br><sub>Physical inspection to forensic debrief</sub> | 🕵️ [**Scam Scenarios**](#scam-scenarios-and-vectors)<br><sub>Multi-channel digital & street fraud</sub> |
+| :--- | :--- | :--- |
+| 📱 [**UI & Systems Showcase**](#ui--systems-showcase)<br><sub>In-game smartphone, HUD & 3D menu</sub> | 🗺️ [**Immersive 3D Worlds**](#immersive-3d-worlds)<br><sub>Khu Phố, Room V2, Miền Tây, Huế & UEH</sub> | 🛠️ [**Tech Stack & Architecture**](#technology-stack)<br><sub>Three.js r174, React 19, TypeScript & Vite</sub> |
+| ⌨️ [**Controls & Keybindings**](#controls)<br><sub>Movement, interaction & smartphone keys</sub> | 🚀 [**Getting Started & Dev**](#getting-started)<br><sub>Installation, local run & test gates</sub> | 🛡️ [**Safety, Ethics & Credits**](#safety--ethics)<br><sub>Reserved domains, fictional brands & licenses</sub> |
+
+</div>
 
 ---
 
