@@ -7,6 +7,8 @@ import type { Ctx, Device, Room, Spot } from './types';
 import { buildFacade, buildRoof, buildYard } from './facade';
 import { furnishRoom, furnishExtras } from './rooms';
 
+/** Scratch for `House.toLocal` (called several times per frame per house). */
+const _local = new THREE.Vector3();
 export type Ground = 'living' | 'garage' | 'grocery' | 'cafe' | 'pho' | 'repair' | 'hair';
 export interface HouseSpec {
   id: string; no: string; W: number; D: number; floors: number; style: 'modern' | 'french' | 'cap4'; ground: Ground;
@@ -80,7 +82,8 @@ export class House {
   F(k: number) { return 0.35 + this.FH * k; }
   // ---------- transforms ----------
   wp(x: number, y: number, z: number) { return new THREE.Vector3(x, y, z).applyMatrix4(this.group.matrixWorld); }
-  toLocal(wx: number, wz: number) { const v = new THREE.Vector3(wx, 0, wz); this.group.worldToLocal(v); return v; }
+  /** Local position of a world point. Returns a shared scratch vector: read it at once, do not keep it. */
+  toLocal(wx: number, wz: number) { const v = _local.set(wx, 0, wz); this.group.worldToLocal(v); return v; }
   toWorldCol(c: Col): Col {
     let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; const v = new THREE.Vector3();
     for (let i = 0; i < 4; i++) { v.set(i & 1 ? c.x1 : c.x0, 0, i & 2 ? c.z1 : c.z0).applyMatrix4(this.group.matrixWorld); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); z0 = Math.min(z0, v.z); z1 = Math.max(z1, v.z); }

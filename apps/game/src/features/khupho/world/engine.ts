@@ -73,6 +73,13 @@ export class Engine {
   /** Adaptive resolution: pixel ratio limits for the current quality, and the frame-time window. */
   private prMax = 1.25; private prMin = 0.7; private pr = 1; private perfT = 0; private perfFrames = 0; private slowWins = 0; private fastWins = 0; private settleT = 3;
   private houseCenters: { h: House; x: number; z: number }[] = [];
+  /** Reused per-frame buffers (no allocation in the frame loop). */
+  private readonly lightCand: { rl: RoomLight; d: number }[] = [];
+  private readonly lightCandPool: { rl: RoomLight; d: number }[] = [];
+  private readonly lampOrder: THREE.Vector3[] = [];
+  private lampSortT = 0;
+  private readonly lampSortedAt = new THREE.Vector3(Infinity, 0, 0);
+  private readonly freezeAt = new THREE.Vector3(Infinity, 0, 0);
   private lastHudKey = '';
 
   el: HTMLElement;
@@ -409,7 +416,7 @@ export class Engine {
     for (const h of this.houses) { if (!h.contains(cp.x, cp.z) || h.spec.lite) continue; const r = h.roomAtWorld(cp.x, cp.y, cp.z); if (r) { room = r; inH = h; break; } }
     const inside = room && room.kind !== 'well' && room.kind !== 'wellup' ? 1 : 0;
     this.indoor += (inside - this.indoor) * Math.min(1, dt * 2.5);
-    const openN = inH ? inH.doors.filter((d) => d.on).length : 0; this.openness += ((inH ? clamp(openN / 3, 0, 1) : 0) - this.openness) * Math.min(1, dt * 2);
+    let openN = 0; if (inH) for (const d of inH.doors) if (d.on) openN++; this.openness += ((inH ? clamp(openN / 3, 0, 1) : 0) - this.openness) * Math.min(1, dt * 2);
     // location label
     if (room) this.loc = `${room.name} · ${room.house.spec.no ? tr('loc.house', { no: room.house.spec.no }) : ''} · ${tr('loc.floor', { n: room.k + 1 })}`;
     else if (cp.z > 40 && cp.x > -5 && cp.x < 24) this.loc = tr('loc.court');
@@ -437,6 +444,9 @@ export class Engine {
   private freezeFarTransforms() {
     const cp = this.camera.position;
     for (const c of this.ctx.root.children) if (!(c as THREE.Mesh).isMesh) c.matrixWorldAutoUpdate = c.visible;
+    // The house set near the camera only changes once it has moved; people toggle visibility every frame, so the loop above always runs.
+    if (this.freezeAt.distanceToSquared(cp) < 0.25) return;
+    this.freezeAt.copy(cp);
     for (const hc of this.houseCenters) {
       const dx = hc.x - cp.x, dz = hc.z - cp.z;
       hc.h.group.matrixWorldAutoUpdate = dx * dx + dz * dz < 45 * 45;
@@ -445,14 +455,17 @@ export class Engine {
 
   updateLights(dt: number, t: number) {
     const cp = this.camera.position, e = this.env;
-    const cand: { rl: RoomLight; d: number }[] = [];
+    const cand = this.lightCand; cand.length = 0;
     for (const rl of this.ctx.roomLights) {
       const k = Math.min(1, dt * 5); rl.level += (rl.target - rl.level) * k;
       const lvl = rl.level, tv = rl.roomId.endsWith(':tv');
       const fl = tv ? 0.75 + 0.25 * Math.sin(t * 9 + rl.pos.x) * Math.sin(t * 3.7) : 1;
       for (const m of rl.mats) m.emissiveIntensity = lvl * 2.6;
       for (const m of rl.curtainMats) m.emissiveIntensity = lvl * 0.5 * (0.35 + e.night * 0.65);
-      if (lvl > 0.02) { const d = rl.pos.distanceTo(cp); if (d < 26) cand.push({ rl, d: d - (tv ? 0 : 0) }); }
+      if (lvl > 0.02) {
+        const d = rl.pos.distanceTo(cp);
+        if (d < 26) { let c = this.lightCandPool[cand.length]; if (!c) { c = { rl, d }; this.lightCandPool.push(c); } c.rl = rl; c.d = d; cand.push(c); }
+      }
       (rl as any)._fl = fl;
     }
     cand.sort((a, b) => a.d - b.d);
@@ -464,7 +477,14 @@ export class Engine {
       p.intensity += (tgt - p.intensity) * Math.min(1, dt * 10);
       p.distance = c.rl.roomId.endsWith(':tv') ? 6 : 8.5;
     });
-    const lamps = this.ctx.lamps.slice().sort((a, b) => a.distanceToSquared(cp) - b.distanceToSquared(cp));
+    // Street lamps sorted by distance in place; re-sorted at most once a second (or after a 4 m move, or a new lamp set).
+    const lamps = this.lampOrder;
+    this.lampSortT -= dt;
+    if (lamps.length !== this.ctx.lamps.length || this.lampSortT <= 0 || this.lampSortedAt.distanceToSquared(cp) > 16) {
+      if (lamps.length !== this.ctx.lamps.length) { lamps.length = 0; for (const l of this.ctx.lamps) lamps.push(l); }
+      lamps.sort((a, b) => a.distanceToSquared(cp) - b.distanceToSquared(cp));
+      this.lampSortT = 1; this.lampSortedAt.copy(cp);
+    }
     this.lampPool.forEach((p, i) => { if (lamps[i]) p.position.copy(lamps[i]); p.intensity = e.night * 20 * (1 - 0.3 * e.rain) * (lamps[i] ? 1 : 0); });
   }
 

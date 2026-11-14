@@ -25,8 +25,10 @@ const SHADOW_CULL_RADIUS = 10;
 const FITTING_RADIUS = 0.3;
 /** ... once the camera is farther than this from them (m). */
 const FITTING_DISTANCE = 6;
-/** Seconds between two passes. */
+/** Seconds between the starts of two sweeps. */
 const INTERVAL = 0.15;
+/** A sweep is spread over this many frames, so no single frame pays for the whole list. */
+const SWEEP_FRAMES = 4;
 
 interface Entry {
   mesh: THREE.Object3D;
@@ -44,6 +46,10 @@ export class DistanceCuller {
   private readonly world = new THREE.Vector3();
   private readonly seen = new Set<THREE.Object3D>();
   private houses: readonly House[] = [];
+  /** Next entry of the running sweep, or -1 when no sweep is running. */
+  private cursor = -1;
+  /** House the camera was in when the running sweep started. */
+  private sweepInside: House | null = null;
   /** A mesh is culled beyond `radius * sizeFactor` meters. */
   sizeFactor = 420;
   /** Pieces cast sun shadows within at most this distance (m), plus their own size. */
@@ -84,14 +90,37 @@ export class DistanceCuller {
     return this.entries.length;
   }
 
-  /** Runs a pass every `INTERVAL` seconds (or now with `force`). */
+  /**
+   * Starts a sweep every `INTERVAL` seconds and spreads it over `SWEEP_FRAMES` frames (a quarter
+   * of the list per frame). `force` runs a whole sweep at once (warm-up, teleports).
+   */
   update(dt: number, eye: THREE.Vector3, force = false): void {
     this.timer -= dt;
-    if (this.timer > 0 && !force) return;
+    if (force) {
+      this.startSweep(eye);
+      this.sweep(eye, this.entries.length);
+      return;
+    }
+    if (this.cursor < 0) {
+      if (this.timer > 0) return;
+      this.startSweep(eye);
+    }
+    this.sweep(eye, Math.ceil(this.entries.length / SWEEP_FRAMES));
+  }
+
+  private startSweep(eye: THREE.Vector3): void {
     this.timer = INTERVAL;
-    let inside: House | null = null;
-    for (const h of this.houses) if (h.contains(eye.x, eye.z)) { inside = h; break; }
-    for (const entry of this.entries) {
+    this.cursor = 0;
+    this.sweepInside = null;
+    for (const h of this.houses) if (h.contains(eye.x, eye.z)) { this.sweepInside = h; break; }
+  }
+
+  /** Processes up to `count` entries of the running sweep (same rules as a full pass). */
+  private sweep(eye: THREE.Vector3, count: number): void {
+    const inside = this.sweepInside;
+    const end = Math.min(this.entries.length, this.cursor + count);
+    for (let i = this.cursor; i < end; i++) {
+      const entry = this.entries[i];
       this.world.copy(entry.center).applyMatrix4(entry.mesh.matrixWorld);
       const d = this.world.distanceTo(eye);
       if (entry.caster) entry.mesh.castShadow = d <= Math.min(this.shadowDistance, 8 + entry.radius * 40) + entry.radius;
@@ -104,6 +133,7 @@ export class DistanceCuller {
       if (culled && !isCulled) entry.mesh.layers.set(CULLED_LAYER);
       else if (!culled && isCulled) entry.mesh.layers.set(0);
     }
+    this.cursor = end >= this.entries.length ? -1 : end;
   }
 
   /** Shows everything again (used by the warm-up frame that uploads every mesh). */
@@ -113,5 +143,6 @@ export class DistanceCuller {
       entry.mesh.castShadow = entry.caster;
     }
     this.timer = 0;
+    this.cursor = -1;
   }
 }

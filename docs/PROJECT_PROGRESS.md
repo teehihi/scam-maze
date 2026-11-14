@@ -210,6 +210,19 @@ Resolved:
   the reduced-stress hint) are listed in `ACCESSIBILITY.md`.
 
 ## Task History
+### 2026-11-14 — Khupho performance slice 2: staggered culler, no per-frame allocations
+- **Objective:** remove CPU hitches in the neighborhood frame loop without any visual change.
+- **Completed** (`features/khupho/world/`):
+  - `DistanceCuller`: a sweep still starts every 0.15 s, but is spread over 4 frames (a quarter of the 11,177 entries per frame); same rules and thresholds. `force` still runs a whole sweep at once (warm-up, teleports).
+  - Scratch reuse: `SkySys.update` no longer clones the moon direction or creates a Color per frame; `House.toLocal` (used by `contains` several times per frame per house) returns a shared scratch vector; open doors counted in place instead of `doors.filter`; light candidates come from a reused array and object pool; street lamps sorted in place, at most once per second (or after a 4 m move, or a new lamp set).
+  - `freezeFarTransforms`: the house distance loop runs only after the camera moved 0.5 m; the people loop still runs every frame, because people show and hide at any time and a frozen matrix would show them at an old position.
+- **Measured** (headless Chrome, dev server, `/khupho`, medium, walking 3.6 m/s along the street, 4 × 270 simulated frames per run, two runs each; "old" = the previous full sweep every 9th frame in the same page):
+  - Culler time per frame: max 4.2-5.2 ms → 1.0-1.6 ms, p95 1.2-2.1 ms → 0.3-0.9 ms, average about the same (0.17-0.24 → 0.09-0.20 ms).
+  - `update()` time: no change beyond noise (average 0.2-0.35 ms in both).
+  - Draw calls unchanged: spawn 1,133 / 465 → 1,130 / 465 (shadow / normal frame), alley 2,347 / 1,322 → 2,347 / 1,322.
+- **Validation:** `pnpm typecheck`, `pnpm build`, vitest for khupho and prologue pass. Screenshot at the spawn: same scene.
+- **Not verified:** frame-time spikes on a real GPU and the GC effect of the removed allocations (not visible in headless numbers).
+
 ### 2026-11-14 — Khupho performance slice 1: config-only GPU cuts (branch `perf/khupho-slice1-config`)
 - **Objective:** cut GPU and per-frame cost of the neighborhood street engine with configuration only (no geometry change).
 - **Completed** (`features/khupho/world/engine.ts`, `KhuphoStoryWorld.tsx`, `KhuphoPage.tsx`):
