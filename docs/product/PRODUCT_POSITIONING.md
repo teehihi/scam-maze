@@ -19,10 +19,10 @@
 > (narrative subtitle "The False Victory"), reached through a neighborhood prologue, with a laptop and
 > phone records instead of the "browser, bank app and parcel app" listed for the MVP. See
 > [OVERVIEW.md section 4.2.3](../architecture/OVERVIEW.md#423-chapter-1-flow-and-room-v2-host-implemented)
-> and [Project progress](../PROJECT_PROGRESS.md).
+> and the pull request history.
 
 **Nothing described here as a game feature exists yet.** Today the repository contains a landing
-page only ([project progress](../PROJECT_PROGRESS.md)). The 3D game is `PLANNED`; every AI
+page only (the pull request history). The 3D game is `PLANNED`; every AI
 capability is `PROPOSED`.
 
 ---

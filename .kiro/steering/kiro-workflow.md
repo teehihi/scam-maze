@@ -11,8 +11,8 @@ Keep this short; details live in the linked files.
 - Spec (`.kiro/specs/<name>/`) for: anything touching the narrative core or save format, a new
   chapter or map, cross-map refactors, or work over about a day. Existing specs are the history of
   decisions; read the related one before changing that area (`#spec:<name>`).
-- Vibe for: copy, styling, a contained bug fix, a single-file change. Still add a test and a
-  `docs/PROJECT_PROGRESS.md` entry (AGENTS.md section 6).
+- Vibe for: copy, styling, a contained bug fix, a single-file change. Still add a test and describe the change
+  in the pull request (AGENTS.md section 6).
 
 ## Delegate on purpose (`.kiro/agents/`)
 
