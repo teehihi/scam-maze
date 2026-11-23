@@ -22,6 +22,14 @@ const RAIN_OPEN = 0.5;
 /** Owner-supplied sounds: thunder (shared with the neighborhood) and the wall clock's ticking loop. */
 const THUNDER_URL = '/audio/thunder.mp3';
 const CLOCK_URL = '/audio/clock.mp3';
+/** Recorded footsteps, shared with the neighborhood (khupho): one dry step, and a looping walk on a wet street. */
+const FOOTSTEP_URL = '/audio/footstep.mp3';
+const RAIN_WALK_URL = '/audio/rainWalking.mp3';
+/** The single step inside footstep.mp3 starts after ~0.37 s of silence; skip it so steps land on time. */
+const FOOTSTEP_OFFSET = 0.35;
+const FOOTSTEP_LEN = 0.3;
+/** Rain above this level (outside on the street) switches footsteps to the wet walking loop. */
+const WET_RAIN = 0.3;
 /** Phone ringtone (owner-supplied Ogg Vorbis, with an MP3 copy for browsers that cannot decode Ogg). */
 const RINGTONE_URLS = ['/audio/ringtone.ogg', '/audio/ringtone.mp3'];
 
@@ -135,6 +143,12 @@ export class AudioEngine {
     this.windowBed.connect(this.emit.window.input);
     const load = (url: string) => fetch(url).then((res) => res.arrayBuffer()).then((data) => this.ctx.decodeAudioData(data));
     load(playableUrl(RINGTONE_URLS)).then((buf) => { this.ringBuf = buf; if (this.ringPending) this.ring(true); }).catch((err) => console.warn('[room] ringtone failed to load', err));
+    load(FOOTSTEP_URL).then((buf) => { this.stepBuf = buf; }).catch((err) => console.warn('[room] footstep sound failed to load', err));
+    // Wet walking: one looping source whose gain follows the player's pace and whose rate rises while running.
+    this.wetGain = this.gain(0); this.wetGain.connect(out);
+    load(RAIN_WALK_URL)
+      .then((buf) => { const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(this.wetGain!); src.start(0, Math.random() * Math.max(0, buf.duration - 1)); this.wetSrc = src; })
+      .catch((err) => console.warn('[room] rain walking sound failed to load', err));
     load(THUNDER_URL).then((buf) => { this.thunderBuf = buf; }).catch((err) => console.warn('[room] thunder sound failed to load', err));
     load(CLOCK_URL)
       .then((buf) => {
@@ -268,8 +282,31 @@ export class AudioEngine {
       this.tone(e.input, 180 + Math.random() * 60, 0.03, 0.12, dl);
     }
   }
+  private stepBuf: AudioBuffer | null = null;
+  private wetSrc: AudioBufferSourceNode | null = null;
+  private wetGain: GainNode | null = null;
+  /** Outside on the street while it rains: the wet walking loop carries the steps. */
+  private wet = false;
+  /** One step (same logic as the neighborhood): a dry recorded step, louder and quicker while running. */
+  footstep(run = false) {
+    if (!this.started || (this.wet && this.wetSrc)) return;
+    const buf = this.stepBuf;
+    if (!buf) return;
+    const s = this.ctx.createBufferSource(); s.buffer = buf;
+    s.playbackRate.value = (run ? 1.12 : 1) * (0.93 + Math.random() * 0.14);
+    const g = this.gain((run ? 0.75 : 0.55) * (0.9 + Math.random() * 0.2));
+    s.connect(g); g.connect(this.listener.getInput()); s.start(this.ctx.currentTime, FOOTSTEP_OFFSET, FOOTSTEP_LEN);
+  }
+  /** Player ground speed (m/s), run state and whether they are out on the street, each frame: drives the wet loop. */
+  setWalk(speed: number, running: boolean, outdoors: boolean) {
+    this.wet = outdoors && this.rainLevel > WET_RAIN;
+    const src = this.wetSrc, g = this.wetGain;
+    if (!this.started || !src || !g) return;
+    const t = this.ctx.currentTime, on = this.wet && speed > 0.3;
+    g.gain.setTargetAtTime(on ? (running ? 0.85 : 0.6) : 0, t, on ? 0.06 : 0.12);
+    src.playbackRate.setTargetAtTime(running ? 1.5 : 1, t, 0.15);
+  }
   // Removed (owner): the sounds below stay as no-ops so the engine's calls keep working.
-  footstep(..._args: unknown[]): void {}
   keys(..._args: unknown[]): void {}
   paper(..._args: unknown[]): void {}
   clink(..._args: unknown[]): void {}

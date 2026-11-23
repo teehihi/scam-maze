@@ -270,6 +270,13 @@ export class Engine implements RoomStoryCommands {
   dropT = 0;
   arms: CharacterArmsViewmodel;
   armsShadowOff = false;
+  /** How much of the hands' own colour shows on top of the room's lighting (see `updateArms`). */
+  armFill = { value: 0.3 };
+  /** Ground speed (m/s) and Shift-running this frame: drive the sprinting hands and the footsteps. */
+  walkSpeed = 0;
+  running = false;
+  /** Metres walked on the street since the last footstep. */
+  private streetStepAcc = 0;
   /** Last value of `shadowSignature()`; the shadow maps are redrawn only when it changes. */
   shadowSig = Number.NaN;
   shadowFrames = 0;
@@ -523,7 +530,7 @@ export class Engine implements RoomStoryCommands {
     if (speed > 0.05 && !f.done) {
       this.bobPhase += dt * speed * 5.2;
       const sign = Math.sign(Math.sin(this.bobPhase));
-      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(Math.min(1, speed / 1.3)); }
+      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(false); }
     }
     if (f.done) { this.entrance = null; this.begin(); }
   }
@@ -1321,7 +1328,7 @@ export class Engine implements RoomStoryCommands {
 
   /* =================== PER-FRAME =================== */
   movePlayer(dt: number) {
-    if (this.inspect || this.seat !== 'none' || this.callHeld()) { this.vel.set(0, 0, 0); return; }
+    if (this.inspect || this.seat !== 'none' || this.callHeld()) { this.vel.set(0, 0, 0); this.walkSpeed = 0; this.running = false; return; }
     const f = (this.keys.has('KeyW') || this.keys.has('ArrowUp') ? 1 : 0) - (this.keys.has('KeyS') || this.keys.has('ArrowDown') ? 1 : 0);
     const s = (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0);
     const run = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
@@ -1352,10 +1359,12 @@ export class Engine implements RoomStoryCommands {
     this.pos.x = next.x; this.pos.z = next.z;
     if (this.outside && this.pos.z > ROOM.z1 + 0.25) { this.goOutdoors(); return; }
     const sp = Math.hypot(this.vel.x, this.vel.z);
+    this.walkSpeed = sp;
+    this.running = run && sp > 1.6;
     if (sp > 0.05) {
       this.bobPhase += dt * sp * 5.2;
       const sign = Math.sign(Math.sin(this.bobPhase));
-      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(Math.min(1, sp / 1.3)); }
+      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(this.running); }
     }
   }
 
@@ -1448,11 +1457,31 @@ export class Engine implements RoomStoryCommands {
   updateArms(dt: number) {
     // The viewmodel clones its meshes with shadows on; the static shadow maps must not redraw for the hands.
     if (!this.armsShadowOff && this.arms.loaded) {
-      this.arms.group.traverse((o) => { o.castShadow = false; });
+      this.arms.group.traverse((o) => {
+        o.castShadow = false;
+        const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+        if (!(o as THREE.Mesh).isMesh || !mat?.isMeshStandardMaterial) return;
+        // The hands keep their own skin colour: the dim, mostly back-lit room left them almost black. They stay lit
+        // by the room's lights; a soft view-facing fill (indirect light only) adds `armFill` of their base colour.
+        mat.roughness = 0.8; // the model's own value (the shared loader sets 0.55)
+        mat.onBeforeCompile = (sh) => {
+          sh.uniforms.uArmFill = this.armFill;
+          sh.fragmentShader = 'uniform float uArmFill;\n' + sh.fragmentShader.replace('#include <lights_fragment_end>',
+            '#include <lights_fragment_end>\n  reflectedLight.indirectDiffuse += diffuseColor.rgb * uArmFill * (0.55 + 0.45 * saturate(dot(normal, normalize(vViewPosition))));');
+        };
+        mat.customProgramCacheKey = () => 'room-arms-fill';
+        mat.needsUpdate = true;
+      });
       this.armsShadowOff = true;
     }
-    // Hands are stowed while seated or once the prologue has ended; they never sprint in this small room.
-    this.arms.update(dt, false, false, this.seat !== 'none' || !!this.ui.ended || !this.ui.started);
+    // On the street the hands are still drawn in the room's scene, under its dim room lights: the fill follows the
+    // outside light instead (bright by day, lower at night), eased over the doorway.
+    const fillTarget = this.outside && this.outdoors ? 0.45 + 0.85 * (this.outside.daylight?.() ?? 0.5) : 0.3;
+    this.armFill.value += (fillTarget - this.armFill.value) * (1 - Math.exp(-dt * 3));
+    // Hands are stowed while seated or once the prologue has ended; Shift-running brings them up pumping (as in the neighborhood).
+    this.arms.update(dt, this.walkSpeed > 0.3, this.running, this.seat !== 'none' || !!this.ui.ended || !this.ui.started);
+    // Dry steps in the room and on a dry street; the wet walking loop on the street while it rains.
+    this.audio.setWalk(this.walkSpeed, this.running, !!this.outside && this.outdoors);
   }
 
   updateLights(dt: number) {
@@ -1649,13 +1678,19 @@ export class Engine implements RoomStoryCommands {
       } else {
         this.camera.position.copy(res.position);
         this.camera.quaternion.setFromEuler(_walkE.set(this.pitch, this.yaw, 0, 'YXZ'));
+        const shift = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
+        this.walkSpeed = dt > 0 ? res.moved / dt : 0;
+        this.running = shift && this.walkSpeed > 3;
         if (res.moved > 0) {
           this.bobPhase += res.moved * 5.2;
-          const sign = Math.sign(Math.sin(this.bobPhase));
-          if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(1); }
+          // The street pace is faster than the room's: one step per stride (longer while running), as in the neighborhood.
+          this.streetStepAcc += res.moved;
+          const stride = this.running ? 2.9 : 1.6;
+          if (this.streetStepAcc > stride) { this.streetStepAcc = 0; this.audio.started && this.audio.footstep(this.running); }
         }
       }
     } else {
+      this.walkSpeed = 0; this.running = false;
       if (this.entrance) this.stepEntrance(dt);
       else if (this.ui.started) {
         // Below 20 fps one 50 ms step made walking slow; up to 100 ms of real time is walked in two steps.

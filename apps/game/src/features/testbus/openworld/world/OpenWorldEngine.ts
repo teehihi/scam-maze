@@ -1687,7 +1687,8 @@ export class OpenWorldEngine {
         this.stepDist += moved;
         if (this.stepDist > 0.65) {
           this.stepDist = 0;
-          if (this.audio.started) this.audio.footstep(indoorsNow ? 0.85 : 1.0);
+          // Embedded, the room plays the player's footsteps (dry / wet walking, as in the neighborhood).
+          if (this.audio.started && !this.external) this.audio.footstep(indoorsNow ? 0.85 : 1.0);
         }
       }
     } else if (!this.onBus) {
