@@ -16,6 +16,14 @@ export class SaigonStreetAudio {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private hornBuf: AudioBuffer | null = null;
+  /** Owner-supplied car horn (`/audio/car_horn.mp3`): cars, vans and the bus; scooters keep `horn.mp3`. */
+  private carHornBuf: AudioBuffer | null = null;
+  /** Recorded street bed (traffic, scooters, voices; shared with the main menu and the neighborhood). */
+  private ambientGain: GainNode | null = null;
+  private ambientLevel = 0;
+  private muted = false;
+  /** Seconds until the next horn somewhere in the traffic around the player (street life, not a reaction). */
+  private nextStreetHorn = 4;
   private revBuf: AudioBuffer | null = null;
   private wetNoiseGain: GainNode | null = null;
   private wetNoiseFilter: BiquadFilterNode | null = null;
@@ -38,7 +46,7 @@ export class SaigonStreetAudio {
       try {
         this.ctx = new Ctor();
         this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.value = 0.55;
+        this.masterGain.gain.value = this.muted ? 0 : 0.55;
         this.masterGain.connect(this.ctx.destination);
         this.initWetSprayBed();
       } catch {
@@ -68,10 +76,25 @@ export class SaigonStreetAudio {
         return null;
       }
     };
-    const [horn, rev] = await Promise.all([loadOne("/audio/horn.mp3"), loadOne("/audio/netpo.mp3")]);
-    if (!this.disposed) {
-      this.hornBuf = horn;
-      this.revBuf = rev;
+    const [horn, rev, carHorn, ambient] = await Promise.all([
+      loadOne("/audio/horn.mp3"),
+      loadOne("/audio/netpo.mp3"),
+      loadOne("/audio/car_horn.mp3"),
+      loadOne("/assets/audio/menu_ambient.mp3"),
+    ]);
+    if (this.disposed || !this.ctx || !this.masterGain) return;
+    this.hornBuf = horn;
+    this.revBuf = rev;
+    this.carHornBuf = carHorn;
+    if (ambient) {
+      const src = this.ctx.createBufferSource();
+      src.buffer = ambient;
+      src.loop = true;
+      const g = this.ctx.createGain();
+      g.gain.value = 0;
+      src.connect(g).connect(this.masterGain);
+      src.start(0, Math.random() * Math.max(0, ambient.duration - 1));
+      this.ambientGain = g;
     }
   }
 
@@ -122,7 +145,19 @@ export class SaigonStreetAudio {
     const gainVal = Math.max(0, 1 - dist / 44) ** 1.6 * (urgent ? 0.46 : 0.28);
     const pan = this.computeStereoPan(srcX, srcZ, listenerX, listenerZ, listenerYaw);
 
-    if (this.hornBuf) {
+    const car = category !== "moto" && this.carHornBuf;
+    if (car && this.carHornBuf) {
+      // Cars, vans and the bus: the recorded car horn, a little lower for the heavier ones.
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.carHornBuf;
+      src.playbackRate.value = category === "car" ? 0.97 + Math.random() * 0.08 : 0.84;
+      const g = this.ctx.createGain();
+      g.gain.value = gainVal * 1.4;
+      const p = this.ctx.createStereoPanner();
+      p.pan.value = pan;
+      src.connect(g).connect(p).connect(this.masterGain);
+      src.start(0, 0, Math.min(urgent ? 0.9 : 0.5, this.carHornBuf.duration));
+    } else if (this.hornBuf) {
       const src = this.ctx.createBufferSource();
       src.buffer = this.hornBuf;
       // Motorbike scooters have higher pitched beep; vans/buses lower honk
@@ -164,22 +199,24 @@ export class SaigonStreetAudio {
     listenerX: number,
     listenerZ: number,
     listenerYaw: number,
+    /** The reckless rider ("Báo Thủ") revs the whole engine at whatever holds him up: longer and louder. */
+    full = false,
   ) {
     if (!this.ctx || !this.masterGain || !this.revBuf || this.ctx.state !== "running") return;
-    if (this.simTime - this.lastRevAt < 4.5) return;
+    if (this.simTime - this.lastRevAt < (full ? 3.5 : 4.5)) return;
     const dist = Math.hypot(srcX - listenerX, srcZ - listenerZ);
-    if (dist > 34) return;
+    if (dist > (full ? 48 : 34)) return;
     this.lastRevAt = this.simTime;
 
     const src = this.ctx.createBufferSource();
     src.buffer = this.revBuf;
     src.playbackRate.value = 0.92 + Math.random() * 0.24;
     const g = this.ctx.createGain();
-    g.gain.value = Math.max(0, 1 - dist / 34) ** 1.7 * 0.22;
+    g.gain.value = full ? Math.max(0, 1 - dist / 48) ** 1.4 * 0.55 : Math.max(0, 1 - dist / 34) ** 1.7 * 0.22;
     const p = this.ctx.createStereoPanner();
     p.pan.value = this.computeStereoPan(srcX, srcZ, listenerX, listenerZ, listenerYaw);
     src.connect(g).connect(p).connect(this.masterGain);
-    src.start(0, 0, Math.min(0.65, this.revBuf.duration));
+    src.start(0, 0, Math.min(full ? 2.4 : 0.65, this.revBuf.duration));
   }
 
   /** Play Bus 06 pneumatic air-brake hiss when halting at a stop. */
@@ -215,9 +252,21 @@ export class SaigonStreetAudio {
     listenerX: number,
     listenerZ: number,
     vehicles: readonly VehicleAgent[],
+    listenerYaw = 0,
   ) {
     this.simTime += dt;
     if (!this.ctx || !this.wetNoiseGain || !this.wetNoiseFilter || this.ctx.state !== "running") return;
+    this.ambientGain?.gain.setTargetAtTime(this.ambientLevel * 0.5, this.ctx.currentTime, 0.6);
+    // Out on the street somebody honks every few seconds, as on any Saigon street (one random nearby vehicle).
+    if (this.ambientLevel > 0.5) {
+      this.nextStreetHorn -= dt;
+      if (this.nextStreetHorn <= 0) {
+        this.nextStreetHorn = 5 + Math.random() * 9;
+        const near = vehicles.filter((v) => v.speed > 1.5 && !v.externalControl && Math.hypot(v.x - listenerX, v.z - listenerZ) < 40);
+        const v = near[Math.floor(Math.random() * near.length)];
+        if (v) this.playHorn(v.x, v.z, listenerX, listenerZ, listenerYaw, v.category, false);
+      }
+    }
 
     // Accumulate weighted tire noise from moving vehicles within 28m
     let energy = 0;
@@ -257,6 +306,18 @@ export class SaigonStreetAudio {
     return Math.max(-0.9, Math.min(0.9, ((dx * rx + dz * rz) / dist) * 0.9));
   }
 
+  /** 0..1: the street bed and the street's own horns (1 out on the street, 0 inside). */
+  setAmbience(level: number) {
+    this.ambientLevel = Math.max(0, Math.min(1, level));
+  }
+  /** Follows the game's sound setting. */
+  setMuted(muted: boolean) {
+    this.muted = muted;
+    if (this.masterGain && this.ctx) this.masterGain.gain.setTargetAtTime(muted ? 0 : 0.55, this.ctx.currentTime, 0.05);
+  }
+  get isMuted() {
+    return this.muted;
+  }
   dispose() {
     this.disposed = true;
     try {

@@ -368,7 +368,10 @@ export class AudioEngine {
   /** The wall clock plays its recorded ticking loop (started in `start`); the per-second call does nothing. */
   tick(..._args: unknown[]): void {}
   /** Silences (or restores) everything the room plays. */
-  setMuted(muted: boolean) { this.listener.setMasterVolume(muted ? 0 : 1); }
+  muted = false;
+  /** Called when the sound setting changes (the outside world's street audio follows it). */
+  onMutedChange: ((muted: boolean) => void) | null = null;
+  setMuted(muted: boolean) { this.muted = muted; this.listener.setMasterVolume(muted ? 0 : 1); this.onMutedChange?.(muted); }
   dispose() {
     this.timers.forEach(clearTimeout);
     this.timers.length = 0;

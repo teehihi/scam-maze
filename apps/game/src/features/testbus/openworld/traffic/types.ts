@@ -247,6 +247,11 @@ export interface VehicleAgent {
   laneChangeCooldown: number;
   /** Visual & LOD tier (0 = full <45m, 1 = medium 45..135m, 2 = coarse >135m) */
   lodTier: 0 | 1 | 2;
+  /** The reckless rider ("Báo Thủ"): revs at whatever holds him up, pulls wheelies and weaves across the lane. */
+  reckless?: boolean;
+  /** Stunt in progress (reckless riders only), seconds into it, and seconds until the next one. */
+  stunt?: { kind: "wheelie" | "weave"; t: number } | null;
+  stuntCooldown?: number;
   /** True for externally driven hero/bus vehicles (e.g. Bus 06) registered into the shared collision & yield grid */
   externalControl?: boolean;
   /** Visual rig (optional so pure headless Node unit/stress tests can run without Three.js meshes!) */
