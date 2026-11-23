@@ -1,3 +1,4 @@
+import { tr } from "../strings";
 import * as T from "three";
 import { ROOM_ANCHOR, STAIR } from "./boardingHouse";
 import { ROOM } from "../room/apartment";
@@ -46,42 +47,42 @@ export class WorldStreamer {
     const rz1 = ROOM_ANCHOR.z + ROOM.z1;
 
     if (y >= 2.8 && x >= rx0 - 0.15 && x <= rx1 + 0.15 && z >= rz0 - 0.15 && z <= rz1 + 0.15) {
-      return { zone: "Phòng 6.07", district: "Dãy Trọ 462/14 · Q.10" };
+      return { zone: tr("zone.room"), district: tr("district.building") };
     }
     if (x >= STAIR.xBottom - 0.4 && x <= STAIR.xTop + 0.3 && z >= STAIR.z0 - 0.2 && z <= STAIR.z1 + 0.2 && y > 0.35 && y < 3.08) {
-      return { zone: "Cầu Thang Dãy Trọ", district: "Dãy Trọ 462/14 · Q.10" };
+      return { zone: tr("zone.stairs"), district: tr("district.building") };
     }
     if (y >= 2.8 && x >= 13.0 && x <= 32.0 && z >= -19.5 && z <= -12.0) {
-      return { zone: "Hành Lang Lầu 1", district: "Dãy Trọ 462/14 · Q.10" };
+      return { zone: tr("zone.hallway"), district: tr("district.building") };
     }
     if (x >= 13.0 && x <= 32.0 && z >= -19.5 && z <= -6.4) {
-      return { zone: "Sân Khu Trọ 462/14", district: "Quận 10" };
+      return { zone: tr("zone.courtyard"), district: tr("district.d10") };
     }
     if (x >= 4.8 && x < 13.2 && z >= -12.7 && z <= -9.8) {
-      return { zone: "Hẻm 462/14 Lý Thái Tổ", district: "Quận 10" };
+      return { zone: tr("zone.alley"), district: tr("district.d10") };
     }
     if (Math.hypot(x - 94, z + 186) < 58) {
-      return { zone: "Quảng Trường Bitexco Tower", district: "Quận 1 · Trung Tâm" };
+      return { zone: tr("zone.bitexco"), district: tr("district.d1") };
     }
     if (Math.hypot(x - 26, z + 356) < 76) {
-      return { zone: "Công Viên Bờ Sông Landmark 81", district: "Bình Thạnh" };
+      return { zone: tr("zone.landmark81"), district: tr("district.binhThanh") };
     }
     if (x > 12 && Math.abs(z + 76) < 22) {
-      return { zone: "Đại Lộ Hàm Nghi — Đường 3/2", district: "Kết Nối Q.10 → Q.1" };
+      return { zone: tr("zone.hamNghi"), district: tr("district.d10ToD1") };
     }
     if (x > 12 && Math.abs(z + 147) < 22) {
-      return { zone: "Đại Lộ Điện Biên Phủ", district: "Kết Nối Q.1 → Bình Thạnh" };
+      return { zone: tr("zone.dienBienPhu"), district: tr("district.d1ToBinhThanh") };
     }
     if (Math.abs(z) < 12 && x >= -14 && x <= 7) {
-      return { zone: "Trạm Xe Buýt Lý Thái Tổ", district: "Quận 10" };
+      return { zone: tr("zone.lyThaiToStop"), district: tr("district.d10") };
     }
     if (Math.abs(z + 128) < 18 && x >= -16 && x <= 8) {
-      return { zone: "Trạm Chợ Lớn", district: "Quận 5" };
+      return { zone: tr("zone.choLonStop"), district: tr("district.d5") };
     }
     if (z < -190) {
-      return { zone: "Đại Lộ Ven Sông Sài Gòn", district: "Bình Thạnh" };
+      return { zone: tr("zone.riverside"), district: tr("district.binhThanh") };
     }
-    return { zone: "Đường Lý Thái Tổ", district: "Quận 10 · TP.HCM" };
+    return { zone: tr("zone.lyThaiTo"), district: tr("district.d10Hcmc") };
   }
 
   update(px: number, py: number, pz: number, software: boolean): StreamingStats {

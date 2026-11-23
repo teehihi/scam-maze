@@ -1,3 +1,4 @@
+import { pickStunt, stuntSeconds, weaveOffset, wheeliePitch } from "../../../khupho/world/baothuMotion";
 import { TrafficCollisionSystem } from "./collisionSystem";
 import {
   computeAccIdmPlus,
@@ -37,6 +38,8 @@ export interface SpawnVehicleSpec {
   /** Optional deterministic preferred routes (or leave undefined for dynamic weighted city turns) */
   preferStraightBias?: number;
   rig?: VehicleVisualRig | null;
+  /** The reckless rider ("Báo Thủ", a motorbike): revs instead of honking, wheelies and weaves. */
+  reckless?: boolean;
 }
 
 export interface TrafficStepInput {
@@ -166,6 +169,9 @@ export class SaigonTrafficManager {
       committedJunctionId: null,
       lodTier: 0,
       rig: spec.rig ?? null,
+      reckless: spec.category === "moto" && !!spec.reckless,
+      stunt: null,
+      stuntCooldown: 3 + this.nextRand() * 6,
     };
 
     agent.nextTurnId = this.pickNextTurn(agent, edge, spec.preferStraightBias);
@@ -368,7 +374,7 @@ export class SaigonTrafficManager {
     this.collisions.resolveHardVehicleContacts(this.vehicles);
 
     // Update continuous Saigon tire-spray & pass-by audio bed
-    this.audio.updateFrame(dt, input.wetness, input.playerX, input.playerZ, this.vehicles);
+    this.audio.updateFrame(dt, input.wetness, input.playerX, input.playerZ, this.vehicles, input.playerYaw);
   }
 
   /** Resolve Player capsule against ALL moving traffic & Bus 06 (call inside OpenWorldEngine.resolveCollisions!). */
@@ -517,17 +523,16 @@ export class SaigonTrafficManager {
       v.waitTime = Math.max(0, v.waitTime - dt * 2.5);
     }
 
-    if (hazard.blockedByPlayer && v.hornCooldown <= 0 && v.lodTier === 0) {
-      v.hornCooldown = 3.2 + this.nextRand() * 2.5;
-      this.audio.playHorn(
-        v.x,
-        v.z,
-        input.playerX,
-        input.playerZ,
-        input.playerYaw,
-        v.category,
-        true,
-      );
+    // Held up by something on the road (the player, a stopped vehicle ahead; not a red light): ordinary drivers
+    // honk, the reckless rider revs his engine at it instead.
+    const heldUp = !stopRequired && !signalIsRedOrAmber && hazard.gap < 7 && v.speed < 1.2 && v.waitTime > 1.6;
+    if ((hazard.blockedByPlayer || heldUp) && v.hornCooldown <= 0 && v.lodTier === 0) {
+      v.hornCooldown = (hazard.blockedByPlayer ? 3.2 : 6) + this.nextRand() * 3;
+      if (v.reckless) {
+        this.audio.playMotoRev(v.x, v.z, input.playerX, input.playerZ, input.playerYaw, true);
+      } else {
+        this.audio.playHorn(v.x, v.z, input.playerX, input.playerZ, input.playerYaw, v.category, hazard.blockedByPlayer);
+      }
     }
 
     // Subtle Saigon motorbike green-light launch rev when starting from standstill!
@@ -622,6 +627,45 @@ export class SaigonTrafficManager {
 
     // STAGE 5: Update 3D visual rig (suspension pitch/roll, moto lean, Ackermann wheels, brake/blinker lamps, head gaze)
     updateVehicleDynamicsAndRig(v, dt, this.simTime, stepDist, curvature, input.playerX, input.playerZ);
+    if (v.reckless) this.updateStunt(v, dt, hazard.gap);
+  }
+  /**
+   * The reckless rider's stunts (same timing as the neighborhood's Báo Thủ, `khupho/world/baothuMotion.ts`):
+   * on a clear stretch he lifts the front wheel or swings left and right across the lane. Visual only: the
+   * collision and lane model keep the bike on its path.
+   */
+  private updateStunt(v: VehicleAgent, dt: number, gap: number) {
+    if (v.stunt) {
+      v.stunt.t += dt;
+      // Something closes in ahead: the stunt ends early (the curves below ease back to flat on their own).
+      if (v.stunt.t >= stuntSeconds(v.stunt.kind) || (gap < 9 && v.stunt.t < 0.4)) {
+        v.stunt = null;
+        v.stuntCooldown = 6 + this.nextRand() * 9;
+      }
+    } else {
+      v.stuntCooldown = (v.stuntCooldown ?? 0) - dt;
+      if (v.stuntCooldown <= 0 && v.speed > 4 && !v.onTurn && gap > 30 && v.lodTier <= 1) {
+        v.stunt = { kind: pickStunt(this.nextRand()), t: 0 };
+      }
+    }
+    const rig = v.rig;
+    if (!rig) return;
+    const t = v.stunt?.t ?? 0;
+    const pitch = v.stunt?.kind === "wheelie" ? wheeliePitch(t) : 0;
+    const weave = v.stunt?.kind === "weave" ? weaveOffset(t) : 0;
+    // Wheelie: nose up about the rear axle (the chassis' -Z side), so the rear wheel stays on the road.
+    const rear = v.halfLength * 0.62;
+    rig.chassis.rotation.x -= pitch;
+    rig.chassis.position.y = rear * Math.sin(pitch);
+    rig.chassis.position.z = -rear * (1 - Math.cos(pitch));
+    if (weave !== 0 && v.stunt) {
+      // Weave: sideways along the bike's local +X, leaning into the swing.
+      const h = 1 / 60;
+      const acc = (weaveOffset(t + h) - 2 * weave + weaveOffset(Math.max(0, t - h))) / (h * h);
+      rig.root.position.x += Math.cos(v.yaw) * weave;
+      rig.root.position.z -= Math.sin(v.yaw) * weave;
+      rig.chassis.rotation.z += Math.max(-0.32, Math.min(0.32, -Math.atan(acc / 9.81)));
+    }
   }
 
   private updateLateralPlanner(

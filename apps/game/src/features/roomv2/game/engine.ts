@@ -42,6 +42,10 @@ export interface OutsideView {
   stepPlay(dt: number, input: OutsideLens & { keys: ReadonlySet<string>; yaw: number; pitch: number; door: number }): { position: THREE.Vector3; inRoom: boolean; moved: number };
   /** E outside (bus, ...). */
   interact(): void;
+  /** F outside: confirm (seated on the bus, the ride starts). */
+  confirm?(): void;
+  /** The game's sound setting, for the outside world's own street audio. */
+  setMuted?(muted: boolean): void;
   /** What the last step drew, or null. */
   backdrop(): { color: THREE.Texture; depth: THREE.DepthTexture; scale?: THREE.Vector2 } | null;
   /** Exposure the outside is meant to be seen at (the room's tone mapping applies on top). */
@@ -434,6 +438,8 @@ export class Engine implements RoomStoryCommands {
   /** Plugs a live outside world into the window (replaces the built-in city). */
   setOutside(view: OutsideView | null) {
     this.outside = view;
+    view?.setMuted?.(this.audio.muted);
+    this.audio.onMutedChange = (muted) => this.outside?.setMuted?.(muted);
     this.city.group.visible = view === null;
     // The dark hall stub only exists for the entrance shot; the real corridor replaces it.
     for (const o of this.apt.hallStub) o.visible = view === null;
@@ -744,6 +750,7 @@ export class Engine implements RoomStoryCommands {
     if (this.outdoors) {
       // Outside: E works the room door when it is aimed at, otherwise the street (bus, ...).
       if (e.code === 'KeyE') { if (this.hovered === 'door') this.interact(); else this.outside?.interact(); }
+      if (e.code === 'KeyF' && !e.repeat) this.outside?.confirm?.();
       return;
     }
     if (e.code === 'KeyE') { if (this.inspect && this.inspect.dir === 1) this.endInspect(); else this.interact(); }

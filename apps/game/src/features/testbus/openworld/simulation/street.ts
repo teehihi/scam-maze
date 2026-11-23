@@ -1,3 +1,4 @@
+import { placeStreetProps, type StreetPropPlacement } from "./streetPropsGlb";
 import {driveSurface,driveTexture} from './drive-look';
 import {DISTRICT_START, DISTRICT_BLOCK} from './q10-plan';
 import {districtFinishes} from './q10-materials';
@@ -136,11 +137,8 @@ function stopEnvironment(parent: T.Group, solids: Solid[], stopZ: number, destin
     box(g, [2.50, 2.654, z], [0.14, 0.060, 0.70], steel);
     box(g, [2.50, 2.618, z], [0.085, 0.027, 0.61], light);
   }
-  const bin = material(0x3c5950, 0.56, 0.28);
-  rounded(g, [3.55, 0.59, 5.19], [0.49, 0.87, 0.49], 0.07, bin);
-  box(g, [3.55, 0.99, 5.19], [0.55, 0.081, 0.51], steel);
-  box(g, [3.29, 0.83, 5.19], [0.026, 0.12, 0.31], seam);
-  solids.push(rect(3.55, stopZ + 5.19, 0.51, 0.50));
+  // The penguin trash bin stands here (STREET_PROP_PLACEMENTS in buildStreet); only its collider is built now.
+  solids.push(rect(3.55, stopZ + 5.19, 0.6, 0.6));
   const sign = label(512, 716, (ctx) => {
     ctx.fillStyle = '#e6efd9'; ctx.fillRect(0, 0, 512, 716);
     ctx.fillStyle = '#22618a'; ctx.fillRect(13, 13, 486, 414);
@@ -612,13 +610,22 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
     const y = x >= 0 ? 0.164 : 0.007;
     polygon(dressing, [[x - size * 0.71, y, z], [x, y + 0.008, z + size], [x + size, y, z - size * 0.2], [x + size * 0.22, y, z - size * 0.59]], leafStain[i % 3]).castShadow = false;
   }
-  // Glass-fronted bánh mì trolley with steel trim and a little tin canopy.
-  const cartX=3.6,cartZ=-17.7;box(dressing,[cartX,.71,cartZ],[.69,.65,1.29],molding);box(dressing,[cartX,1.065,cartZ],[.78,.06,1.38],darkMetal);
-  const glassCase=new T.MeshPhysicalMaterial({color:0xc6ded8,transparent:true,opacity:.19,roughness:.08,metalness:.12,depthWrite:false});
-  for(const side of [-1,1]){for(const end of [-1,1]){const xx=cartX+side*.35,zz=cartZ+end*.64;rod(dressing,[xx,.3,zz],[xx,1.73,zz],.018,darkMetal);const wheel=mesh(dressing,new T.TorusGeometry(.10,.027,6,16),charcoal,[xx,.282,zz]);wheel.rotation.y=Math.PI/2;}
-   plane(dressing,[cartX+side*.354,1.39,cartZ],[1.22,.59],glassCase,side*Math.PI/2);}
-  const bread=material(0xb87834,.75);for(let j=0;j<8;j++){orb(dressing,[cartX-.14+(j%2)*.27,1.16,cartZ-.43+Math.floor(j/2)*.27],[.088,.075,.164],bread,11).rotation.y=.35;}
-  box(dressing,[cartX,1.76,cartZ],[.9,.095,1.49],canopies[0]);plane(dressing,[cartX-.352,.73,cartZ],[1.22,.51],textLabel('BÁNH MÌ  •  20K','#e6b95e','#a03425',600,220,68),X_ANGLE);solids.push(rect(cartX,cartZ,.8,1.48));
+  // The owner's bánh mì cart, penguin bins and battery-swap station (street-props.optimized.glb, the same models as
+  // the neighborhood) stand on the east sidewalk; they load after the street, their colliders are built now.
+  const cartX=3.6,cartZ=-17.7;
+  const propY = 0.164;
+  const streetProps: StreetPropPlacement[] = [
+    // Turned so the cart's front (+Z in the model) faces the road (-X).
+    { node: "Prop_BanhMi", x: cartX, z: cartZ, y: propY, yaw: -Math.PI / 2 },
+    { node: "Prop_TrashBin", x: 3.9, z: -19.7, y: propY, yaw: Math.PI },
+    { node: "Prop_TrashBin", x: 3.55, z: ROUTE.originZ + 5.19, y: propY, yaw: Math.PI },
+    { node: "Prop_TrashBin", x: 3.55, z: ROUTE.destinationZ + 5.19, y: propY, yaw: Math.PI },
+    { node: "Prop_TrashBin", x: 3.9, z: -58.4, y: propY, yaw: Math.PI },
+    // Authored with its doors toward -Z; turned so they face the road.
+    { node: "Prop_BatterySwap", x: 4.2, z: -23.6, y: propY, yaw: Math.PI / 2 },
+  ];
+  solids.push(rect(cartX, cartZ, 0.95, 1.6), rect(3.9, -19.7, 0.6, 0.6), rect(3.9, -58.4, 0.6, 0.6), rect(4.2, -23.6, 0.8, 1.35));
+  void placeStreetProps(dressing, streetProps, onAssetLoaded);
   // The low vendor parasol across from the shuttered strip (east-facing view).
   const ux=3.08,uz=-6.65;rod(dressing,[ux,.16,uz],[ux,2.55,uz],.025,darkMetal);
   const clothPanels=[canopies[1],material(0xc6a54a,.9),canopies[0]];
@@ -762,6 +769,8 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
         laneIndex: slot.laneIndex,
         halfWidth: slot.halfWidth,
         halfLength: slot.halfLength,
+        // Slots 0, 4 and 6 carry the Báo Thủ model (vehicles.ts, addRider("baothu", ...)).
+        reckless: /^LTT_MOTO_[046]$/.test(slot.id),
         rig: {
           root: slot.root,
           chassis: slot.chassis,

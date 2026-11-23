@@ -54,6 +54,8 @@ export async function attachOutsideWorld(room: RoomEngine, hooks: OutsideWorldHo
     enterPlay: (eye, yaw, pitch) => world.enterPlay(eye, yaw, pitch),
     stepPlay: (dt, input) => world.stepPlay(dt, input),
     interact: () => world.interact(),
+    confirm: () => world.confirmRide(),
+    setMuted: (muted) => world.setStreetMuted(muted),
     backdrop: () => world.backdrop,
     exposure: () => 1.26 + 0.16 * world.atmosphere.state.nightFactor,
     rainAmount: () => world.atmosphere.state.rainIntensity,
