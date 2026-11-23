@@ -1,6 +1,7 @@
 import * as T from "three";
 import { streetClips } from "../simulation/streetClips";
-import { addHeadlightBeam, markLampParts, setVehicleLightLevel } from "../simulation/vehicleLights";
+import { addHeadlightBeam, attachDynamicLamps, markLampParts, setVehicleLightLevel } from "../simulation/vehicleLights";
+import { TrafficSignalController, type SaigonTrafficManager, type SignalAxis } from "../traffic";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -116,6 +117,7 @@ export function buildSaigonDistricts(
   streamer: WorldStreamer,
   software: boolean,
   onAssetLoaded?: (obj: T.Object3D) => void,
+  trafficMgr?: SaigonTrafficManager,
 ): SaigonDistricts {
   const root = new T.Group();
   root.name = "SaigonOpenWorldDistricts";
@@ -373,27 +375,53 @@ export function buildSaigonDistricts(
     solids.push(rect(x, z, 0.5 * scale, 0.5 * scale));
   };
 
-  // Helper: Animated 3-Aspect Vietnamese Traffic Light Pole + Crosswalk Zebra Stripes
-  const addTrafficSignal = (parent: T.Group, x: number, z: number, rotY: number) => {
+  // Helper: Animated 3-Aspect Vietnamese Traffic Light Pole + Live LED Countdown Timer
+  const addTrafficSignal = (
+    parent: T.Group,
+    x: number,
+    z: number,
+    rotY: number,
+    intersectionId?: string,
+    axis: SignalAxis = "ew",
+  ) => {
     const g = new T.Group();
     g.position.set(x, CURB_HEIGHT, z);
     g.rotation.y = rotY;
     rod(g, [0, 0, 0], [0, 5.6, 0], 0.085, steel, 0.065, 8);
     rod(g, [0, 5.45, 0], [3.6, 5.45, 0], 0.055, steel, 0.045, 8);
     box(g, [2.4, 5.45, 0.12], [0.36, 0.98, 0.26], darkMetal, false);
-    const r = lamp(0xff2a20, 2.8);
-    const y = lamp(0xffb824, 2.4);
-    const gr = lamp(0x28eb68, 2.6);
+    const r = lamp(0xff2a20, 0.03);
+    const y = lamp(0xffb824, 0.03);
+    const gr = lamp(0x28eb68, 0.03);
     const mkLens = (ly: number, m: T.MeshStandardMaterial) => {
       const disc = new T.Mesh(new T.CylinderGeometry(0.11, 0.11, 0.04, 14), m);
       disc.rotation.x = Math.PI / 2;
       disc.position.set(2.4, ly, 0.26);
       g.add(disc);
+      // Reverse-side lens so both directions along the boulevard see the signal clearly
+      const back = disc.clone();
+      back.position.set(2.4, ly, -0.02);
+      g.add(back);
     };
     mkLens(5.74, r);
     mkLens(5.45, y);
     mkLens(5.16, gr);
-    trafficSignalMats.push({ r, y, g: gr });
+
+    if (trafficMgr && intersectionId) {
+      const panel = TrafficSignalController.createCountdownPanel();
+      panel.mesh.position.set(2.85, 5.45, 0.265);
+      g.add(panel.mesh);
+      trafficMgr.bindSignalVisual({
+        intersectionId,
+        axis,
+        redMat: r,
+        amberMat: y,
+        greenMat: gr,
+        countdown: panel.handle,
+      });
+    } else {
+      trafficSignalMats.push({ r, y, g: gr });
+    }
     parent.add(g);
     solids.push(rect(x, z, 0.28, 0.28));
   };
@@ -718,8 +746,9 @@ export function buildSaigonDistricts(
   addCrosswalk(chunkEastBlvd, 5.6, -76, true);
   addCrosswalk(chunkEastBlvd, 48.0, -76, true);
   addCrosswalk(chunkEastBlvd, 64.0, -76, true);
-  addTrafficSignal(chunkEastBlvd, 8.0, -68.6, 0);
-  addTrafficSignal(chunkEastBlvd, 48.2, -68.6, 0);
+  addTrafficSignal(chunkEastBlvd, 8.0, -68.6, 0, "J_LTT_32", "ew");
+  addTrafficSignal(chunkEastBlvd, 48.2, -68.6, 0, "J_HT_32", "ew");
+  addTrafficSignal(chunkEastBlvd, 63.0, -86.2, Math.PI / 2, "J_HT_32", "ns");
 
   // Boulevard street sign on south sidewalk corner
   rod(chunkEastBlvd, [9.6, CURB_HEIGHT, -68.2], [9.6, 3.1, -68.2], 0.045, steel);
@@ -752,7 +781,9 @@ export function buildSaigonDistricts(
   addCrosswalk(chunkEastBlvd, 5.6, -147, true);
   addCrosswalk(chunkEastBlvd, 48.0, -147, true);
   addCrosswalk(chunkEastBlvd, 64.0, -147, true);
-  addTrafficSignal(chunkEastBlvd, 48.2, -139.6, 0);
+  addTrafficSignal(chunkEastBlvd, 8.0, -139.6, 0, "J_LTT_DBP", "ew");
+  addTrafficSignal(chunkEastBlvd, 48.2, -139.6, 0, "J_HT_DBP", "ew");
+  addTrafficSignal(chunkEastBlvd, 63.0, -157.2, Math.PI / 2, "J_HT_DBP", "ns");
 
   // --- North-South Connector Avenue: Đường Hải Triều (X ∈ [50, 62], Z ∈ [-236, -65.6]) ---
   plane(chunkEastBlvd, [56, 0.003, -150.8], [12.0, 170.4], roadMat, 0, -Math.PI / 2);
@@ -1361,6 +1392,8 @@ export function buildSaigonDistricts(
   taillightMats.push(taillightMat);
   vehicleBeamMats.push(beamMat);
 
+  const managedCrews: { root: T.Object3D; vehRoot: T.Object3D }[] = [];
+
   const loadExpandedFleet = async () => {
     const base = `/assets/testbus/ow/models/`;
     const [taxiGltf, sedanGltf, suvGltf, vanGltf, truckGltf, motoGltf, riderGltf, baothuGltf] = await Promise.all([
@@ -1376,6 +1409,8 @@ export function buildSaigonDistricts(
     if (disposed) return;
 
     let crewIndex = 4;
+    let managedVehIdx = 0;
+
     const addVehicle = async (
       source: T.Object3D,
       targetLength: number,
@@ -1387,9 +1422,12 @@ export function buildSaigonDistricts(
       dir: number,
       speed: number,
       kind: "car" | "truck" | "moto" | "rider",
+      managedSpawn?: { edgeId: string; s: number; laneIndex?: 0 | 1 },
     ) => {
       if (disposed) return;
+      const vehRoot = new T.Group();
       const holder = new T.Group();
+      vehRoot.add(holder);
       const obj = source.clone(true);
       const b = new T.Box3().setFromObject(obj, true);
       const sz = b.getSize(new T.Vector3());
@@ -1452,6 +1490,58 @@ export function buildSaigonDistricts(
       const radius = wheels[0] ? wheelRadius(wheels[0], 0.3) : 0.3;
       if (lamps.head) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), kind === "car" ? "car" : kind === "truck" ? "truck" : "moto");
 
+      const contactW = kind === "truck" ? 2.6 : kind === "car" ? 2.15 : 1.0;
+      const contactL = kind === "truck" ? targetLength : kind === "car" ? targetLength : 2.15;
+      contact(holder, 0, 0.01, 0, contactW, contactL, shade);
+
+      if (trafficMgr && managedSpawn) {
+        dynamicRoot.add(vehRoot);
+        onAssetLoaded?.(vehRoot);
+
+        const isMoto = kind === "moto" || kind === "rider";
+        const halfWidth = kind === "truck" ? 0.98 : kind === "car" ? 0.92 : 0.44;
+        const halfLength = isMoto ? 1.04 : targetLength * 0.5;
+        const dynamicLights = attachDynamicLamps(holder, halfWidth, halfLength, isMoto);
+
+        holder.updateWorldMatrix(true, true);
+        const invHolder = new T.Matrix4().copy(holder.matrixWorld).invert();
+        const tmp = new T.Vector3();
+        const detailedWheels = wheels.map((node, i) => {
+          node.getWorldPosition(tmp).applyMatrix4(invHolder);
+          // In holder local space, forward is +Z -> front wheels have local z > +0.15 (or name matches Front)
+          const isFront = /front|_fl|_fr|wheel_f/i.test(node.name) || tmp.z > 0.15;
+          return { node, sign: spinSigns[i], isFront, baseYaw: node.rotation.y };
+        });
+
+        let crewHead: T.Object3D | undefined;
+        if (crew) {
+          crew.root.traverse((o) => {
+            if (!crewHead && o instanceof T.Bone && /head$/i.test(o.name)) crewHead = o;
+          });
+          managedCrews.push({ root: crew.root, vehRoot });
+        }
+
+        trafficMgr.spawnVehicle({
+          id: `DIST_VEH_${managedVehIdx++}`,
+          category: isMoto ? "moto" : kind === "truck" ? "van" : "car",
+          edgeId: managedSpawn.edgeId,
+          s: managedSpawn.s,
+          laneIndex: managedSpawn.laneIndex,
+          halfWidth,
+          halfLength,
+          rig: {
+            root: vehRoot,
+            chassis: holder,
+            wheels: detailedWheels,
+            wheelRadius: radius,
+            lights: dynamicLights,
+            crewHead,
+            crewHeadRestQ: crewHead ? crewHead.quaternion.clone() : undefined,
+          },
+        });
+        return;
+      }
+
       if (axis === "x") {
         holder.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
         holder.position.set(start, 0, lane);
@@ -1459,9 +1549,6 @@ export function buildSaigonDistricts(
         holder.rotation.y = dir > 0 ? 0 : Math.PI;
         holder.position.set(lane, 0, start);
       }
-      const contactW = kind === "truck" ? 2.6 : kind === "car" ? 2.15 : 1.0;
-      const contactL = kind === "truck" ? targetLength : kind === "car" ? targetLength : 2.15;
-      contact(holder, 0, 0.01, 0, contactW, contactL, shade);
       dynamicRoot.add(holder);
       onAssetLoaded?.(holder);
       boulevardVehicles.push({
@@ -1480,47 +1567,47 @@ export function buildSaigonDistricts(
       });
     };
 
-    // Traffic strictly confined to valid roadway lanes & bounds!
+    // Traffic strictly on TRUE VIETNAM RIGHT-HAND TRAFFIC edges across Đường 3/2, Điện Biên Phủ, Hải Triều, Ven Sông & Vinhomes!
     if (taxiGltf) {
-      await addVehicle(taxiGltf.scene, 4.45, "x", -79.0, 8, 122, 28, 1, 7.2, "car");
-      await addVehicle(taxiGltf.scene, 4.45, "x", -150.0, 8, 124, 42, 1, 7.6, "car");
-      await addVehicle(taxiGltf.scene, 4.45, "z", 59.0, -230, -72, -185, 1, 6.8, "car");
+      await addVehicle(taxiGltf.scene, 4.45, "x", -73.0, 8, 122, 28, 1, 7.2, "car", { edgeId: "D32_W_EB", s: 12, laneIndex: 0 });
+      await addVehicle(taxiGltf.scene, 4.45, "x", -144.0, 8, 124, 42, 1, 7.6, "car", { edgeId: "DBP_W_EB", s: 18, laneIndex: 0 });
+      await addVehicle(taxiGltf.scene, 4.45, "z", 53.0, -230, -72, -185, 1, 6.8, "car", { edgeId: "HT_N_SB", s: 25, laneIndex: 0 });
     }
     if (sedanGltf) {
-      await addVehicle(sedanGltf.scene, 4.45, "x", -73.0, 8, 122, 92, -1, 6.8, "car");
-      await addVehicle(sedanGltf.scene, 4.45, "z", -3.2, -304, -198, -240, -1, 8.0, "car");
+      await addVehicle(sedanGltf.scene, 4.45, "x", -79.0, 8, 122, 92, -1, 6.8, "car", { edgeId: "D32_E_WB", s: 20, laneIndex: 0 });
+      await addVehicle(sedanGltf.scene, 4.45, "z", -3.2, -304, -198, -240, -1, 8.0, "car", { edgeId: "LTT_N_NB", s: 64, laneIndex: 0 });
     }
     if (suvGltf) {
-      await addVehicle(suvGltf.scene, 4.55, "x", -79.0, 8, 122, 76, 1, 6.9, "car");
-      await addVehicle(suvGltf.scene, 4.55, "z", 53.0, -230, -72, -110, -1, 6.5, "car");
+      await addVehicle(suvGltf.scene, 4.55, "x", -73.0, 8, 122, 76, 1, 6.9, "car", { edgeId: "D32_E_EB", s: 18, laneIndex: 1 });
+      await addVehicle(suvGltf.scene, 4.55, "z", 59.0, -230, -72, -110, -1, 6.5, "car", { edgeId: "HT_S_NB", s: 22, laneIndex: 0 });
     }
     if (vanGltf) {
       fixVanWheels(vanGltf.scene);
-      await addVehicle(vanGltf.scene, VAN_LENGTH, "x", -144.0, 8, 124, 88, -1, 6.7, "car");
-      await addVehicle(vanGltf.scene, VAN_LENGTH, "z", -9.6, -304, -198, -285, 1, 7.0, "car");
+      await addVehicle(vanGltf.scene, VAN_LENGTH, "x", -150.0, 8, 124, 88, -1, 6.7, "car", { edgeId: "DBP_E_WB", s: 24, laneIndex: 0 });
+      await addVehicle(vanGltf.scene, VAN_LENGTH, "z", -9.6, -304, -198, -285, 1, 7.0, "car", { edgeId: "LTT_N_SB", s: 20, laneIndex: 0 });
     }
     if (truckGltf) {
       fixVanWheels(truckGltf.scene);
-      await addVehicle(truckGltf.scene, VAN_LENGTH, "x", -150.0, 8, 124, 96, 1, 5.6, "truck");
-      await addVehicle(truckGltf.scene, VAN_LENGTH, "z", -9.6, -304, -198, -230, 1, 5.4, "truck");
+      await addVehicle(truckGltf.scene, VAN_LENGTH, "x", -144.0, 8, 124, 96, 1, 5.6, "truck", { edgeId: "DBP_E_EB", s: 20, laneIndex: 1 });
+      await addVehicle(truckGltf.scene, VAN_LENGTH, "z", -9.6, -304, -198, -230, 1, 5.4, "truck", { edgeId: "LTT_N_SB", s: 72, laneIndex: 0 });
     }
     if (motoGltf) {
-      await addVehicle(motoGltf.scene, 2.1, "x", -77.4, 8, 122, 52, 1, 6.6, "moto");
-      await addVehicle(motoGltf.scene, 2.1, "x", -145.4, 8, 124, 82, -1, 7.0, "moto");
-      await addVehicle(motoGltf.scene, 2.1, "z", 58.6, -230, -72, -175, 1, 6.1, "moto");
-      await addVehicle(motoGltf.scene, 2.1, "z", -4.4, -304, -198, -260, -1, 6.8, "moto");
+      await addVehicle(motoGltf.scene, 2.1, "x", -72.0, 8, 122, 52, 1, 6.6, "moto", { edgeId: "D32_W_EB", s: 26, laneIndex: 1 });
+      await addVehicle(motoGltf.scene, 2.1, "x", -151.0, 8, 124, 82, -1, 7.0, "moto", { edgeId: "DBP_W_WB", s: 14, laneIndex: 1 });
+      await addVehicle(motoGltf.scene, 2.1, "z", 59.8, -230, -72, -175, -1, 6.1, "moto", { edgeId: "HT_N_NB", s: 18, laneIndex: 1 });
+      await addVehicle(motoGltf.scene, 2.1, "z", -2.4, -304, -198, -260, -1, 6.8, "moto", { edgeId: "LTT_N_NB", s: 105, laneIndex: 1 });
     }
     const riderLod =
       riderGltf?.scene.getObjectByName("BikeRider_LOD1") ?? riderGltf?.scene.getObjectByName("BikeRider_LOD0");
     const baothuLod =
       baothuGltf?.scene.getObjectByName("BikeRider_LOD1") ?? baothuGltf?.scene.getObjectByName("BikeRider_LOD0");
     if (riderLod) {
-      await addVehicle(riderLod, 1.9, "x", -77.4, 8, 122, 102, 1, 6.8, "rider");
-      await addVehicle(riderLod, 1.9, "x", -148.6, 8, 124, 25, 1, 7.1, "rider");
+      await addVehicle(riderLod, 1.9, "x", -72.2, 8, 122, 102, 1, 6.8, "rider", { edgeId: "D32_E_EB", s: 32, laneIndex: 1 });
+      await addVehicle(riderLod, 1.9, "x", -143.0, 8, 124, 25, 1, 7.1, "rider", { edgeId: "DBP_W_EB", s: 8, laneIndex: 1 });
     }
     if (baothuLod) {
-      await addVehicle(baothuLod, 1.9, "x", -74.6, 8, 122, 48, -1, 7.4, "rider");
-      await addVehicle(baothuLod, 1.9, "z", -9.6, -304, -198, -275, 1, 7.1, "rider");
+      await addVehicle(baothuLod, 1.9, "x", -80.0, 8, 122, 48, -1, 7.4, "rider", { edgeId: "D32_W_WB", s: 16, laneIndex: 1 });
+      await addVehicle(baothuLod, 1.9, "z", 52.2, -230, -72, -120, 1, 7.1, "rider", { edgeId: "HT_S_SB", s: 20, laneIndex: 1 });
     }
   };
 
@@ -1616,8 +1703,8 @@ export function buildSaigonDistricts(
   // Phase 3 & 4: Thủ Thiêm Skyline, Cable-Stayed Ba Son Bridge, Illuminated Saigon River Boats & Living Sky!
   const riversideWorld = buildSaigonRiversideWorld(chunkHorizon, dynamicRoot, towerMats);
 
-  // Phase 3: 1-Draw-Call Wet-Road Tire Spray Mist System for all moving Q.1 traffic!
-  const tireSpray = createWetTireSpraySystem(dynamicRoot, 24);
+  // Phase 3: 1-Draw-Call Wet-Road Tire Spray Mist System for ALL moving Saigon traffic!
+  const tireSpray = createWetTireSpraySystem(dynamicRoot, 32);
 
   // Batch static district meshes across all 6 chunks down to minimal GPU draw calls!
   for (const ch of [chunkNorthView, chunkEastBlvd, chunkEastBlvdLod, chunkBitexco, chunkLandmark, chunkHorizon]) {
@@ -1782,15 +1869,17 @@ export function buildSaigonDistricts(
       const pulse = Math.sin(time * 2.6) > 0.2 ? 1.0 : 0.08;
       for (const b of beacons) b.color.setRGB(4.5 * pulse, 0.2 * pulse, 0.1 * pulse);
 
-      // Alternating E-W (0..10s green, 10..12.5s yellow) vs N-S (12.5..22.5s green) traffic cycle!
+      // Legacy fallback signal cycle ONLY when trafficMgr is absent
       const cyc = time % 25.0;
       const ewGreen = cyc < 10.0;
       const ewYellow = cyc >= 10.0 && cyc < 12.5;
       const nsGreen = cyc >= 12.5 && cyc < 22.5;
-      for (const ts of trafficSignalMats) {
-        ts.r.emissiveIntensity = !ewGreen && !ewYellow ? 3.2 : 0.05;
-        ts.y.emissiveIntensity = ewYellow ? 3.0 : 0.05;
-        ts.g.emissiveIntensity = ewGreen ? 3.0 : 0.05;
+      if (!trafficMgr) {
+        for (const ts of trafficSignalMats) {
+          ts.r.emissiveIntensity = !ewGreen && !ewYellow ? 3.2 : 0.05;
+          ts.y.emissiveIntensity = ewYellow ? 3.0 : 0.05;
+          ts.g.emissiveIntensity = ewGreen ? 3.0 : 0.05;
+        }
       }
 
       const npcRangeSq = 75 * 75;
@@ -1826,7 +1915,26 @@ export function buildSaigonDistricts(
         if (visible && a.mixer) a.mixer.update(dt);
       }
 
-      // Smart Intersection Traffic AI: real red-light stop lines + same-lane headway braking (ZERO cross-clipping!)
+      if (trafficMgr) {
+        // Distance-cull managed boulevard vehicles & driver crews cleanly, then drive wet-road tire spray!
+        const vehRangeSq = 155 * 155;
+        const crewRangeSq = 72 * 72;
+        for (const v of trafficMgr.vehicles) {
+          if (!v.rig || v.externalControl) continue;
+          const dx = v.x - playerX;
+          const dz = v.z - playerZ;
+          v.rig.root.visible = dx * dx + dz * dz < vehRangeSq;
+        }
+        for (const c of managedCrews) {
+          const dx = c.vehRoot.position.x - playerX;
+          const dz = c.vehRoot.position.z - playerZ;
+          c.root.visible = dx * dx + dz * dz < crewRangeSq;
+        }
+        tireSpray.updateFromAgents(trafficMgr.vehicles, envWetness, envRain, time);
+        return;
+      }
+
+      // Legacy Smart Intersection Traffic AI fallback (when trafficMgr is not passed)
       const vehRangeSq = 135 * 135;
       for (let i = 0; i < boulevardVehicles.length; i++) {
         const v = boulevardVehicles[i];

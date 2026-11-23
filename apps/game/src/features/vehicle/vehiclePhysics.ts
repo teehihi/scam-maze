@@ -82,23 +82,26 @@ export interface VehicleInputs {
 }
 
 /**
- * Deterministic vehicle kinematics and suspension simulation step.
+ * Deterministic vehicle kinematics, Pacejka friction-circle wet-road grip, and suspension step.
+ *
+ * @param wetness Road wetness ∈ [0, 1] (0 = dry asphalt μ=1.0, 1 = monsoon rain μ=0.58)
  */
 export function stepVehiclePhysics(
   curr: VehicleState,
   inputs: VehicleInputs,
   config: VehiclePhysicsConfig,
-  dt: number
+  dt: number,
+  wetness = 0,
 ): VehicleState {
   let { speed, yaw, steering, pitch, roll } = curr;
   let posX = curr.position[0];
   const posY = curr.position[1];
   let posZ = curr.position[2];
 
+  // Wet-road surface friction μ(wetness) + simplified Pacejka combined-slip friction circle
+  const muRoad = 1.0 - 0.42 * Math.max(0, Math.min(1, wetness));
+
   // 1. Speed-sensitive progressive steering kinematics (Lexus VGRS & Caster alignment)
-  // When driving straight at cruising speed (>30-60 km/h), steering sensitivity and maximum lock
-  // angle are dynamically attenuated. Quick key taps yield gentle 1°–2° micro-adjustments for stable lane keeping.
-  // At low parking speeds (0-15 km/h), full lock angle (~30°) is retained for easy sharp cornering.
   const absSpeed = Math.abs(speed);
   const speedFactor = 1.0 / (1.0 + Math.pow(absSpeed / 5.0, 1.4));
   const effectiveMaxSteer = config.maxSteerAngle * (0.16 + 0.84 * speedFactor);
@@ -108,8 +111,8 @@ export function stepVehiclePhysics(
 
   // Steering build-up rate: progressive and gentle at speed, agile when maneuvering
   const buildRate = config.steerSpeed * (0.28 + 0.42 * speedFactor);
-  // Self-aligning caster return rate: faster return to center at higher speeds
-  const returnRate = config.steerSpeed * (1.2 + 0.8 * Math.min(1.5, absSpeed / 8.0));
+  // Self-aligning caster return rate: scales with tire grip μ
+  const returnRate = config.steerSpeed * (1.2 + 0.8 * Math.min(1.5, absSpeed / 8.0)) * (0.7 + 0.3 * muRoad);
 
   if (targetSteerInput !== 0) {
     steering += (targetSteer - steering) * Math.min(1, buildRate * dt);
@@ -118,31 +121,37 @@ export function stepVehiclePhysics(
     steering += (0 - steering) * Math.min(1, returnRate * dt);
   }
 
-  // 2. Acceleration / Braking / Reverse
+  // 2. Acceleration / Braking / Reverse scaled by tire traction μ
   let accelRate = 0;
   if (inputs.forward) {
     if (speed >= -0.2) {
-      accelRate = config.acceleration;
+      accelRate = config.acceleration * (0.72 + 0.28 * muRoad);
     } else {
       // Braking while going backward
-      accelRate = config.brakeForce;
+      accelRate = config.brakeForce * muRoad;
     }
   } else if (inputs.backward) {
     if (speed > 0.4) {
       // Braking while going forward
-      accelRate = -config.brakeForce;
+      accelRate = -config.brakeForce * muRoad;
     } else {
       // Reversing
-      accelRate = -config.acceleration * 0.55;
+      accelRate = -config.acceleration * 0.55 * (0.75 + 0.25 * muRoad);
     }
   } else {
-    // Rolling friction & air drag
-    accelRate = -Math.sign(speed) * Math.min(Math.abs(speed), config.friction);
+    // Rolling friction & air drag (slightly higher hydrodynamic drag on flooded asphalt)
+    const drag = config.friction * (1 + 0.18 * Math.max(0, Math.min(1, wetness)));
+    accelRate = -Math.sign(speed) * Math.min(Math.abs(speed), drag);
   }
 
   if (inputs.handbrake) {
-    accelRate = -Math.sign(speed) * config.handbrakeForce;
+    accelRate = -Math.sign(speed) * config.handbrakeForce * muRoad;
   }
+
+  // Pacejka combined-slip friction circle: hard longitudinal braking/launch reduces available lateral grip!
+  const maxLongG = Math.max(2.0, config.brakeForce * muRoad);
+  const longLoadFrac = Math.min(0.92, Math.abs(accelRate) / maxLongG);
+  const combinedLatGrip = Math.sqrt(Math.max(0.18, 1 - longLoadFrac * longLoadFrac * 0.65));
 
   speed += accelRate * dt;
 
@@ -157,14 +166,13 @@ export function stepVehiclePhysics(
   else if (speed < -0.1 || (inputs.backward && speed <= 0)) gear = "R";
   else gear = "P";
 
-  // 3. Heading integration (Bicycle model / Ackermann approximation)
-  // Low-speed steering requires movement, with subtle stationary dry-steering
+  // 3. Heading integration (Bicycle model / Ackermann + Pacejka lateral grip envelope)
   const wheelBase = 2.85;
   const effectiveSpeed = Math.abs(speed) > 0.08 ? speed : (inputs.forward || inputs.backward ? speed : 0);
   const rawYawRate = (effectiveSpeed / wheelBase) * Math.sin(steering);
 
-  // Lateral acceleration limit (~0.7g) to keep 2.5-ton luxury SUV stable and prevent twitching at speed
-  const maxLateralG = 0.72;
+  // Wet-road & combined-slip lateral acceleration envelope (~0.72g dry -> ~0.42g monsoon rain)
+  const maxLateralG = 0.72 * muRoad * combinedLatGrip;
   const maxYawRate = (maxLateralG * 9.81) / Math.max(2.5, absSpeed);
   const yawRate = Math.sign(rawYawRate) * Math.min(Math.abs(rawYawRate), maxYawRate);
   yaw += yawRate * dt;

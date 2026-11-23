@@ -14,6 +14,7 @@ import {
   tube,
 } from "./scene-kit";
 import { type BusRouteController } from "./transit";
+import type { SaigonTrafficManager, SmartPedestrianAgent } from "../traffic";
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const names = [
   "npc-alice",
@@ -56,6 +57,7 @@ export function castStreet(
   onChange: () => void,
   onCore: () => void,
   solids: Solid[],
+  trafficMgr?: SaigonTrafficManager,
 ) {
   let disposed = false;
   const details: Awaited<ReturnType<typeof actorDetail>>[] = [];
@@ -153,7 +155,8 @@ export function castStreet(
       }
       const { root, obj, data, clips: streetSet, height: actorHeight } = actor;
       const [x, z] = places[i],
-        walker = i === 4 || i === 5 || i === 6,
+        crosswalkWalker = Boolean(trafficMgr) && (i === 12 || i === 14),
+        walker = i === 4 || i === 5 || i === 6 || crosswalkWalker,
         seated = i === 3,
         queue = i === 0 || i === 2;
       for (const [side, s] of [
@@ -251,14 +254,33 @@ export function castStreet(
       const thigh = ["thigh_l", "thigh_r"].map((k) => obj.getObjectByName(k)),
         neutral = thigh.map((b) => b?.rotation.x ?? 0);
       let mixer: T.AnimationMixer | undefined;
+      let walkAction: T.AnimationAction | undefined;
+      const walkClipSpeed = streetSet.walkSpeedAt(actorHeight);
       // Walkers borrow a retargeted walk when their file has none; everyone else keeps their own pose / idle.
       const clip = walker ? streetSet.walk : data.animations.find((a) => /idle/i.test(a.name));
       if (clip) {
         mixer = new T.AnimationMixer(obj);
         const action = mixer.clipAction(clip);
-        if (walker) action.timeScale = 0.72 / streetSet.walkSpeedAt(actorHeight);
+        walkAction = action;
+        if (walker) action.timeScale = 0.72 / walkClipSpeed;
         action.play();
         action.time = clip.duration * ((i * 0.618) % 1);
+      }
+      // Register walkers with the unified Social Force + Crosswalk PedestrianBrain!
+      let smartPed: SmartPedestrianAgent | null = null;
+      if (walker && trafficMgr) {
+        const patrolZMin = i === 12 ? -104 : i === 14 ? -152 : z - 7;
+        const patrolZMax = i === 12 ? -88 : i === 14 ? -138 : z + 7;
+        smartPed = trafficMgr.pedestrians.registerSidewalkWalker({
+          id: `LTT_PED_${i}`,
+          x,
+          z: i === 12 ? -95.2 : i === 14 ? -145.5 : z,
+          patrolZMin,
+          patrolZMax,
+          baseSpeed: crosswalkWalker ? 1.05 : 0.78,
+          canCross: crosswalkWalker,
+          seed: i + 1,
+        });
       }
       const head = obj.getObjectByName("head"),
         chest = obj.getObjectByName("spine_03");
@@ -295,33 +317,47 @@ export function castStreet(
           }
         }
         if (walker) {
-          const next = walkZ + walkSide * 0.72 * dt;
-          if (Math.abs(next - z) > 7) walkSide *= -1;
-          let lane = x;
-          for (const r of solids) {
-            if (
-              next > r.z0 - 0.5 &&
-              next < r.z1 + 0.5 &&
-              lane > r.x0 - 0.33 &&
-              lane < r.x1 + 0.33
-            )
-              lane =
-                Math.abs(lane - r.x0) < Math.abs(lane - r.x1)
-                  ? r.x0 - 0.48
-                  : r.x1 + 0.48;
+          if (smartPed) {
+            root.position.x = smartPed.x;
+            root.position.z = smartPed.z;
+            // Smooth curb step-down when crossing asphalt roadway (x ∈ [-12.6, -0.2]) vs sidewalk (0.16)
+            const onRoad = smartPed.x > -12.6 && smartPed.x < -0.2;
+            const targetY = onRoad ? 0.0 : 0.16;
+            root.position.y += (targetY - root.position.y) * Math.min(1, dt * 10);
+            root.rotation.y = smartPed.yaw;
+            if (walkAction) {
+              // Feet stay planted: freeze stride when waiting at red light curb, hurry up on flashing green!
+              walkAction.timeScale = smartPed.speed > 0.08 ? smartPed.speed / walkClipSpeed : 0.0;
+            }
+          } else {
+            const next = walkZ + walkSide * 0.72 * dt;
+            if (Math.abs(next - z) > 7) walkSide *= -1;
+            let lane = x;
+            for (const r of solids) {
+              if (
+                next > r.z0 - 0.5 &&
+                next < r.z1 + 0.5 &&
+                lane > r.x0 - 0.33 &&
+                lane < r.x1 + 0.33
+              )
+                lane =
+                  Math.abs(lane - r.x0) < Math.abs(lane - r.x1)
+                    ? r.x0 - 0.48
+                    : r.x1 + 0.48;
+            }
+            for (const n of others) {
+              if (
+                n !== root &&
+                Math.abs(n.position.z - next) < 0.9 &&
+                Math.abs(n.position.x - lane) < 0.49
+              )
+                lane += n.position.x > lane ? -0.48 : 0.48;
+            }
+            root.position.x = T.MathUtils.damp(root.position.x, lane, 5, dt);
+            walkZ += walkSide * 0.72 * dt;
+            root.position.z = walkZ;
+            root.rotation.y = walkSide > 0 ? 0 : Math.PI;
           }
-          for (const n of others) {
-            if (
-              n !== root &&
-              Math.abs(n.position.z - next) < 0.9 &&
-              Math.abs(n.position.x - lane) < 0.49
-            )
-              lane += n.position.x > lane ? -0.48 : 0.48;
-          }
-          root.position.x = T.MathUtils.damp(root.position.x, lane, 5, dt);
-          walkZ += walkSide * 0.72 * dt;
-          root.position.z = walkZ;
-          root.rotation.y = walkSide > 0 ? 0 : Math.PI;
         }
         const distance = root.position.distanceTo(cam);
         root.visible = distance < 52;

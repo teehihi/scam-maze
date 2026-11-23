@@ -228,6 +228,12 @@ export interface TireSprayHandle {
     rainIntensity: number,
     time: number,
   ) => void;
+  updateFromAgents: (
+    agents: readonly { x: number; z: number; yaw: number; speed: number; halfWidth: number; halfLength: number; lodTier: number }[],
+    wetness: number,
+    rainIntensity: number,
+    time: number,
+  ) => void;
   dispose: () => void;
 }
 
@@ -285,6 +291,44 @@ export function createWetTireSpraySystem(parent: T.Group, maxVehicles = 24): Tir
           const sc = (0.55 + phase * 1.15) * speedNorm;
           _vPos.set(wx, wy, wz);
           _q.setFromAxisAngle(_up, ry + (p === 0 ? 0.18 : -0.18));
+          _vScale.set(sc, sc * 0.8, sc);
+          _m4.compose(_vPos, _q, _vScale);
+          mesh.setMatrixAt(idx++, _m4);
+        }
+      }
+      while (idx < total) {
+        _m4.makeScale(0, 0, 0);
+        mesh.setMatrixAt(idx++, _m4);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+    },
+    updateFromAgents(agents, wetness, rainIntensity, time) {
+      const sprayStrength = Math.max(0, (wetness - 0.32) * 0.85 + rainIntensity * 0.65);
+      mat.opacity = Math.min(0.42, sprayStrength * 0.45);
+      const visible = sprayStrength > 0.05;
+      mesh.visible = visible;
+      if (!visible) return;
+
+      let idx = 0;
+      for (let i = 0; i < agents.length && idx + 1 < total; i++) {
+        const v = agents[i];
+        if (v.lodTier === 2 || v.speed < 1.3) continue;
+        const speedNorm = Math.min(1.25, v.speed / 7.5);
+        const fx = Math.sin(v.yaw);
+        const fz = Math.cos(v.yaw);
+        const rx = -fz;
+        const rz = fx;
+        const latOff = Math.min(0.75, v.halfWidth * 0.65);
+        for (let p = 0; p < puffsPerVehicle; p++) {
+          const phase = (time * 2.4 + i * 0.73 + p * 0.5) % 1.0;
+          const trail = v.halfLength + 0.4 + phase * 2.3;
+          const side = p === 0 ? -latOff : latOff;
+          const wx = v.x - fx * trail + rx * side;
+          const wz = v.z - fz * trail + rz * side;
+          const wy = 0.25 + phase * 0.42;
+          const sc = (0.48 + phase * 1.1) * speedNorm;
+          _vPos.set(wx, wy, wz);
+          _q.setFromAxisAngle(_up, v.yaw + Math.PI / 2 + (p === 0 ? 0.18 : -0.18));
           _vScale.set(sc, sc * 0.8, sc);
           _m4.compose(_vPos, _q, _vScale);
           mesh.setMatrixAt(idx++, _m4);

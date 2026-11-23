@@ -49,26 +49,77 @@ function normalizeVehicleToGround(
   return { root, wheels };
 }
 
+export interface LoadedVehicleRigInfo {
+  wheels: { node: T.Object3D; sign: number; isFront: boolean; baseYaw: number }[];
+  wheelRadius: number;
+  crewHead?: T.Object3D;
+}
+
 export function streetVehicles(
-  traffic: { body: T.Group; direction: number }[],
+  traffic: { body: T.Group; chassis?: T.Group; direction: number; id?: string; halfWidth?: number; halfLength?: number; isMoto?: boolean }[],
   parkedSuv: T.Group,
   parkedVan?: T.Group,
   movingTruck?: T.Group,
   parkedBikes: ParkedBikeSlot[] = [],
   onAssetLoaded?: (obj: T.Object3D) => void,
+  onRigReady?: (index: number, info: LoadedVehicleRigInfo) => void,
 ) {
   const load = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   let disposed = false;
   const moving: { root: T.Group; wheels: { node: T.Object3D; sign: number }[]; z: number; wheelRadius: number }[] = [];
-  const hostForward = (host: T.Object3D, direction: number) =>
-    new T.Vector3(0, 0, direction).applyQuaternion(host.getWorldQuaternion(new T.Quaternion()).invert());
-  const registerMoving = (host: T.Group, wheels: T.Object3D[], direction: number, fallbackRadius: number, radius?: number) => {
-    const signs = wheelSpinSigns(host, wheels, hostForward(host, direction));
+  // When managed by TrafficManager, `host` sits inside `chassis` with `host.rotation.y = Math.PI`,
+  // so the vehicle's driving direction in `host`-local space is ALWAYS (0, 0, -1)!
+  const hostForward = (host: T.Object3D, direction: number, managed: boolean) =>
+    managed
+      ? new T.Vector3(0, 0, -1)
+      : new T.Vector3(0, 0, direction).applyQuaternion(host.getWorldQuaternion(new T.Quaternion()).invert());
+
+  const findHeadBone = (crewRoot?: T.Object3D): T.Object3D | undefined => {
+    if (!crewRoot) return undefined;
+    let found: T.Object3D | undefined;
+    crewRoot.traverse((o) => {
+      if (!found && o instanceof T.Bone && /head$/i.test(o.name)) found = o;
+    });
+    return found;
+  };
+
+  const registerMoving = (
+    index: number,
+    host: T.Group,
+    wheels: T.Object3D[],
+    direction: number,
+    fallbackRadius: number,
+    radius?: number,
+    crewRoot?: T.Object3D,
+  ) => {
+    const managed = Boolean(onRigReady);
+    const fwd = hostForward(host, direction, managed);
+    const signs = wheelSpinSigns(host, wheels, fwd);
+    const rad = radius ?? (wheels[0] ? wheelRadius(wheels[0], fallbackRadius) : fallbackRadius);
+
+    if (onRigReady) {
+      host.updateWorldMatrix(true, true);
+      const invHost = new T.Matrix4().copy(host.matrixWorld).invert();
+      const tmp = new T.Vector3();
+      const detailedWheels = wheels.map((node, i) => {
+        node.getWorldPosition(tmp).applyMatrix4(invHost);
+        // In host-local space, forward is -Z -> front wheels have local z < 0 (or name matches Front)
+        const isFront = /front|_fl|_fr|wheel_f/i.test(node.name) || tmp.z < -0.15;
+        return { node, sign: signs[i], isFront, baseYaw: node.rotation.y };
+      });
+      onRigReady(index, {
+        wheels: detailedWheels,
+        wheelRadius: rad,
+        crewHead: findHeadBone(crewRoot),
+      });
+      return;
+    }
+
     moving.push({
       root: host,
       wheels: wheels.map((node, i) => ({ node, sign: signs[i] })),
       z: host.position.z,
-      wheelRadius: radius ?? (wheels[0] ? wheelRadius(wheels[0], fallbackRadius) : fallbackRadius),
+      wheelRadius: rad,
     });
   };
   let crewCount = 0;
@@ -103,10 +154,11 @@ export function streetVehicles(
         root.addLevel(new T.Object3D(), 68, 0.1);
         host.add(root);
         host.updateWorldMatrix(true, true);
-        if (markLampParts(host, root, hostForward(host, traffic[index].direction)).head) {
-          addHeadlightBeam(host, root, hostForward(host, traffic[index].direction), "moto");
+        const fwd = hostForward(host, traffic[index].direction, Boolean(onRigReady));
+        if (markLampParts(host, root, fwd).head) {
+          addHeadlightBeam(host, root, fwd, "moto");
         }
-        registerMoving(host, wheels, traffic[index].direction, 0.27, 0.27);
+        registerMoving(index, host, wheels, traffic[index].direction, 0.27, 0.27);
       }
     });
   }
@@ -135,19 +187,20 @@ export function streetVehicles(
         host.children.forEach((c) => (c.visible = false));
         host.add(root);
         host.updateWorldMatrix(true, true);
-        const motoLamps = markLampParts(host, root, hostForward(host, traffic[index].direction));
+        const fwd = hostForward(host, traffic[index].direction, Boolean(onRigReady));
+        const motoLamps = markLampParts(host, root, fwd);
         const { vehicle, crew } = await equipVehicle({
           host,
           vehicle: root,
           kind: "moto",
-          forward: hostForward(host, traffic[index].direction),
+          forward: fwd,
           variant: crewCount++,
           isDisposed: () => disposed,
         });
-        if (motoLamps.head) addHeadlightBeam(host, vehicle, hostForward(host, traffic[index].direction), "moto");
+        if (motoLamps.head) addHeadlightBeam(host, vehicle, fwd, "moto");
         onAssetLoaded?.(vehicle);
         if (crew) onAssetLoaded?.(crew.root);
-        registerMoving(host, wheels, traffic[index].direction, 0.3, 0.3);
+        registerMoving(index, host, wheels, traffic[index].direction, 0.3, 0.3, crew?.root);
       }
     }
     // Replace ALL procedural parked sidewalk scooters along Lý Thái Tổ with REAL 3D GLB motorbikes!
@@ -178,16 +231,17 @@ export function streetVehicles(
       });
     }
   }
-  async function equipFourWheeler(host: T.Group, vehicle: T.Object3D, direction: number, fallbackRadius: number) {
+  async function equipFourWheeler(index: number, host: T.Group, vehicle: T.Object3D, direction: number, fallbackRadius: number) {
     host.children.forEach((c) => (c.visible = false));
     host.add(vehicle);
     host.updateWorldMatrix(true, true);
-    const lamps = markLampParts(host, vehicle, hostForward(host, direction));
+    const fwd = hostForward(host, direction, Boolean(onRigReady));
+    const lamps = markLampParts(host, vehicle, fwd);
     const { vehicle: placed, crew } = await equipVehicle({
       host,
       vehicle,
       kind: "car",
-      forward: hostForward(host, direction),
+      forward: fwd,
       variant: crewCount++,
       isDisposed: () => disposed,
     });
@@ -196,10 +250,10 @@ export function streetVehicles(
     placed.traverse((o) => {
       if (/^wheel_/i.test(o.name)) wheels.push(o);
     });
-    if (lamps.head) addHeadlightBeam(host, placed, hostForward(host, direction), "car");
+    if (lamps.head) addHeadlightBeam(host, placed, fwd, "car");
     onAssetLoaded?.(placed);
     if (crew) onAssetLoaded?.(crew.root);
-    registerMoving(host, wheels, direction, fallbackRadius);
+    registerMoving(index, host, wheels, direction, fallbackRadius, undefined, crew?.root);
   }
   async function addRealisticFourWheelers() {
     const [taxiGltf, suvGltf, vanGltf] = await Promise.all([
@@ -219,7 +273,7 @@ export function streetVehicles(
     const taxiHost = traffic[7]?.body;
     if (taxiHost && taxiGltf) {
       const { root } = normalizeVehicleToGround(taxiGltf.scene, 4.45, true, false);
-      await equipFourWheeler(taxiHost, root, traffic[7].direction, 0.34);
+      await equipFourWheeler(7, taxiHost, root, traffic[7].direction, 0.34);
     }
 
     // Parked realistic urban SUV beside Lý Thái Tổ Bus Station curb
@@ -241,11 +295,12 @@ export function streetVehicles(
     }
 
     // Moving delivery van on Lý Thái Tổ (same model and scale as the parked one, with a driver)
+    const vanIndex = traffic.findIndex((t) => t.body === movingTruck);
     const vanHost = movingTruck;
-    const vanDirection = traffic.find((t) => t.body === movingTruck)?.direction ?? -1;
-    if (vanHost && vanGltf) {
+    const vanDirection = vanIndex >= 0 ? traffic[vanIndex].direction : -1;
+    if (vanHost && vanGltf && vanIndex >= 0) {
       const { root: vanRoot } = normalizeVehicleToGround(vanGltf.scene, VAN_LENGTH, false, false);
-      await equipFourWheeler(vanHost, vanRoot, vanDirection, 0.34);
+      await equipFourWheeler(vanIndex, vanHost, vanRoot, vanDirection, 0.34);
     }
   }
 
