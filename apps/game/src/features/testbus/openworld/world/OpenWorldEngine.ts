@@ -1860,8 +1860,10 @@ export class OpenWorldEngine {
         Math.abs(this.yaw - this.lastCityRtYaw) > 0.002 ||
         Math.abs(this.pitch - this.lastCityRtPitch) > 0.002;
       const sinceCityRt = this.elapsed - this.lastCityRtTime;
-      // While the view turns the glass view follows at up to ~30 Hz (it is blurred by the rain glass anyway).
-      if (facingNorthWindow && ((camMoved && sinceCityRt >= 1 / 32) || sinceCityRt >= 0.15)) {
+      // While the view turns, or while it rains (the falling rain outside is in this picture: at the 0.15 s idle
+      // refresh it stepped down the glass in slow jerks), the glass view follows at up to ~30 Hz.
+      const live = camMoved || atm.rainIntensity > 0.02;
+      if (facingNorthWindow && ((live && sinceCityRt >= 1 / 32) || sinceCityRt >= 0.15)) {
         this.lastCityRtYaw = this.yaw;
         this.lastCityRtPitch = this.pitch;
         this.lastCityRtTime = this.elapsed;

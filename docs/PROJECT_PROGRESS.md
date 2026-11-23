@@ -182,6 +182,7 @@ Resolved:
 - Window glare: the rain glass soft-limits luminance above 0.6 (roll-off to 1.0), so the pane no longer flashes into a white panel.
 - Perf: the window-glass city view (`cityRT`) refreshes only while the window is on screen (`ViewPose.windowInView`), at most ~30 Hz while the camera turns plus every 0.15 s; the embedded world's shadow refresh is every 12 s; the street backdrop renders at reduced resolution (0.62 through the door, 0.8 outside, sampled with `uScale`).
 - Movement: the room integrates movement in 0.05 s substeps over up to 0.1 s per frame, so walking keeps its speed at low fps.
+- Window rain: the falling rain outside is part of the glass view (`cityRT`); with a still camera it refreshed only every 0.15 s, so the rain on the glass moved in slow jerks. While it rains the glass view now refreshes at up to ~30 Hz (window on screen only). Not yet re-measured; owner to test.
 - Phone: held up, the phone model (z-42) and its screen (z-43) are above the laptop desktop (z-40) and its HUD (z-41).
 - Validation: tsc clean, vitest 2178/2178, build ok. Headless room spin p50/p99 16.7/16.8 ms; phone checked over the laptop desktop.
 ### 2026-11-24 — Chapter 1 outside: portal-culled street, weather-driven room rain, rider fixes
