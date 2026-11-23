@@ -4,6 +4,8 @@ import {districtFinishes} from './q10-materials';
 import {makeSurveyKit,SURVEY} from './survey462';
 import {freezeStaticMatrices} from '../world/meshBatcher';
 import {streetVehicles, VAN_LENGTH, type ParkedBikeSlot} from './vehicles';
+import { attachDynamicLamps } from './vehicleLights';
+import { TrafficSignalController, type SaigonTrafficManager } from '../traffic';
 import * as T from 'three';
 import { CURB_HEIGHT, rect, ROUTE_BOARD, STOP_SIGN, type Point, type Solid } from './boarding';
 import { ROUTE } from './transit';
@@ -208,7 +210,13 @@ function bikeMaterials() {
   return { rubber: material(0x171b1b, 0.92), gray: material(0x252929, 0.54, 0.30), chrome: material(0xa7abab, 0.44, 0.65), seat: material(0x242525, 0.84), headlight: lamp(0xe7e4cb, 0.35), brake: lamp(0x952f20, 0.45), skin: material(0xa76e50, 0.75), cloth: material(0x40574a), pants: material(0x2c3438), helmet: material(0xd3d1b5, 0.34, 0.15) };
 }
 
-export function buildStreet(scene: T.Scene, software: boolean, manager?: T.LoadingManager, onAssetLoaded?: (obj: T.Object3D) => void) {
+export function buildStreet(
+  scene: T.Scene,
+  software: boolean,
+  manager?: T.LoadingManager,
+  onAssetLoaded?: (obj: T.Object3D) => void,
+  trafficMgr?: SaigonTrafficManager,
+) {
   const environment = new T.Group(); scene.add(environment);
   const solids: Solid[] = [];
   const rng = random(58200);
@@ -541,17 +549,45 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
       plane(dressing, [x - side * 3.27, h * 0.5, z], [6.7, h], skyline[i % 2], side * X_ANGLE);
     }
   }
-  const signalColours=[0xe94b37,0xf1ae40,0x58bf78].map(c=>lamp(c,0));
-  for (const z of [-76, -96, -147]) for (const side of [1, -1]) {
-    const x = side === 1 ? 0.73 : -12.51;
-    // Place east-side traffic signal on the corner sidewalk cleanly outside the 12m cross-boulevard mouth!
-    const sz = side === 1 && (z === -76 || z === -147) ? z + 7.2 : z - 2.6;
-    rod(dressing, [x, 0.16, sz], [x, 4.15, sz], 0.065, darkMetal);
-    box(dressing, [x - side * 0.19, 3.65, sz], [0.34, 0.81, 0.31], charcoal);
-    for (const [i, light] of signalColours.entries()) {
-      orb(dressing, [x - side * 0.36, 3.9 - i * 0.25, sz - 0.01], [0.037, 0.083, 0.085], light);
+  // Per-intersection QCVN 41:2024 traffic signal heads + glowing 2-digit Vietnamese LED countdown panels!
+  const legacySignalColours = [0xe94b37, 0xf1ae40, 0x58bf78].map(c => lamp(c, 0));
+  const lttSignalSpecs: { z: number; interId: string }[] = [
+    { z: -76, interId: "J_LTT_32" },
+    { z: -96, interId: "J_LTT_PED" },
+    { z: -147, interId: "J_LTT_DBP" },
+  ];
+  for (const { z, interId } of lttSignalSpecs) {
+    const redMat = trafficMgr ? lamp(0xff3426, 0.03) : legacySignalColours[0];
+    const ambMat = trafficMgr ? lamp(0xffb524, 0.03) : legacySignalColours[1];
+    const grnMat = trafficMgr ? lamp(0x28e672, 0.03) : legacySignalColours[2];
+    const perInterMats = [redMat, ambMat, grnMat];
+    for (const side of [1, -1]) {
+      const x = side === 1 ? 0.73 : -12.51;
+      // Place east-side traffic signal on the corner sidewalk cleanly outside the 12m cross-boulevard mouth!
+      const sz = side === 1 && (z === -76 || z === -147) ? z + 7.2 : z - 2.6;
+      rod(dressing, [x, 0.16, sz], [x, 4.15, sz], 0.065, darkMetal);
+      box(dressing, [x - side * 0.19, 3.65, sz], [0.34, 0.81, 0.31], charcoal);
+      for (const [i, light] of perInterMats.entries()) {
+        orb(dressing, [x - side * 0.36, 3.9 - i * 0.25, sz - 0.01], [0.037, 0.083, 0.085], light);
+        // Also add forward-facing lens along Lý Thái Tổ (+Z / -Z) so approaching drivers see the signal clearly!
+        orb(dressing, [x - side * 0.19, 3.9 - i * 0.25, sz + side * 0.16], [0.082, 0.082, 0.035], light);
+      }
+      if (trafficMgr) {
+        const panel = TrafficSignalController.createCountdownPanel();
+        panel.mesh.position.set(x - side * 0.19, 4.26, sz + side * 0.165);
+        panel.mesh.rotation.y = side === 1 ? 0 : Math.PI;
+        environment.add(panel.mesh);
+        trafficMgr.bindSignalVisual({
+          intersectionId: interId,
+          axis: "ns",
+          redMat,
+          amberMat: ambMat,
+          greenMat: grnMat,
+          countdown: panel.handle,
+        });
+      }
+      solids.push(rect(x, sz, 0.19, 0.20));
     }
-    solids.push(rect(x, sz, 0.19, 0.20));
   }
   const leafStain = [material(0x514d32), material(0x78694a), material(0x87805b)];
   const wear = label(384, 192, (ctx) => {
@@ -597,53 +633,276 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
   plane(wayfinding, [1.04, 2.39, -132.56], [1.48, 0.31], textLabel('ĐƯỜNG CHÂU VĂN LIÊM', '#1c5480', '#f0eee3', 512, 104, 39), Math.PI);
   solids.push(rect(1.04, -132.5, 0.13, 0.13));
 
-  const traffic = Array.from({ length: 7 }, (_, i) => {
-    const body = scooter(environment, paintColors[i % paintColors.length], true, trim);
-    const x = i % 2 ? -8.3 - rng() * 1.8 : -2.65 - rng() * .45;
-    body.position.set(x, 0, [-112,-32,-54,-72,-3,-48,21][i]);
-    const direction = i % 2 ? 1 : -1;
-    body.rotation.y = direction > 0 ? Math.PI : 0;
-    contact(body, 0, 0.007, 0, 1.1, 2.35, shade);
-    return { body, speed: 5.5 + rng() * 4.5, x, direction };
+  type StreetTrafficSlot = {
+    id: string;
+    root: T.Group;
+    chassis: T.Group;
+    body: T.Group;
+    speed: number;
+    x: number;
+    direction: number;
+    category: "moto" | "car" | "van";
+    halfWidth: number;
+    halfLength: number;
+    edgeId: string;
+    s: number;
+    laneIndex: 0 | 1;
+  };
+
+  const motoSpawns: { edgeId: string; s: number; direction: number; x: number }[] = [
+    { edgeId: "LTT_M2_NB", s: 12, direction: -1, x: -2.75 },
+    { edgeId: "LTT_S_SB", s: 52, direction: 1, x: -9.85 },
+    { edgeId: "LTT_S_NB", s: 94, direction: -1, x: -2.65 },
+    { edgeId: "LTT_S_SB", s: 14, direction: 1, x: -8.95 },
+    { edgeId: "LTT_S_NB", s: 44, direction: -1, x: -3.45 },
+    { edgeId: "LTT_S_SB", s: 36, direction: 1, x: -9.55 },
+    { edgeId: "LTT_S_NB", s: 24, direction: -1, x: -2.45 },
+  ];
+
+  const traffic: StreetTrafficSlot[] = motoSpawns.map((sp, i) => {
+    const root = new T.Group();
+    const chassis = new T.Group();
+    root.add(chassis);
+    environment.add(root);
+
+    const body = scooter(chassis, paintColors[i % paintColors.length], true, trim);
+    if (trafficMgr) {
+      // In TrafficManager frame, +Z is forward -> flip host by PI so host(-Z) maps to chassis(+Z)!
+      body.rotation.y = Math.PI;
+    } else {
+      root.position.set(sp.x, 0, [-112, -32, -54, -72, -3, -48, 21][i]);
+      root.rotation.y = sp.direction > 0 ? Math.PI : 0;
+    }
+    contact(chassis, 0, 0.007, 0, 1.1, 2.35, shade);
+    return {
+      id: `LTT_MOTO_${i}`,
+      root,
+      chassis,
+      body,
+      speed: 5.5 + rng() * 4.5,
+      x: sp.x,
+      direction: sp.direction,
+      category: "moto",
+      halfWidth: 0.44,
+      halfLength: 1.04,
+      edgeId: sp.edgeId,
+      s: sp.s,
+      laneIndex: 1,
+    };
   });
 
-  const car=new T.Group();environment.add(car);car.position.set(-10.45,0,-88);traffic.push({body:car,x:-10.45,direction:1,speed:7.4});
-  const parkedMPV=new T.Group();parkedMPV.position.set(-WIDTH+1.02,0,-12.5);environment.add(parkedMPV);solids.push(rect(parkedMPV.position.x,-12.5,1.87,4.49));
-  const van=new T.Group();van.position.set(-WIDTH+.98,0,-34);environment.add(van);solids.push(rect(van.position.x,-34,2.1,VAN_LENGTH+0.2));
-  const truck=new T.Group();truck.position.set(-4.78,0,-30);environment.add(truck);traffic.push({body:truck,x:-4.73,direction:-1,speed:4.2});
-  const fleet=streetVehicles(traffic,parkedMPV,van,truck,parkedBikeSlots,onAssetLoaded);
-  const velocities=traffic.map(t=>t.speed);
+  // Moving Saigon Corolla Taxi (slot 7)
+  const carRoot = new T.Group();
+  const carChassis = new T.Group();
+  const car = new T.Group();
+  carRoot.add(carChassis);
+  carChassis.add(car);
+  environment.add(carRoot);
+  if (trafficMgr) car.rotation.y = Math.PI;
+  else carRoot.position.set(-10.05, 0, -88);
+  traffic.push({
+    id: "LTT_TAXI_0",
+    root: carRoot,
+    chassis: carChassis,
+    body: car,
+    x: -10.05,
+    direction: 1,
+    speed: 7.4,
+    category: "car",
+    halfWidth: 0.92,
+    halfLength: 2.24,
+    edgeId: "LTT_M2_SB",
+    s: 16,
+    laneIndex: 0,
+  });
+
+  const parkedMPV = new T.Group();
+  parkedMPV.position.set(-WIDTH + 1.02, 0, -12.5);
+  environment.add(parkedMPV);
+  solids.push(rect(parkedMPV.position.x, -12.5, 1.87, 4.49));
+
+  const van = new T.Group();
+  van.position.set(-WIDTH + 0.98, 0, -34);
+  environment.add(van);
+  solids.push(rect(van.position.x, -34, 2.1, VAN_LENGTH + 0.2));
+
+  // Moving Saigon Delivery Van (slot 8)
+  const truckRoot = new T.Group();
+  const truckChassis = new T.Group();
+  const truck = new T.Group();
+  truckRoot.add(truckChassis);
+  truckChassis.add(truck);
+  environment.add(truckRoot);
+  if (trafficMgr) truck.rotation.y = Math.PI;
+  else truckRoot.position.set(-4.65, 0, -30);
+  traffic.push({
+    id: "LTT_VAN_0",
+    root: truckRoot,
+    chassis: truckChassis,
+    body: truck,
+    x: -4.65,
+    direction: -1,
+    speed: 5.8,
+    category: "van",
+    halfWidth: 0.98,
+    halfLength: VAN_LENGTH * 0.5,
+    edgeId: "LTT_S_NB",
+    s: 74,
+    laneIndex: 0,
+  });
+
+  // Register all 9 Lý Thái Tổ vehicles into unified SaigonTrafficManager
+  if (trafficMgr) {
+    for (const slot of traffic) {
+      trafficMgr.spawnVehicle({
+        id: slot.id,
+        category: slot.category,
+        edgeId: slot.edgeId,
+        s: slot.s,
+        laneIndex: slot.laneIndex,
+        halfWidth: slot.halfWidth,
+        halfLength: slot.halfLength,
+        rig: {
+          root: slot.root,
+          chassis: slot.chassis,
+          wheels: [],
+          wheelRadius: slot.category === "moto" ? 0.28 : 0.34,
+          lights: null,
+        },
+      });
+    }
+  }
+
+  const fleet = streetVehicles(
+    traffic,
+    parkedMPV,
+    van,
+    truck,
+    parkedBikeSlots,
+    onAssetLoaded,
+    trafficMgr
+      ? (index, info) => {
+          const slot = traffic[index];
+          if (!slot) return;
+          const lights = attachDynamicLamps(
+            slot.chassis,
+            slot.halfWidth,
+            slot.halfLength,
+            slot.category === "moto",
+          );
+          trafficMgr.attachRig(slot.id, {
+            root: slot.root,
+            chassis: slot.chassis,
+            wheels: info.wheels,
+            wheelRadius: info.wheelRadius,
+            lights,
+            crewHead: info.crewHead,
+            crewHeadRestQ: info.crewHead ? info.crewHead.quaternion.clone() : undefined,
+          });
+        }
+      : undefined,
+  );
+  const velocities = traffic.map((t) => t.speed);
   // Pre-bind emissiveMap at build time so street.wet() NEVER triggers runtime shader recompilation!
   for (const m of [...shopNames, ...choLonSigns, ...shopfronts, periodFacade]) {
     if (m instanceof T.MeshStandardMaterial) {
       m.emissiveMap = m.map;
     }
   }
-  return { solids, blocks, environment, setWind(strength: number) { windAmp.value = strength; }, dispose(){fleet.dispose();},wet(value:boolean,wetness:number){kit.lights(wetness);leaves.emissiveIntensity=value?0.012:0.12;leaves.color.set(value?0x4d5e49:0x8fa67e);lightbox.emissiveIntensity=.12+wetness*.72;for(const m of skyline)m.emissiveIntensity=.02+wetness*.95;paving.roughness=slab.roughness=.91-wetness*.44;for(const m of [...shopNames,...choLonSigns,...shopfronts,periodFacade]){if(m instanceof T.MeshStandardMaterial){if(m.map&&m.emissiveMap!==m.map){m.emissiveMap=m.map;m.needsUpdate=true;}m.emissive.set(value?0xffcea4:0x000000);m.emissiveIntensity=m===periodFacade?.14:shopfronts.includes(m)?(m.map?.32:0.0):1.35;}}
-      asphalt.roughness=.89-wetness*.57;asphalt.metalness=.02+wetness*.36;asphalt.color.set(value?0x8a9aa8:0xd4d8dc);balconyGlass.emissive.set(value?0xa17b44:0x000000);balconyGlass.emissiveIntensity=.45;},update(dt: number, player: Point, time: number, skipBlockCull = false) {
-    fleet.update();sway.value=time;if(rotor instanceof T.MeshStandardMaterial)rotor.map!.rotation=time*5;
-    const tick=time%22;const signal=tick<10?2:tick<12?1:0;
-    for(let i=0;i<3;i++){signalColours[i].color.setScalar(signal===i?.25:.015);signalColours[i].emissiveIntensity=signal===i?1.8:.025;}
+  return {
+    solids,
+    blocks,
+    environment,
+    setWind(strength: number) {
+      windAmp.value = strength;
+    },
+    dispose() {
+      fleet.dispose();
+    },
+    wet(value: boolean, wetness: number) {
+      kit.lights(wetness);
+      leaves.emissiveIntensity = value ? 0.012 : 0.12;
+      leaves.color.set(value ? 0x4d5e49 : 0x8fa67e);
+      lightbox.emissiveIntensity = 0.12 + wetness * 0.72;
+      for (const m of skyline) m.emissiveIntensity = 0.02 + wetness * 0.95;
+      paving.roughness = slab.roughness = 0.91 - wetness * 0.44;
+      for (const m of [...shopNames, ...choLonSigns, ...shopfronts, periodFacade]) {
+        if (m instanceof T.MeshStandardMaterial) {
+          if (m.map && m.emissiveMap !== m.map) {
+            m.emissiveMap = m.map;
+            m.needsUpdate = true;
+          }
+          m.emissive.set(value ? 0xffcea4 : 0x000000);
+          m.emissiveIntensity = m === periodFacade ? 0.14 : shopfronts.includes(m) ? (m.map ? 0.32 : 0.0) : 1.35;
+        }
+      }
+      asphalt.roughness = 0.89 - wetness * 0.57;
+      asphalt.metalness = 0.02 + wetness * 0.36;
+      asphalt.color.set(value ? 0x8a9aa8 : 0xd4d8dc);
+      balconyGlass.emissive.set(value ? 0xa17b44 : 0x000000);
+      balconyGlass.emissiveIntensity = 0.45;
+    },
+    update(dt: number, player: Point, time: number, skipBlockCull = false) {
+      if (!trafficMgr) fleet.update();
+      sway.value = time;
+      if (rotor instanceof T.MeshStandardMaterial) rotor.map!.rotation = time * 5;
 
-    if (!skipBlockCull) for(const {group,far,start} of blocks){const d=Math.max(0,Math.abs(start+10.5-player.z)-10.5);group.visible=d<(software?24:43);far.visible=!group.visible && d<150;}
-    for (const [i, scooter] of traffic.entries()) {
-      const { body, direction, speed } = scooter;
-      const ahead = (player.z - body.position.z) * direction;
-      const giveWay = Math.abs(player.x - body.position.x) < 1.0 && ahead > -0.7 && ahead < 3.8;
-      // Kinematic headway used by Drive traffic: ease down before a queue or stop line.
-      let gap=Infinity;
-      for(const other of traffic){if(other===scooter||other.direction!==direction||Math.abs(other.x-scooter.x)>1)continue;
-        const d=(other.body.position.z-body.position.z)*direction;if(d>0)gap=Math.min(gap,d-(other.body===truck||other.body===car?3:1.2)-(body===truck||body===car?3:1.2));}
-      if(signal!==2)for(const z of [-76,-96,-147]){const d=(z-body.position.z)*direction;if(d>0)gap=Math.min(gap,d-2.7);}
-      const target=giveWay?0:Math.min(speed,Math.sqrt(6*Math.max(0,gap-.75)));
-      velocities[i]+=T.MathUtils.clamp(target-velocities[i],-6*dt,2.4*dt);
-      if(!giveWay)body.position.z+=direction*Math.min(velocities[i]*dt,Math.max(0,gap));
-      if (body.position.z < -189) body.position.z = 49;
-      if (body.position.z > 52) body.position.z = -185;
-      body.position.x = scooter.x + 0.21 * Math.sin(time * 0.7 + i * 2.2);
-      body.rotation.z = Math.sin(time * 1.6 + i) * 0.024;
-    }
-  }, trafficClear(p: Point) {
-    return !traffic.some(({ body }) => Math.abs(body.position.z - p.z) < (body===truck?2.3:body===car?2.25:.97) && Math.abs(body.position.x - p.x) < (body===car||body===truck?1:.45));
-  } };
+      if (!skipBlockCull) {
+        for (const { group, far, start } of blocks) {
+          const d = Math.max(0, Math.abs(start + 10.5 - player.z) - 10.5);
+          group.visible = d < (software ? 24 : 43);
+          far.visible = !group.visible && d < 150;
+        }
+      }
+
+      if (trafficMgr) return; // Unified SaigonTrafficManager handles all signals & vehicle motion!
+
+      const tick = time % 22;
+      const signal = tick < 10 ? 2 : tick < 12 ? 1 : 0;
+      for (let i = 0; i < 3; i++) {
+        legacySignalColours[i].color.setScalar(signal === i ? 0.25 : 0.015);
+        legacySignalColours[i].emissiveIntensity = signal === i ? 1.8 : 0.025;
+      }
+
+      for (const [i, slot] of traffic.entries()) {
+        const { root, direction, speed } = slot;
+        const ahead = (player.z - root.position.z) * direction;
+        const giveWay = Math.abs(player.x - root.position.x) < 1.0 && ahead > -0.7 && ahead < 3.8;
+        let gap = Infinity;
+        for (const other of traffic) {
+          if (other === slot || other.direction !== direction || Math.abs(other.x - slot.x) > 1) continue;
+          const d = (other.root.position.z - root.position.z) * direction;
+          if (d > 0) gap = Math.min(gap, d - other.halfLength - slot.halfLength - 0.8);
+        }
+        if (signal !== 2) {
+          for (const z of [-76, -96, -147]) {
+            const d = (z - root.position.z) * direction;
+            if (d > 0) gap = Math.min(gap, d - 2.7);
+          }
+        }
+        const target = giveWay ? 0 : Math.min(speed, Math.sqrt(6 * Math.max(0, gap - 0.75)));
+        velocities[i] += T.MathUtils.clamp(target - velocities[i], -6 * dt, 2.4 * dt);
+        if (!giveWay) root.position.z += direction * Math.min(velocities[i] * dt, Math.max(0, gap));
+        if (root.position.z < -189) root.position.z = 49;
+        if (root.position.z > 52) root.position.z = -185;
+        root.position.x = slot.x + 0.21 * Math.sin(time * 0.7 + i * 2.2);
+        root.rotation.z = Math.sin(time * 1.6 + i) * 0.024;
+      }
+    },
+    trafficClear(p: Point) {
+      if (trafficMgr) {
+        return !trafficMgr.vehicles.some(
+          (v) =>
+            !v.externalControl &&
+            Math.abs(v.z - p.z) < v.halfLength + 0.55 &&
+            Math.abs(v.x - p.x) < v.halfWidth + 0.45,
+        );
+      }
+      return !traffic.some(
+        (slot) =>
+          Math.abs(slot.root.position.z - p.z) < slot.halfLength + 0.2 &&
+          Math.abs(slot.root.position.x - p.x) < slot.halfWidth + 0.2,
+      );
+    },
+  };
 }

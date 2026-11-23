@@ -32,11 +32,21 @@ const tailMats: T.MeshStandardMaterial[] = [];
 const lampCache = new Map<string, T.MeshStandardMaterial>();
 let level = { lit: 0, wet: 0 };
 
-function lampMaterial(source: T.Material, role: "head" | "tail"): T.MeshStandardMaterial | null {
+/** Per-vehicle brake & turn-signal controller attached to moving vehicles. */
+export interface DynamicVehicleLamps {
+  setBrake(amount: number): void;
+  setBlinker(dir: -1 | 0 | 1, blinkOn: boolean): void;
+}
+
+const perVehicleBrakeMats: { mat: T.MeshStandardMaterial; brake: number }[] = [];
+
+function lampMaterial(source: T.Material, role: "head" | "tail", uniqueTail = false): T.MeshStandardMaterial | null {
   if (!(source instanceof T.MeshStandardMaterial)) return null;
   const key = `${source.uuid}|${role}`;
-  const hit = lampCache.get(key);
-  if (hit) return hit;
+  if (!uniqueTail) {
+    const hit = lampCache.get(key);
+    if (hit) return hit;
+  }
   const m = source.clone();
   m.name = `${source.name}_lamp_${role}`;
   // A lit lens is not see-through: keep it opaque so its glow is not divided by the glass alpha.
@@ -52,10 +62,20 @@ function lampMaterial(source: T.Material, role: "head" | "tail"): T.MeshStandard
   }
   m.emissiveMap = m.map ?? null;
   m.roughness = Math.min(m.roughness, 0.25);
-  lampCache.set(key, m);
-  (role === "head" ? headMats : tailMats).push(m);
-  applyLevel(m, role);
+  if (uniqueTail && role === "tail") {
+    perVehicleBrakeMats.push({ mat: m, brake: 0 });
+    applyTailBrake(m, 0);
+  } else {
+    lampCache.set(key, m);
+    (role === "head" ? headMats : tailMats).push(m);
+    applyLevel(m, role);
+  }
   return m;
+}
+
+function applyTailBrake(m: T.MeshStandardMaterial, brake: number) {
+  // Tail glow at night (3.2) + intense daylight-visible brake flare (+5.8 when braking!)
+  m.emissiveIntensity = 0.14 + level.lit * 2.8 + brake * 5.8;
 }
 
 function applyLevel(m: T.MeshStandardMaterial, role: "head" | "tail") {
@@ -261,11 +281,115 @@ export function addHeadlightBeam(host: T.Object3D, vehicle: T.Object3D, forward:
   host.add(beam);
 }
 
+const _blinkerGeo = new T.BoxGeometry(0.11, 0.08, 0.06);
+const _motoBlinkerGeo = new T.BoxGeometry(0.06, 0.05, 0.04);
+const _brakeBarGeo = new T.BoxGeometry(0.28, 0.09, 0.05);
+
+/**
+ * Attach independent per-vehicle dynamic Brake Lights + Left/Right Amber Turn Signals!
+ * Works on both GLB vehicles (street.ts) and procedural/cloned boulevard vehicles (saigonDistricts.ts).
+ */
+export function attachDynamicLamps(
+  chassis: T.Object3D,
+  halfWidth: number,
+  halfLength: number,
+  isMoto: boolean,
+): DynamicVehicleLamps {
+  const uniqueTailEntries: { mat: T.MeshStandardMaterial; brake: number }[] = [];
+
+  // 1. Find any existing tail lamp materials on this vehicle and make them per-vehicle unique for brake flare
+  chassis.traverse((o) => {
+    if (!(o instanceof T.Mesh) || o instanceof T.SkinnedMesh) return;
+    if (typeof o.material === "object" && o.material instanceof T.MeshStandardMaterial) {
+      if (o.material.name.endsWith("_lamp_tail")) {
+        const cloned = o.material.clone();
+        o.material = cloned;
+        const entry = { mat: cloned, brake: 0 };
+        uniqueTailEntries.push(entry);
+        perVehicleBrakeMats.push(entry);
+        applyTailBrake(cloned, 0);
+      }
+    }
+  });
+
+  // 2. If vehicle didn't have split GLB tail lamps (e.g. procedural vehicle or simple mesh), add subtle rear brake lamps
+  if (uniqueTailEntries.length === 0) {
+    const brakeMat = new T.MeshStandardMaterial({
+      color: 0x7a0d09,
+      emissive: 0xff1e0e,
+      emissiveIntensity: 0.14,
+      roughness: 0.25,
+    });
+    const entry = { mat: brakeMat, brake: 0 };
+    uniqueTailEntries.push(entry);
+    perVehicleBrakeMats.push(entry);
+    applyTailBrake(brakeMat, 0);
+
+    const lampY = isMoto ? 0.86 : 0.78;
+    const lampZ = -halfLength - 0.01;
+    if (isMoto) {
+      const m = new T.Mesh(new T.BoxGeometry(0.14, 0.07, 0.04), brakeMat);
+      m.position.set(0, lampY, lampZ);
+      chassis.add(m);
+    } else {
+      for (const side of [-1, 1]) {
+        const m = new T.Mesh(_brakeBarGeo, brakeMat);
+        m.position.set(side * (halfWidth * 0.68), lampY, lampZ);
+        chassis.add(m);
+      }
+    }
+  }
+
+  // 3. Left (+X) and Right (-X) amber turn-signal lenses (MeshBasicMaterial = 0 extra PBR light shaders!)
+  const leftAmber = new T.MeshBasicMaterial({ color: 0x3b2204, toneMapped: false });
+  const rightAmber = new T.MeshBasicMaterial({ color: 0x3b2204, toneMapped: false });
+
+  const geo = isMoto ? _motoBlinkerGeo : _blinkerGeo;
+  const xOff = isMoto ? halfWidth * 0.62 : halfWidth * 0.86;
+  const yOff = isMoto ? 0.84 : 0.72;
+  const zFront = halfLength * 0.94;
+  const zRear = -halfLength * 0.96;
+
+  // Vehicle local frame: +Z = forward, +X = LEFT, -X = RIGHT!
+  for (const zPos of [zFront, zRear]) {
+    const lMesh = new T.Mesh(geo, leftAmber);
+    lMesh.position.set(+xOff, yOff, zPos);
+    chassis.add(lMesh);
+    const rMesh = new T.Mesh(geo, rightAmber);
+    rMesh.position.set(-xOff, yOff, zPos);
+    chassis.add(rMesh);
+  }
+
+  let lastBrake = -1;
+  let lastDir: -1 | 0 | 1 = 0;
+  let lastBlink = false;
+
+  return {
+    setBrake(amount: number) {
+      const b = Math.max(0, Math.min(1, amount));
+      if (Math.abs(b - lastBrake) < 0.03) return;
+      lastBrake = b;
+      for (const e of uniqueTailEntries) {
+        e.brake = b;
+        applyTailBrake(e.mat, b);
+      }
+    },
+    setBlinker(dir: -1 | 0 | 1, blinkOn: boolean) {
+      if (dir === lastDir && blinkOn === lastBlink) return;
+      lastDir = dir;
+      lastBlink = blinkOn;
+      leftAmber.color.setHex(dir === -1 && blinkOn ? 0xffae14 : 0x3b2204);
+      rightAmber.color.setHex(dir === 1 && blinkOn ? 0xffae14 : 0x3b2204);
+    },
+  };
+}
+
 /** 0 = day (lamps off), 1 = night. Wet roads show a brighter pool. */
 export function setVehicleLightLevel(lit: number, wetness: number) {
   if (Math.abs(lit - level.lit) < 0.004 && Math.abs(wetness - level.wet) < 0.01) return;
   level = { lit, wet: wetness };
   for (const m of headMats) applyLevel(m, "head");
   for (const m of tailMats) applyLevel(m, "tail");
+  for (const e of perVehicleBrakeMats) applyTailBrake(e.mat, e.brake);
   if (beamMat) beamMat.opacity = lit * (0.18 + wetness * 0.14);
 }

@@ -15,6 +15,7 @@ import { buildStreet } from "../simulation/street";
 import { buildBus } from "../simulation/bus";
 import { BusRouteController } from "../simulation/transit";
 import { castStreet } from "../simulation/residents";
+import { SaigonTrafficManager } from "../traffic";
 
 import {
   buildBoardingHouse,
@@ -224,9 +225,12 @@ export class OpenWorldEngine {
   public bus: ReturnType<typeof buildBus>;
   public cast: ReturnType<typeof castStreet>;
   public districts: SaigonDistricts;
+  public traffic: SaigonTrafficManager;
   public streamer: WorldStreamer;
   public atmosphere: AtmosphereSystem;
   private audio: AudioEngine;
+  private bumpVx = 0;
+  private bumpVz = 0;
 
   private solidsGround: Solid[] = [];
   private solidsUpper: Solid[] = [];
@@ -807,8 +811,11 @@ export class OpenWorldEngine {
       alwaysVisible: true,
     });
 
-    // 5. FOUNDATIONAL BUS STATION HUB (ĐƯỜNG LÝ THÁI TỔ — EXACT SOURCE HUB + EXACT TRAFFIC FLEET)
-    this.street = buildStreet(streetScene, this.software, undefined, onAssetLoaded);
+    // 5. UNIFIED SAIGON STREET SIMULATION ENGINE (CARLA 5-Stage + QCVN 41:2024 + ACC/IDM+ + Saigon Sublane)
+    this.traffic = new SaigonTrafficManager();
+
+    // 5b. FOUNDATIONAL BUS STATION HUB (ĐƯỜNG LÝ THÁI TỔ — EXACT SOURCE HUB + UNIFIED TRAFFIC FLEET)
+    this.street = buildStreet(streetScene, this.software, undefined, onAssetLoaded, this.traffic);
     this.street.blocks.forEach((blk, idx) => {
       this.streamer.register({
         id: `ly-thai-to-block-${idx}`,
@@ -823,10 +830,11 @@ export class OpenWorldEngine {
       });
     });
 
-    // 6. EXACT ROUTE 06 BUS & 15 EXACT BUS STATION NPCS + DRIVER
+    // 6. EXACT ROUTE 06 BUS & 15 EXACT BUS STATION NPCS + DRIVER (UNIFIED WITH SAIGON TRAFFIC!)
     this.route = new BusRouteController();
     this.route.wait();
     this.route.update(6.5, { front: false, rear: false }, false);
+    this.traffic.registerBus06(this.route.x, this.route.z, Math.PI + this.route.yaw);
     // Keep exteriorGroup free of extra dynamic PointLights (bus already has emissive interior strips!) -> constant light count!
     this.bus = buildBus(extScene, this.route, false);
     this.bus.update(0);
@@ -843,10 +851,11 @@ export class OpenWorldEngine {
       },
       () => {},
       this.street.solids,
+      this.traffic,
     );
 
-    // 7. EXPANDED HO CHI MINH CITY DISTRICTS + EXACT BITEXCO TOWER & LANDMARK 81 + DENSE FLEET & NPCS
-    this.districts = buildSaigonDistricts(extScene, this.streamer, this.software, onAssetLoaded);
+    // 7. EXPANDED HO CHI MINH CITY DISTRICTS + EXACT BITEXCO TOWER & LANDMARK 81 + UNIFIED FLEET & NPCS
+    this.districts = buildSaigonDistricts(extScene, this.streamer, this.software, onAssetLoaded, this.traffic);
     this.outdoorLightSpecs = [...this.boardingHouse.lightSpecs, ...this.districts.lightSpecs];
 
     this.solidsGround = [
@@ -1159,6 +1168,15 @@ export class OpenWorldEngine {
       const busCol = resolveSolids(x, z, r, [busHull]);
       x = busCol.x;
       z = busCol.z;
+
+      // Exact 2D Circle-vs-OBB collision against EVERY moving motorbike, car, taxi, SUV & van in Saigon!
+      const vehCol = this.traffic.resolvePlayerCollision(x, z, y, r);
+      x = vehCol.x;
+      z = vehCol.z;
+      if (vehCol.hitVehicle && vehCol.impactSpeed > 0.9) {
+        this.bumpVx = vehCol.impulseX;
+        this.bumpVz = vehCol.impulseZ;
+      }
     }
 
     if (!this.districts.isWithinOpenWorld(x, z)) {
@@ -1169,6 +1187,7 @@ export class OpenWorldEngine {
   }
 
   private ensureAudio() {
+    this.traffic.audio.unlock();
     if (!this.audio.started) {
       try {
         this.audio.start();
@@ -1692,6 +1711,29 @@ export class OpenWorldEngine {
         }
       }
     } else if (!this.onBus) {
+      // Even while standing still on asphalt, apply vehicle knockback impulse & exact OBB collision push-out!
+      if (Math.abs(this.bumpVx) > 0.02 || Math.abs(this.bumpVz) > 0.02) {
+        const pushed = this.resolveCollisions(
+          this.feet.x + this.bumpVx * dt,
+          this.feet.z + this.bumpVz * dt,
+          this.feet.y,
+        );
+        this.feet.x = pushed.x;
+        this.feet.z = pushed.z;
+        const decay = Math.exp(-dt * 8.5);
+        this.bumpVx *= decay;
+        this.bumpVz *= decay;
+      } else if (this.feet.y < 1.35) {
+        const standHit = this.traffic.resolvePlayerCollision(this.feet.x, this.feet.z, this.feet.y, 0.26);
+        if (standHit.hitVehicle) {
+          this.feet.x = standHit.x;
+          this.feet.z = standHit.z;
+          if (standHit.impactSpeed > 0.9) {
+            this.bumpVx = standHit.impulseX;
+            this.bumpVz = standHit.impulseZ;
+          }
+        }
+      }
       const targetY = this.getFloorHeight(this.feet.x, this.feet.z, this.feet.y);
       this.feet.y = T.MathUtils.lerp(this.feet.y, targetY, 1 - Math.exp(-dt * 14));
       this.bob = T.MathUtils.lerp(this.bob, 0, Math.min(1, dt * 6));
@@ -1822,14 +1864,33 @@ export class OpenWorldEngine {
       this.software,
     );
 
-    // 7. Bus Station Hub Simulation (skipped while sealed inside Room 6.07 — 100% invisible behind walls!)
+    // 7. Unified Saigon Street Simulation + Bus 06 Hub (skipped while sealed inside Room 6.07!)
     const distToBusHub = Math.hypot(this.feet.x + 4, this.feet.z);
     if (!sealExterior) {
+      // Step the unified citywide traffic simulation (signals, ACC/IDM+, Saigon sublane, OBB collisions, pedestrians, audio)
+      this.traffic.step({
+        dt,
+        playerX: this.feet.x,
+        playerY: this.feet.y,
+        playerZ: this.feet.z,
+        playerYaw: this.yaw,
+        wetness: atm.wetness,
+      });
       this.street.update(dt, { x: this.feet.x, z: this.feet.z }, this.elapsed, true);
       if (this.route.phase === "boarding" && this.route.doors.front.target === 0 && !this.onBus) {
         this.route.doors.front.target = 1;
       }
-      this.route.update(dt, { front: false, rear: false }, false);
+      const busSafeSpeed = this.traffic.computeBus06SafeSpeed(this.route.x, this.route.z, 12.0);
+      this.route.update(dt, { front: false, rear: false }, false, busSafeSpeed);
+      this.traffic.syncBus06(
+        this.route.x,
+        this.route.z,
+        Math.PI + this.route.yaw,
+        this.route.speed,
+        this.route.accel,
+        this.feet.x,
+        this.feet.z,
+      );
       this.bus.update(dt);
     }
 
@@ -2215,6 +2276,7 @@ export class OpenWorldEngine {
       setWeather: (w: WeatherPreset) => this.atmosphere.setWeather(w),
       toggleDoor: () => this.toggleDoor(),
       scene: () => this.scene,
+      trafficTelemetry: () => this.traffic.getTelemetry(),
       getState: () => ({
         feet: { x: this.feet.x, y: this.feet.y, z: this.feet.z },
         yaw: this.yaw,
@@ -2233,6 +2295,7 @@ export class OpenWorldEngine {
     cancelAnimationFrame(this.raf);
     this.cleanupListeners();
     this.audio.dispose();
+    this.traffic.dispose();
     this.atmosphere.dispose();
     this.districts.dispose();
     this.boardingHouse.dispose();

@@ -70,7 +70,9 @@ export class BusRouteController {
   private nextBus: number;
   private approach = 0;
   private driving = 0;
+  private driveThrottle = 1;
   private via = false;
+  accel = 0;
 
   private host: TransitHost;
   constructor(host: TransitHost = {}) {
@@ -135,14 +137,16 @@ export class BusRouteController {
     this.emit('transfer-complete', { stop: ROUTE.destination, onTime: this.onTime });
   }
 
-  update(dt: number, occupied: Record<DoorId, boolean>, approachBlocked: boolean) {
+  update(dt: number, occupied: Record<DoorId, boolean>, approachBlocked: boolean, maxSafeSpeed?: number) {
     const oldPosition = this.z;
+    const prevSpeed = this.speed;
     if (this.phase !== 'driving') {
       this.advance(dt * (this.phase === 'waiting' ? 12 : 5));
     }
     if (this.phase === 'waiting' && this.clock >= this.nextBus) this.wait();
     if (this.phase === 'approaching') {
-      if (!approachBlocked) this.approach = clamp(this.approach + dt / 6.8);
+      const canMove = !approachBlocked && (maxSafeSpeed === undefined || maxSafeSpeed > 0.35);
+      if (canMove) this.approach = clamp(this.approach + dt / 6.8);
       this.z = ROUTE.approachZ * (1 - this.approach ** 1.14 * (2 - this.approach ** 1.14));
       if (this.approach >= 1) {
         this.phase = 'boarding';
@@ -164,7 +168,15 @@ export class BusRouteController {
     }
     if (this.phase === 'driving') {
       const previous = this.driving;
-      this.driving = clamp(this.driving + dt / 30);
+      // Compute nominal cruise speed along the smoothstep curve, then obey traffic signals & leaders!
+      const deriv = Math.max(0.15, 6 * this.driving * (1 - this.driving));
+      const nominalSpeed = (Math.abs(ROUTE.destinationZ) / 30) * deriv;
+      const targetThrottle =
+        maxSafeSpeed !== undefined ? clamp(maxSafeSpeed / Math.max(nominalSpeed, 0.8), 0, 1) : 1;
+      const rate = targetThrottle < this.driveThrottle ? 4.2 : 1.6;
+      this.driveThrottle = damp(this.driveThrottle, targetThrottle, rate, dt);
+
+      this.driving = clamp(this.driving + (dt / 30) * this.driveThrottle);
       this.advance((this.driving - previous) * ROUTE.rideMinutes * 60);
       this.progress = smooth(this.driving);
       this.z = ROUTE.destinationZ * this.progress;
@@ -182,5 +194,6 @@ export class BusRouteController {
       }
     }
     this.speed = dt > 0 ? Math.abs(this.z - oldPosition) / dt : 0;
+    this.accel = dt > 0 ? (this.speed - prevSpeed) / dt : 0;
   }
 }
