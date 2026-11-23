@@ -370,7 +370,7 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
 
   if (held) {
     return (
-      <div className="pointer-events-none fixed inset-0 z-40" data-testid="held-phone" data-screen-mode="held" data-held-mode={held.mode}>
+      <div className="pointer-events-none fixed inset-0 z-[43]" data-testid="held-phone" data-screen-mode="held" data-held-mode={held.mode}>
         <PhoneScreenHost mode={held.mode} layout={heldLayout} screenSink={held.screenSink}>
           <div
             role="dialog"

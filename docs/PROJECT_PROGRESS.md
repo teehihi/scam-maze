@@ -177,6 +177,13 @@ Resolved:
 - The 3D model licenses of some owner-supplied riders, bikes and the Bao Thu model are "not stated" in
   their `SOURCE.md` files; confirm before a public release.
 ## Task History
+### 2026-11-25 — Chapter 1 room: stutter fix, window glare, phone over the laptop
+- Stutter root cause: `Engine.shadowSignature()` was unrounded and the eased window sash / fridge door never settled, so after the window was opened once all four room shadow maps redrew on every frame. The signature now rounds to 1 mm / 1 mrad and the sash snaps to its target; redraws now stop about 2 s after the sash starts moving.
+- Window glare: the rain glass soft-limits luminance above 0.6 (roll-off to 1.0), so the pane no longer flashes into a white panel.
+- Perf: the window-glass city view (`cityRT`) refreshes only while the window is on screen (`ViewPose.windowInView`), at most ~30 Hz while the camera turns plus every 0.15 s; the embedded world's shadow refresh is every 12 s; the street backdrop renders at reduced resolution (0.62 through the door, 0.8 outside, sampled with `uScale`).
+- Movement: the room integrates movement in 0.05 s substeps over up to 0.1 s per frame, so walking keeps its speed at low fps.
+- Phone: held up, the phone model (z-42) and its screen (z-43) are above the laptop desktop (z-40) and its HUD (z-41).
+- Validation: tsc clean, vitest 2178/2178, build ok. Headless room spin p50/p99 16.7/16.8 ms; phone checked over the laptop desktop.
 ### 2026-11-24 — Chapter 1 outside: portal-culled street, weather-driven room rain, rider fixes
 
 - Room perf: the street behind the room walls is no longer drawn. The room projects the open doorway / window to a screen rectangle (`Engine.outsidePortal`, near-plane clipped) and the open world renders only that part with an off-centre frustum (`ViewPose.portal`, `setViewOffset` + viewport/scissor). Nothing is drawn when neither opening is in view. Headless: looking away with the door open 13.1 ms → 0.7 ms per frame for the world; looking at the door 5.7 → 4.2 ms.

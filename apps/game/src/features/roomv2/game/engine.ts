@@ -35,7 +35,7 @@ export interface OutsideLens { fov: number; aspect: number; near: number; far: n
  */
 export interface OutsideView {
   /** Player in the room. `backdrop` asks for the colour + depth image this frame (door or window open). */
-  stepView(dt: number, pose: OutsideLens & { position: THREE.Vector3; quaternion: THREE.Quaternion; yaw: number; pitch: number; door: number; window: number; backdrop: boolean; portal?: OutsidePortal | null }): void;
+  stepView(dt: number, pose: OutsideLens & { position: THREE.Vector3; quaternion: THREE.Quaternion; yaw: number; pitch: number; door: number; window: number; backdrop: boolean; portal?: OutsidePortal | null; windowInView?: boolean }): void;
   /** The player stepped through the doorway; `eye` is the room camera position. */
   enterPlay(eye: THREE.Vector3, yaw: number, pitch: number): void;
   /** Player outside: moves with the room's keys and look; returns the camera position and whether they are back in. */
@@ -43,7 +43,7 @@ export interface OutsideView {
   /** E outside (bus, ...). */
   interact(): void;
   /** What the last step drew, or null. */
-  backdrop(): { color: THREE.Texture; depth: THREE.DepthTexture } | null;
+  backdrop(): { color: THREE.Texture; depth: THREE.DepthTexture; scale?: THREE.Vector2 } | null;
   /** Exposure the outside is meant to be seen at (the room's tone mapping applies on top). */
   exposure?(): number;
   /** 0..1: how hard it rains outside. Drives the drops on the glass. */
@@ -452,16 +452,17 @@ export class Engine implements RoomStoryCommands {
   private ensureBackdropQuad() {
     if (this.backdropQuad) return;
     const mat = new THREE.ShaderMaterial({
-      uniforms: { tColor: { value: null }, tDepth: { value: null }, uGain: { value: 1 } },
+      uniforms: { tColor: { value: null }, tDepth: { value: null }, uGain: { value: 1 }, uScale: { value: new THREE.Vector2(1, 1) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 1.0, 1.0); }',
-      fragmentShader: `uniform sampler2D tColor; uniform sampler2D tDepth; uniform float uGain; varying vec2 vUv;
+      fragmentShader: `uniform sampler2D tColor; uniform sampler2D tDepth; uniform float uGain; uniform vec2 uScale; varying vec2 vUv;
         void main(){
           // Soft-limit the street's HDR highlights (sun glints, lamps): above 1.1 they roll off toward 2.4, so the
           // room's bloom never flares the whole doorway.
-          vec3 c = max(texture2D(tColor, vUv).rgb * uGain, vec3(0.0));
+          vec2 uv = vUv * uScale;
+          vec3 c = max(texture2D(tColor, uv).rgb * uGain, vec3(0.0));
           float l = max(c.r, max(c.g, c.b));
           if (l > 1.1) { float e = l - 1.1; c *= (1.1 + e / (1.0 + e / 1.3)) / l; }
-          gl_FragColor = vec4(c, 1.0); gl_FragDepth = texture2D(tDepth, vUv).x; }`,
+          gl_FragColor = vec4(c, 1.0); gl_FragDepth = texture2D(tDepth, uv).x; }`,
       depthTest: true,
       depthWrite: true,
       depthFunc: THREE.AlwaysDepth,
@@ -899,8 +900,11 @@ export class Engine implements RoomStoryCommands {
   shadowSignature(): number {
     const L = this.lightLevels;
     const chair = this.apt.chair;
-    return L.ceiling + L.desk * 2.1 + L.bed * 3.3 + L.kitchen * 4.7 + this.fridgeAng * 5.9 + this.sashX * 7.1
-      + chair.position.x * 11.3 + chair.position.z * 13.7;
+    // Rounded to 1 mm / 1 mrad: the eased sash and fridge door never land exactly on their targets, and an unrounded
+    // signature redrew all four shadow maps on every frame for the rest of the session after the window was opened.
+    const q = (v: number) => Math.round(v * 1000) / 1000;
+    return L.ceiling + L.desk * 2.1 + L.bed * 3.3 + L.kitchen * 4.7 + q(this.fridgeAng) * 5.9 + q(this.sashX) * 7.1
+      + q(chair.position.x) * 11.3 + q(chair.position.z) * 13.7;
   }
   /**
    * The seated chair swivels a little with the view (a quarter of the yaw). Its shadow follows at
@@ -1529,6 +1533,7 @@ export class Engine implements RoomStoryCommands {
     // window sash
     const target = this.windowOpen ? -0.45 : 0;
     this.sashX += (target - this.sashX) * (1 - Math.exp(-dt * 3));
+    if (Math.abs(target - this.sashX) < 5e-4) this.sashX = target;
     if (!a.rightSash.userData.base) a.rightSash.userData.base = a.rightSash.position.x;
     a.rightSash.position.x = a.rightSash.userData.base + this.sashX;
     // curtain would breathe a little with the window open (via glass fog)
@@ -1652,7 +1657,11 @@ export class Engine implements RoomStoryCommands {
       }
     } else {
       if (this.entrance) this.stepEntrance(dt);
-      else if (this.ui.started) this.movePlayer(dt);
+      else if (this.ui.started) {
+        // Below 20 fps one 50 ms step made walking slow; up to 100 ms of real time is walked in two steps.
+        let rem = Math.min(0.1, rawDt);
+        do { const step = Math.min(0.05, rem); this.movePlayer(step); rem -= step; } while (rem > 1e-4 && !this.outdoors);
+      }
       if (!this.outdoors) {
         this.updateSeat(rawDt > 0.05 ? 0.05 : dt);
         this.updateCamera(dt);
@@ -1701,8 +1710,10 @@ export class Engine implements RoomStoryCommands {
       if (!this.outdoors) {
         const window = Math.min(1, Math.abs(this.sashX) / 0.45);
         // Only the part of the street seen through the open door / window is drawn; nothing when neither is in view.
+        // The rain glass shows the outside too: it only needs a fresh picture while the window is on screen.
+        const windowInView = window > 0.01 || this.outsidePortal(false, true) !== false;
         const portal = this.outsidePortal(this.outDoorT > 0.01, window > 0.01);
-        out.stepView(dt, { ...this.lensForOutside(), position: cam.position, quaternion: cam.quaternion, yaw: this.yaw, pitch: this.pitch, door: this.outDoorT, window, backdrop: portal !== false, portal: portal || null });
+        out.stepView(dt, { ...this.lensForOutside(), position: cam.position, quaternion: cam.quaternion, yaw: this.yaw, pitch: this.pitch, door: this.outDoorT, window, backdrop: portal !== false, portal: portal || null, windowInView });
       }
       const bd = out.backdrop();
       const quad = this.backdropQuad;
@@ -1712,6 +1723,7 @@ export class Engine implements RoomStoryCommands {
           const u = quad.material.uniforms;
           u.tColor.value = bd.color;
           u.tDepth.value = bd.depth;
+          if (bd.scale) u.uScale.value.copy(bd.scale); else u.uScale.value.set(1, 1);
           u.uGain.value = (out.exposure?.() ?? 1.3) / Math.max(0.05, r.toneMappingExposure);
         }
       }
