@@ -9,7 +9,7 @@ DATABASE_DECISION = PENDING
 **No database has been selected, provisioned or integrated.** The cost spreadsheet uses
 DynamoDB On-Demand as a planning assumption only; that is **not** an architecture decision.
 Do not add a database dependency, schema, migration or infrastructure until the owner records a
-decision in [Project progress](../PROJECT_PROGRESS.md).
+decision in the pull request history.
 
 ## 1. What the database is for
 

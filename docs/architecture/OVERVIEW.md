@@ -13,7 +13,7 @@
 > (`docs/architecture/ARCHITECTURE.md` there).
 
 Related documents: [Deployment](DEPLOYMENT.md) · [Database strategy](DATABASE_STRATEGY.md) ·
-[Cost estimation](../finops/COST_ESTIMATION.md) · [Project progress](../PROJECT_PROGRESS.md)
+[Cost estimation](../finops/COST_ESTIMATION.md)
 
 ## 1. Status legend
 
@@ -200,7 +200,7 @@ Boundaries:
   React 19 and with each other, and record them in the pull request.
 
 **Requires a prototype or benchmark before the MVP build relies on it** (results to be recorded
-in [Project progress](../PROJECT_PROGRESS.md)):
+in the pull request history):
 
 | Item | What to measure |
 |---|---|
@@ -770,7 +770,7 @@ AWS promotional credits unless the provider is an eligible AWS service; see
 
 Reviewed against the PR #7 landing page on 8 Nov 2026; the concept row was updated in the documentation sync task. The previous list (offline claims,
 features, Kiro specs and hooks) no longer applies: that copy was removed in PR #7. Documentation
-is the source of truth until the copy is corrected (tracked in [Project progress](../PROJECT_PROGRESS.md)).
+is the source of truth until the copy is corrected (tracked in the pull request history).
 
 | On the page | Reality |
 |---|---|

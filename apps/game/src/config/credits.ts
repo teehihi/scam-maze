@@ -189,7 +189,7 @@ export const GAME_CREDITS: CreditGroup[] = [
         name: "Chapter 1 voice clips",
         creator: "Windows built-in speech voices (Microsoft David, Microsoft Mark, Microsoft Zira, Microsoft An), generated locally by the SCAMMAZE Team",
         sourceUrl: "apps/game/scripts/generate-chapter1-voice.mjs",
-        license: "Terms of use not verified (see docs/PROJECT_PROGRESS.md)",
+        license: "Terms of use not verified",
         notes: "Synthetic voices for Chapter 1 dialogue: Microsoft David, Mark and Zira (en-US) and Microsoft An (vi-VN). No real person's voice was cloned. Redistribution terms for the generated audio have not been verified.",
       },
     ],

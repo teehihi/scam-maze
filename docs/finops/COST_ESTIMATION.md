@@ -213,7 +213,7 @@ See section 8.
 |---|---|
 | Source of the credit | `PENDING`: the brief does not say which program issued it. Check **Billing and Cost Management → Credits**. |
 | If it is the AWS Free Tier new-account credit | Since 15 Jul 2025 new accounts can receive up to $200 in credits. On the **Free account plan**, the plan ends after 6 months or when credits are used up, whichever comes first, and some services are restricted ([AWS announcement](https://aws.amazon.com/about-aws/whats-new/2025/07/aws-free-tier-credits-month-free-plan), [AWS blog](https://aws.amazon.com/blogs/aws/aws-free-tier-update-new-customers-can-get-started-and-explore-aws-with-up-to-200-in-credits/)). Plan an upgrade decision **before** the end date so the account and data are not lost. |
-| Expiry | Read the expiry date on the Credits page; record it in [Project progress](../PROJECT_PROGRESS.md). |
+| Expiry | Read the expiry date on the Credits page; record it in the pull request history. |
 | Eligible services | As listed in the credit terms. |
 | Excluded charges | AWS promotional credit terms exclude, among others, **Route 53 domain registration and transfer**, AWS Marketplace, some AWS Support plans, training and certification, and upfront fees for Savings Plans or Reserved Instances. AWS documentation states that credits cannot pay for [registering a domain with Route 53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html). |
 | Taxes | Check whether tax is charged on top of usage in your billing country and whether the credit covers it. |

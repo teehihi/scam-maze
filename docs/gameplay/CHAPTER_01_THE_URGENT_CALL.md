@@ -12,7 +12,7 @@
 > and the spec `.kiro/specs/chapter-01-double-deception/` (requirements, design, tasks). The
 > current scenario data is in `apps/game/src/game/narrative/chapter1/`. A player-facing gameplay
 > document for the room version has not been written yet (see
-> [Project progress](../PROJECT_PROGRESS.md)).
+> the pull request history).
 >
 > What follows is kept as a record of the street version. Its file paths (for example
 > `features/chapter1/useCallTriggers.ts` and `features/chapter1/world/propLayout.ts`) now live under
@@ -50,7 +50,7 @@ breakfast." (`scenario.ts`).
   [`docs/product/PRODUCT_POSITIONING.md`](../product/PRODUCT_POSITIONING.md), section 11. It is
   deferred to a later chapter.
 - This is a deviation from the positioning document. It is recorded in
-  [`docs/PROJECT_PROGRESS.md`](../PROJECT_PROGRESS.md) and in the spec requirements
+  the pull request history and in the spec requirements
   (`.kiro/specs/chapter-01-the-urgent-call/requirements.md`).
 - The brief's "SAFE" ending is named `verified` in code and "Checked through a trusted channel" in
   the UI, because the repository rules forbid calling anything "safe".

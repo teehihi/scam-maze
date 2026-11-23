@@ -64,7 +64,7 @@ Shared: `features/player` (`CharacterRuntime`, `FirstPersonPlayer`, `usePlayerCo
 - GLB size and complexity: `pnpm exec gltf-transform inspect <file.glb>` (root dev dependency).
 - Headless Chrome (Playwright MCP) uses SwiftShader software WebGL: compare draw calls and
   relative frame counts only; real FPS needs a real GPU and must be labeled as such.
-- Record before and after numbers with the method in `docs/PROJECT_PROGRESS.md`.
+- Record before and after numbers with the method in the pull request.
 
 ## Hook
 

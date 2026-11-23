@@ -15,14 +15,14 @@ Key documents: **[product positioning](docs/product/PRODUCT_POSITIONING.md) (can
 definition)** · [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
 [architecture](docs/architecture/OVERVIEW.md) · [deployment](docs/architecture/DEPLOYMENT.md) ·
 [database strategy](docs/architecture/DATABASE_STRATEGY.md) ·
-[cost estimation](docs/finops/COST_ESTIMATION.md) · [project progress](docs/PROJECT_PROGRESS.md) ·
+[cost estimation](docs/finops/COST_ESTIMATION.md) ·
 [contributing](CONTRIBUTING.md)
 
 ## 1. Project principles
 
 - **The product is defined by [`docs/product/PRODUCT_POSITIONING.md`](docs/product/PRODUCT_POSITIONING.md).**
   It overrides older descriptions in the master plan and elsewhere. If documents conflict, follow
-  it and record the conflict in `docs/PROJECT_PROGRESS.md`.
+  it and note the conflict in the pull request description.
 - Follow the master plan for process, rules compliance, safety and evaluation. When the plan and
   a newer owner instruction differ, follow the owner, and record the deviation.
 - Preserve the product identity (owner decision, 8 Nov 2026): **SCAMMAZE is a browser-based,
@@ -103,7 +103,7 @@ definition)** · [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
 - Prefer the cheapest solution that meets the requirement; the AWS budget is $200 in promotional
   credits for 3 months (see [cost estimation](docs/finops/COST_ESTIMATION.md)).
 - **Do not provision, deploy or modify any AWS resource without explicit owner approval**
-  recorded in `docs/PROJECT_PROGRESS.md`.
+  recorded in the pull request or issue.
 - Do not introduce paid infrastructure or paid third-party services without a documented cost.
 - Avoid unnecessary API calls: no backend call per gameplay interaction.
 - Avoid unnecessary logs and storage; set log retention.
@@ -132,26 +132,13 @@ definition)** · [master plan](SCAMMAZE_KIROWEEN_2026_FULL_PLAN.md) ·
 
 ## 6. Documentation maintenance (mandatory)
 
-After **every meaningful task** (code, architecture or documentation), update
-[`docs/PROJECT_PROGRESS.md`](docs/PROJECT_PROGRESS.md) **in the same task**, not later. Add an
-entry to "Task history" with:
-
-1. date (`YYYY-MM-DD`) and task title;
-2. objective;
-3. completed work;
-4. files created, modified or deleted;
-5. validation commands executed;
-6. build and test results (state clearly if something could not be run);
-7. unresolved issues and known limitations;
-8. deviations from the documented architecture;
-9. follow-up tasks.
+The project no longer keeps a progress log file (owner decision). Describe each meaningful change
+in its commit message and pull request: what changed, the validation run and its results (state
+clearly if something could not be run), known limitations and follow-ups.
 
 Also:
 
-- update the "Project status", "Completed", "In progress", "Planned" and "Pending decisions"
-  sections when they change;
 - update the relevant architecture, deployment, database or cost document whenever the real
   implementation makes it inaccurate, and keep the status labels (`IMPLEMENTED`, `PLANNED`,
   `PROPOSED`, `PENDING`, `DEPRECATED`) correct;
-- **never mark a feature as completed without verifying it**;
-- keep the progress file concise and chronological (newest entry first).
+- **never mark a feature as completed without verifying it**.

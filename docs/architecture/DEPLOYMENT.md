@@ -163,7 +163,7 @@ Domain selection and costs: [Cost estimation, section 9](../finops/COST_ESTIMATI
 
 ## 7. Deployment safety checklist (before any AWS deployment)
 
-- [ ] Owner approval recorded in [Project progress](../PROJECT_PROGRESS.md).
+- [ ] Owner approval recorded in the pull request history.
 - [ ] Credit terms, expiry and eligible services checked on the AWS Billing console.
 - [ ] AWS Budgets alerts and Cost Anomaly Detection configured.
 - [ ] Infrastructure defined as code and reviewed in a pull request.

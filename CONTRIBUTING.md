@@ -51,8 +51,8 @@ artifact for review.
    `feat: add marketplace scenario`, `fix(url-check): handle IPv6 hosts`.
 4. Open a pull request into `main` and fill in the template.
    Do not push directly to `main`; it deploys the live site.
-5. For every meaningful change, add an entry to
-   [`docs/PROJECT_PROGRESS.md`](docs/PROJECT_PROGRESS.md) in the same pull request, and update
+5. For every meaningful change, describe it in the pull request
+   (what changed, validation, limitations), and update
    the architecture, deployment, database or cost documents in `docs/` if they become
    inaccurate.
 
