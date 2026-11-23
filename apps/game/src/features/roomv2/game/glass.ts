@@ -147,6 +147,10 @@ export function createRainGlass(cityTex: THREE.Texture, paneSize: THREE.Vector2,
         float fres = pow(1.0 - abs(dot(V, normalize(vN))), 3.0);
         col += uWarm * (0.05 + 0.35*fres) * (1.0 - c.x*0.6);
         col *= 0.92;
+        // Soft-limit bright, blurred city light (lit facades, sky, lightning) so the pane never turns into a glowing
+        // white panel: above 0.6 it rolls off toward 1.0.
+        float lum = max(col.r, max(col.g, col.b));
+        if (lum > 0.6) { float e = lum - 0.6; col *= (0.6 + e / (1.0 + e / 0.4)) / lum; }
         gl_FragColor = vec4(col, 1.0);
       }`,
   });

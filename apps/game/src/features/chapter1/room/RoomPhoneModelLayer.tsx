@@ -120,7 +120,9 @@ const PhoneCanvas: React.FC<Omit<RoomPhoneModelLayerProps, "modelAllowed">> = ({
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-30"
+      // Held up, the phone is in front of everything in the room, the laptop desktop (z-40) and its corner HUD (z-41)
+      // included; its screen (held-phone, z-43) sits on it. In a call it stays under the call screen.
+      className={`pointer-events-none fixed inset-0 ${placement === "held" ? "z-[42]" : "z-30"}`}
       style={{ visibility: active ? "visible" : "hidden" }}
       aria-hidden="true"
       data-testid="room-phone-model-layer"

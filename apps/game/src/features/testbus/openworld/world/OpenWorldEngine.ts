@@ -155,6 +155,8 @@ export interface ViewPose extends ViewLens {
    * can be seen through it is culled in, so the street hidden behind the room walls costs nothing. Omitted: full view.
    */
   portal?: { x0: number; y0: number; x1: number; y1: number } | null;
+  /** The room window is on screen (its glass shows this world's view). Omitted: guessed from `yaw`. */
+  windowInView?: boolean;
 }
 export interface PlayInput extends ViewLens {
   keys: ReadonlySet<string>;
@@ -1568,6 +1570,7 @@ export class OpenWorldEngine {
     else cam.rotation.set(pose.pitch, pose.yaw, 0);
     this.wantBackdrop = pose.backdrop;
     this.backdropPortal = pose.portal ?? null;
+    this.extWindowInView = pose.windowInView ?? Math.cos(pose.yaw) > -0.2;
     this.frame(dt);
   }
 
@@ -1626,11 +1629,13 @@ export class OpenWorldEngine {
   }
 
   /** Embedded: what `stepView` / `stepPlay` drew this frame (null when nothing was drawn). */
-  public get backdrop(): { color: T.Texture; depth: T.DepthTexture } | null {
+  public get backdrop(): { color: T.Texture; depth: T.DepthTexture; scale: T.Vector2 } | null {
     const rt = this.backdropRT;
     if (!rt || !rt.depthTexture || !this.backdropDrawn) return null;
-    return { color: rt.texture, depth: rt.depthTexture };
+    return { color: rt.texture, depth: rt.depthTexture, scale: this.backdropScale };
   }
+  /** Part of the backdrop target that holds the picture (uv scale). */
+  private readonly backdropScale = new T.Vector2(1, 1);
   private backdropDrawn = false;
 
   /** The location line and the street state for the host HUD while playing embedded. */
@@ -1640,6 +1645,8 @@ export class OpenWorldEngine {
   private lastSnap: OpenWorldSnapshot | null = null;
   private lastAssetAt = 0;
   private viewShadowT = 0;
+  /** ViewPose.windowInView of the last stepView. */
+  private extWindowInView = true;
   private shadowProgramsDirty = true;
 
   private frame(dt: number) {
@@ -1680,7 +1687,8 @@ export class OpenWorldEngine {
         this.stepDist += moved;
         if (this.stepDist > 0.65) {
           this.stepDist = 0;
-          if (this.audio.started) this.audio.footstep(indoorsNow ? 0.85 : 1.0);
+          // Embedded, the room plays the player's footsteps (dry / wet walking, as in the neighborhood).
+          if (this.audio.started && !this.external) this.audio.footstep(indoorsNow ? 0.85 : 1.0);
         }
       }
     } else if (!this.onBus) {
@@ -1847,12 +1855,16 @@ export class OpenWorldEngine {
     // hardware POT 512×256 RGBA8 cityRT (< 0.2ms!). Skipped completely when looking away from the north window!
     if (indoors) {
       // Camera forward Z = -cos(yaw); north window is at -Z, so cos(yaw) > -0.20 means window may be in view.
-      const facingNorthWindow = Math.cos(this.yaw) > -0.2;
+      // Embedded, the room says whether its window is on screen (inspect poses do not follow yaw / pitch).
+      const facingNorthWindow = this.external && viewMode ? this.extWindowInView : Math.cos(this.yaw) > -0.2;
       const camMoved =
         Math.abs(this.yaw - this.lastCityRtYaw) > 0.002 ||
         Math.abs(this.pitch - this.lastCityRtPitch) > 0.002;
       const sinceCityRt = this.elapsed - this.lastCityRtTime;
-      if (facingNorthWindow && (camMoved || sinceCityRt >= 0.15)) {
+      // While the view turns, or while it rains (the falling rain outside is in this picture: at the 0.15 s idle
+      // refresh it stepped down the glass in slow jerks), the glass view follows at up to ~30 Hz.
+      const live = camMoved || atm.rainIntensity > 0.02;
+      if (facingNorthWindow && ((live && sinceCityRt >= 1 / 32) || sinceCityRt >= 0.15)) {
         this.lastCityRtYaw = this.yaw;
         this.lastCityRtPitch = this.pitch;
         this.lastCityRtTime = this.elapsed;
@@ -1870,7 +1882,7 @@ export class OpenWorldEngine {
           // The window view refreshes the outdoor shadow maps every few seconds (the sun moves slowly).
           this.viewShadowT -= sinceCityRt;
           sm.needsUpdate = this.viewShadowT <= 0;
-          if (this.viewShadowT <= 0) this.viewShadowT = 4;
+          if (this.viewShadowT <= 0) this.viewShadowT = 12;
         }
         this.renderer.setRenderTarget(this.cityRT);
         this.renderer.render(this.scene, this.camera);
@@ -1994,7 +2006,7 @@ export class OpenWorldEngine {
         // The sun moves slowly: refresh this world's shadow maps every few seconds while it is seen.
         this.backdropShadowT -= dt;
         if (this.backdropShadowT <= 0) {
-          this.backdropShadowT = 4;
+          this.backdropShadowT = 12;
           sm.needsUpdate = true;
         }
         const size = r.getDrawingBufferSize(this._bdSize);
@@ -2002,29 +2014,31 @@ export class OpenWorldEngine {
         const prev = r.getRenderTarget();
         const rt = this.backdropRT;
         const W = rt.width, H = rt.height;
+        // The street is drawn at a reduced resolution in the lower-left part of the target (no reallocation when the
+        // scale changes): through the door from inside the room it is a small, soft part of the view; outside it
+        // fills the screen. The room samples it with `backdrop.scale`.
+        const sc = Math.min(viewMode ? 0.62 : 0.8, 1000 / Math.max(1, H));
+        const Wf = Math.max(1, Math.floor(W * sc)), Hf = Math.max(1, Math.floor(H * sc));
+        this.backdropScale.set((Wf - 0.5) / W, (Hf - 0.5) / H);
         rt.viewport.set(0, 0, W, H);
         rt.scissorTest = false;
         r.setRenderTarget(rt);
         r.clear(true, true, false);
         const pp = this.backdropPortal;
-        if (pp) {
-          // Draw only the door / window part of the screen, with a camera frustum cut to it (so the city hidden
-          // behind the room walls is culled). The depth values match the full view: an off-centre projection keeps z.
-          const x = Math.max(0, Math.floor(pp.x0 * W)), y = Math.max(0, Math.floor(pp.y0 * H));
-          const w = Math.min(W, Math.ceil(pp.x1 * W)) - x, h = Math.min(H, Math.ceil(pp.y1 * H)) - y;
-          if (w > 0 && h > 0) {
-            rt.viewport.set(x, y, w, h);
-            rt.scissor.set(x, y, w, h);
-            rt.scissorTest = true;
-            this.camera.setViewOffset(W, H, x, H - y - h, w, h);
-            r.setRenderTarget(rt);
-            r.render(this.scene, this.camera);
-            this.camera.clearViewOffset();
-            rt.viewport.set(0, 0, W, H);
-            rt.scissorTest = false;
-          }
-        } else {
+        // Only the door / window part of the screen (all of it outside), with a camera frustum cut to it, so the city
+        // hidden behind the room walls is culled. The depth values match the full view: an off-centre projection keeps z.
+        const x = pp ? Math.max(0, Math.floor(pp.x0 * Wf)) : 0, y = pp ? Math.max(0, Math.floor(pp.y0 * Hf)) : 0;
+        const w = (pp ? Math.min(Wf, Math.ceil(pp.x1 * Wf)) : Wf) - x, h = (pp ? Math.min(Hf, Math.ceil(pp.y1 * Hf)) : Hf) - y;
+        if (w > 0 && h > 0) {
+          rt.viewport.set(x, y, w, h);
+          rt.scissor.set(x, y, w, h);
+          rt.scissorTest = true;
+          this.camera.setViewOffset(Wf, Hf, x, Hf - y - h, w, h);
+          r.setRenderTarget(rt);
           r.render(this.scene, this.camera);
+          this.camera.clearViewOffset();
+          rt.viewport.set(0, 0, W, H);
+          rt.scissorTest = false;
         }
         r.setRenderTarget(prev);
         this.backdropDrawn = true;

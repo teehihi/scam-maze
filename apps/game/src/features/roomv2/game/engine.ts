@@ -35,7 +35,7 @@ export interface OutsideLens { fov: number; aspect: number; near: number; far: n
  */
 export interface OutsideView {
   /** Player in the room. `backdrop` asks for the colour + depth image this frame (door or window open). */
-  stepView(dt: number, pose: OutsideLens & { position: THREE.Vector3; quaternion: THREE.Quaternion; yaw: number; pitch: number; door: number; window: number; backdrop: boolean; portal?: OutsidePortal | null }): void;
+  stepView(dt: number, pose: OutsideLens & { position: THREE.Vector3; quaternion: THREE.Quaternion; yaw: number; pitch: number; door: number; window: number; backdrop: boolean; portal?: OutsidePortal | null; windowInView?: boolean }): void;
   /** The player stepped through the doorway; `eye` is the room camera position. */
   enterPlay(eye: THREE.Vector3, yaw: number, pitch: number): void;
   /** Player outside: moves with the room's keys and look; returns the camera position and whether they are back in. */
@@ -43,7 +43,7 @@ export interface OutsideView {
   /** E outside (bus, ...). */
   interact(): void;
   /** What the last step drew, or null. */
-  backdrop(): { color: THREE.Texture; depth: THREE.DepthTexture } | null;
+  backdrop(): { color: THREE.Texture; depth: THREE.DepthTexture; scale?: THREE.Vector2 } | null;
   /** Exposure the outside is meant to be seen at (the room's tone mapping applies on top). */
   exposure?(): number;
   /** 0..1: how hard it rains outside. Drives the drops on the glass. */
@@ -270,6 +270,13 @@ export class Engine implements RoomStoryCommands {
   dropT = 0;
   arms: CharacterArmsViewmodel;
   armsShadowOff = false;
+  /** How much of the hands' own colour shows on top of the room's lighting (see `updateArms`). */
+  armFill = { value: 0.3 };
+  /** Ground speed (m/s) and Shift-running this frame: drive the sprinting hands and the footsteps. */
+  walkSpeed = 0;
+  running = false;
+  /** Metres walked on the street since the last footstep. */
+  private streetStepAcc = 0;
   /** Last value of `shadowSignature()`; the shadow maps are redrawn only when it changes. */
   shadowSig = Number.NaN;
   shadowFrames = 0;
@@ -452,16 +459,17 @@ export class Engine implements RoomStoryCommands {
   private ensureBackdropQuad() {
     if (this.backdropQuad) return;
     const mat = new THREE.ShaderMaterial({
-      uniforms: { tColor: { value: null }, tDepth: { value: null }, uGain: { value: 1 } },
+      uniforms: { tColor: { value: null }, tDepth: { value: null }, uGain: { value: 1 }, uScale: { value: new THREE.Vector2(1, 1) } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 1.0, 1.0); }',
-      fragmentShader: `uniform sampler2D tColor; uniform sampler2D tDepth; uniform float uGain; varying vec2 vUv;
+      fragmentShader: `uniform sampler2D tColor; uniform sampler2D tDepth; uniform float uGain; uniform vec2 uScale; varying vec2 vUv;
         void main(){
           // Soft-limit the street's HDR highlights (sun glints, lamps): above 1.1 they roll off toward 2.4, so the
           // room's bloom never flares the whole doorway.
-          vec3 c = max(texture2D(tColor, vUv).rgb * uGain, vec3(0.0));
+          vec2 uv = vUv * uScale;
+          vec3 c = max(texture2D(tColor, uv).rgb * uGain, vec3(0.0));
           float l = max(c.r, max(c.g, c.b));
           if (l > 1.1) { float e = l - 1.1; c *= (1.1 + e / (1.0 + e / 1.3)) / l; }
-          gl_FragColor = vec4(c, 1.0); gl_FragDepth = texture2D(tDepth, vUv).x; }`,
+          gl_FragColor = vec4(c, 1.0); gl_FragDepth = texture2D(tDepth, uv).x; }`,
       depthTest: true,
       depthWrite: true,
       depthFunc: THREE.AlwaysDepth,
@@ -522,7 +530,7 @@ export class Engine implements RoomStoryCommands {
     if (speed > 0.05 && !f.done) {
       this.bobPhase += dt * speed * 5.2;
       const sign = Math.sign(Math.sin(this.bobPhase));
-      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(Math.min(1, speed / 1.3)); }
+      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(false); }
     }
     if (f.done) { this.entrance = null; this.begin(); }
   }
@@ -899,8 +907,11 @@ export class Engine implements RoomStoryCommands {
   shadowSignature(): number {
     const L = this.lightLevels;
     const chair = this.apt.chair;
-    return L.ceiling + L.desk * 2.1 + L.bed * 3.3 + L.kitchen * 4.7 + this.fridgeAng * 5.9 + this.sashX * 7.1
-      + chair.position.x * 11.3 + chair.position.z * 13.7;
+    // Rounded to 1 mm / 1 mrad: the eased sash and fridge door never land exactly on their targets, and an unrounded
+    // signature redrew all four shadow maps on every frame for the rest of the session after the window was opened.
+    const q = (v: number) => Math.round(v * 1000) / 1000;
+    return L.ceiling + L.desk * 2.1 + L.bed * 3.3 + L.kitchen * 4.7 + q(this.fridgeAng) * 5.9 + q(this.sashX) * 7.1
+      + q(chair.position.x) * 11.3 + q(chair.position.z) * 13.7;
   }
   /**
    * The seated chair swivels a little with the view (a quarter of the yaw). Its shadow follows at
@@ -1317,7 +1328,7 @@ export class Engine implements RoomStoryCommands {
 
   /* =================== PER-FRAME =================== */
   movePlayer(dt: number) {
-    if (this.inspect || this.seat !== 'none' || this.callHeld()) { this.vel.set(0, 0, 0); return; }
+    if (this.inspect || this.seat !== 'none' || this.callHeld()) { this.vel.set(0, 0, 0); this.walkSpeed = 0; this.running = false; return; }
     const f = (this.keys.has('KeyW') || this.keys.has('ArrowUp') ? 1 : 0) - (this.keys.has('KeyS') || this.keys.has('ArrowDown') ? 1 : 0);
     const s = (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0);
     const run = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
@@ -1348,10 +1359,12 @@ export class Engine implements RoomStoryCommands {
     this.pos.x = next.x; this.pos.z = next.z;
     if (this.outside && this.pos.z > ROOM.z1 + 0.25) { this.goOutdoors(); return; }
     const sp = Math.hypot(this.vel.x, this.vel.z);
+    this.walkSpeed = sp;
+    this.running = run && sp > 1.6;
     if (sp > 0.05) {
       this.bobPhase += dt * sp * 5.2;
       const sign = Math.sign(Math.sin(this.bobPhase));
-      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(Math.min(1, sp / 1.3)); }
+      if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(this.running); }
     }
   }
 
@@ -1444,11 +1457,31 @@ export class Engine implements RoomStoryCommands {
   updateArms(dt: number) {
     // The viewmodel clones its meshes with shadows on; the static shadow maps must not redraw for the hands.
     if (!this.armsShadowOff && this.arms.loaded) {
-      this.arms.group.traverse((o) => { o.castShadow = false; });
+      this.arms.group.traverse((o) => {
+        o.castShadow = false;
+        const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+        if (!(o as THREE.Mesh).isMesh || !mat?.isMeshStandardMaterial) return;
+        // The hands keep their own skin colour: the dim, mostly back-lit room left them almost black. They stay lit
+        // by the room's lights; a soft view-facing fill (indirect light only) adds `armFill` of their base colour.
+        mat.roughness = 0.8; // the model's own value (the shared loader sets 0.55)
+        mat.onBeforeCompile = (sh) => {
+          sh.uniforms.uArmFill = this.armFill;
+          sh.fragmentShader = 'uniform float uArmFill;\n' + sh.fragmentShader.replace('#include <lights_fragment_end>',
+            '#include <lights_fragment_end>\n  reflectedLight.indirectDiffuse += diffuseColor.rgb * uArmFill * (0.55 + 0.45 * saturate(dot(normal, normalize(vViewPosition))));');
+        };
+        mat.customProgramCacheKey = () => 'room-arms-fill';
+        mat.needsUpdate = true;
+      });
       this.armsShadowOff = true;
     }
-    // Hands are stowed while seated or once the prologue has ended; they never sprint in this small room.
-    this.arms.update(dt, false, false, this.seat !== 'none' || !!this.ui.ended || !this.ui.started);
+    // On the street the hands are still drawn in the room's scene, under its dim room lights: the fill follows the
+    // outside light instead (bright by day, lower at night), eased over the doorway.
+    const fillTarget = this.outside && this.outdoors ? 0.45 + 0.85 * (this.outside.daylight?.() ?? 0.5) : 0.3;
+    this.armFill.value += (fillTarget - this.armFill.value) * (1 - Math.exp(-dt * 3));
+    // Hands are stowed while seated or once the prologue has ended; Shift-running brings them up pumping (as in the neighborhood).
+    this.arms.update(dt, this.walkSpeed > 0.3, this.running, this.seat !== 'none' || !!this.ui.ended || !this.ui.started);
+    // Dry steps in the room and on a dry street; the wet walking loop on the street while it rains.
+    this.audio.setWalk(this.walkSpeed, this.running, !!this.outside && this.outdoors);
   }
 
   updateLights(dt: number) {
@@ -1529,6 +1562,7 @@ export class Engine implements RoomStoryCommands {
     // window sash
     const target = this.windowOpen ? -0.45 : 0;
     this.sashX += (target - this.sashX) * (1 - Math.exp(-dt * 3));
+    if (Math.abs(target - this.sashX) < 5e-4) this.sashX = target;
     if (!a.rightSash.userData.base) a.rightSash.userData.base = a.rightSash.position.x;
     a.rightSash.position.x = a.rightSash.userData.base + this.sashX;
     // curtain would breathe a little with the window open (via glass fog)
@@ -1644,15 +1678,25 @@ export class Engine implements RoomStoryCommands {
       } else {
         this.camera.position.copy(res.position);
         this.camera.quaternion.setFromEuler(_walkE.set(this.pitch, this.yaw, 0, 'YXZ'));
+        const shift = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
+        this.walkSpeed = dt > 0 ? res.moved / dt : 0;
+        this.running = shift && this.walkSpeed > 3;
         if (res.moved > 0) {
           this.bobPhase += res.moved * 5.2;
-          const sign = Math.sign(Math.sin(this.bobPhase));
-          if (sign !== this.lastStepSign && sign !== 0) { this.lastStepSign = sign; this.audio.started && this.audio.footstep(1); }
+          // The street pace is faster than the room's: one step per stride (longer while running), as in the neighborhood.
+          this.streetStepAcc += res.moved;
+          const stride = this.running ? 2.9 : 1.6;
+          if (this.streetStepAcc > stride) { this.streetStepAcc = 0; this.audio.started && this.audio.footstep(this.running); }
         }
       }
     } else {
+      this.walkSpeed = 0; this.running = false;
       if (this.entrance) this.stepEntrance(dt);
-      else if (this.ui.started) this.movePlayer(dt);
+      else if (this.ui.started) {
+        // Below 20 fps one 50 ms step made walking slow; up to 100 ms of real time is walked in two steps.
+        let rem = Math.min(0.1, rawDt);
+        do { const step = Math.min(0.05, rem); this.movePlayer(step); rem -= step; } while (rem > 1e-4 && !this.outdoors);
+      }
       if (!this.outdoors) {
         this.updateSeat(rawDt > 0.05 ? 0.05 : dt);
         this.updateCamera(dt);
@@ -1701,8 +1745,10 @@ export class Engine implements RoomStoryCommands {
       if (!this.outdoors) {
         const window = Math.min(1, Math.abs(this.sashX) / 0.45);
         // Only the part of the street seen through the open door / window is drawn; nothing when neither is in view.
+        // The rain glass shows the outside too: it only needs a fresh picture while the window is on screen.
+        const windowInView = window > 0.01 || this.outsidePortal(false, true) !== false;
         const portal = this.outsidePortal(this.outDoorT > 0.01, window > 0.01);
-        out.stepView(dt, { ...this.lensForOutside(), position: cam.position, quaternion: cam.quaternion, yaw: this.yaw, pitch: this.pitch, door: this.outDoorT, window, backdrop: portal !== false, portal: portal || null });
+        out.stepView(dt, { ...this.lensForOutside(), position: cam.position, quaternion: cam.quaternion, yaw: this.yaw, pitch: this.pitch, door: this.outDoorT, window, backdrop: portal !== false, portal: portal || null, windowInView });
       }
       const bd = out.backdrop();
       const quad = this.backdropQuad;
@@ -1712,6 +1758,7 @@ export class Engine implements RoomStoryCommands {
           const u = quad.material.uniforms;
           u.tColor.value = bd.color;
           u.tDepth.value = bd.depth;
+          if (bd.scale) u.uScale.value.copy(bd.scale); else u.uScale.value.set(1, 1);
           u.uGain.value = (out.exposure?.() ?? 1.3) / Math.max(0.05, r.toneMappingExposure);
         }
       }
