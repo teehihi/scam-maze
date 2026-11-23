@@ -1,4 +1,5 @@
 import * as T from "three";
+import { tr } from "../strings";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
@@ -65,15 +66,8 @@ export interface OpenWorldSnapshot {
   isIndoors: boolean;
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  waiting: "Đang chờ xe vào trạm Lý Thái Tổ",
-  approaching: "Xe Buýt 06 đang cập bến Lý Thái Tổ",
-  boarding: "Đang mở cửa đón khách · Lý Thái Tổ",
-  departing: "Chuẩn bị khởi hành đi Chợ Lớn",
-  driving: "Đang chạy trên Lý Thái Tổ → Chợ Lớn",
-  arrived: "Đã đến Trạm Chợ Lớn · Quận 5",
-  complete: "Hoàn tất tuyến 06",
-};
+/** Bus 06 status line in the game language (`testbus.world.bus.<phase>`). */
+const phaseLabel = (phase: string) => tr(`bus.${phase}`);
 
 const LAPTOP_DRAFT =
   "Chào chị Linh,\nEm gửi chị bản báo cáo quý trước 10h sáng mai ạ. Phần chi phí em đã đối chiếu xong, còn phần tổng hợp em sẽ rà lần cuối đầu giờ sáng.\nCảm ơn chị nhiều.";
@@ -1300,17 +1294,17 @@ export class OpenWorldEngine {
 
     if (this.onBus) {
       const phase = this.route.phase;
-      const status = PHASE_LABELS[phase] ?? phase;
+      const status = phaseLabel(phase);
       const atEnd = phase === "arrived" || phase === "complete";
       if (this.busSeat) {
         this.currentPrompt =
           phase === "boarding"
-            ? "[F] Xác nhận cho xe chạy · [E] Đứng dậy"
+            ? tr("prompt.confirmRide")
             : atEnd
-              ? "[E] Đứng dậy · Xuống xe ở cửa sau"
-              : `${status} · Chưa đến trạm, không xuống giữa chừng`;
+              ? tr("prompt.standUpRear")
+              : tr("prompt.noMidway", { status });
       } else {
-        this.currentPrompt = this.nearestBusSeat() ? `[E] Ngồi xuống · ${status}` : atEnd ? "Xuống xe ở cửa sau" : status;
+        this.currentPrompt = this.nearestBusSeat() ? tr("prompt.sitDown", { status }) : atEnd ? tr("prompt.offRear") : status;
       }
       return;
     }
@@ -1318,10 +1312,10 @@ export class OpenWorldEngine {
     if (this.feet.y < 1.2 && Math.hypot(this.feet.x - busDoor.x, this.feet.z - busDoor.z) < 4.8) {
       this.currentPrompt =
         this.route.phase === "boarding"
-          ? "Đi vào cửa trước để lên Xe Buýt Tuyến 06 (Lý Thái Tổ ↔ Chợ Lớn)"
+          ? tr("prompt.walkOn")
           : this.route.phase === "waiting"
-            ? "[E] Chờ Xe Buýt Tuyến 06"
-            : (PHASE_LABELS[this.route.phase] ?? null);
+            ? tr("prompt.waitBus")
+            : phaseLabel(this.route.phase);
       return;
     }
 
@@ -1334,8 +1328,8 @@ export class OpenWorldEngine {
       this.currentPrompt = this.external
         ? null
         : this.doorOpen
-          ? "[E] Đóng cửa Phòng 6.07"
-          : "[E] Mở cửa ra hành lang Dãy Trọ 462/14";
+          ? tr("prompt.closeRoomDoor")
+          : tr("prompt.openToHall");
       return;
     }
 
@@ -1348,15 +1342,15 @@ export class OpenWorldEngine {
         if (id) {
           this.hoveredId = id;
           const labels: Record<string, string> = {
-            desklamp: "[E] Bật / Tắt đèn bàn",
-            switch: "[E] Công tắc đèn trần",
-            bedlamp: "[E] Đèn ngủ đầu giường",
-            kitchenlight: "[E] Đèn bếp",
-            phone: "[E] Xem điện thoại",
-            note: "[E] Đọc tờ ghi chú",
-            window: this.winOpen ? "[E] Đóng cửa sổ" : "[E] Kéo mở cửa sổ ngắm Sài Gòn",
-            fridge: this.fridgeOpen ? "[E] Đóng tủ lạnh" : "[E] Mở tủ lạnh",
-            door: this.doorOpen ? "[E] Đóng cửa Phòng 6.07" : "[E] Mở cửa ra Dãy Trọ",
+            desklamp: tr("prompt.deskLamp"),
+            switch: tr("prompt.ceilingLight"),
+            bedlamp: tr("prompt.bedLamp"),
+            kitchenlight: tr("prompt.kitchenLight"),
+            phone: tr("prompt.phone"),
+            note: tr("prompt.note"),
+            window: this.winOpen ? tr("prompt.closeWindow") : tr("prompt.openWindow"),
+            fridge: this.fridgeOpen ? tr("prompt.closeFridge") : tr("prompt.openFridge"),
+            door: this.doorOpen ? tr("prompt.closeRoomDoor") : tr("prompt.openToBuilding"),
           };
           this.currentPrompt = labels[id] ?? null;
           return;
@@ -2301,7 +2295,7 @@ export class OpenWorldEngine {
         doorOpen: this.doorOpen,
         gateOpen: this.gateOpen,
         onBus: this.onBus,
-        busStatus: PHASE_LABELS[this.route.phase] ?? this.route.phase,
+        busStatus: phaseLabel(this.route.phase),
         prompt: this.currentPrompt,
         activeModal: this.activeModal,
         pointerLocked: this.pointerLocked,
