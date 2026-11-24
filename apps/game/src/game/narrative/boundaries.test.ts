@@ -38,6 +38,9 @@ const TEST_OUTSIDE_ALLOWLIST = [
   "test/seededRandom.ts",
   "test/chapterRuns.ts",
   "test/fixtureScenario.ts",
+  // The v3 save codec is pure TypeScript (no React/DOM/storage imports), so a narrative test may
+  // replay a session through it: `thesisSession.test.ts` checks a work session survives a save.
+  "game/saves/chapterProgress.ts",
 ] as const;
 
 const SPECIFIER_PATTERNS: readonly RegExp[] = [
