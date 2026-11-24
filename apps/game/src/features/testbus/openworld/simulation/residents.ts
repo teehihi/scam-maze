@@ -185,50 +185,32 @@ export function castStreet(
           aim(obj, "calf_" + side, "foot_" + side, new T.Vector3(0, -1, -0.14));
         }
       }
-      const held = i === 3 || i === 2 ? new T.Group() : null,
+      // Seated people hold nothing: the old phone box in the hand read as a floating prop (owner).
+      const held = !seated && (i === 3 || i === 2) ? new T.Group() : null,
         hand = obj.getObjectByName("hand_r"),
         handPos = new T.Vector3();
       if (held) {
         root.add(held);
-        if (seated) {
-          aim(obj, "lowerarm_r", "hand_r", new T.Vector3(-0.29, 0.35, 0.9));
-          rounded(
-            held,
-            [0, 0, 0],
-            [0.077, 0.14, 0.014],
-            0.008,
-            material(0x232931),
-          );
-          rounded(
-            held,
-            [0, 0, 0.009],
-            [0.068, 0.123, 0.002],
-            0.003,
-            material(0x6c9095),
-          );
-          held.rotation.x = -0.33;
-        } else {
-          rounded(
-            held,
-            [0, -0.25, 0],
-            [0.22, 0.27, 0.095],
-            0.021,
-            material(0x96532d),
-          );
-          tube(
-            held,
-            [
-              [-0.07, -0.12, 0],
-              [-0.06, -0.045, 0],
-              [0, -0.018, 0],
-              [0.06, -0.045, 0],
-              [0.07, -0.12, 0],
-            ],
-            0.008,
-            material(0x584435),
-            9,
-          );
-        }
+        rounded(
+          held,
+          [0, -0.25, 0],
+          [0.22, 0.27, 0.095],
+          0.021,
+          material(0x96532d),
+        );
+        tube(
+          held,
+          [
+            [-0.07, -0.12, 0],
+            [-0.06, -0.045, 0],
+            [0, -0.018, 0],
+            [0.06, -0.045, 0],
+            [0.07, -0.12, 0],
+          ],
+          0.008,
+          material(0x584435),
+          9,
+        );
       }
       const feetShadow = contact(
         root,
@@ -461,7 +443,7 @@ export function castStreet(
         let activity: HumanActivity = "idle";
         let focusPoint: T.Vector3 | null = null;
         if (seated) {
-          activity = "phone";
+          activity = "idle";
         } else if (queue && approach < 1) {
           activity = "waiting_bus";
           if (route.phase === "approaching" || route.phase === "boarding") {

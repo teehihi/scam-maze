@@ -1,4 +1,5 @@
 import { placeStreetProps, type StreetPropPlacement } from "./streetPropsGlb";
+import { freeSignSpots, placeSidewalkSigns } from "./sidewalkSigns";
 import {driveSurface,driveTexture} from './drive-look';
 import {DISTRICT_START, DISTRICT_BLOCK} from './q10-plan';
 import {districtFinishes} from './q10-materials';
@@ -626,6 +627,9 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
   ];
   solids.push(rect(cartX, cartZ, 0.95, 1.6), rect(3.9, -19.7, 0.6, 0.6), rect(3.9, -58.4, 0.6, 0.6), rect(4.2, -23.6, 0.8, 1.35));
   void placeStreetProps(dressing, streetProps, onAssetLoaded);
+  // A-board shop signs on the east sidewalk, in front of the shops. Only the spots clear of every collider built so far are used.
+  const signSpots = freeSignSpots([-13.6, -2.4, 3.2, 12.5, 19.5, -30.5, -41.5, -52.5, -64].map((z) => ({ x: 4.85, z })), solids);
+  void placeSidewalkSigns(dressing, signSpots, propY, onAssetLoaded);
   // The low vendor parasol across from the shuttered strip (east-facing view).
   const ux=3.08,uz=-6.65;rod(dressing,[ux,.16,uz],[ux,2.55,uz],.025,darkMetal);
   const clothPanels=[canopies[1],material(0xc6a54a,.9),canopies[0]];

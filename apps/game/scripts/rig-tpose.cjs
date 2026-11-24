@@ -28,6 +28,8 @@ const BONES = [ // [name, parent]
 const MODELS = {
   linh: {
     H: 1.154,
+    // Shoulders: both sides move `narrow` m toward the body and the arms shrink around their axis by `slim` (0..1) before rigging.
+    shoulders: { narrow: 0.012, slim: 0.14 },
     pelvis: [0, 0.555, 0], spine_01: [0, 0.62, 0], spine_02: [0, 0.72, 0.0], spine_03: [0, 0.82, 0], neck_01: [0, 0.93, -0.005], head: [0, 0.985, 0.005], headTop: [0, 1.154, 0.01],
     clavicle: [0.025, 0.895, 0.0], shoulder: [0.10, 0.912, -0.015], elbow: [0.26, 0.911, -0.016], wrist: [0.40, 0.899, -0.012], handTip: [0.517, 0.885, 0.0],
     hip: [0.052, 0.55, 0.0], knee: [0.057, 0.32, -0.02], ankle: [0.05, 0.10, -0.018], ball: [0.05, 0.03, 0.07], toeTip: [0.05, 0.02, 0.119],
@@ -146,6 +148,39 @@ function skin(m, mesh, opts = {}) {
 }
 
 
+const smoothstep = (e0, e1, x) => { const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+
+/**
+ * Narrows the shoulders of a T-pose scan: the arm joints and arm vertices move `narrow` m toward the body (the shoulder cap
+ * blends over x = 0.05..0.13), and the arms shrink around their axis (`slim`, strongest on the upper arm). Mutates `mesh.pos` and
+ * returns the landmark warp for the model's own joint positions.
+ */
+function warpShoulders(m, mesh) {
+  const { narrow, slim } = m.shoulders;
+  const yMask = (ax, y) => smoothstep(0.80, 0.88, y) * (1 - smoothstep(0.93, 0.97, y) * (1 - smoothstep(0.10, 0.14, ax)));
+  const shiftX = (ax, y) => narrow * smoothstep(0.05, 0.13, ax) * yMask(ax, y);
+  // Arm axis (y, z) at |x| from the landmarks.
+  const axis = [[m.shoulder[0], m.shoulder], [m.elbow[0], m.elbow], [m.wrist[0], m.wrist], [m.handTip[0], m.handTip]];
+  const axisAt = (ax) => {
+    if (ax <= axis[0][0]) return [axis[0][1][1], axis[0][1][2]];
+    for (let i = 1; i < axis.length; i++) if (ax <= axis[i][0]) { const t = (ax - axis[i-1][0]) / (axis[i][0] - axis[i-1][0]); return [axis[i-1][1][1] + t * (axis[i][1][1] - axis[i-1][1][1]), axis[i-1][1][2] + t * (axis[i][1][2] - axis[i-1][1][2])]; }
+    return [axis[3][1][1], axis[3][1][2]];
+  };
+  const P = mesh.pos;
+  for (let i = 0; i < P.length; i += 3) {
+    const ax = Math.abs(P[i]), sign = P[i] < 0 ? -1 : 1;
+    if (ax > 0.07 && P[i+1] > 0.84 && P[i+1] < 1.0) {
+      const [ay, az] = axisAt(ax);
+      const f = 1 - slim * smoothstep(0.07, 0.12, ax) * (1 - smoothstep(m.wrist[0] - 0.08, m.wrist[0], ax));
+      // Only vertices near the arm axis (not hair or the head) shrink.
+      if (Math.abs(P[i+1] - ay) < 0.07 && Math.abs(P[i+2] - az) < 0.07) { P[i+1] = ay + (P[i+1] - ay) * f; P[i+2] = az + (P[i+2] - az) * f; }
+    }
+    P[i] = sign * (ax - shiftX(ax, P[i+1]));
+  }
+  const landmark = (p) => [Math.sign(p[0] || 1) * (Math.abs(p[0]) - shiftX(Math.abs(p[0]), p[1])), p[1], p[2]];
+  return { ...m, clavicle: landmark(m.clavicle), shoulder: landmark(m.shoulder), elbow: landmark(m.elbow), wrist: landmark(m.wrist), handTip: landmark(m.handTip) };
+}
+
 /** Z-up/node-baked, simplified, position-welded-safe mesh from the scan's only primitive. */
 function simplifyScan(MeshoptSimplifier, node, prim, triangles) {
   const pos = prim.getAttribute("POSITION").getArray(), nor = prim.getAttribute("NORMAL").getArray(), uv = prim.getAttribute("TEXCOORD_0").getArray();
@@ -202,7 +237,7 @@ function separateFeet(mesh, maxY, inset = 0.003) {
  * the skin weights. `doc` must hold one scene node with one mesh and one primitive. Returns a log line.
  */
 function rigScan(doc, MeshoptSimplifier, modelId, triangles) {
-  const model = MODELS[modelId];
+  let model = MODELS[modelId];
   if (!model) throw new Error(`rig-tpose: no landmarks for "${modelId}"`);
   const root = doc.getRoot();
   const node = root.listNodes().find((n) => n.getMesh());
@@ -211,6 +246,7 @@ function rigScan(doc, MeshoptSimplifier, modelId, triangles) {
   let min = [1e9, 1e9, 1e9], max = [-1e9, -1e9, -1e9];
   for (let i = 0; i < mesh.pos.length; i += 3) for (let k = 0; k < 3; k++) { min[k] = Math.min(min[k], mesh.pos[i+k]); max[k] = Math.max(max[k], mesh.pos[i+k]); }
   if (Math.abs(min[1]) > 0.01 || Math.abs(max[1] - model.H) > 0.01) throw new Error(`rig-tpose: ${modelId} spans y ${min[1].toFixed(3)}..${max[1].toFixed(3)}, landmarks expect 0..${model.H}`);
+  if (model.shoulders) model = warpShoulders(model, mesh);
   const fusedFeet = separateFeet(mesh, 0.14);
   const sk = skin(model, mesh);
 

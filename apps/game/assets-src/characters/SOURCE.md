@@ -69,6 +69,7 @@ bones (hands are rigid). Idle, walk, wave and sit then work through the same ret
 | `npc-minh` | `minhModel/lqk_new.glb` | Minh (story cast, M01-M05) | 54.21 -> 0.76 MB | 1,000,004 -> 45,000 |
 
 - Landmarks (joint positions) are measured per scan in `MODELS` in `rig-tpose.cjs`; a new scan needs its own entry.
+- Linh's shoulders are narrowed 1.2 cm per side and her arms slimmed 14% before rigging (`shoulders` in `MODELS`), because the scan's square, thick shoulders read as bulky once the arms hang down.
 - Skin weights are computed automatically (distance falloff per bone, smoothed). Check new rigs on a walk and a sit pose.
 - Used for Minh and Linh in the story cast (`storyCast.ts`) and in the /khupho resident pools (`npcMinh`, `npcLinh`).
 

@@ -113,17 +113,8 @@ function buildStoryNpcProps(
   handProp.name = `Prop_${propKind}`;
 
   if (propKind === "phone_chat" || propKind === "phone_gold") {
-    rounded(handProp, [0, 0.02, 0], [0.075, 0.145, 0.012], 0.006, material(0x1b1f26, 0.35, 0.5));
-    const screenMat = new T.MeshStandardMaterial({
-      color: propKind === "phone_gold" ? 0x261d09 : 0x16293d,
-      emissive: propKind === "phone_gold" ? 0xeab308 : 0x38bdf8,
-      emissiveIntensity: 0.95,
-      roughness: 0.18,
-    });
-    rounded(handProp, [0, 0.02, 0.008], [0.066, 0.13, 0.002], 0.003, screenMat);
-    handProp.rotation.set(-0.35, 0.1, 0);
-    npcRoot.add(handProp);
-    return { handProp };
+    // No phone in the hand (owner): it read as a floating box on the rigged models. The NPC just stands.
+    return { handProp: null };
   }
 
   if (propKind === "clipboard") {

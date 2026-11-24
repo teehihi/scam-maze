@@ -37,6 +37,8 @@ const PROPS = [
   // Thin shell with molded holes: the sloppy pass tears it, so only the topology-preserving pass is used.
   { id: "stool-high", file: "props/furniture/ghecao.glb", triangles: 16000, error: 0.012, texture: 512, sloppy: false },
   { id: "table-set", file: "props/furniture/set_table_chair.glb", triangles: 6000, error: 0.03, texture: 512 },
+  // Flat A-board sign on a base (1.01 m, one printed face): a scan with a 1M-triangle mesh and 4096 px textures.
+  { id: "bienhieu1", file: "props/furniture/bienhieu1.glb", triangles: 20000, error: 0.003, texture: 1024, sloppy: false },
   { id: "bike-cg125", file: "vehicles/parked/honda-cg-125.glb", triangles: 9000, error: 0.025, texture: 512 },
   { id: "bike-supercub", file: "vehicles/parked/super-cub-c90.glb", triangles: 9000, error: 0.05, texture: 512 },
   { id: "bike-fatboy", file: "vehicles/parked/fat-boy-cruiser.glb", triangles: 8000, error: 0.025, texture: 512 },
