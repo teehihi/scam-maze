@@ -14,6 +14,11 @@ export interface Apartment {
   hits: THREE.Object3D[];
   /** Invisible raycast-only box around the laptop (story mode); null otherwise. */
   laptopHitProxy: THREE.Mesh | null;
+  /**
+   * The laptop: origin at the centre of the base underside, +y up, +z toward the user. The keys are at
+   * y 0.0142, home row near z -0.03; the Writing Mode places the camera and hands in this space.
+   */
+  laptop: THREE.Group;
   lights: {
     ceilingSpot: THREE.SpotLight; ceilingFill: THREE.PointLight; deskSpot: THREE.SpotLight; deskFill: THREE.PointLight;
     bedLamp: THREE.PointLight; kitchen: THREE.SpotLight; phone: THREE.PointLight; laptop: THREE.PointLight;
@@ -1037,7 +1042,7 @@ export function buildApartment(scene: THREE.Scene, cityTexHook: (panes: THREE.Me
   root.add(mist);
 
   return {
-    colliders, hits, updaters, points, laptopHitProxy,
+    colliders, hits, updaters, points, laptopHitProxy, laptop,
     lights: { ceilingSpot, ceilingFill, deskSpot, deskFill, bedLamp, kitchen: kitchenLight, phone: phoneLight, laptop: laptopLight },
     emissives: { ceiling: ceilingShade, desk: deskBulb, bed: bedShade, kitchen: kitchenStrip, powerLed, acLed },
     glassPanes, rightSash, phone, phoneScreenMat, laptopScreen, laptopScreenMat, laptopScreenMesh, phoneScreenMesh: scr, phoneScreen, steam,

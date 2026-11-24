@@ -20,6 +20,24 @@ export const BRAND_LOGO_PNG = "/assets/branding/scammaze-logo.png";
 export const CALL_PHONE_GLB = "/assets/3d/optimized/call-phone.optimized.glb";
 
 /**
+ * Typing motion for the first-person arms: finger and wrist rotations only, retargeted from a Mixamo
+ * `Typing.fbx` onto the arms rig by `scripts/retarget-typing-hands.mjs` (animation-only GLB).
+ */
+export const TYPING_HANDS_GLB = "/assets/3d/characters/typing-hands.glb";
+
+/**
+ * Laptop keypress clips, cut from the owner-supplied Freesound recording 799122 by
+ * `scripts/extract-keyboard-sfx.py`. The recording has no key labels: "space", "enter" and
+ * "backspace" are the presses with the matching sound character, not recordings of those keys.
+ */
+export const KEYBOARD_SFX = {
+  key: ["/assets/audio/keyboard/key-1.wav", "/assets/audio/keyboard/key-2.wav", "/assets/audio/keyboard/key-3.wav"],
+  space: "/assets/audio/keyboard/key-space.wav",
+  enter: "/assets/audio/keyboard/key-enter.wav",
+  backspace: "/assets/audio/keyboard/key-backspace.wav",
+} as const;
+
+/**
  * Low-poly city backdrop (Meshopt + WebP, produced by scripts/optimize-city-packs.cjs):
  * curated buildings from Low Poly City, Low Poly City Game-Ready and Low Poly City Asset Pack,
  * and the single cars of Low Poly Cars Pack.

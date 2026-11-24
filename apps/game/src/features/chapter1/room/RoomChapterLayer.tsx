@@ -105,6 +105,10 @@ import { BankingApp } from "./desktop/banking/BankingApp";
 import { FilesApp } from "./desktop/files/FilesApp";
 import { CalendarApp } from "./desktop/calendar/CalendarApp";
 import { ThesisWindow } from "./desktop/thesis/ThesisWindow";
+import type { ThesisWritingHost } from "./desktop/thesis/writing/WritingMode";
+import type { WritingDraft } from "./desktop/thesis/writing/writingSprints";
+import { usePrefersReducedMotion } from "../../../components/ui/usePrefersReducedMotion";
+import { effectiveReducedMotion } from "../comfort/ComfortProvider";
 import { selectBlockedTransfers } from "../../../game/narrative/blocked";
 import { BROWSER_APP_ID, type DesktopState } from "./desktop/desktopState";
 import { ReviewSecurityPage } from "./laptop/ReviewSecurityPage";
@@ -382,8 +386,6 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
 
   // Created once per mount: a fresh chapter or the state replayed by the loader.
   const [store] = useState(() => createChapterStore(session.restored?.state ?? createInitialState(ACTIVE_SCENARIO), ACTIVE_SCENARIO));
-  // The document editor unmounts when another laptop app opens; keep its in-progress and saved text for this run.
-  const thesisDocumentDraft = useRef<{ content: Record<string, string>; savedContent: Record<string, string> }>({ content: {}, savedContent: {} });
   const onStoreReadyRef = useRef(onStoreReady);
   onStoreReadyRef.current = onStoreReady;
   useEffect(() => {
@@ -924,12 +926,11 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
     narrativeState.resources.cash,
     narrativeState.persistent,
   ]);
-  const [thesisClockPreviewOffset, setThesisClockPreviewOffset] = useState<number | null>(null);
   const clockMinuteOfDay = useChapterState(store, (state) => {
     const clock = simulatedClock(state.resources.timeMinutes);
     return clock.hour * 60 + clock.minute;
   });
-  const effectiveClockMinute = (clockMinuteOfDay + (thesisClockPreviewOffset ?? 0)) % (24 * 60);
+  const effectiveClockMinute = clockMinuteOfDay;
   const clockText = `${String(Math.floor(effectiveClockMinute / 60)).padStart(2, "0")}:${String(effectiveClockMinute % 60).padStart(2, "0")}`;
   useEffect(() => {
     if (!storyClockOn) return;
@@ -947,6 +948,8 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
   const perPercentMinutes = effectiveWorkMinutes(gameplay.thesisMinutesPerPercent, resources.fatigue, gameplay.fatigue);
   const sessionPercent = Math.floor(gameplay.thesisSessionMinutes / gameplay.thesisMinutesPerPercent);
   const fatigueOn = gameplay.fatigue.enabled;
+  // `onTask` also reports whether the core accepted the review, which the laptop desk uses to show
+  // a rejection; the Schedule panel ignores the extra argument and the returned value.
   const thesisProps: ThesisPanelProps = {
     progress: resources.thesisProgress,
     sessionMinutes: sessionPercent * perPercentMinutes,
@@ -960,29 +963,20 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
     freeWorkMaxPercent: gameplay.thesisFreeWorkMaxPercent,
     timeLeftMinutes: resources.timeMinutes,
     tasks: thesisView.tasks,
-    onWork: (minutes, focusMode) => void store.dispatch({ type: "START_THESIS_SESSION", minutes, mode: focusMode ?? "normal" }),
-    onTask: (taskId, researchNotes) => void store.dispatch({ type: "COMPLETE_THESIS_TASK", taskId, researchNotes }),
-    onOpenDocument: () => {
-      closePlanner();
-      openOverlay({ kind: "laptop" });
-    },
-    deepWork: !legacyLaptop
-      ? {
-          state: narrativeState,
-          scenario,
-          baseMinutesPerPercent: gameplay.thesisMinutesPerPercent,
-          fatigueConfig: gameplay.fatigue,
-          documentDraft: thesisDocumentDraft,
-          onPreviewMinutesOffset: setThesisClockPreviewOffset,
-          onInspectInterruption: (appHint) => {
-            if (appHint && isOpen(overlaysRef.current, "laptop")) openOverlay({ kind: "phone" }, { stack: true });
-          },
-          onResumeSession: () => void store.dispatch({ type: "RESUME_THESIS_SESSION" }),
-          onEndSession: () => void store.dispatch({ type: "END_THESIS_SESSION" }),
-          onSaveDraft: (sectionId, content) => void store.dispatch({ type: "SAVE_THESIS_DRAFT", sectionId, content }),
-        }
-      : undefined,
+    onWork: (minutes) => void store.dispatch({ type: "WORK_ON_THESIS", minutes }),
+    onTask: (taskId: string, approachId?: string): boolean =>
+      store.dispatch({
+        type: "COMPLETE_THESIS_TASK",
+        taskId,
+        ...(approachId === undefined ? {} : { approachId }),
+      }).accepted,
   };
+  // The draft deadline is the mission's own deadline from the scenario, read from the same core clock.
+  const draftDeadlineMinutesLeft = openMissions.find((mission) => mission.id === "m01.missing-access")?.minutesLeft ?? undefined;
+  // Unread mail, chats, listings and job offers while the desk is open: shown as a chip, never opened.
+  const thesisDistractions = (["mail", "messages", "housing", "jobs"] as const)
+    .filter((app) => laptopDevice.unread[app] > 0)
+    .map((app) => ({ key: app, appId: app === "messages" ? "device-mail" : `device-${app}`, label: text(`device.apps.${app}`), count: laptopDevice.unread[app] }));
 
   useEffect(() => {
     if (!free || ringable === null) return;
@@ -1186,6 +1180,29 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
   const registerLaptopEscape = useCallback((handler: (() => boolean) | null) => {
     laptopEscapeRef.current = handler;
   }, []);
+  // Thesis Writing Mode: presentation state only. The typed draft survives closing the laptop for this
+  // page session; the sprint itself comes from the saved event log (accepted work sessions).
+  const [writingActive, setWritingActive] = useState(false);
+  const [writingRelaxed, setWritingRelaxed] = useState(false);
+  const writingDraftRef = useRef<WritingDraft | null>(null);
+  const completedWorkSessions = useChapterState(store, (state) =>
+    state.events.reduce((count, event) => (event.action.type === "WORK_ON_THESIS" ? count + 1 : count), 0),
+  );
+  const osReducedMotion = usePrefersReducedMotion();
+  const writingReducedMotion = effectiveReducedMotion(settings.reducedMotion, osReducedMotion);
+  const keyVolume = settings.soundEnabled ? settings.sfxVolume : 0;
+  const writingHost: ThesisWritingHost = {
+    active: writingActive,
+    setActive: setWritingActive,
+    completedSessions: completedWorkSessions,
+    draft: writingDraftRef.current,
+    onDraft: (draft) => {
+      writingDraftRef.current = draft;
+    },
+    relaxed: writingRelaxed,
+    onRelaxed: setWritingRelaxed,
+    onKey: (kind) => bridge.commands?.typeOnKeyboard?.(kind, keyVolume),
+  };
   const closePhone = useCallback(() => removeOverlay("phone"), [removeOverlay]);
   // The phone's browser (tabs, bookmarks, history) is UI state: it survives putting the phone down and is not saved.
   const phoneBrowserRef = useRef<BrowserState | undefined>(undefined);
@@ -1245,7 +1262,22 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
         },
       ];
     }),
-    { id: "thesis", label: text("laptop.apps.thesis"), content: legacyLaptop ? <ThesisPanel {...thesisProps} /> : <ThesisWindow {...thesisProps} /> },
+    {
+      id: "thesis",
+      label: text("laptop.apps.thesis"),
+      content: legacyLaptop ? (
+        <ThesisPanel {...thesisProps} />
+      ) : (
+        <ThesisWindow
+          {...thesisProps}
+          onWork={(minutes) => store.dispatch({ type: "WORK_ON_THESIS", minutes }).accepted}
+          quality={thesisView.quality}
+          draftDeadlineMinutesLeft={draftDeadlineMinutesLeft}
+          distractions={thesisDistractions}
+          writing={writingHost}
+        />
+      ),
+    },
     ...(legacyLaptop
       ? [
           {
@@ -1263,17 +1295,20 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
         // Chapter 1 has no laptop device actions: its laptop is the interactive desktop. The parked
         // story keeps the original sidebar overlay.
         if (!legacyLaptop) {
+          // In the Writing Mode the desktop stays mounted (its state and the writing editor live in it)
+          // but is not shown: the writing editor and the 3D keyboard take the view.
           return (
-            <LaptopDesktop
-              key="laptop"
-              apps={laptopTabs}
-              onClose={closeLaptop}
-              clockText={storyClockOn ? clockText : undefined}
-              initialState={desktopUiRef.current}
-              onStateChange={handleDesktopState}
-              registerEscape={registerLaptopEscape}
-              taskAppId={laptopTaskAppId}
-            />
+            <div key="laptop" className="contents" style={writingActive ? { display: "none" } : undefined} data-testid="laptop-desktop-host">
+              <LaptopDesktop
+                apps={laptopTabs}
+                onClose={closeLaptop}
+                clockText={storyClockOn ? clockText : undefined}
+                initialState={desktopUiRef.current}
+                onStateChange={handleDesktopState}
+                registerEscape={registerLaptopEscape}
+                taskAppId={laptopTaskAppId}
+              />
+            </div>
           );
         }
         return (
@@ -1383,8 +1418,27 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
     commands?.setBackdrop?.(true);
     return () => commands?.setBackdrop?.(false);
   }, [bridge, engineReady, laptopOpen]);
-  // The marker over the prop of the current step, while the player walks around indoors (never leaked onto Saigon streets).
-  const markerTarget = taskMode && hudVisible && !outdoors && !trackerHidden && inspecting === null ? (trackedMission?.current?.target ?? null) : null;
+  // The Writing Mode ends with the laptop; while it is on, the room shows the keyboard and the hands.
+  useEffect(() => {
+    if (!laptopOpen && writingActive) setWritingActive(false);
+  }, [laptopOpen, writingActive]);
+  const writingCameraReduced = useRef(writingReducedMotion);
+  writingCameraReduced.current = writingReducedMotion;
+  useEffect(() => {
+    if (!engineReady || !laptopOpen || !writingActive) return undefined;
+    const commands = bridge.commands;
+    commands?.setWriting?.(true, writingCameraReduced.current);
+    return () => commands?.setWriting?.(false, writingCameraReduced.current);
+  }, [bridge, engineReady, laptopOpen, writingActive]);
+  // The marker over the prop of the current step, while the player walks around indoors (never leaked
+  // onto Saigon streets, no overlay, call or inspect pose). The phone is already in Alex's hand during
+  // the task flow, so never leave a route marker at its old nightstand position. The tracker still
+  // names the phone step; only the stale world-space guide is hidden.
+  const currentMarkerTarget = trackedMission?.current?.target ?? null;
+  const markerTarget =
+    taskMode && hudVisible && !outdoors && !trackerHidden && inspecting === null && !(phoneCarried && currentMarkerTarget === "phone")
+      ? currentMarkerTarget
+      : null;
   // The marker moves itself (DOM writes per frame); the layer only keeps the whole-metre distance for the tracker.
   const [taskDistance, setTaskDistance] = useState<number | null>(null);
   const markerSource = useCallback<TaskMarkerSource>(

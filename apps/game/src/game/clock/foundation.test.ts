@@ -104,6 +104,10 @@ describe("a new game", () => {
       researchSavedChannelIncluded: false,
       schoolFeeClaimContradicted: false,
       submissionDeadlineMissed: false,
+      draftSourcesChecked: false,
+      findingsReconciled: false,
+      finalDraftReviewed: false,
+      supervisorFeedbackRequested: false,
     });
   });
 
@@ -289,6 +293,6 @@ describe("determinism, save and load", () => {
       progress: { checkpointId: "start", actions: [], playerPose: null },
     });
     expect(parsed).toMatchObject({ status: "invalid", code: "incompatible" });
-    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-2");
+    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-3");
   });
 });

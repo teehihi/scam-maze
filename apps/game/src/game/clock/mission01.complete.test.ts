@@ -293,7 +293,7 @@ describe("save and continue", () => {
     ];
     const state = run(log);
     const progress = JSON.parse(JSON.stringify(encodeProgress(state, null, "start")));
-    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-2");
+    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-3");
     const restored = restoreProgress(progress, S);
     expect(restored.ok && restored.state).toEqual(state);
     // The new flags have their default (false) in a restored old run, because the state is rebuilt from the log.

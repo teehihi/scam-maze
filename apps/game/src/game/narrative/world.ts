@@ -378,19 +378,38 @@ export interface ClosedMissionView {
   status: "completed" | "failed";
 }
 
+export interface ThesisApproachView {
+  id: string;
+  label: string;
+  description: string | null;
+  timeCostMinutes: number;
+  progressGain: number;
+}
+
 export interface ThesisTaskView {
   id: string;
   label: string;
   description: string | null;
   timeCostMinutes: number;
   progressGain: number;
+  approaches: ThesisApproachView[];
   done: boolean;
   /** Why it cannot be done now. Null when it can. */
   blocked: "done" | "locked" | "time" | "complete" | null;
 }
 
+export type ThesisQuality = "rough" | "reviewed" | "ready";
+
+export function selectThesisQuality(state: ChapterState): ThesisQuality {
+  if (state.persistent.finalDraftReviewed || state.persistent.draftFinished) return "ready";
+  if (state.persistent.draftSourcesChecked || state.persistent.findingsReconciled) return "reviewed";
+  return "rough";
+}
+
 export interface ThesisView {
   progress: number;
+  /** Display-only draft state derived from the deterministic review flags. */
+  quality: ThesisQuality;
   /** Free work (`WORK_ON_THESIS`) stops at this percent. */
   freeWorkMaxPercent: number;
   tasks: ThesisTaskView[];
@@ -489,6 +508,7 @@ export const selectThesisView = memo((state, scenario): ThesisView => {
   const complete = state.resources.thesisProgress >= 100;
   return {
     progress: state.resources.thesisProgress,
+    quality: selectThesisQuality(state),
     freeWorkMaxPercent: config.thesisFreeWorkMaxPercent,
     tasks: (scenario.thesisTasks ?? []).map((task): ThesisTaskView => {
       const done = state.world.thesisTasksDone.includes(task.id);
@@ -508,6 +528,13 @@ export const selectThesisView = memo((state, scenario): ThesisView => {
         description: task.description ?? null,
         timeCostMinutes: timeCost,
         progressGain: task.progressGain,
+        approaches: (task.approaches ?? []).map((approach) => ({
+          id: approach.id,
+          label: approach.label,
+          description: approach.description ?? null,
+          timeCostMinutes: effectiveWorkMinutes(approach.timeCostMinutes ?? task.timeCostMinutes ?? 0, state.resources.fatigue, config.fatigue),
+          progressGain: approach.progressGain ?? task.progressGain,
+        })),
         done,
         blocked,
       };
@@ -556,6 +583,22 @@ export function validateWorldContent(scenario: ScenarioDefinition): string[] {
     if (task.timeCostMinutes !== undefined && (!Number.isInteger(task.timeCostMinutes) || task.timeCostMinutes < 0)) {
       problems.push(`Thesis task "${task.id}" has an invalid time cost.`);
     }
+    const approachIds = new Set<string>();
+    for (const approach of task.approaches ?? []) {
+      if (approach.id.length === 0) {
+        problems.push(`Thesis task "${task.id}" has an approach with an empty id.`);
+        continue;
+      }
+      const where = `Thesis task "${task.id}", approach "${approach.id}"`;
+      if (approachIds.has(approach.id)) problems.push(`${where} is defined twice.`);
+      approachIds.add(approach.id);
+      if (approach.progressGain !== undefined && (!Number.isInteger(approach.progressGain) || approach.progressGain < 1 || approach.progressGain > 100)) {
+        problems.push(`${where} has an invalid progress gain.`);
+      }
+      if (approach.timeCostMinutes !== undefined && (!Number.isInteger(approach.timeCostMinutes) || approach.timeCostMinutes < 0)) {
+        problems.push(`${where} has an invalid time cost.`);
+      }
+    }
   }
   const checkTime = (where: string, minutes: number | undefined): void => {
     if (minutes === undefined) return;
@@ -592,6 +635,9 @@ export function validateWorldContent(scenario: ScenarioDefinition): string[] {
   for (const task of scenario.thesisTasks ?? []) {
     checkConditions(`Thesis task "${task.id}"`, task.requires);
     checkEffects(`Thesis task "${task.id}"`, task.effects);
+    for (const approach of task.approaches ?? []) {
+      checkEffects(`Thesis task "${task.id}", approach "${approach.id}"`, approach.effects);
+    }
   }
   for (const event of events) {
     const where = `Event "${event.id}"`;

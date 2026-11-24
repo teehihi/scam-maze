@@ -13,3 +13,5 @@ game build or downloaded by players. `.glb` files are stored in Git LFS.
 | `vehicles/bike-rider/bike_rider_animated.glb` | Input of `scripts/optimize-bike-rider.cjs`, which writes `public/assets/3d/optimized/bike-rider.optimized.glb` (see `vehicles/bike-rider/SOURCE.md`) |
 | `vehicles/merc-a45-gltf/` (git-ignored, local only) | Original Sketchfab glTF of the Mercedes A45; source of `public/assets/3d/vehicles/merc-a45.glb` |
 | `low_poly_city*.glb`, `low_poly_cars_pack.glb` (kept in `Asset3D/`, or in `assets-src/city/`) | Input of `scripts/optimize-city-packs.cjs`, which writes `public/assets/3d/optimized/city-district.optimized.glb` and `city-cars.optimized.glb` |
+| `characters/typing/Typing.fbx` (local only, not committed: raw Mixamo file) | Mixamo "Typing" animation. Input of `scripts/retarget-typing-hands.mjs`, which writes `public/assets/3d/characters/typing-hands.glb` |
+| `audio/keyboard/799122__sadiquecat__*.wav` (local only, not committed: 3.6 MB raw recording) | Freesound recording 799122. Multi-take keyboard recording. Input of `scripts/extract-keyboard-sfx.py`, which writes `public/assets/audio/keyboard/*.wav` |

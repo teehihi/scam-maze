@@ -22,8 +22,11 @@ export const SAVE_FORMAT_VERSION_V2 = 2;
 export const SAVE_STORAGE_KEY_V3 = "scammaze_save_v3";
 export const SAVE_FORMAT_VERSION_V3 = 3;
 
-/** Identifies the scenario content a v3 action log was recorded against. */
-export const SAVE_CONTENT_VERSION = "ch1-last-submission-2";
+/**
+ * Identifies the scenario content a v3 action log was recorded against. `-3`: free thesis work
+ * changed from 60 to 30 minutes per percent, so older logs replay to other results.
+ */
+export const SAVE_CONTENT_VERSION = "ch1-last-submission-3";
 
 /** Upper bound on saved Core_Actions, so a save stays small (design: < 50 KB). */
 export const SAVE_MAX_ACTIONS = 1000;

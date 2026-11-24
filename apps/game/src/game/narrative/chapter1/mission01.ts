@@ -107,25 +107,47 @@ export const MISSION_01_THESIS_TASKS: ThesisTaskDef[] = [
   {
     id: "draft.intro-review",
     label: "Edit the introduction and literature review",
-    description: "Tighten the argument and fix the citations.",
+    description: "Tighten the argument and check whether each citation supports it.",
     timeCostMinutes: 90,
     progressGain: 2,
+    effects: [{ kind: "setPersistent", flag: "draftSourcesChecked", value: true }],
+    approaches: [
+      { id: "qualify", label: "Keep the claim, but qualify the wording", description: "Preserve the idea while making the evidence boundary clear.", timeCostMinutes: 90, progressGain: 2 },
+      { id: "swap-source", label: "Swap in the stronger source", description: "Add a better comparison, but leave less time for the final pass.", timeCostMinutes: 120, progressGain: 3 },
+      { id: "rewrite", label: "Rewrite the claim around the evidence", description: "Use the safest wording, with a smaller conclusion.", timeCostMinutes: 60, progressGain: 1 },
+    ],
   },
   {
     id: "draft.findings",
     label: "Revise the findings section",
-    description: "Merge the interview notes and check every figure.",
+    description: "Reconcile the interview notes with every figure before you keep the claim.",
     timeCostMinutes: 90,
     progressGain: 2,
+    effects: [{ kind: "setPersistent", flag: "findingsReconciled", value: true }],
+    approaches: [
+      { id: "fix-chart", label: "Fix the chart to six", description: "Preserve the source record and correct the visible figure.", timeCostMinutes: 60, progressGain: 2 },
+      { id: "fix-conclusion", label: "Fix the conclusion to six", description: "Keep the chart for a later source check.", timeCostMinutes: 45, progressGain: 1 },
+      { id: "mark-check", label: "Keep both and mark for checking", description: "The fastest path, but the warning remains visible.", timeCostMinutes: 30, progressGain: 1 },
+      { id: "delete-claim", label: "Remove the over-strong claim", description: "Reduce risk, but weaken the section.", timeCostMinutes: 75, progressGain: 2 },
+    ],
   },
   {
     id: "draft.final",
     label: "Finish the full draft",
-    description: "Read the whole draft once and mark it ready for your supervisor.",
+    description: "Run the final review and mark the draft ready for your supervisor.",
     requires: [{ kind: "thesisTaskDone", taskId: "draft.intro-review" }, { kind: "thesisTaskDone", taskId: "draft.findings" }],
     timeCostMinutes: 60,
     progressGain: 3,
-    effects: [{ kind: "setPersistent", flag: "draftFinished", value: true }],
+    effects: [
+      { kind: "setPersistent", flag: "finalDraftReviewed", value: true },
+      { kind: "setPersistent", flag: "supervisorFeedbackRequested", value: true },
+      { kind: "setPersistent", flag: "draftFinished", value: true },
+    ],
+    approaches: [
+      { id: "quick-scan", label: "Quick scan", description: "Catch the obvious warnings.", timeCostMinutes: 30, progressGain: 1 },
+      { id: "full-review", label: "Full review", description: "Check every item and mark the draft reviewed.", timeCostMinutes: 90, progressGain: 3 },
+      { id: "ask-supervisor", label: "Ask the supervisor for feedback", description: "Create a feedback request before submission.", timeCostMinutes: 45, progressGain: 2 },
+    ],
   },
 ];
 

@@ -71,8 +71,8 @@ export type CoreAction =
   | { type: "REST"; mode: RestMode }
   /** Answers a pending event with one of its responses: act on it, postpone it or ignore it. */
   | { type: "RESPOND_EVENT"; eventId: string; response: string }
-  /** Completes one thesis task (interview, revision, document check, supervisor confirmation, final version). Costs its time and adds its progress. */
-  | { type: "COMPLETE_THESIS_TASK"; taskId: string; researchNotes?: ThesisResearchNoteId[] }
+  /** Completes one thesis task (optionally using a deliberate review approach). Costs its time and adds its progress. */
+  | { type: "COMPLETE_THESIS_TASK"; taskId: string; approachId?: string; researchNotes?: ThesisResearchNoteId[] }
   /** Opens a message, email, listing, file or appointment on the phone or laptop. The first time it marks it read. Reading costs no time. */
   | { type: "OPEN_DEVICE_ITEM"; itemId: string }
   /** Uses one action of a device item: reply, pay, travel, apply, submit, call. Costs time and cash as the item says. */
@@ -819,10 +819,21 @@ export interface DeviceItemDef {
   figures?: PlatformFiguresDef[];
   actions?: DeviceItemActionDef[];
 }
+/** One way to handle a thesis review: how long it takes, what it gains and what it leaves behind. */
+export interface ThesisApproachDef {
+  id: string;
+  label: string;
+  description?: string;
+  /** Simulated minutes. Falls back to the task's own time cost. */
+  timeCostMinutes?: number;
+  /** Percent added to the thesis progress. Falls back to the task's own gain. */
+  progressGain?: number;
+  effects?: Effect[];
+}
 /**
  * A piece of thesis work that moves the thesis forward by what it achieves, not by waiting. The brief
  * lists them: interviews, editing, document checks, the supervisor's confirmation and the final submission.
- * Each task can be done once.
+ * Each task can be done once. A task with `approaches` is resolved by choosing one of them.
  */
 export interface ThesisTaskDef {
   id: string;
@@ -834,6 +845,8 @@ export interface ThesisTaskDef {
   /** Percent added to the thesis progress. */
   progressGain: number;
   effects?: Effect[];
+  /** Ways to handle the task. When present, `COMPLETE_THESIS_TASK` must name one. */
+  approaches?: ThesisApproachDef[];
 }
 /** Pacing values the brief does not state. Placeholders, configurable per scenario. */
 export interface GameplayConfig {

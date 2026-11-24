@@ -123,6 +123,7 @@ export const REASONS = {
   unknownThesisTask: "This thesis task does not exist.",
   thesisTaskDone: "This thesis task is already done.",
   thesisTaskUnavailable: "This thesis task is not available now.",
+  thesisApproachUnknown: "That review approach does not exist.",
   unknownEvent: "This event does not exist.",
   eventNotPending: "This event is not waiting for an answer.",
   unknownResponse: "This response does not exist.",
@@ -229,7 +230,7 @@ export function isCoreAction(value: unknown): value is CoreAction {
     case "RESPOND_EVENT":
       return isShortId(value.eventId) && isShortId(value.response);
     case "COMPLETE_THESIS_TASK":
-      return isShortId(value.taskId);
+      return isShortId(value.taskId) && (value.approachId === undefined || isShortId(value.approachId));
     case "OPEN_DEVICE_ITEM":
       return isShortId(value.itemId);
     case "USE_DEVICE_ITEM":
@@ -798,15 +799,22 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       }
       if (state.resources.thesisProgress >= 100) return reject(REASONS.thesisComplete);
       if (!evaluateConditions(task.requires, state, scenario)) return reject(REASONS.thesisTaskUnavailable);
+      const approach = action.approachId === undefined ? undefined : task.approaches?.find((candidate) => candidate.id === action.approachId);
+      if (action.approachId !== undefined && approach === undefined) return reject(REASONS.thesisApproachUnknown);
       const taskConfig = gameplayConfig(scenario);
-      const timeCost = effectiveWorkMinutes(task.timeCostMinutes ?? 0, state.resources.fatigue, taskConfig.fatigue);
+      // An omitted approach remains the legacy deterministic path for saves and authored tests;
+      // the thesis desk always supplies an explicit approach after the player resolves the review.
+      const baseTime = approach?.timeCostMinutes ?? task.timeCostMinutes ?? 0;
+      const progressGain = approach?.progressGain ?? task.progressGain;
+      const timeCost = effectiveWorkMinutes(baseTime, state.resources.fatigue, taskConfig.fatigue);
       if (timeCost > 0 && state.resources.timeMinutes <= 0) return reject(REASONS.timeIsUp);
       if (timeCost > state.resources.timeMinutes) return reject(REASONS.notEnoughTimeForAction);
       let next: ChapterState = { ...state, world: { ...state.world, thesisTasksDone: [...state.world.thesisTasksDone, task.id] } };
       next = applyEffect(next, { kind: "adjustResource", resource: "fatigue", delta: workFatigue(timeCost, taskConfig.fatigue) }, scenario);
-      next = applyEffect(next, { kind: "adjustResource", resource: "thesisProgress", delta: task.progressGain }, scenario);
+      next = applyEffect(next, { kind: "adjustResource", resource: "thesisProgress", delta: progressGain }, scenario);
       if (timeCost > 0) next = applyEffect(next, { kind: "adjustResource", resource: "timeMinutes", delta: -timeCost }, scenario);
       next = applyEffects(next, task.effects, scenario);
+      next = applyEffects(next, approach?.effects, scenario);
       // The persistent consequence is derived from the saved manuscript, never a UI-supplied note ID.
       // Only the known-channel finding can inform this later choice; the classmate finding does not.
       const savedFindings = state.world.thesisDraft.findings ?? "";
@@ -814,7 +822,7 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       if (task.id === "draft.findings" && citesSavedChannel) {
         next = { ...next, persistent: { ...next.persistent, researchSavedChannelIncluded: true } };
       }
-      return accept(next, [`${WORLD_TAG_PREFIX}thesis:${task.id}`]);
+      return accept(next, [`${WORLD_TAG_PREFIX}thesis:${task.id}${approach ? `:${approach.id}` : ""}`]);
     }
     case "RESPOND_EVENT": {
       if (state.call.current !== null) return reject(REASONS.callInProgress);

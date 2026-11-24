@@ -76,7 +76,10 @@ export const FOUNDATION_SCENARIO: ScenarioDefinition = {
 export const LAST_SUBMISSION_SCENARIO: ScenarioDefinition = {
   ...FOUNDATION_SCENARIO,
   // Fatigue rules are on for the playable chapter; the numbers are in `game/narrative/fatigue.ts`.
-  gameplay: { ...FOUNDATION_SCENARIO.gameplay, fatigue: { enabled: true } },
+  // Free thesis work: 30 minutes per percent, so one 60-minute session (one writing sprint) adds 2%.
+  // Faster rates break the balance intent in `clock/balance.test.ts` (at 20 minutes per percent,
+  // writing through the night reaches 90% before sleeping does); 30 keeps every assert there.
+  gameplay: { ...FOUNDATION_SCENARIO.gameplay, fatigue: { enabled: true }, thesisMinutesPerPercent: 30 },
   events: [...MISSION_01_EVENTS, MISSION_01_LATE_RECOVERY_EVENT, ...MISSION_01_OFFERS_EVENTS],
   missions: [...MISSION_01_MISSIONS, ...MISSION_01_OFFERS_MISSIONS],
   thesisTasks: MISSION_01_THESIS_TASKS,

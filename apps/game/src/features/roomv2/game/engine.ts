@@ -13,7 +13,8 @@ import { createRainGlass } from './glass';
 import { AudioEngine } from './audio';
 import { clock, type LaptopFrame, type PhoneMode } from './screens';
 import { tr, trLines } from './strings';
-import { CharacterArmsViewmodel } from '../../player/runtime/CharacterArmsViewmodel';
+import { CharacterArmsViewmodel, TYPING_POSE, type KeyboardAnchor } from '../../player/runtime/CharacterArmsViewmodel';
+import type { KeyPressKind } from './audio';
 import { dropMaskCanvas, paintDropMask, canvas, toTex } from './textures';
 import { projectCornersToViewport, projectPointToViewport, placeTaskMarker, cornersChanged, anchorMoved, ANCHOR_TOLERANCE_PX, type ScreenCornersPx, type ScreenDeviceId } from './screenProjection';
 import { pickHoverId, laptopInteractRoute, inspectDurationSec } from './storyInteract';
@@ -112,6 +113,31 @@ const STORY_POSES: Record<string, Pose> = {
   phone: { pos: V(0.936, 0.88, -1.745), look: V(0.93, 0.559, -1.78), fov: 29 },
 };
 
+/**
+ * Story mode, thesis Writing Mode, in the laptop's local space (`Apartment.laptop`): a seated eye
+ * behind the keyboard looking down at it, so the screen is at the top of the view (under the small
+ * writing panel) and the keyboard with Alex's hands fills the middle.
+ */
+const WRITING_CAMERA: Pose = { pos: V(0, 0.38, 0.4), look: V(0, 0.03, -0.03), fov: 44 };
+/**
+ * Where the hands rest in Writing Mode, also in laptop space (see `KeyboardAnchor`). Measured in the
+ * browser against the keyboard plane (keys at y 0.0142, home row near z -0.03): wrists 4 cm above the
+ * keys at the front row, fingertips on the home row, forearms low over the palm rest so the sleeves
+ * stay out of view. The arm rig's pose is not symmetric, so yaw and roll level the two wrists; the
+ * left wrist of the retargeted clip bends far inward, so it turns out more. The rig itself is unchanged.
+ */
+const WRITING_HANDS: Omit<KeyboardAnchor, 'object'> = {
+  wrists: V(0, 0.058, 0.05),
+  pitch: -0.3,
+  yaw: 0.2,
+  roll: -0.16,
+  scale: 0.9,
+  wristL: { out: 0.35, down: 0.6 },
+  wristR: { out: 0.45, down: 0.6 },
+  pressDepth: 0.003,
+  // Keys plus about the radius of a fingertip.
+  tipFloorY: 0.02,
+};
 /** Scratch objects for projecting a device screen to the viewport (story mode, no per-frame allocation). */
 const _scrViewProj = new THREE.Matrix4();
 /** Scratch point and placement of the task marker (story mode). */
@@ -995,6 +1021,7 @@ export class Engine implements RoomStoryCommands {
     if (id === 'laptop' && key === 'F' && !port) {
       this.typed = Math.min(typedText().length, this.typed + 4 + Math.floor(Math.random() * 5));
       this.audio.typing();
+      this.arms.typingKeystroke(3);
       if (this.typed >= typedText().length && !this.used.has('typed')) { this.used.add('typed'); this.later(1.2, () => this.say(tr('say.typedSend'))); }
       return true;
     }
@@ -1018,6 +1045,7 @@ export class Engine implements RoomStoryCommands {
     if (!force && this.opts.story && !this.opts.story.canLeaveInspect(id)) return;
     const wasReady = this.inspect.ready;
     this.inspect.dir = -1;
+    if (id === 'laptop') this.leaveWriting();
     this.inspect.from = { pos: this.camera.position.clone(), q: this.camera.quaternion.clone(), fov: this.camera.fov };
     this.inspect.t = 0;
     if (id === 'phone' && this.story === 'calm') this.phoneLockUntil = this.t + 4;
@@ -1077,6 +1105,52 @@ export class Engine implements RoomStoryCommands {
   setBackdrop(on: boolean) {
     this.backdrop = on;
     this.backdropFrame = 0;
+  }
+  /* =================== WRITING MODE (story host) =================== */
+  /** True while the thesis Writing Mode holds the laptop: writing camera, hands on the keys. */
+  writing = false;
+  /** See `RoomCommands.setWriting`. Only while the laptop is held in its (settled or settling) inspect pose. */
+  setWriting(on: boolean, reducedMotion = false) {
+    const ins = this.inspect;
+    if (on && (!ins || ins.id !== 'laptop' || ins.dir !== 1)) return;
+    if (on === this.writing) return;
+    if (on) {
+      this.writing = true;
+      void this.audio.loadKeyboard();
+      this.arms.setKeyboardAnchor({ ...WRITING_HANDS, wrists: WRITING_HANDS.wrists.clone(), object: this.apt.laptop });
+      this.arms.setTyping(true, true);
+    } else {
+      this.leaveWriting();
+    }
+    if (!ins || ins.id !== 'laptop' || ins.dir !== 1) return;
+    // Same camera move as an inspect, from where the camera is now; `ready` stays set, so the story
+    // host is not told about the laptop again.
+    ins.from = { pos: this.camera.position.clone(), q: this.camera.quaternion.clone(), fov: this.camera.fov };
+    ins.to = on ? this.writingPose() : (this.opts.story ? STORY_POSES.laptop : POSES.laptop);
+    this.lookOffset.set(0, 0);
+    ins.t = reducedMotion ? 1 : 0;
+  }
+  /** `WRITING_CAMERA` in world space, from the laptop's current transform. */
+  private writingPose(): Pose {
+    const laptop = this.apt.laptop;
+    laptop.updateWorldMatrix(true, false);
+    return {
+      pos: laptop.localToWorld(WRITING_CAMERA.pos.clone()),
+      look: laptop.localToWorld(WRITING_CAMERA.look.clone()),
+      fov: WRITING_CAMERA.fov,
+    };
+  }
+  private leaveWriting() {
+    this.writing = false;
+    this.arms.setTyping(false);
+    this.arms.setKeyboardAnchor(null);
+    this.arms.typingPose = { ...TYPING_POSE };
+  }
+  /** See `RoomCommands.typeOnKeyboard`: a keystroke of the Writing Mode moves the hands and plays a key. */
+  typeOnKeyboard(kind: KeyPressKind, volume: number) {
+    if (!this.writing) return;
+    this.arms.typingKeystroke(1, kind);
+    this.audio.keyPress(kind, volume);
   }
   /** The arms load after the warm-up compile; their shaders are built once they arrive, before they first rise into view. */
   private armsCompiled = false;
@@ -1741,7 +1815,7 @@ export class Engine implements RoomStoryCommands {
     }
     // Behind a page (the laptop) the settled room draws fewer frames; the canvas keeps the last one.
     const settled = this.inspect !== null && this.inspect.dir === 1 && this.inspect.t >= 1;
-    if (this.backdrop && settled && this.shadowFrames <= 0) {
+    if (this.backdrop && settled && this.shadowFrames <= 0 && !this.arms.typingActive) {
       this.backdropFrame = (this.backdropFrame + 1) % BACKDROP_FRAME_STEP;
       if (this.backdropFrame !== 0) return;
     }

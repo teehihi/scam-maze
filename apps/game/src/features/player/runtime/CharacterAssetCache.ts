@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { TYPING_HANDS_GLB } from '../../../config/assetPaths';
 
 export const ARMS_MODEL_PATH = '/assets/3d/characters/first_person_animations.glb';
 export const HIT_PUNCH_SOUND_PATH = '/assets/audio/hit_punch.mp3';
@@ -47,6 +48,26 @@ class CharacterAssetCacheSingleton {
     return this.gltfPromise;
   }
 
+  private typingPromise: Promise<THREE.AnimationClip | null> | null = null;
+  /**
+   * The typing clip for the arms (finger and wrist rotations). Resolves to null when the file is
+   * missing, so the arms simply do not type.
+   */
+  public loadTypingClip(): Promise<THREE.AnimationClip | null> {
+    if (this.typingPromise) return this.typingPromise;
+    this.typingPromise = new Promise<THREE.AnimationClip | null>((resolve) => {
+      new GLTFLoader().load(
+        TYPING_HANDS_GLB,
+        (gltf) => resolve(gltf.animations[0] ?? null),
+        undefined,
+        () => {
+          this.typingPromise = null;
+          resolve(null);
+        },
+      );
+    });
+    return this.typingPromise;
+  }
   /**
    * Clone a fresh instance of the arms mesh and skeleton for an active camera viewmodel.
    */

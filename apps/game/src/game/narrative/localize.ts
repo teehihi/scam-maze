@@ -237,6 +237,17 @@ function walkScenario(scenario: ScenarioDefinition, text: TextVisitor): Scenario
             ...task,
             label: text(`thesis/${task.id}/label`, task.label),
             ...(task.description !== undefined ? { description: text(`thesis/${task.id}/description`, task.description) } : {}),
+            ...(task.approaches !== undefined
+              ? {
+                  approaches: task.approaches.map((approach) => ({
+                    ...approach,
+                    label: text(`thesis/${task.id}/approaches/${approach.id}/label`, approach.label),
+                    ...(approach.description !== undefined
+                      ? { description: text(`thesis/${task.id}/approaches/${approach.id}/description`, approach.description) }
+                      : {}),
+                  })),
+                }
+              : {}),
           })),
         }),
     ...(scenario.deviceItems === undefined

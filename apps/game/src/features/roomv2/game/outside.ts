@@ -71,6 +71,17 @@ export interface RoomStoryCommands {
    * the page stays smooth. Optional.
    */
   setBackdrop?(on: boolean): void;
+  /**
+   * The thesis Writing Mode starts (true) or ends (false) while the laptop is held: the camera moves to
+   * (or back from) the writing pose and Alex's hands rest on the keyboard. With `reducedMotion` the
+   * camera cuts instead of moving. Presentation only. Optional.
+   */
+  setWriting?(on: boolean, reducedMotion?: boolean): void;
+  /**
+   * One keystroke of the Writing Mode: the hands type and the laptop plays a keypress at `volume`
+   * (0..1). Ignored outside the Writing Mode. Presentation only. Optional.
+   */
+  typeOnKeyboard?(kind: "key" | "space" | "enter" | "backspace", volume: number): void;
 }
 /** One task-marker report of `watchTaskMarker`. */
 export interface TaskMarker extends TaskMarkerPlacement {

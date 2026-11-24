@@ -76,90 +76,6 @@ describe("Mission 01 in the phone", () => {
     expect(phone.textContent).not.toMatch(/Northgate/i);
   });
 
-  it("lets Alex choose a work block and pauses it for the 17:10 email", async () => {
-    const rig = mountLayer();
-    fireEvent.click(screen.getByTestId("hud-planner-chip"));
-    const planner = screen.getByTestId("planner-overlay");
-    fireEvent.click(within(planner).getByTestId("thesis-open-document"));
-    const laptop = screen.getByTestId("laptop-desktop");
-    fireEvent.click(within(laptop).getByTestId("desktop-icon-thesis"));
-
-    fireEvent.change(within(laptop).getByTestId("thesis-session-minutes"), { target: { value: "30" } });
-    fireEvent.click(within(laptop).getByTestId("thesis-focus-deep"));
-    expect(within(laptop).getByTestId("thesis-session-preview").textContent).toContain("Estimated");
-    fireEvent.click(within(laptop).getByTestId("thesis-start-session"));
-
-    expect(rig.store().getState().resources.timeMinutes).toBe(72 * 60 - 10);
-    expect(rig.store().getState().device.items["mail.clearance"]).toBeTruthy();
-    expect(within(laptop).getByTestId("thesis-session-interruption").textContent).toContain("New Email on Laptop");
-    expect(within(laptop).getByTestId("thesis-resume-session").textContent).toContain("20 min");
-    expect(rig.store().getState().world.thesisWorkSession).toMatchObject({ elapsedMinutes: 10, remainingMinutes: 20 });
-
-    // Unmounting the editor must not discard the paused remainder; the player can inspect mail, return, and resume.
-    fireEvent.click(within(laptop).getByTestId("desktop-close-laptop"));
-    act(() => rig.bridge.onProp("laptop", "inspect-ready"));
-    const reopenedLaptop = screen.getByTestId("laptop-desktop");
-    if (within(reopenedLaptop).queryByTestId("desktop-window")) {
-      fireEvent.click(within(reopenedLaptop).getByTestId("desktop-back"));
-    }
-    const thesisIcon = within(reopenedLaptop).queryByTestId("desktop-icon-thesis");
-    if (thesisIcon) fireEvent.click(thesisIcon);
-    expect(within(reopenedLaptop).getByTestId("thesis-resume-session").textContent).toContain("20 min");
-
-    fireEvent.click(within(reopenedLaptop).getByTestId("thesis-resume-session"));
-    expect(rig.store().getState().resources.timeMinutes).toBe(72 * 60 - 30);
-    expect(rig.store().getState().world.thesisWorkSession).toBeNull();
-    expect(within(reopenedLaptop).getByTestId("thesis-last-session").textContent).toContain("Worked 20 min");
-  });
-
-  it("uses the thesis finding to record a fee-domain comparison without granting portal access", async () => {
-    const rig = mountLayer();
-    fireEvent.click(screen.getByTestId("hud-planner-chip"));
-    const planner = screen.getByTestId("planner-overlay");
-    fireEvent.click(within(planner).getByTestId("thesis-open-document"));
-    const laptop = screen.getByTestId("laptop-desktop");
-    fireEvent.click(within(laptop).getByTestId("desktop-icon-thesis"));
-
-    // First revise the introduction, then work the relevant interview evidence into the findings.
-    let editor = within(laptop).getByTestId("thesis-document-editor") as HTMLTextAreaElement;
-    fireEvent.change(editor, { target: { value: editor.value.replace("Less attention has been paid", "Less research has examined") } });
-    fireEvent.click(within(laptop).getByTestId("thesis-resolve-comment"));
-    fireEvent.click(within(laptop).getByRole("button", { name: /Findings/ }));
-    editor = within(laptop).getByTestId("thesis-document-editor") as HTMLTextAreaElement;
-    fireEvent.click(within(laptop).getByTestId("thesis-synthesis-choice-saved-channel"));
-    fireEvent.click(within(laptop).getByTestId("thesis-insert-synthesis"));
-    expect(editor.value).toContain("9 of 24 participants described checking a saved portal");
-    expect(editor.value).toContain("This count describes these interviews, not all students.");
-    fireEvent.change(editor, { target: { value: editor.value.replace("Across the interviews, students described", "Interview participants described") } });
-    fireEvent.click(within(laptop).getByTestId("thesis-resolve-comment"));
-
-    // The email arrived while Alex was working. Close the laptop and open it on the phone.
-    expect(rig.store().getState().device.items["mail.clearance"]).toBeTruthy();
-    fireEvent.click(within(laptop).getByTestId("desktop-close-laptop"));
-    const phone = openPhone(rig);
-    fireEvent.click(within(phone).getByTestId("phone-app-mail"));
-    fireEvent.click(within(phone).getByTestId("mail-row-mail.clearance"));
-    const compare = await within(phone).findByTestId("device-action-mail.clearance-compare-fee-with-saved-portal");
-    expect(compare.textContent).toContain("Compare this fee with the services page");
-    fireEvent.click(compare);
-
-    let state = rig.store().getState();
-    expect(state.world.thesisTasksDone).toContain("draft.findings");
-    expect(state.persistent.researchSavedChannelIncluded).toBe(true);
-    expect(state.persistent.schoolFeeClaimContradicted).toBe(true);
-    expect(state.persistent.schoolAccessVerified).toBe(false);
-    expect(state.world.missions["m01.missing-access"].path).toBe("default");
-    expect(Object.hasOwn(state.device.items, "file.fee-comparison")).toBe(true);
-    expect(Object.hasOwn(state.device.items, "portal.saved")).toBe(true);
-    expect(state.resources.cash).toBe(2_500_000);
-
-    // The bookmark was already available independently; only this separate action verifies account status.
-    expect(rig.store().dispatch({ type: "USE_DEVICE_ITEM", itemId: "portal.saved", actionId: "check-account" }).accepted).toBe(true);
-    state = rig.store().getState();
-    expect(state.persistent.schoolAccessVerified).toBe(true);
-    expect(Object.hasOwn(state.device.items, "file.portal-status")).toBe(true);
-  });
-
   it("way A: opening the page loses nothing, the login opens the SECURITY BREACH, the code costs money", async () => {
     const rig = mountLayer();
     act(() => void rig.store().dispatch({ type: "ADVANCE_TIME", minutes: 10 }));
@@ -241,18 +157,18 @@ describe("Mission 01 in the phone", () => {
     expect(screen.getByTestId("task-current").textContent).toBe("Read the new email about your submission account");
   }, 40_000);
 
-  it("opens the real thesis document from the planner instead of completing checklist steps", () => {
+  it("way C: writing the draft with the planner completes the mission and keeps the access unverified", () => {
     const rig = mountLayer();
     fireEvent.click(screen.getByTestId("hud-planner-chip"));
     const planner = screen.getByTestId("planner-overlay");
-    const before = rig.store().getState();
-    fireEvent.click(within(planner).getByTestId("thesis-open-document"));
-    const laptop = screen.getByTestId("laptop-desktop");
-    fireEvent.click(within(laptop).getByTestId("desktop-icon-thesis"));
-    expect(within(laptop).getByTestId("thesis-document-editor")).toBeTruthy();
-    expect(rig.store().getState().resources.thesisProgress).toBe(before.resources.thesisProgress);
-    expect(rig.store().getState().world.missions["m01.missing-access"].status).not.toBe("completed");
-    expect(rig.store().getState().persistent.schoolAccessVerified).toBe(false);
+    fireEvent.click(within(planner).getByTestId("thesis-task-draft.intro-review"));
+    fireEvent.click(within(planner).getByTestId("thesis-task-draft.findings"));
+    fireEvent.click(within(planner).getByTestId("thesis-task-draft.final"));
+    const state = rig.store().getState();
+    expect(state.resources.thesisProgress).toBe(67);
+    expect(state.world.missions["m01.missing-access"].status).toBe("completed");
+    expect(state.persistent.schoolAccessVerified).toBe(false);
+    expect(state.resources.cash).toBe(2_500_000);
   });
 
   it("shows the email in Vietnamese with the Vietnamese amount", () => {

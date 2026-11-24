@@ -91,18 +91,9 @@ async function goToBookmark(rig: Rig, url: string) {
   return laptop;
 }
 
-function reviseThesisDocument(laptop: HTMLElement) {
-  const editor = within(laptop).getByTestId("thesis-document-editor") as HTMLTextAreaElement;
-  fireEvent.change(editor, {
-    target: {
-      value: editor.value.replace(
-        "Less attention has been paid to how uncertainty about university procedures shapes the way students respond.",
-        "Less attention has been paid to how uncertainty about university procedures shapes the way students respond. This revision clarifies the link between administrative uncertainty and the decisions described in the interviews.",
-      ),
-    },
-  });
-  fireEvent.click(within(laptop).getByTestId("thesis-save"));
-  fireEvent.click(within(laptop).getByTestId("thesis-resolve-comment"));
+/** One free work session on the Thesis desk. */
+function workOnThesis(laptop: HTMLElement) {
+  fireEvent.click(within(laptop).getByTestId("thesis-work"));
 }
 
 beforeEach(() => {
@@ -227,11 +218,7 @@ describe("the safe path: Mail, UEH Portal bookmark, Training Office, Evidence, T
     const before = rig.store().getState().resources.thesisProgress;
     laptop = app(rig, "thesis");
     expect(within(laptop).getByTestId("thesis-window")).toBeTruthy();
-    reviseThesisDocument(laptop);
-    // Leaving the document to answer an email must not discard Alex's draft.
-    app(rig, "device-mail");
-    laptop = app(rig, "thesis");
-    expect((within(laptop).getByTestId("thesis-document-editor") as HTMLTextAreaElement).value).toContain("This revision clarifies the link");
+    workOnThesis(laptop);
     const after = rig.store().getState();
     expect(after.resources.thesisProgress).toBeGreaterThan(before);
 
@@ -247,19 +234,12 @@ describe("the final submission", () => {
   it("requires the saved draft and verified access, submits from the portal, and displays the receipt", async () => {
     const rig = mountLayer();
     let laptop = app(rig, "thesis");
-    reviseThesisDocument(laptop);
-
-    fireEvent.click(within(laptop).getByRole("button", { name: /Findings/ }));
-    let editor = within(laptop).getByTestId("thesis-document-editor") as HTMLTextAreaElement;
-    fireEvent.click(within(laptop).getByTestId("thesis-synthesis-choice-saved-channel"));
-    fireEvent.click(within(laptop).getByTestId("thesis-insert-synthesis"));
-    fireEvent.change(editor, { target: { value: editor.value.replace("Across the interviews, students described", "Interview participants described") } });
-    fireEvent.click(within(laptop).getByTestId("thesis-resolve-comment"));
-
-    fireEvent.click(within(laptop).getByRole("button", { name: /Full draft/ }));
-    editor = within(laptop).getByTestId("thesis-document-editor") as HTMLTextAreaElement;
-    fireEvent.change(editor, { target: { value: editor.value.replace("The interviews suggest", "These interviews suggest") } });
-    fireEvent.click(within(laptop).getByTestId("thesis-resolve-comment"));
+    // The three reviews of the Thesis desk, recorded through the core (the desk UI has its own tests).
+    play(rig, [
+      { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro-review", approachId: "qualify" },
+      { type: "COMPLETE_THESIS_TASK", taskId: "draft.findings", approachId: "fix-chart" },
+      { type: "COMPLETE_THESIS_TASK", taskId: "draft.final", approachId: "full-review" },
+    ]);
     expect(rig.store().getState().world.thesisTasksDone).toEqual(expect.arrayContaining(["draft.intro-review", "draft.findings", "draft.final"]));
     expect(rig.store().getState().device.submission).toBe("not-submitted");
 
@@ -286,7 +266,7 @@ describe("the skip path: no email, the thesis goes on, the access stays unverifi
     const rig = mountLayer();
     play(rig, [advance(10)]);
     const laptop = app(rig, "thesis");
-    reviseThesisDocument(laptop);
+    workOnThesis(laptop);
     const state = rig.store().getState();
     expect(state.resources.thesisProgress).toBeGreaterThan(60);
     expect(state.resources.cash).toBe(START_CASH);

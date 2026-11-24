@@ -6,7 +6,7 @@ import { FOUNDATION_SCENARIO, LAST_SUBMISSION_SCENARIO } from "../narrative/chap
 import { chapterReducer, createInitialState, isCoreAction } from "../narrative/reducer";
 import { CHAPTER_DURATION_MINUTES, minutesFromStart } from "../narrative/resources";
 import type { ChapterState, CoreAction, GameEventDef, MissionDef, ScenarioDefinition } from "../narrative/types";
-import { selectOpenMissions, selectPendingEvents, selectThesisView, settleWorld, validateWorldContent } from "../narrative/world";
+import { selectOpenMissions, selectPendingEvents, selectThesisQuality, selectThesisView, settleWorld, validateWorldContent } from "../narrative/world";
 
 const START: CoreAction = { type: "START_CHAPTER" };
 const advance = (minutes: number): CoreAction => ({ type: "ADVANCE_TIME", minutes });
@@ -519,5 +519,100 @@ describe("thesis tasks", () => {
     expect(problems).toContain("invalid progress gain");
     expect(problems).toContain("invalid time cost");
     expect(problems).toContain('unknown thesis task "ghost"');
+  });
+});
+
+describe("thesis review approaches", () => {
+  const withApproaches = {
+    ...scenarioWith([], []),
+    thesisTasks: [
+      {
+        id: "draft.intro",
+        label: "Edit the introduction",
+        timeCostMinutes: 90,
+        progressGain: 2,
+        effects: [{ kind: "setPersistent" as const, flag: "draftSourcesChecked" as const, value: true }],
+        approaches: [
+          { id: "careful", label: "Careful", timeCostMinutes: 30, progressGain: 1 },
+          { id: "swap", label: "Swap", timeCostMinutes: 60, progressGain: 3, effects: [{ kind: "adjustResource" as const, resource: "supportNetwork" as const, delta: 4 }] },
+        ],
+      },
+    ],
+  } satisfies ScenarioDefinition;
+
+  it("uses the chosen approach's time and progress instead of the task's own", () => {
+    let state = run(withApproaches, [START]);
+    state = step(state, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro", approachId: "careful" }, withApproaches);
+    expect(state.resources.thesisProgress).toBe(61);
+    expect(state.resources.timeMinutes).toBe(CHAPTER_DURATION_MINUTES - 30);
+  });
+
+  it("applies the task effects and the approach effects together", () => {
+    const before = run(withApproaches, [START]);
+    const state = step(before, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro", approachId: "swap" }, withApproaches);
+    expect(state.resources.thesisProgress).toBe(63);
+    expect(state.resources.timeMinutes).toBe(CHAPTER_DURATION_MINUTES - 60);
+    expect(state.persistent.draftSourcesChecked).toBe(true);
+    expect(state.resources.supportNetwork).toBe(before.resources.supportNetwork + 4);
+    expect(state.events.at(-1)?.derived.debriefTags).toContain("world:thesis:draft.intro:swap");
+  });
+
+  it("keeps the legacy task-level path when no approach is named", () => {
+    const state = run(withApproaches, [START, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro" }]);
+    expect(state.resources.thesisProgress).toBe(62);
+    expect(state.resources.timeMinutes).toBe(CHAPTER_DURATION_MINUTES - 90);
+  });
+
+  it("rejects an approach the task does not define", () => {
+    const state = run(withApproaches, [START]);
+    const result = chapterReducer(state, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro", approachId: "ghost" }, withApproaches);
+    expect(result).toMatchObject({ accepted: false, reason: "That review approach does not exist." });
+    expect(result.state).toBe(state);
+    expect(chapterReducer(state, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro", approachId: "" }, withApproaches).accepted).toBe(false);
+  });
+
+  it("publishes the approaches with their own time and progress, and derives the draft quality", () => {
+    const state = run(withApproaches, [START, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro", approachId: "careful" }]);
+    const view = selectThesisView(state, withApproaches);
+    expect(view.quality).toBe("reviewed");
+    expect(view.tasks[0].approaches.map((approach) => [approach.id, approach.timeCostMinutes, approach.progressGain])).toEqual([
+      ["careful", 30, 1],
+      ["swap", 60, 3],
+    ]);
+    expect(selectThesisQuality(run(withApproaches, [START]))).toBe("rough");
+    const ready = { ...state, persistent: { ...state.persistent, finalDraftReviewed: true } };
+    expect(selectThesisQuality(ready)).toBe("ready");
+  });
+
+  it("uses fatigue-adjusted approach time while keeping its authored gain", () => {
+    const tiredScenario = { ...withApproaches, gameplay: { fatigue: { enabled: true } } } satisfies ScenarioDefinition;
+    const start = run(tiredScenario, [START]);
+    const tired = { ...start, resources: { ...start.resources, fatigue: 100 } };
+    const view = selectThesisView(tired, tiredScenario).tasks[0];
+    expect(view.approaches[0].timeCostMinutes).toBeGreaterThan(30);
+    const after = step(tired, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro", approachId: "careful" }, tiredScenario);
+    expect(tired.resources.timeMinutes - after.resources.timeMinutes).toBe(view.approaches[0].timeCostMinutes);
+    expect(after.resources.thesisProgress).toBe(61);
+  });
+
+  it("validates approaches: duplicate ids and invalid time or progress", () => {
+    const bad = {
+      ...withApproaches,
+      thesisTasks: [
+        {
+          id: "a",
+          label: "A",
+          progressGain: 5,
+          approaches: [
+            { id: "same", label: "One", timeCostMinutes: -1, progressGain: 0 },
+            { id: "same", label: "Two" },
+          ],
+        },
+      ],
+    } satisfies ScenarioDefinition;
+    const problems = validateWorldContent(bad).join("\n");
+    expect(problems).toContain('Thesis task "a", approach "same" is defined twice.');
+    expect(problems).toContain('Thesis task "a", approach "same" has an invalid progress gain.');
+    expect(problems).toContain('Thesis task "a", approach "same" has an invalid time cost.');
   });
 });

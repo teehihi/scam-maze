@@ -11,6 +11,8 @@ import { gameplayConfig, selectThesisView } from "../narrative/world";
 
 const S = LAST_SUBMISSION_SCENARIO;
 const CFG = gameplayConfig(S).fatigue;
+/** Minutes of free work per thesis percent in the playable chapter. */
+const MPP = gameplayConfig(S).thesisMinutesPerPercent;
 const START: CoreAction = { type: "START_CHAPTER" };
 const advance = (minutes: number): CoreAction => ({ type: "ADVANCE_TIME", minutes });
 const work = (minutes: number): CoreAction => ({ type: "WORK_ON_THESIS", minutes });
@@ -43,7 +45,7 @@ describe("fatigue rules", () => {
   it("rise with thesis work in proportion to its length", () => {
     const state = run([START, work(60), work(60)]);
     expect(state.resources.fatigue).toBe(20 + 2 * CFG.perThesisHour);
-    expect(state.resources.thesisProgress).toBe(62);
+    expect(state.resources.thesisProgress).toBe(60 + 2 * (60 / MPP));
   });
 
   it("rise with thesis tasks by their time", () => {
@@ -67,8 +69,8 @@ describe("fatigue rules", () => {
 
   it("make a free work session shorter in percent when the time given is the rested one", () => {
     const tired = withFatigue(run([START]), 100);
-    const perPercent = effectiveWorkMinutes(60, 100, CFG);
-    expect(chapterReducer(tired, work(60), S).reason).toBe("That is too little time to make progress.");
+    const perPercent = effectiveWorkMinutes(MPP, 100, CFG);
+    expect(chapterReducer(tired, work(MPP), S).reason).toBe("That is too little time to make progress.");
     const worked = step(tired, work(perPercent));
     expect(worked.resources.thesisProgress).toBe(tired.resources.thesisProgress + 1);
     expect(tired.resources.timeMinutes - worked.resources.timeMinutes).toBe(perPercent);

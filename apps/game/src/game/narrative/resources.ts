@@ -83,6 +83,14 @@ export const PERSISTENT_FLAG_IDS = [
   "submissionDeadlineMissed",
   /** Alex included the interview finding about checking through a previously known channel in the thesis revision. */
   "researchSavedChannelIncluded",
+  /** The introduction's claims and sources were checked (Mission 01 thesis desk). */
+  "draftSourcesChecked",
+  /** The findings section was reconciled against its source data (Mission 01 thesis desk). */
+  "findingsReconciled",
+  /** The final draft received a complete review (Mission 01 thesis desk). */
+  "finalDraftReviewed",
+  /** Alex asked the supervisor for feedback on the draft (Mission 01 thesis desk). */
+  "supervisorFeedbackRequested",
 ] as const;
 export type PersistentFlagId = (typeof PERSISTENT_FLAG_IDS)[number];
 export type PersistentFlags = Record<PersistentFlagId, boolean>;
@@ -149,6 +157,10 @@ export const CHAPTER_1_INITIAL_STATE: ChapterInitialState = {
     draftFinished: false,
     submissionDeadlineMissed: false,
     researchSavedChannelIncluded: false,
+    draftSourcesChecked: false,
+    findingsReconciled: false,
+    finalDraftReviewed: false,
+    supervisorFeedbackRequested: false,
   },
 };
 
