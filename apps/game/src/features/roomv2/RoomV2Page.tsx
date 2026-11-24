@@ -35,6 +35,8 @@ interface RoomV2PageProps {
    */
   preloaded?: Engine;
   onAdopted?: (engine: Engine) => void;
+  /** Hides the center targeting reticle & room prompt (e.g. during cinematic street NPC conversations). */
+  hideCrosshair?: boolean;
 }
 
 type RoomQuality = "high" | "low";
@@ -59,7 +61,7 @@ const SHADOW = { textShadow: "0 1px 6px rgba(0,0,0,.9)" } as const;
  * Prototype route `/roomv2`: the player's apartment, "After the Rain". It is a standalone engine
  * kept apart from the story chapters until it is integrated.
  */
-export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, onReady, embedded = false, onUI, options, story, overlay, renderPrompt, preloaded, onAdopted }) => {
+export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, onReady, embedded = false, onUI, options, story, overlay, renderPrompt, preloaded, onAdopted, hideCrosshair = false }) => {
   const { t } = useTranslation("worlds");
   const mountRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<Engine | null>(null);
@@ -144,7 +146,7 @@ export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, 
       </button>
       )}
 
-      {ui.started && (ui.locked || ui.cursorMode) && !ui.inspecting && !ui.ended && (
+      {ui.started && (ui.locked || ui.cursorMode) && !ui.inspecting && !ui.ended && !hideCrosshair && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className={`rounded-full transition-all duration-300 ${ui.focus ? "h-5 w-5 border border-white/70" : "h-1 w-1 bg-white/60"}`} />
           {ui.prompt && ui.anchor && renderPrompt ? (

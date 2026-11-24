@@ -1,6 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Engine as RoomEngine } from "../../roomv2/game/engine";
 import { attachOutsideWorld, type OutsideWorldHandle } from "./outsideWorld";
+import type { ActiveStoryNpcDialogue, AmbientStreetBark } from "../../testbus/openworld/simulation/storyNpcs";
+import type { CrowdReactionBark } from "../../testbus/openworld/simulation/humanPresence";
+import type { WeatherPreset } from "../../testbus/openworld/world/AtmosphereSystem";
+import { CinemaNpcHud } from "../../testbus/openworld/CinemaNpcHud";
+import { DistrictArrivalBanner, StreetActionPrompt } from "../../testbus/openworld/StreetHudElements";
+import type { SaigonRadarData } from "../hud/SaigonMinimap";
+import type { StoryNpcRuntimeContext } from "../../../game/narrative/chapter1/storyCast";
+import { useGameLocale } from "../../../i18n";
 
 export interface OutsideWorldState {
   /** The street is live around the room (the door can open onto it). */
@@ -11,16 +19,63 @@ export interface OutsideWorldState {
   prompt: string | null;
   /** Where the player is while outside. */
   zone: string | null;
+  /** District subtitle while outside (e.g. "Quận 10, TP.HCM"). */
+  district?: string | null;
+  /** Live weather preset outdoors. */
+  weather?: WeatherPreset | null;
+  /** Live Saigon GPS radar payload while outdoors (replaces indoor "No Signal" minimap). */
+  radar?: SaigonRadarData | null;
+  /** Active street Story NPC conversation when talking outside. */
+  storyDialogue: ActiveStoryNpcDialogue | null;
+  /** Ambient street callout when passing near a Story NPC. */
+  ambientBark: AmbientStreetBark | null;
+  /** Crowd shoulder-bump or personal-space reaction from any living pedestrian. */
+  crowdReaction?: CrowdReactionBark | null;
+  /** Choose a branching reply option (0..2) in active outside conversation. */
+  selectStoryReply?: (index: number) => void;
+  /** Close active outside conversation. */
+  closeStoryDialogue?: () => void;
 }
 
-const IDLE: OutsideWorldState = { ready: false, outdoors: false, prompt: null, zone: null };
+const IDLE: OutsideWorldState = {
+  ready: false,
+  outdoors: false,
+  prompt: null,
+  zone: null,
+  district: null,
+  weather: null,
+  radar: null,
+  storyDialogue: null,
+  ambientBark: null,
+  crowdReaction: null,
+};
 
 /**
  * Plugs the Saigon open world around a built room engine once it is running (1.2 s later, so the room's first
  * frames stay smooth). Not in tests (no WebGL). Disposed with the engine or when `enabled` turns false.
  */
-export function useOutsideWorld(engine: RoomEngine | null, enabled: boolean): OutsideWorldState {
+export function useOutsideWorld(
+  engine: RoomEngine | null,
+  enabled: boolean,
+  storyContext?: Partial<StoryNpcRuntimeContext>,
+): OutsideWorldState {
   const [state, setState] = useState<OutsideWorldState>(IDLE);
+  const handleRef = useRef<OutsideWorldHandle | null>(null);
+  const latestCtxRef = useRef(storyContext);
+  latestCtxRef.current = storyContext;
+
+  useEffect(() => {
+    if (handleRef.current && storyContext) {
+      handleRef.current.world.setStoryContext(storyContext);
+    }
+  }, [
+    storyContext?.elapsedMinutes,
+    storyContext?.thesisProgress,
+    storyContext?.fatigue,
+    storyContext?.money,
+    storyContext?.flags,
+  ]);
+
   useEffect(() => {
     if (!engine || !enabled || import.meta.env.MODE === "test" || typeof engine.setOutside !== "function") return;
     let handle: OutsideWorldHandle | null = null;
@@ -31,8 +86,47 @@ export function useOutsideWorld(engine: RoomEngine | null, enabled: boolean): Ou
           setState((prev) => {
             const prompt = outdoors ? snap.prompt : null;
             const zone = outdoors ? snap.zone : null;
-            if (prev.ready && prev.outdoors === outdoors && prev.prompt === prompt && prev.zone === zone) return prev;
-            return { ready: true, outdoors, prompt, zone };
+            const district = outdoors ? snap.district : null;
+            const weather = outdoors ? snap.atmosphere.weather : null;
+            const storyDialogue = outdoors ? snap.storyDialogue : null;
+            const ambientBark = outdoors ? snap.ambientBark : null;
+            const crowdReaction = outdoors ? snap.crowdReaction : null;
+            const radar: SaigonRadarData | null = outdoors
+              ? {
+                  position: { x: snap.position.x, z: snap.position.z },
+                  headingDeg: snap.headingDeg,
+                  busPosition: snap.busPosition,
+                  npcBlips: snap.npcBlips,
+                  zone: snap.zone,
+                  district: snap.district,
+                }
+              : null;
+
+            if (
+              !outdoors &&
+              prev.ready &&
+              !prev.outdoors &&
+              prev.prompt === null &&
+              prev.zone === null &&
+              prev.storyDialogue === null &&
+              prev.ambientBark === null &&
+              prev.crowdReaction === null &&
+              prev.radar === null
+            ) {
+              return prev;
+            }
+            return {
+              ready: true,
+              outdoors,
+              prompt,
+              zone,
+              district,
+              weather,
+              radar,
+              storyDialogue,
+              ambientBark,
+              crowdReaction,
+            };
           });
         },
       })
@@ -41,6 +135,8 @@ export function useOutsideWorld(engine: RoomEngine | null, enabled: boolean): Ou
           if (cancelled) h.dispose();
           else {
             handle = h;
+            handleRef.current = h;
+            if (latestCtxRef.current) h.world.setStoryContext(latestCtxRef.current);
             setState((prev) => (prev.ready ? prev : { ...prev, ready: true }));
           }
         })
@@ -50,27 +146,82 @@ export function useOutsideWorld(engine: RoomEngine | null, enabled: boolean): Ou
       cancelled = true;
       window.clearTimeout(timer);
       handle?.dispose();
+      handleRef.current = null;
       setState(IDLE);
     };
   }, [engine, enabled]);
-  return state;
+
+  const selectStoryReply = (index: number) => {
+    handleRef.current?.world.selectStoryReply(index);
+  };
+  const closeStoryDialogue = () => {
+    handleRef.current?.world.closeStoryDialogue();
+  };
+
+  const isClosing = Boolean(state.storyDialogue?.closing);
+
+  useEffect(() => {
+    if (!state.outdoors || !state.storyDialogue) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.code === "Digit1") {
+        handleRef.current?.world.selectStoryReply(0);
+      } else if (e.code === "Digit2") {
+        handleRef.current?.world.selectStoryReply(1);
+      } else if (e.code === "Digit3") {
+        handleRef.current?.world.selectStoryReply(2);
+      } else if (e.code === "Escape") {
+        handleRef.current?.world.closeStoryDialogue();
+      } else if (e.code === "KeyE" && isClosing) {
+        e.preventDefault();
+        handleRef.current?.world.closeStoryDialogue();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [state.outdoors, Boolean(state.storyDialogue), isClosing]);
+
+  return {
+    ...state,
+    selectStoryReply,
+    closeStoryDialogue,
+  };
 }
 
-/** Street prompt and location while the player is outside the room. */
-export function OutsideHud({ state }: { state: OutsideWorldState }) {
+export interface OutsideHudProps {
+  state: OutsideWorldState;
+  /** Suppresses the street prompt when the room door prompt is already displayed on screen. */
+  suppressPrompt?: boolean;
+}
+
+/** Street prompt, cinematic district arrival banner, ambient/bump whispers, and cinema Story NPC dialogue while outside. */
+export function OutsideHud({ state, suppressPrompt = false }: OutsideHudProps) {
+  const language = useGameLocale();
   if (!state.outdoors) return null;
   return (
-    <div className="pointer-events-none absolute inset-0 z-[5]" data-testid="outside-hud">
-      {state.prompt && (
-        <div className="absolute bottom-[22%] left-1/2 -translate-x-1/2 rounded-md bg-black/55 px-3 py-1.5 text-sm text-white backdrop-blur">
-          {state.prompt}
-        </div>
+    <div className="pointer-events-none absolute inset-0 z-[40]" data-testid="outside-hud">
+      {/* Smooth GTA/RDR2-style location arrival banner (auto-fades cleanly after ~3.8s) */}
+      <DistrictArrivalBanner
+        zone={state.zone}
+        district={state.district ?? null}
+        weather={state.weather ?? null}
+        hidden={Boolean(state.storyDialogue)}
+      />
+
+      {/* Unified tactile keycap interaction prompt (never overlaps door prompt or dialogue) */}
+      {state.prompt && !state.storyDialogue && !suppressPrompt && (
+        <StreetActionPrompt prompt={state.prompt} />
       )}
-      {state.zone && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-black/40 px-3 py-1 text-xs text-white/80 backdrop-blur">
-          {state.zone}
-        </div>
-      )}
+
+      {/* Cinema dialogue, player-line echo, speaking cadence, and pedestrian bump whispers */}
+      <CinemaNpcHud
+        language={language === "vi" ? "vi" : "en"}
+        dialogue={state.storyDialogue}
+        ambientBark={state.ambientBark}
+        crowdReaction={state.crowdReaction ?? null}
+        onSelectReply={state.selectStoryReply}
+        onCloseDialogue={state.closeStoryDialogue}
+      />
     </div>
   );
 }

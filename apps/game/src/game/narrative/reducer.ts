@@ -48,6 +48,7 @@ import {
 } from "./resources";
 import { applyEffect, applyEffects, evaluateConditions, recordTransaction } from "./conditions";
 import { canRecordDeduction, matchDeduction } from "./deductions";
+import { simulateThesisSession, THESIS_FOCUS_MODES } from "./thesisSession";
 import { createInitialDeviceItems, deviceItemDef, itemActionDef } from "./device";
 import { WORLD_TAG_PREFIX, createInitialWorld, elapsedMinutes, eventDef, gameplayConfig, responseFor, settleWorld } from "./world";
 import { REST_MODES, effectiveWorkMinutes, restOption, workFatigue } from "./fatigue";
@@ -200,7 +201,10 @@ export function isCoreAction(value: unknown): value is CoreAction {
     case "ADVANCE_TIME":
       return isWholeMinutes(value.minutes, MAX_ADVANCE_MINUTES);
     case "WORK_ON_THESIS":
-      return isWholeMinutes(value.minutes, MAX_WORK_MINUTES);
+      return (
+        isWholeMinutes(value.minutes, MAX_WORK_MINUTES) &&
+        (value.focusMode === undefined || isOneOf(THESIS_FOCUS_MODES, value.focusMode))
+      );
     case "REST":
       return isOneOf(REST_MODES, value.mode);
     case "RESPOND_EVENT":
@@ -602,7 +606,33 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       const room = config.thesisFreeWorkMaxPercent - state.resources.thesisProgress;
       if (room < 1) return reject(REASONS.thesisNeedsTasks);
       const minutes = Math.min(action.minutes, state.resources.timeMinutes);
-      // Tiredness makes each percent take longer (`fatigue.ts`).
+      if (action.focusMode !== undefined) {
+        // Non-linear Deep-Work Session (Warm-up -> Flow -> Burnout + circadian night curve).
+        const sim = simulateThesisSession({
+          startElapsedMinutes: elapsedMinutes(state, scenario),
+          plannedMinutes: minutes,
+          startFatigue: state.resources.fatigue,
+          startProgress: state.resources.thesisProgress,
+          freeWorkMaxPercent: config.thesisFreeWorkMaxPercent,
+          baseMinutesPerPercent: config.thesisMinutesPerPercent,
+          mode: action.focusMode,
+          fatigueConfig: config.fatigue,
+        });
+        if (sim.effectiveMinutesSpent < 1) return reject(REASONS.workTooShort);
+        return accept(
+          applyEffects(
+            state,
+            [
+              { kind: "adjustResource", resource: "thesisProgress", delta: sim.progressGain },
+              { kind: "adjustResource", resource: "timeMinutes", delta: -sim.effectiveMinutesSpent },
+              { kind: "adjustResource", resource: "fatigue", delta: sim.fatigueGain },
+            ],
+            scenario,
+          ),
+          [`${WORLD_TAG_PREFIX}thesis_session:${action.focusMode}`],
+        );
+      }
+      // Legacy linear mode (kept exact for existing tests and replays without `focusMode`).
       const perPercent = effectiveWorkMinutes(config.thesisMinutesPerPercent, state.resources.fatigue, config.fatigue);
       const gain = Math.min(room, Math.floor(minutes / perPercent));
       if (gain < 1) return reject(REASONS.workTooShort);

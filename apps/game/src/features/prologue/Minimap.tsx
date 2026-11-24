@@ -148,17 +148,20 @@ export interface NoSignalMinimapProps {
   size?: number;
 }
 
-/** The minimap disc indoors: same frame as the street minimap, with no map, only "no signal". */
+/** The minimap disc indoors: same frame as the street minimap, with quiet radar rings and indoor standby label. */
 export const NoSignalMinimap: React.FC<NoSignalMinimapProps> = ({ label, size = 148 }) => (
   <div
     role="img"
     aria-label={label}
     data-testid="minimap-no-signal"
-    className="pointer-events-none relative flex shrink-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-full border-2 border-[#f3efe4]/70 bg-[#14121d]/90 shadow-[0_0_0_3px_rgba(0,0,0,0.35),0_4px_18px_rgba(0,0,0,0.6)]"
+    className="pointer-events-none relative flex shrink-0 flex-col items-center justify-center gap-1.5 overflow-hidden rounded-full border-2 border-[#f3efe4]/55 bg-[#12101c]/82 shadow-[0_0_0_3px_rgba(0,0,0,0.35),0_4px_18px_rgba(0,0,0,0.55)] backdrop-blur-sm"
     style={{ width: size, height: size }}
   >
-    <SignalZero className="h-7 w-7 text-[#a9a4c4]" aria-hidden="true" />
-    <span aria-hidden="true" className="px-4 text-center font-menu text-xs font-semibold uppercase leading-tight tracking-[0.18em] text-[#a9a4c4]">
+    {/* Subtle concentric radar standby rings so indoors feels intentional rather than broken */}
+    <span aria-hidden="true" className="absolute inset-4 rounded-full border border-white/[0.06]" />
+    <span aria-hidden="true" className="absolute inset-9 rounded-full border border-white/[0.05]" />
+    <SignalZero className="relative h-5 w-5 text-[#a9a4c4]/80" aria-hidden="true" />
+    <span aria-hidden="true" className="relative px-4 text-center font-menu text-[11px] font-semibold uppercase leading-tight tracking-[0.2em] text-[#a9a4c4]/85">
       {label}
     </span>
   </div>

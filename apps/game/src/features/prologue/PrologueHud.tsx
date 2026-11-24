@@ -119,8 +119,11 @@ export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, sho
 
       <div className={`pointer-events-none absolute inset-x-0 bottom-24 z-10 flex flex-col items-center gap-2 px-4 ${SHADOW}`}>
         {showResume && (
-          <p data-testid="resume-prompt" className="flex items-center gap-2 font-menu text-base font-semibold uppercase tracking-[0.14em] text-[#f3efe4]">
-            <MousePointerClick className="h-4 w-4 text-[#b9a5f5]" aria-hidden="true" />
+          <p
+            data-testid="resume-prompt"
+            className="flex items-center gap-2 rounded-full border border-white/15 bg-[#100f18]/65 px-4 py-1.5 font-menu text-sm font-semibold uppercase tracking-[0.16em] text-[#f3efe4]/90 shadow-[0_6px_22px_rgba(0,0,0,0.45)] backdrop-blur-md"
+          >
+            <MousePointerClick className="h-3.5 w-3.5 text-[#b9a5f5]" aria-hidden="true" />
             {t("chapter1:resume.prompt")}
           </p>
         )}
@@ -135,7 +138,7 @@ export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, sho
       </div>
 
       <div className="absolute bottom-4 left-[clamp(1rem,3vw,2.5rem)] right-[clamp(1rem,3vw,2.5rem)] z-10 flex items-end justify-between gap-4">
-        <div data-testid="hud-key-hints" data-hud-footer-hints="" className={`pointer-events-none flex flex-wrap items-center gap-x-5 max-sm:hidden gap-y-2 font-menu text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300 ${SHADOW}`}>
+        <div data-testid="hud-key-hints" data-hud-footer-hints="" className={`pointer-events-none flex flex-wrap items-center gap-x-5 max-sm:hidden gap-y-2 font-menu text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300/75 opacity-70 ${SHADOW}`}>
           <span className="flex items-center gap-1.5">
             <kbd className={KEYCAP}>Ctrl</kbd>
             {t("chapter1:room.hud.mouseKeyHint")}

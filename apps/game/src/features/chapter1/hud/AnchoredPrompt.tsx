@@ -3,7 +3,7 @@
 // component only places a small box beside it (`placePrompt`, pure). Presentation only.
 import React from "react";
 import { placePrompt } from "../../roomv2/game/screenProjection";
-import { CINE, CINE_KEYCAP_STYLE, cinePanelStyle } from "../theme";
+import { CINE } from "../theme";
 import { useViewport } from "../call/useViewport";
 
 export interface AnchoredPromptProps {
@@ -22,20 +22,21 @@ export const AnchoredPrompt: React.FC<AnchoredPromptProps> = ({ label, anchor, k
   return (
     <div
       data-testid="anchored-prompt"
-      className="pointer-events-none absolute flex items-center gap-2 whitespace-nowrap px-2 py-1"
+      className="pointer-events-none absolute flex items-center gap-2 whitespace-nowrap rounded-md border border-white/15 bg-[#100f18]/75 px-2.5 py-1.5 text-[#f3efe4] shadow-[0_8px_24px_rgba(0,0,0,0.55)] backdrop-blur-md"
       style={{
-        ...cinePanelStyle(),
-        borderRadius: CINE.radiusPx.chip,
         fontSize: CINE.fontPx.small,
         left,
         top,
         maxWidth: boxWidthPx,
       }}
     >
-      <kbd aria-hidden="true" className="inline-flex items-center justify-center font-mono" style={CINE_KEYCAP_STYLE}>
+      <kbd
+        aria-hidden="true"
+        className="inline-flex h-5 min-w-5 items-center justify-center rounded-[4px] border border-amber-300/55 bg-amber-300/15 px-1 font-mono text-[11px] font-bold leading-none text-amber-200"
+      >
         {keyLabel}
       </kbd>
-      <span>{label}</span>
+      <span className="font-menu text-[14px] font-semibold tracking-[0.04em]">{label}</span>
     </div>
   );
 };

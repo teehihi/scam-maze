@@ -1,5 +1,7 @@
 import * as T from "three";
 import { streetClips } from "../simulation/streetClips";
+import { createHumanRealismRig, upgradeHumanMaterials, type HumanActivity, type HumanRealismRig } from "../simulation/humanRealism";
+import type { HumanPresenceSystem } from "../simulation/humanPresence";
 import { addHeadlightBeam, attachDynamicLamps, markLampParts, setVehicleLightLevel } from "../simulation/vehicleLights";
 import { TrafficSignalController, type SaigonTrafficManager, type SignalAxis } from "../traffic";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -20,7 +22,6 @@ import {
   tube,
   write,
 } from "../simulation/scene-kit";
-import { warmSkin } from "../simulation/drive-look";
 import { equipVehicle, wheelRadius, wheelSpinSigns, type CrewMember } from "../simulation/vehicleCrew";
 import { fixVanWheels, simplifyInPlace } from "../simulation/vehicleLod";
 import { VAN_LENGTH } from "../simulation/vehicles";
@@ -118,7 +119,9 @@ export function buildSaigonDistricts(
   software: boolean,
   onAssetLoaded?: (obj: T.Object3D) => void,
   trafficMgr?: SaigonTrafficManager,
+  humanPresence?: HumanPresenceSystem,
 ): SaigonDistricts {
+  const presenceCleanups: (() => void)[] = [];
   const root = new T.Group();
   root.name = "SaigonOpenWorldDistricts";
   scene.add(root);
@@ -144,6 +147,11 @@ export function buildSaigonDistricts(
   const roamingActors: {
     group: T.Group;
     mixer?: T.AnimationMixer;
+    walkAction?: T.AnimationAction;
+    walkClipSpeed: number;
+    realism: HumanRealismRig;
+    activity: HumanActivity;
+    partnerPos?: T.Vector3;
     axis: "x" | "z" | "idle";
     min: number;
     max: number;
@@ -151,6 +159,7 @@ export function buildSaigonDistricts(
     speed: number;
     targetYaw: number;
   }[] = [];
+  const _npcPlayerPos = new T.Vector3();
   const boulevardVehicles: {
     group: T.Group;
     wheels: { node: T.Object3D; sign: number }[];
@@ -1642,6 +1651,7 @@ export function buildSaigonDistricts(
       { file: "npc-freya.optimized.glb", pos: [LANDMARK81_POS.x + 12, CURB_HEIGHT, -314.2], axis: "x", min: -6, max: 56, speed: 0.76, height: 1.65 },
     ];
 
+    let actorSeed = 21;
     for (const cfg of npcConfigs) {
       if (disposed) return;
       const gltf = await loader.loadAsync(`/assets/testbus/ow/models/${cfg.file}`).catch(() => null);
@@ -1653,16 +1663,11 @@ export function buildSaigonDistricts(
       const s = cfg.height / Math.max(0.1, b.max.y - b.min.y);
       obj.scale.setScalar(s);
       obj.position.set(-((b.max.x + b.min.x) * s) / 2, -b.min.y * s, -((b.max.z + b.min.z) * s) / 2);
+      upgradeHumanMaterials(obj);
       obj.traverse((n) => {
         if (n instanceof T.Mesh) {
           n.castShadow = false;
           n.receiveShadow = true;
-          if (n.name === "HumanBody") {
-            const mats = Array.isArray(n.material) ? n.material : [n.material];
-            mats.forEach((m) => {
-              if (m instanceof T.MeshStandardMaterial) warmSkin(m);
-            });
-          }
         }
       });
       const holder = new T.Group();
@@ -1673,12 +1678,15 @@ export function buildSaigonDistricts(
       onAssetLoaded?.(holder);
 
       let mixer: T.AnimationMixer | undefined;
+      let walkAction: T.AnimationAction | undefined;
+      const walkClipSpeed = clips.walkSpeedAt(cfg.height);
       const clip = cfg.axis === "idle" ? clips.idle : clips.walk;
       if (clip) {
         mixer = new T.AnimationMixer(obj);
         const action = mixer.clipAction(clip);
+        walkAction = action;
         // Feet stay planted: the clip plays at the speed the NPC actually walks.
-        action.timeScale = cfg.axis === "idle" ? 0.8 : cfg.speed / clips.walkSpeedAt(cfg.height);
+        action.timeScale = cfg.axis === "idle" ? 0.85 : cfg.speed / walkClipSpeed;
         action.time = Math.random() * clip.duration;
         action.play();
         animMixers.push(mixer);
@@ -1687,9 +1695,43 @@ export function buildSaigonDistricts(
       const initYaw =
         cfg.axis === "idle" ? (cfg.idleYaw ?? 0) : cfg.axis === "x" ? Math.PI / 2 : 0;
       holder.rotation.y = initYaw;
+      const seed = actorSeed++;
+      const activity: HumanActivity =
+        cfg.axis === "idle"
+          ? seed % 2 === 0
+            ? "talking"
+            : "listening"
+          : "walking";
+      const realism = createHumanRealismRig(holder, obj, seed);
+      if (humanPresence) {
+        presenceCleanups.push(
+          humanPresence.register({
+            id: `district_ped_${seed}`,
+            label:
+              cfg.axis === "idle"
+                ? { en: "Saigon Local", vi: "Người dân Sài Gòn" }
+                : { en: "Pedestrian", vi: "Người đi bộ" },
+            object: holder,
+            radius: 0.34,
+            canSidestep: true,
+            onBump: (dx, dz, strength) => {
+              realism.triggerBump(dx, dz, strength);
+              if (cfg.axis !== "idle") {
+                holder.position.x += dx * 0.14;
+                holder.position.z += dz * 0.14;
+              }
+            },
+            onPersonalSpace: (closeness) => realism.setPersonalSpace(closeness),
+          }),
+        );
+      }
       roamingActors.push({
         group: holder,
         mixer,
+        walkAction,
+        walkClipSpeed,
+        realism,
+        activity,
         axis: cfg.axis,
         min: cfg.min,
         max: cfg.max,
@@ -1697,6 +1739,18 @@ export function buildSaigonDistricts(
         speed: cfg.speed,
         targetYaw: initYaw,
       });
+    }
+    // Pair nearby stationary conversing NPCs so they maintain natural eye contact unless Alex approaches.
+    for (let i = 0; i < roamingActors.length; i++) {
+      const a = roamingActors[i];
+      if (a.axis !== "idle") continue;
+      for (let j = 0; j < roamingActors.length; j++) {
+        if (i === j || roamingActors[j].axis !== "idle") continue;
+        if (a.group.position.distanceTo(roamingActors[j].group.position) < 3.2) {
+          a.partnerPos = roamingActors[j].group.position.clone().add(new T.Vector3(0, 1.56, 0));
+          break;
+        }
+      }
     }
   };
 
@@ -1883,15 +1937,20 @@ export function buildSaigonDistricts(
       }
 
       const npcRangeSq = 75 * 75;
+      _npcPlayerPos.set(playerX, 1.68, playerZ);
+      const rainPace = 1 + envRain * 0.2;
       for (const a of roamingActors) {
         const dx = a.group.position.x - playerX;
         const dz = a.group.position.z - playerZ;
-        const visible = dx * dx + dz * dz < npcRangeSq;
+        const dSq = dx * dx + dz * dz;
+        const visible = dSq < npcRangeSq;
         a.group.visible = visible;
 
+        let curSpeed = 0;
         if (a.axis !== "idle") {
+          curSpeed = a.speed * rainPace;
           const cur = a.axis === "x" ? a.group.position.x : a.group.position.z;
-          let next = cur + a.dir * a.speed * dt;
+          let next = cur + a.dir * curSpeed * dt;
           if (next > a.max) {
             next = a.max;
             a.dir = -1;
@@ -1911,8 +1970,23 @@ export function buildSaigonDistricts(
           while (diff > Math.PI) diff -= Math.PI * 2;
           while (diff < -Math.PI) diff += Math.PI * 2;
           a.group.rotation.y += diff * Math.min(1, dt * 6.5);
+          if (a.walkAction) a.walkAction.timeScale = curSpeed / a.walkClipSpeed;
         }
-        if (visible && a.mixer) a.mixer.update(dt);
+        if (visible) {
+          if (a.mixer) a.mixer.update(dt);
+          // Conversing café/plaza pairs keep eye contact with each other unless Alex walks within 3.6m!
+          const focusPoint = a.partnerPos && dSq > 3.6 * 3.6 ? a.partnerPos : null;
+          a.realism.update({
+            dt,
+            time,
+            playerPos: _npcPlayerPos,
+            focusPoint,
+            moveSpeed: curSpeed,
+            activity: a.activity,
+            rain: envRain,
+            hasActiveMixer: Boolean(a.mixer),
+          });
+        }
       }
 
       if (trafficMgr) {
@@ -2005,6 +2079,8 @@ export function buildSaigonDistricts(
       tireSpray.update(boulevardVehicles, envWetness, envRain, time);
     },
     dispose() {
+      for (const cleanup of presenceCleanups) cleanup();
+      presenceCleanups.length = 0;
       disposed = true;
       realisticGrass.dispose();
       tireSpray.dispose();

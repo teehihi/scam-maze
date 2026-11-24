@@ -12,6 +12,7 @@ import { useGameLocale } from "../../../i18n";
 import { simulatedClock, type ChapterResources } from "../../../game/narrative/resources";
 import type { FatigueLevel } from "../../../game/narrative/fatigue";
 import { NoSignalMinimap } from "../../prologue/Minimap";
+import { SaigonMinimap, type SaigonRadarData } from "./SaigonMinimap";
 import { KEYCAP, KEYCAP_HOVER, MENU_BUTTON, SHADOW, stop } from "../../prologue/PrologueHud";
 import { formatSpan, type Tx } from "../device/deviceFormat";
 
@@ -95,13 +96,15 @@ export interface ChapterStatusClusterProps {
    * and the clock with the weekday and the time left on one line.
    */
   compact?: boolean;
+  /** Live Saigon GPS radar payload when outdoors; switches seamlessly from indoor standby disc to live map. */
+  outsideRadar?: SaigonRadarData | null;
 }
 
 /** Size of the ring box in the compact row (px). */
 const COMPACT_SIZE = 52;
 
 /** Top-left cluster: the map disc with the status ring, and the clock beside it. */
-export const ChapterStatusCluster: React.FC<ChapterStatusClusterProps> = ({ resources, fatigueLevel, mapCorner, compact = false }) => {
+export const ChapterStatusCluster: React.FC<ChapterStatusClusterProps> = ({ resources, fatigueLevel, mapCorner, compact = false, outsideRadar = null }) => {
   const { t } = useTranslation(["chapter1", "worlds"]);
   const text = t as unknown as Tx;
   const [focus, setFocus] = useState<StatId | null>(null);
@@ -155,7 +158,15 @@ export const ChapterStatusCluster: React.FC<ChapterStatusClusterProps> = ({ reso
       <div className="relative shrink-0" style={compact ? { width: COMPACT_SIZE, height: COMPACT_SIZE } : { width: SIZE, height: SIZE }}>
       <div className="relative" style={compact ? { width: SIZE, height: SIZE, transform: `scale(${COMPACT_SIZE / SIZE})`, transformOrigin: "0 0" } : { width: SIZE, height: SIZE }}>
         <div className="absolute" style={{ left: PAD, top: PAD }}>
-          <NoSignalMinimap label={t("worlds:quests.noSignal")} size={DISC} />
+          {outsideRadar ? (
+            <SaigonMinimap
+              radar={outsideRadar}
+              label={outsideRadar.zone ?? t("worlds:quests.noSignal")}
+              size={DISC}
+            />
+          ) : (
+            <NoSignalMinimap label={t("worlds:quests.noSignal")} size={DISC} />
+          )}
         </div>
         <svg
           width={SIZE}

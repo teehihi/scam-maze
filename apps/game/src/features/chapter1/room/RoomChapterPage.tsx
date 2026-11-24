@@ -16,6 +16,7 @@ import type { SaveGameSource } from "../../../game/saves/saveGame";
 import { SettingsModal } from "../../menu/SettingsModal";
 import { PrologueHud, ProloguePauseMenu } from "../../prologue/PrologueHud";
 import type { Engine as RoomEngine, UIState as RoomUI } from "../../roomv2/game/engine";
+import type { StoryNpcRuntimeContext } from "../../../game/narrative/chapter1/storyCast";
 import { AnchoredPrompt } from "../hud/AnchoredPrompt";
 import { RoomChapterLayer } from "./RoomChapterLayer";
 import { consumeRoomPreload, discardRoomPreload, peekReadyRoom } from "./roomPreloader";
@@ -59,7 +60,8 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
   const engineRef = useRef<RoomEngine | null>(null);
   // The Saigon open world around the room: live through the window and the open door, walkable with no cut.
   const [roomEngine, setRoomEngine] = useState<RoomEngine | null>(null);
-  const outside = useOutsideWorld(roomEngine, true);
+  const [storyContext, setStoryContext] = useState<Partial<StoryNpcRuntimeContext> | undefined>(undefined);
+  const outside = useOutsideWorld(roomEngine, true, storyContext);
 
   // The chapter happens in the apartment, whatever scene a new or old session names.
   const layerSession = useMemo<ChapterSession>(() => ({ ...session, sceneId: "apartment" }), [session]);
@@ -99,11 +101,31 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
     engineRef.current?.lock();
   }, []);
 
-  // Escape opens and closes the host pause menu, unless a chapter overlay (or the intro) is open:
-  // then the layer owns the key.
+  const inStreetDialogue = Boolean(outside.outdoors && outside.storyDialogue);
+
+  // Release pointer lock & free cursor cleanly while talking to a street Story NPC so the player
+  // can both press [1]/[2]/[3] and hover/click replies without swinging the camera off the speaker.
+  const prevStreetDialogueRef = useRef(false);
+  useEffect(() => {
+    const wasTalking = prevStreetDialogueRef.current;
+    prevStreetDialogueRef.current = inStreetDialogue;
+    if (inStreetDialogue && !wasTalking) {
+      engineRef.current?.setCursorMode(true);
+      if (document.pointerLockElement) document.exitPointerLock?.();
+    } else if (!inStreetDialogue && wasTalking) {
+      engineRef.current?.setCursorMode(false);
+    }
+  }, [inStreetDialogue]);
+
+  // Escape closes an active outdoor NPC conversation first; otherwise opens/closes the host pause menu.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.repeat || event.key !== "Escape") return;
+      if (inStreetDialogue) {
+        event.preventDefault();
+        outside.closeStoryDialogue?.();
+        return;
+      }
       if (settingsOpen || bridge.overlayOpen()) return;
       if (paused) {
         event.preventDefault();
@@ -115,10 +137,10 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [bridge, openPause, paused, playing, resume, settingsOpen]);
+  }, [bridge, inStreetDialogue, openPause, outside, paused, playing, resume, settingsOpen]);
 
   const cursorMode = !!roomUI?.cursorMode;
-  const showResume = playing && !paused && !roomUI?.locked && !cursorMode && !roomUI?.inspecting;
+  const showResume = playing && !paused && !inStreetDialogue && !roomUI?.locked && !cursorMode && !roomUI?.inspecting;
 
   return (
     <div className="absolute inset-0 bg-black" data-testid="room-chapter-page">
@@ -132,6 +154,7 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
           onAdopted={consumeRoomPreload}
           onUI={setRoomUI}
           renderPrompt={(label, anchor) => <AnchoredPrompt label={label} anchor={anchor} />}
+          hideCrosshair={inStreetDialogue}
           onReady={handleReady}
           overlay={
             <RoomChapterLayer
@@ -145,17 +168,21 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
               onReturnToMenu={onReturnToMenu}
               onHoverSound={onHoverSound}
               outsideDoor={outside.ready}
+              outdoors={outside.outdoors}
+              outsideRadar={outside.radar ?? null}
+              hideHud={inStreetDialogue}
+              onStoryContext={setStoryContext}
             />
           }
         />
       </Suspense>
 
-      {playing && !paused && (
+      {playing && !paused && !inStreetDialogue && (
         // The chapter layer draws the map, the status ring, the clock and cash itself.
         <PrologueHud objective={null} prompt={null} showResume={showResume} cursorMode={cursorMode} crosshair={false} />
       )}
 
-      {playing && !paused && <OutsideHud state={outside} />}
+      {playing && !paused && <OutsideHud state={outside} suppressPrompt={Boolean(roomUI?.prompt)} />}
       {paused && !settingsOpen && (
         <ProloguePauseMenu
           onHoverSound={onHoverSound}
