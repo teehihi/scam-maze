@@ -20,6 +20,15 @@ const task = (taskId: string): CoreAction => ({ type: "COMPLETE_THESIS_TASK", ta
 const toMinute = (state: ChapterState, minute: number): CoreAction => advance(Math.max(1, minute - (CHAPTER_DURATION_MINUTES - state.resources.timeMinutes)));
 
 function step(state: ChapterState, action: CoreAction): ChapterState {
+  if (action.type === "COMPLETE_THESIS_TASK" && action.taskId === "draft.findings" && state.world.thesisDraft.findings === undefined) {
+    const drafted = chapterReducer(state, {
+      type: "SAVE_THESIS_DRAFT",
+      sectionId: "findings",
+      content: "In this interview sample, 6 of 24 participants asked a classmate when they could not identify the right office. This count describes these interviews, not all students.",
+    }, S);
+    expect(drafted.accepted, drafted.reason).toBe(true);
+    state = drafted.state;
+  }
   const result = chapterReducer(state, action, S);
   expect(result.accepted, `${action.type} ${JSON.stringify(action)}: ${result.reason ?? ""}`).toBe(true);
   return result.state;
@@ -153,6 +162,51 @@ describe("the draft deadline", () => {
 });
 
 describe("the submission consequences", () => {
+  it("requires the saved final draft and a usable account, then records a real submission receipt", () => {
+    let state = run([START, ...DRAFT]);
+    expect(state.device.submission).toBe("not-submitted");
+    expect(state.world.missions["m01.final-submission"].status).toBe("open");
+    const blocked = selectDeviceView(state, S, "laptop").apps.files.find((item) => item.id === "portal.saved")!.actions.find((action) => action.id === "submit-thesis")!;
+    expect(blocked.available).toBe(false);
+
+    state = step(state, use("portal.saved", "check-account"));
+    const ready = selectDeviceView(state, S, "laptop").apps.files.find((item) => item.id === "portal.saved")!.actions.find((action) => action.id === "submit-thesis")!;
+    expect(ready.available).toBe(true);
+    state = step(state, use("portal.saved", "submit-thesis"));
+    expect(state.device.submission).toBe("submitted");
+    expect(state.device.items["portal.saved"].done).toContain("submit-thesis");
+    expect(state.world.missions["m01.final-submission"].status).toBe("completed");
+  });
+
+  it("marks a missed final submission deadline without inventing a submission", () => {
+    const state = run([START, advance(CHAPTER_DURATION_MINUTES)]);
+    expect(state.device.submission).toBe("not-submitted");
+    expect(state.world.missions["m01.final-submission"].status).toBe("failed");
+    expect(state.persistent.submissionDeadlineMissed).toBe(true);
+  });
+
+  it("rejects tasks and device actions that cannot finish in the remaining time", () => {
+    const initial = S.initial!;
+    const limited = {
+      ...S,
+      initial: {
+        resources: { ...initial.resources, timeMinutes: 4 },
+        persistent: { ...initial.persistent },
+      },
+    };
+    let state = chapterReducer(createInitialState(limited), START, limited).state;
+    const taskResult = chapterReducer(state, task("draft.intro-review"), limited);
+    expect(taskResult.accepted).toBe(false);
+    expect(taskResult.reason).toBe("There is not enough time left to complete this action.");
+    expect(taskResult.state.resources.timeMinutes).toBe(4);
+    expect(taskResult.state.world.thesisTasksDone).not.toContain("draft.intro-review");
+
+    const itemResult = chapterReducer(state, use("portal.saved", "check-account"), limited);
+    expect(itemResult.accepted).toBe(false);
+    expect(itemResult.reason).toBe("There is not enough time left to complete this action.");
+    expect(itemResult.state.device.items["portal.saved"].done).not.toContain("check-account");
+  });
+
   it("keeps a taken-over account locked on Friday morning until it is recovered, at a cost in time", () => {
     const base = run([START, ...FEE_PAGE, use("contact.bank", "call"), use("contact.bank", "report-fraud"), use("settings.security", "change-passwords")]);
     const friday = step(base, toMinute(base, MISSION_01_CONFIG.lateAccessCheckMinute));

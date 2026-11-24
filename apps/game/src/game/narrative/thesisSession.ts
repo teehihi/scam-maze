@@ -7,7 +7,7 @@ import {
   workSlowdown,
   type FatigueConfig,
 } from "./fatigue";
-import type { ChapterState, ScenarioDefinition } from "./types";
+import type { ChapterState, ScenarioDefinition, ThesisWorkInterruption } from "./types";
 import { elapsedMinutes, gameplayConfig, triggerFiresAt } from "./world";
 
 export type ThesisFocusMode = "normal" | "deep" | "rush";
@@ -127,6 +127,8 @@ export interface ThesisSessionSample {
 
 export interface ThesisSessionSimulationInput {
   startElapsedMinutes: number;
+  /** Minutes already spent in this same block, so resuming does not restart warm-up/flow. */
+  sessionElapsedMinutes?: number;
   plannedMinutes: number;
   startFatigue: number;
   startProgress: number;
@@ -140,6 +142,8 @@ export interface ThesisSessionSimulation {
   mode: ThesisFocusMode;
   plannedMinutes: number;
   effectiveMinutesSpent: number;
+  /** Exact progress in milli-percentage-points; 1000 units = 1%. */
+  progressUnitsGain: number;
   progressGain: number;
   wordsGain: number;
   fatigueGain: number;
@@ -160,6 +164,7 @@ export function simulateThesisSession(
   const fatigueCfg = input.fatigueConfig ?? DEFAULT_FATIGUE_CONFIG;
   const profile = FOCUS_MODE_PROFILES[input.mode];
   const planned = Math.max(0, Math.floor(input.plannedMinutes));
+  const sessionElapsed = Math.max(0, Math.floor(input.sessionElapsedMinutes ?? 0));
   const room = Math.max(0, input.freeWorkMaxPercent - input.startProgress);
   const baseRatePerMinute = 1 / Math.max(1, input.baseMinutesPerPercent);
 
@@ -174,11 +179,11 @@ export function simulateThesisSession(
 
   const stepSize = 1;
   for (let m = 0; m < planned; m += stepSize) {
-    if (Math.floor(rawProgress) >= room && room > 0) {
+    if (room <= 0 || rawProgress + 1e-9 >= room) {
       break;
     }
     const storyMin = input.startElapsedMinutes + m;
-    const curve = sessionCurveAt(m, input.mode);
+    const curve = sessionCurveAt(sessionElapsed + m, input.mode);
     const circ = circadianAt(storyMin);
     if (circ.isLateNight) hitsLateNight = true;
     if (curve.phase === "flow") peakFlowMinutes += stepSize;
@@ -213,7 +218,11 @@ export function simulateThesisSession(
     }
   }
 
-  const progressGain = Math.min(room, Math.floor(rawProgress + 0.0001));
+  // Keep a milli-percent in core state so short blocks and interruptions cannot consume time
+  // without retaining their work. Displayed progress remains whole-percent in this UI.
+  const progressUnitsGain = Math.min(Math.floor(room * 1000 + 1e-6), Math.round(rawProgress * 1000));
+  const carriedUnits = Math.round((input.startProgress - Math.floor(input.startProgress)) * 1000);
+  const progressGain = Math.floor((carriedUnits + progressUnitsGain) / 1000);
   // Ensure fatigue uses the exact engine config when fatigue is disabled.
   const fatigueGain = fatigueCfg.enabled
     ? Math.max(
@@ -227,6 +236,7 @@ export function simulateThesisSession(
     mode: input.mode,
     plannedMinutes: planned,
     effectiveMinutesSpent,
+    progressUnitsGain,
     progressGain,
     wordsGain: progressGain * Math.round(THESIS_TOTAL_WORDS / 100),
     fatigueGain,
@@ -238,24 +248,7 @@ export function simulateThesisSession(
   };
 }
 
-export type SessionInterruptionKind =
-  | "story_event"
-  | "device_item"
-  | "eye_strain"
-  | "minh_ping"
-  | "citation_gap";
-
-export interface SessionInterruption {
-  id: string;
-  atSessionMinute: number;
-  kind: SessionInterruptionKind;
-  urgent: boolean;
-  /** Localized short title + description (EN/VI). */
-  title: { en: string; vi: string };
-  body: { en: string; vi: string };
-  /** Target laptop/phone app hint if the player chooses to pause and check now. */
-  appHint?: "email" | "chat" | "bank" | "phone";
-}
+export type SessionInterruption = ThesisWorkInterruption;
 
 /**
  * Deterministically predicts interruptions arriving inside `(startElapsed, startElapsed + plannedMinutes]`.
@@ -274,17 +267,17 @@ export function findSessionInterruptions(
 
   // 1. Real scheduled narrative events arriving inside this writing block!
   for (const ev of scenario.events ?? []) {
-    if (Object.hasOwn(state.world.events, ev.id)) continue;
+    if (Object.hasOwn(state.world.events, ev.id) || !ev.thesisInterruption) continue;
     const at = triggerFiresAt(ev.trigger, state, scenario, end);
     if (at === null || at <= start || at > end) continue;
-    const isUrgent = /security|bank|clearance|emergency|immigration|portal|urgent/i.test(ev.id);
+    const { urgent: isUrgent } = ev.thesisInterruption;
     if (profile.suppressRoutineInterruptions && !isUrgent) continue;
     found.push({
       id: `ev:${ev.id}`,
       atSessionMinute: Math.max(1, at - start),
       kind: "story_event",
       urgent: isUrgent,
-      appHint: isUrgent ? "bank" : "chat",
+      appHint: ev.thesisInterruption.appHint,
       title: isUrgent
         ? { en: "Urgent Alert Arrived", vi: "Cảnh báo khẩn vừa đến" }
         : { en: "New Story Notification", vi: "Thông báo mới trên thiết bị" },
@@ -302,12 +295,11 @@ export function findSessionInterruptions(
 
   // 2. Real scheduled device items (mail, messages, bank alerts) arriving inside this writing block!
   for (const item of scenario.deviceItems ?? []) {
-    if (!item.arrives || Object.hasOwn(state.device.items, item.id)) continue;
+    if (!item.arrives || Object.hasOwn(state.device.items, item.id) || !item.thesisInterruption) continue;
     const at = triggerFiresAt(item.arrives, state, scenario, end);
     if (at === null || at <= start || at > end) continue;
-    const isUrgent = item.app === "bank" || /clearance|bank|alert|lock|security/i.test(item.id);
+    const { urgent: isUrgent, appHint } = item.thesisInterruption;
     if (profile.suppressRoutineInterruptions && !isUrgent) continue;
-    const appHint = item.app === "mail" ? "email" : item.app === "bank" ? "bank" : "chat";
     found.push({
       id: `item:${item.id}`,
       atSessionMinute: Math.max(1, at - start),
@@ -345,13 +337,15 @@ export function findSessionInterruptions(
       startElapsedMinutes: start,
       plannedMinutes,
       startFatigue: state.resources.fatigue,
-      startProgress: state.resources.thesisProgress,
+      startProgress: state.resources.thesisProgress + (state.world.thesisWorkRemainderUnits ?? 0) / 1000,
       freeWorkMaxPercent: cfg.thesisFreeWorkMaxPercent,
       baseMinutesPerPercent: cfg.thesisMinutesPerPercent,
       mode,
       fatigueConfig: cfg.fatigue,
     });
-    const eyeStrainSample = sim.samples.find((s) => s.fatigue >= 72 && s.minuteOffset >= 35);
+    const eyeStrainSample = state.resources.fatigue < 40
+      ? sim.samples.find((sample) => sample.fatigue >= 40 && sample.minuteOffset >= 90)
+      : undefined;
     if (eyeStrainSample) {
       found.push({
         id: `dilemma:eye_strain:${start}`,
@@ -367,37 +361,13 @@ export function findSessionInterruptions(
           vi: "Chữ trên màn hình bắt đầu nhòe đi và tốc độ gõ chậm rõ rệt. Dừng sớm để nghỉ hay cố ép bản thân vượt ngưỡng quá tải?",
         },
       });
-    } else if (!profile.suppressRoutineInterruptions) {
-      const checkMinute = Math.min(plannedMinutes - 15, 65);
-      found.push({
-        id: `dilemma:citation:${start}`,
-        atSessionMinute: checkMinute,
-        kind: "citation_gap",
-        urgent: false,
-        title: {
-          en: "Missing Table 3.2 Citation",
-          vi: "Thiếu nguồn trích dẫn Bảng 3.2",
-        },
-        body: {
-          en: "Dr. Nguyễn flagged an unverified citation in Section 3.2. Pause to cross-check your folder now, or leave a [TODO] tag and protect your Flow?",
-          vi: "TS. Nguyễn từng đánh dấu thiếu nguồn ở Mục 3.2. Dừng lại tra cứu tài liệu ngay hay đánh dấu [TODO] để giữ mạch Flow?",
-        },
-      });
     }
   }
 
-  // Sort chronologically and deduplicate very close timestamps (within 5 minutes).
+  // Keep every interruption in real timestamp order. The reducer settles simultaneous arrivals
+  // together; the first visible prompt is not silently replaced by a nearby second event.
   found.sort((a, b) => a.atSessionMinute - b.atSessionMinute);
-  const deduped: SessionInterruption[] = [];
-  for (const item of found) {
-    const prev = deduped[deduped.length - 1];
-    if (prev && item.atSessionMinute - prev.atSessionMinute < 5) {
-      if (item.urgent && !prev.urgent) deduped[deduped.length - 1] = item;
-      continue;
-    }
-    deduped.push(item);
-  }
-  return deduped;
+  return found;
 }
 
 /** Realistic evolving manuscript snippets shown live inside the Word-style thesis draft view. */

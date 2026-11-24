@@ -14,6 +14,7 @@ const ueh = {
       navLabel: "Portal sections",
       home: "Student Portal",
       accessActive: "Active",
+      accessNotChecked: "Not yet checked",
       accessLocked: "Access locked",
       nav: {
         dashboard: "Dashboard",
@@ -72,6 +73,10 @@ const ueh = {
         deadlineValue: "Friday, 17:00",
         timeLeftLabel: "Time left",
         access: "Submission system access",
+        submitButton: "Submit final thesis",
+        submittedReceipt: "Submission received. Keep this receipt.",
+        blockedHint: "Finish the draft, confirm access and resolve any account lock before submitting.",
+        deadlineMissed: "Deadline passed without a submission receipt.",
       },
       services: {
         heading: "Student services",
@@ -101,6 +106,8 @@ const ueh = {
           thesisAmount: "No fee",
         },
         feesNote: "Questions about a fee: ask the Training Office.",
+        paymentPortalLabel: "Payment portal (listed in the student handbook)",
+        paymentPortalDomain: "payment.ueh.edu.vn",
       },
       account: {
         heading: "Account and security",

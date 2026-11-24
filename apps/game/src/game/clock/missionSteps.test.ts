@@ -20,6 +20,15 @@ const task = (taskId: string): CoreAction => ({ type: "COMPLETE_THESIS_TASK", ta
 
 function run(actions: CoreAction[], scenario: ScenarioDefinition = S): ChapterState {
   return actions.reduce((state, action) => {
+    if (action.type === "COMPLETE_THESIS_TASK" && action.taskId === "draft.findings" && state.world.thesisDraft.findings === undefined) {
+      const drafted = chapterReducer(state, {
+        type: "SAVE_THESIS_DRAFT",
+        sectionId: "findings",
+        content: "In this interview sample, 6 of 24 participants asked a classmate when they could not identify the right office. This count describes these interviews, not all students.",
+      }, scenario);
+      expect(drafted.accepted, drafted.reason).toBe(true);
+      state = drafted.state;
+    }
     const result = chapterReducer(state, action, scenario);
     expect(result.accepted, `${action.type}: ${result.reason ?? ""}`).toBe(true);
     return result.state;

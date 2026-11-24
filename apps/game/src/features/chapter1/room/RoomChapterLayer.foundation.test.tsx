@@ -126,20 +126,16 @@ describe("RoomChapterLayer with LAST SUBMISSION routing", () => {
     expect(screen.getByTestId("task-step-done").textContent).toContain("Edit the introduction and literature review");
   });
 
-  it("keeps the HUD over the laptop and marks the app of the current step on its desktop", () => {
+  it("hides the room HUD over the laptop while marking the current task app on its desktop", () => {
     const rig = mountLayer();
     finishIntro();
     act(() => rig.store().dispatch({ type: "ADVANCE_TIME", minutes: 10 }));
     act(() => rig.bridge.onProp("laptop", "inspect-ready"));
-    const slot = screen.getByTestId("objective-tracker-slot");
-    expect(slot.style.visibility).toBe("visible");
-    expect(slot.getAttribute("data-over-laptop")).toBe("true");
-    // One row above the laptop: the small ring and the clock, then the step.
-    expect(within(slot).getByTestId("chapter-status-cluster").getAttribute("data-compact")).toBe("true");
-    expect(within(slot).getByTestId("task-tracker").getAttribute("data-compact")).toBe("true");
-    expect(within(slot).getByTestId("task-current").textContent).toBe("Read the new email about your submission account");
+    expect(screen.queryByTestId("objective-tracker-slot")).toBeNull();
     expect(screen.getByTestId("desktop-icon-device-mail").getAttribute("data-task-target")).toBe("true");
     expect(screen.getByTestId("desktop-icon-thesis").getAttribute("data-task-target")).toBeNull();
+    // The laptop retains its own device clock, without the room HUD crossing the title bar.
+    expect(screen.getByTestId("desktop-clock")).toBeTruthy();
   });
 
   it("brings the carried phone up with P, low on the right, and puts it away with P", () => {
@@ -171,7 +167,7 @@ describe("RoomChapterLayer with LAST SUBMISSION routing", () => {
     fireEvent.keyDown(window, { key: "p", code: "KeyP" });
     expect(screen.getByTestId("held-phone")).toBeTruthy();
     expect(screen.getByTestId("desktop-icon-device-mail")).toBeTruthy();
-    expect(screen.getByTestId("objective-tracker-slot").getAttribute("data-over-laptop")).toBe("true");
+    expect(screen.queryByTestId("objective-tracker-slot")).toBeNull();
     const closes = vi.mocked(rig.bridge.commands!.closeInspect).mock.calls.length;
     fireEvent.keyDown(window, { key: "p", code: "KeyP" });
     expect(screen.queryByTestId("held-phone")).toBeNull();

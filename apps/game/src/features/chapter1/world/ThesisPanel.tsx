@@ -1,1222 +1,526 @@
-// Playable Mission 1 Thesis Desk ("Draft · Stamp · Proofread"):
-// Replaces passive idle progress-bar clicking with a hands-on 2-column tactile workbench combining:
-// 1. Monkeytype-style accent-tolerant live keyboard drafting directly on the Word manuscript,
-// 2. Papers-Please drag-and-drop (or click-snap) verified evidence citation stamping vs fake rumor traps,
-// 3. Red-Pen proofreading (spot & slash factual/security errors right on the page),
-// 4. Live Saigon sky time-lapse per completed block & non-blocking desk-buzzing phone notifications.
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle,
-  BellOff,
-  CheckCircle2,
-  Clock,
-  FileCheck2,
+  BookOpen,
+  Check,
+  Clock3,
   FileText,
-  Flame,
-  GraduationCap,
-  GripVertical,
-  Keyboard,
-  Landmark,
-  Mail,
-  MessageSquare,
-  Moon,
-  PenTool,
-  ShieldAlert,
-  Smartphone,
-  Sparkles,
-  Stamp,
-  Zap,
+  MessageSquareText,
+  Save,
+  Search,
+  StickyNote,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { FatigueConfig, FatigueLevel, RestMode } from "../../../game/narrative/fatigue";
-import {
-  DESK_EVIDENCE_CARDS,
-  getDisplayTargetPhrase,
-  matchDeskKey,
-  THESIS_DESK_STEPS,
-  type DeskEvidenceCard,
-  type ThesisDeskStep,
-} from "../../../game/narrative/thesisDeskGame";
+import type { FatigueLevel, RestMode } from "../../../game/narrative/fatigue";
+import type { ThesisTaskView } from "../../../game/narrative/world";
 import {
   findSessionInterruptions,
   simulateThesisSession,
-  storyClockHourAt,
-  THESIS_TOTAL_WORDS,
-  type SessionInterruption,
   type ThesisFocusMode,
 } from "../../../game/narrative/thesisSession";
-import type { ChapterState, ScenarioDefinition } from "../../../game/narrative/types";
-import { elapsedMinutes, type ThesisTaskView } from "../../../game/narrative/world";
+import type { ThesisDraftSectionId, ThesisResearchNoteId } from "../../../game/narrative/types";
+import { elapsedMinutes } from "../../../game/narrative/world";
 import { useGameLocale } from "../../../i18n";
-import { useDesktopNav } from "../room/desktop/desktopNav";
 import { UI } from "../theme";
 import { formatDuration, type DurationText } from "./formatDuration";
 
-/** `dark`: the schedule overlay. `paper`: the laptop's Thesis window, a white desk canvas. */
 export type ThesisTone = "dark" | "paper";
 
-const FOCUS_PAPER =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3a63c2]";
-
-const TONES = {
-  dark: {
-    card: UI.card,
-    label: UI.label,
-    body: UI.body,
-    text: "text-[#f7f5ff]",
-    muted: "text-[#a9a4c4]",
-    surface: "rounded-xl border border-white/10 bg-[#141224]/85 p-3",
-    paper: "rounded-xl border border-white/15 bg-[#1b1830] p-4 text-slate-100",
-    chipIdle: "border-white/15 bg-white/5 text-[#d4cff0] hover:bg-white/10",
-    chipActive: "border-indigo-400/70 bg-indigo-500/25 text-white",
-    primary: UI.buttonPrimary,
-    secondary: UI.buttonSecondary,
-  },
-  paper: {
-    card: "",
-    label: "text-xs font-semibold uppercase tracking-wider text-[#3a63c2]",
-    body: "text-xs leading-relaxed text-[#4b5563]",
-    text: "text-[#1f2937]",
-    muted: "text-[#64748b]",
-    surface: "rounded-xl border border-[#d6deeb] bg-[#f8fafd] p-3",
-    paper: "rounded-xl border border-[#cfd8e8] bg-white p-4 text-[#1e293b] shadow-sm",
-    chipIdle: "border-[#cfd8e8] bg-white text-[#334155] hover:bg-[#eef2fa]",
-    chipActive: "border-[#3a63c2] bg-[#3a63c2]/12 text-[#1e3a8a]",
-    primary: `flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#3a63c2] px-3.5 py-2 text-xs font-semibold text-white motion-safe:transition-colors hover:bg-[#2f52a3] disabled:cursor-not-allowed disabled:bg-[#d7deec] disabled:text-[#7b879e] ${FOCUS_PAPER}`,
-    secondary: `flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#c9d3e6] bg-white px-3 py-1.5 text-left text-xs font-medium text-[#1f2937] motion-safe:transition-colors hover:bg-[#eef2fa] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_PAPER}`,
-  },
-} as const;
-
 export interface ThesisDeepWorkContext {
-  state: ChapterState;
-  scenario: ScenarioDefinition;
+  state: import("../../../game/narrative/types").ChapterState;
+  scenario: import("../../../game/narrative/types").ScenarioDefinition;
   baseMinutesPerPercent: number;
-  fatigueConfig: FatigueConfig;
-  /** Optional live clock-preview hook so Room 6.07 & outside Saigon sky time-lapse smoothly while writing! */
+  fatigueConfig: import("../../../game/narrative/fatigue").FatigueConfig;
+  /** Keeps the manuscript draft alive while the laptop switches between apps. */
+  documentDraft?: React.MutableRefObject<{ content: Record<string, string>; savedContent: Record<string, string> }>;
   onPreviewMinutesOffset?: (offsetMinutes: number | null) => void;
-  /** Optional hint when the player pauses to check an interrupting email/message/alert. */
   onInspectInterruption?: (appHint?: "email" | "chat" | "bank" | "phone") => void;
+  onSaveDraft?: (sectionId: ThesisDraftSectionId, content: string) => void;
+  onResumeSession?: () => void;
+  onEndSession?: () => void;
 }
 
 export interface ThesisPanelProps {
-  /** Look of the panel. Default `dark`. */
   tone?: ThesisTone;
   progress: number;
-  /** Minutes of one default session and the percent it adds. */
   sessionMinutes: number;
   sessionPercent: number;
-  /** Free work stops at this percent. */
   freeWorkMaxPercent: number;
   timeLeftMinutes: number;
   tasks: readonly ThesisTaskView[];
-  onWork: (minutes: number, focusMode?: ThesisFocusMode) => void;
-  onTask: (taskId: string) => void;
-  /** Present when the scenario has fatigue rules: how tired Alex is and how much longer work takes. */
+  onWork: (minutes: number, focusMode?: ThesisFocusMode, sessionElapsedMinutes?: number) => void;
+  onTask: (taskId: string, researchNotes?: ThesisResearchNoteId[]) => void;
+  /** Open Alex's laptop so planning never grants thesis progress by itself. */
+  onOpenDocument?: () => void;
   fatigue?: { level: FatigueLevel; slowdownPercent: number };
-  /** Present when the scenario has fatigue rules: the rest options and their length. */
   rest?: { napMinutes: number; sleepMinutes: number; onRest: (mode: RestMode) => void };
-  /** Enables the playable interactive Thesis Desk workbench. */
   deepWork?: ThesisDeepWorkContext;
 }
 
-const STEPS_PER_COMMIT = 3;
+type ThesisSectionId = "introduction" | "findings" | "full-draft";
+type Localized = { en: string; vi: string };
 
-function formatClockFromHour(hour24: number): string {
-  const totalMins = Math.round((((hour24 % 24) + 24) % 24) * 60);
-  const h = Math.floor(totalMins / 60) % 24;
-  const m = totalMins % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+interface ThesisSection {
+  id: ThesisSectionId;
+  taskId: string;
+  heading: Localized;
+  subheading: Localized;
+  initialText: Localized;
+  comment: Localized;
+  anchor: Localized;
+  anchorLocation: Localized;
 }
 
-function getAudioContext(ctxRef: React.MutableRefObject<AudioContext | null>): AudioContext | null {
-  if (typeof window === "undefined" || import.meta.env.MODE === "test") return null;
-  try {
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return null;
-    if (!ctxRef.current) ctxRef.current = new AudioCtx();
-    const ctx = ctxRef.current;
-    if (ctx.state === "suspended") void ctx.resume();
-    return ctx;
-  } catch {
-    return null;
-  }
+const SECTIONS: readonly ThesisSection[] = [
+  {
+    id: "introduction",
+    taskId: "draft.intro-review",
+    heading: { en: "1. Introduction & literature review", vi: "1. Mở đầu & tổng quan tài liệu" },
+    subheading: { en: "1.2 Research context", vi: "1.2 Bối cảnh nghiên cứu" },
+    initialText: {
+      en: "Digital payment systems are now part of everyday student life in Ho Chi Minh City. This study examines how graduating international students decide whether an online request is legitimate when administrative deadlines create pressure.\n\nResearch on phishing has often focused on technical indicators such as suspicious links and sender addresses. Less attention has been paid to how uncertainty about university procedures shapes the way students respond. This study addresses that gap through semi-structured interviews with graduating students in the city.\n\nThe study asks how students verify unexpected requests for money or account information, and what makes that verification easier or harder.",
+      vi: "Thanh toán số đã trở thành một phần trong đời sống hằng ngày của sinh viên tại Thành phố Hồ Chí Minh. Nghiên cứu này tìm hiểu cách sinh viên quốc tế sắp tốt nghiệp xác định một yêu cầu trực tuyến có đáng tin hay không khi áp lực thời hạn hành chính xuất hiện.\n\nCác nghiên cứu về lừa đảo trực tuyến thường tập trung vào dấu hiệu kỹ thuật như đường dẫn đáng ngờ và địa chỉ người gửi. Ít nghiên cứu chú ý đến việc sự không rõ ràng trong quy trình của trường ảnh hưởng thế nào đến cách sinh viên phản hồi. Nghiên cứu này tìm hiểu khoảng trống đó qua các cuộc phỏng vấn bán cấu trúc với sinh viên sắp tốt nghiệp tại thành phố.\n\nNghiên cứu đặt câu hỏi sinh viên xác minh các yêu cầu bất ngờ về tiền hoặc thông tin tài khoản ra sao, và điều gì khiến việc xác minh dễ hoặc khó hơn.",
+    },
+    comment: {
+      en: "The context is clear. Tighten the gap in paragraph two: explain what existing studies do not tell us about the moment a student is under deadline pressure. Keep the research question aligned with the interview material.",
+      vi: "Bối cảnh đã rõ. Hãy làm rõ khoảng trống ở đoạn hai: những nghiên cứu hiện có chưa cho ta biết điều gì về khoảnh khắc sinh viên chịu áp lực thời hạn? Giữ câu hỏi nghiên cứu bám sát tư liệu phỏng vấn.",
+    },
+    anchor: {
+      en: "Less attention has been paid to how uncertainty about university procedures shapes the way students respond.",
+      vi: "Ít nghiên cứu chú ý đến việc sự không rõ ràng trong quy trình của trường ảnh hưởng thế nào đến cách sinh viên phản hồi.",
+    },
+    anchorLocation: { en: "Introduction · paragraph 2", vi: "Mở đầu · đoạn 2" },
+  },
+  {
+    id: "findings",
+    taskId: "draft.findings",
+    heading: { en: "3. Findings", vi: "3. Kết quả nghiên cứu" },
+    subheading: { en: "3.1 How students verify a request", vi: "3.1 Cách sinh viên xác minh yêu cầu" },
+    initialText: {
+      en: "Across the interviews, students described checking an unexpected request against a channel they already knew, such as a saved university portal or a previously used phone number. Some said they would ask a classmate first when they were unsure which office to contact.\n\n[Reconcile this paragraph with the interview coding sheet before sending the draft. Do not turn a small interview sample into a claim about all students.]\n\nThe accounts suggest that verification is not a single technical check. Students weigh the time it takes to contact someone against the possibility of missing a deadline.",
+      vi: "Trong các cuộc phỏng vấn, sinh viên kể rằng họ đối chiếu yêu cầu bất ngờ với một kênh đã biết, chẳng hạn cổng thông tin trường đã lưu hoặc số điện thoại từng sử dụng. Một số bạn cho biết sẽ hỏi bạn cùng lớp trước khi biết nên liên hệ phòng ban nào.\n\n[Đối chiếu đoạn này với bảng mã hóa phỏng vấn trước khi gửi bản thảo. Không khái quát từ một mẫu phỏng vấn nhỏ thành kết luận về tất cả sinh viên.]\n\nNhững chia sẻ cho thấy xác minh không chỉ là một bước kiểm tra kỹ thuật. Sinh viên cân nhắc thời gian cần để liên hệ người khác với nguy cơ bỏ lỡ thời hạn.",
+    },
+    comment: {
+      en: "Please separate what participants actually said from your interpretation. Check the coded interview notes beside this document; keep the sample size visible and avoid claims beyond it.",
+      vi: "Hãy tách lời người tham gia thực sự nói khỏi phần diễn giải của em. Đối chiếu ghi chú phỏng vấn đã mã hóa ở cạnh tài liệu; nêu rõ quy mô mẫu và tránh kết luận vượt quá dữ liệu.",
+    },
+    anchor: {
+      en: "Across the interviews, students described checking an unexpected request against a channel they already knew,",
+      vi: "Trong các cuộc phỏng vấn, sinh viên kể rằng họ đối chiếu yêu cầu bất ngờ với một kênh đã biết,",
+    },
+    anchorLocation: { en: "Findings · paragraph 1", vi: "Kết quả · đoạn 1" },
+  },
+  {
+    id: "full-draft",
+    taskId: "draft.final",
+    heading: { en: "Full draft · final read-through", vi: "Toàn văn · đọc soát lần cuối" },
+    subheading: { en: "Before sending to your supervisor", vi: "Trước khi gửi giảng viên hướng dẫn" },
+    initialText: {
+      en: "The interviews suggest that students' responses to unexpected online requests are shaped by both their digital habits and their understanding of university procedures. When the correct contact point is easy to find, students can pause to verify a request without feeling that they are risking a deadline.\n\nThis study is limited by its small, locally recruited sample. The findings describe these participants' accounts and should not be generalized to all international students. Further research could compare students across institutions and examine how clearer administrative communication changes verification behavior.\n\n[Read the full document once. Check that the research question, findings and limitations use the same terms.]",      vi: "Các cuộc phỏng vấn cho thấy phản ứng của sinh viên trước yêu cầu trực tuyến bất ngờ chịu ảnh hưởng từ cả thói quen số lẫn hiểu biết về quy trình của trường. Khi dễ tìm đúng nơi liên hệ, sinh viên có thể dừng lại để xác minh mà không cảm thấy mình đang mạo hiểm bỏ lỡ thời hạn.\n\nNghiên cứu bị giới hạn bởi mẫu nhỏ được tuyển tại địa phương. Kết quả mô tả chia sẻ của những người tham gia này và không nên khái quát cho toàn bộ sinh viên quốc tế. Các nghiên cứu tiếp theo có thể so sánh sinh viên giữa các trường và xem xét cách truyền đạt hành chính rõ ràng hơn tác động đến hành vi xác minh.\n\n[Đọc lại toàn văn một lượt. Kiểm tra câu hỏi nghiên cứu, kết quả và phần giới hạn có dùng thuật ngữ nhất quán không.]",
+    },
+    comment: {
+      en: "One last pass: make sure the conclusion does not claim more than the interviews support. Then save the version you would actually send me.",
+      vi: "Đọc lại lần cuối: đảm bảo kết luận không nói quá những gì phỏng vấn hỗ trợ. Sau đó lưu phiên bản em thực sự muốn gửi cho tôi.",
+    },
+    anchor: {
+      en: "The interviews suggest that students' responses to unexpected online requests are shaped by both their digital habits",
+      vi: "Các cuộc phỏng vấn cho thấy phản ứng của sinh viên trước yêu cầu trực tuyến bất ngờ chịu ảnh hưởng từ cả thói quen số",
+    },
+    anchorLocation: { en: "Conclusion · opening paragraph", vi: "Kết luận · đoạn mở đầu" },
+  },
+
+];
+
+const RESEARCH_NOTES: readonly { id: ThesisResearchNoteId | "coding-sheet"; text: Localized }[] = [
+  { id: "coding-sheet", text: { en: "Interview coding sheet · 24 graduating students · Ho Chi Minh City", vi: "Bảng mã hóa phỏng vấn · 24 sinh viên sắp tốt nghiệp · TP. Hồ Chí Minh" } },
+  { id: "saved-channel", text: { en: "9 of 24 participants described checking a saved portal or a contact they had used before.", vi: "9 trong số 24 người tham gia kể rằng họ kiểm tra cổng thông tin đã lưu hoặc liên hệ từng sử dụng." } },
+  { id: "classmate", text: { en: "6 of 24 participants said they asked a classmate when they could not identify the right office.", vi: "6 trong số 24 người tham gia cho biết họ hỏi bạn cùng lớp khi không biết nên liên hệ phòng ban nào." } },
+  { id: "sample-limit", text: { en: "Working note: these are interview counts, not estimates for the wider student population.", vi: "Ghi chú: đây là số đếm trong phỏng vấn, không phải ước tính cho toàn bộ sinh viên." } },
+];
+
+const FINDING_SYNTHESIS_OPTIONS: readonly { id: "saved-channel" | "classmate"; text: Localized }[] = [
+  {
+    id: "saved-channel",
+    text: {
+      en: "In this interview sample, 9 of 24 participants described checking a saved portal or a contact they had used before. This count describes these interviews, not all students.",
+      vi: "Trong mẫu phỏng vấn này, 9 trong số 24 người tham gia kể rằng họ kiểm tra cổng thông tin đã lưu hoặc liên hệ từng sử dụng. Số liệu này mô tả các cuộc phỏng vấn, không đại diện cho mọi sinh viên.",
+    },
+  },
+  {
+    id: "classmate",
+    text: {
+      en: "In this interview sample, 6 of 24 participants said they asked a classmate when they could not identify the right office. This count describes these interviews, not all students.",
+      vi: "Trong mẫu phỏng vấn này, 6 trong số 24 người tham gia cho biết họ hỏi bạn cùng lớp khi không biết nên liên hệ phòng ban nào. Số liệu này mô tả các cuộc phỏng vấn, không đại diện cho mọi sinh viên.",
+    },
+  },
+];
+
+function paragraphIndexAtAnchor(text: string, anchor: string): number {
+  return text.split(/\n\s*\n/).findIndex((paragraph) => paragraph.includes(anchor));
 }
 
-/** Tactile WebAudio sound effects: mechanical keystroke, error thud, rubber stamp THUNK, pen scratch, chime & desk buzz! */
-function playDeskSfx(
-  ctxRef: React.MutableRefObject<AudioContext | null>,
-  kind: "key" | "space" | "error" | "stamp" | "pen" | "chime" | "buzz",
-) {
-  const ctx = getAudioContext(ctxRef);
-  if (!ctx) return;
-  try {
-    const now = ctx.currentTime;
-    if (kind === "key" || kind === "space") {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = kind === "space" ? "sine" : "triangle";
-      osc.frequency.setValueAtTime(kind === "space" ? 190 : 760 + Math.random() * 240, now);
-      osc.frequency.exponentialRampToValueAtTime(kind === "space" ? 88 : 260, now + 0.025);
-      gain.gain.setValueAtTime(kind === "space" ? 0.032 : 0.024, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.034);
-      return;
-    }
-    if (kind === "error") {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(155, now);
-      osc.frequency.linearRampToValueAtTime(110, now + 0.11);
-      gain.gain.setValueAtTime(0.035, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.13);
-      return;
-    }
-    if (kind === "stamp") {
-      // Punchy Papers-Please rubber stamp THUNK!
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(150, now);
-      osc.frequency.exponentialRampToValueAtTime(48, now + 0.09);
-      gain.gain.setValueAtTime(0.095, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.12);
-      return;
-    }
-    if (kind === "pen") {
-      // Quick crisp red-pen slash across paper
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(980, now);
-      osc.frequency.exponentialRampToValueAtTime(420, now + 0.08);
-      gain.gain.setValueAtTime(0.03, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.1);
-      return;
-    }
-    if (kind === "chime") {
-      // Crisp 2-note academic reward chime
-      for (const [offset, freq] of [
-        [0, 587.33],
-        [0.075, 880],
-      ] as const) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, now + offset);
-        gain.gain.setValueAtTime(0.038, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.18);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + 0.2);
-      }
-      return;
-    }
-    if (kind === "buzz") {
-      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-        try {
-          navigator.vibrate([85, 55, 85]);
-        } catch {
-          // ignore
-        }
-      }
-      for (const offset of [0, 0.2]) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const filter = ctx.createBiquadFilter();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(114, now + offset);
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(320, now + offset);
-        gain.gain.setValueAtTime(0.036, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.13);
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + 0.14);
-      }
-    }
-  } catch {
-    // ignore audio blocks
-  }
+function paragraphAtIndex(text: string, index: number): string {
+  return index < 0 ? "" : (text.split(/\n\s*\n/)[index] ?? "");
 }
 
-function desktopAppIdForHint(hint?: "email" | "chat" | "bank" | "phone"): string | null {
-  if (hint === "email") return "device-mail";
-  if (hint === "bank") return "device-bank";
-  if (hint === "phone") return "browser";
-  if (hint === "chat") return "device-mail";
-  return null;
+function insertAtSelection(value: string, insertion: string, textarea: HTMLTextAreaElement | null) {
+  const start = textarea?.selectionStart ?? value.length;
+  const end = textarea?.selectionEnd ?? start;
+  const nextValue = `${value.slice(0, start)}${insertion}${value.slice(end)}`;
+  return { value: nextValue, cursor: start + insertion.length };
 }
 
+/** A small, diegetic word processor: the player revises Alex's actual manuscript, not a typing game. */
 export const ThesisPanel: React.FC<ThesisPanelProps> = ({
-  tone = "dark",
-  progress,
-  sessionMinutes,
-  sessionPercent,
-  freeWorkMaxPercent,
-  timeLeftMinutes,
-  tasks,
-  onWork,
-  onTask,
-  fatigue,
-  rest,
-  deepWork,
+  tone = "dark", progress, sessionMinutes: legacySessionMinutes, freeWorkMaxPercent, timeLeftMinutes,
+  tasks, onWork, onTask, onOpenDocument, fatigue, rest, deepWork,
 }) => {
   const { t } = useTranslation("chapter1");
-  const language = useGameLocale();
-  const isVi = language === "vi";
+  const isVi = useGameLocale() === "vi";
   const text = t as unknown as DurationText;
-  const k = TONES[tone];
-  const desktopNav = useDesktopNav();
-
-  const complete = progress >= 100;
-  const timeUp = timeLeftMinutes <= 0;
-  const atLimit = progress >= freeWorkMaxPercent;
-  const blocked = complete || timeUp || atLimit || sessionPercent < 1;
-
-  // Interactive Desk Game state (Zero passive loading bars!)
+  const [sectionId, setSectionId] = useState<ThesisSectionId>("introduction");
+  const [findingFocus, setFindingFocus] = useState<"saved-channel" | "classmate" | null>(null);
+  const [content, setContent] = useState<Record<ThesisSectionId, string>>(() => Object.fromEntries(
+    SECTIONS.map((section) => [section.id, deepWork?.state.world.thesisDraft[section.id] ?? deepWork?.documentDraft?.current.content[section.id] ?? section.initialText[isVi ? "vi" : "en"]]),
+  ) as Record<ThesisSectionId, string>);
+  const [savedContent, setSavedContent] = useState<Record<ThesisSectionId, string>>(() => Object.fromEntries(
+    SECTIONS.map((section) => [section.id, deepWork?.state.world.thesisDraft[section.id] ?? deepWork?.documentDraft?.current.savedContent[section.id] ?? section.initialText[isVi ? "vi" : "en"]]),
+  ) as Record<ThesisSectionId, string>);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [findQuery, setFindQuery] = useState("");
+  const [plannedWorkMinutes, setPlannedWorkMinutes] = useState(60);
   const [focusMode, setFocusMode] = useState<ThesisFocusMode>("normal");
-  const [stepCursor, setStepCursor] = useState(0);
-  const [stepsInSprint, setStepsInSprint] = useState(0);
-  const [earnedMinutes, setEarnedMinutes] = useState(0);
-  const [earnedWords, setEarnedWords] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [completedLog, setCompletedLog] = useState<string[]>([]);
-  const [floatingReward, setFloatingReward] = useState<{ id: number; text: string } | null>(null);
-  const [commitBanner, setCommitBanner] = useState<string | null>(null);
-
-  // Typing step state (Monkeytype accent-tolerant live matcher)
-  const [typedCount, setTypedCount] = useState(0);
-  const [wrongFlash, setWrongFlash] = useState(false);
-  const [liveWpm, setLiveWpm] = useState(0);
-  const keyTimestampsRef = useRef<number[]>([]);
-
-  // Citation drag-and-drop / click-snap state (Papers Please desk slips)
-  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const [slotHover, setSlotHover] = useState(false);
-  const [stampFeedback, setStampFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
-
-  // Proofreading red-pen state
-  const [proofErrorMsg, setProofErrorMsg] = useState<string | null>(null);
-  const [proofSolved, setProofSolved] = useState(false);
-
-  // Non-blocking desk smartphone interruption
-  const [activeInterruption, setActiveInterruption] = useState<SessionInterruption | null>(null);
-  const dismissedInterruptionsRef = useRef<Set<string>>(new Set());
-  const audioCtxRef = useRef<AudioContext | null>(null);
-
-  const currentStep: ThesisDeskStep = THESIS_DESK_STEPS[stepCursor % THESIS_DESK_STEPS.length];
-  const startElapsedMinutes = deepWork ? elapsedMinutes(deepWork.state, deepWork.scenario) : 0;
-
-  // Predict real Mission 01 interruptions for the next 120m window
-  const plannedInterruptions = useMemo(() => {
-    if (!deepWork) return [];
-    return findSessionInterruptions(deepWork.state, deepWork.scenario, 120, focusMode);
-  }, [deepWork, focusMode]);
-
-  // Simulate exact earned progress gain for display
-  const liveSimulation = useMemo(() => {
-    if (!deepWork || earnedMinutes <= 0) return null;
+  const pausedForInterruption = deepWork?.state.world.thesisWorkSession ?? null;
+  const [lastSession, setLastSession] = useState<{ minutes: number; progressGain: number; fatigueGain: number; interrupted: boolean } | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const activeSection = SECTIONS.find((section) => section.id === sectionId) ?? SECTIONS[0];
+  const activeTask = tasks.find((task) => task.id === activeSection.taskId);
+  const currentText = content[sectionId];
+  const initialText = activeSection.initialText[isVi ? "vi" : "en"];
+  const hasChanges = savedContent[sectionId] !== currentText;
+  // Require a revision to the comment's anchored paragraph, never a minimum edit length.
+  const anchor = activeSection.anchor[isVi ? "vi" : "en"];
+  const anchorParagraphIndex = paragraphIndexAtAnchor(initialText, anchor);
+  const hasRevision = paragraphAtIndex(currentText, anchorParagraphIndex) !== paragraphAtIndex(initialText, anchorParagraphIndex);
+  const findingCountNotes = RESEARCH_NOTES.filter((note) => note.id === "saved-channel" || note.id === "classmate");
+  const hasCitedFindingCount = findingCountNotes.some((note) => currentText.includes(note.text[isVi ? "vi" : "en"]))
+    || FINDING_SYNTHESIS_OPTIONS.some((option) => currentText.includes(option.text[isVi ? "vi" : "en"]));
+  const sampleLimitNote = RESEARCH_NOTES.find((note) => note.id === "sample-limit")!;
+  const hasSampleLimitation = currentText.includes(sampleLimitNote.text[isVi ? "vi" : "en"])
+    || FINDING_SYNTHESIS_OPTIONS.some((option) => currentText.includes(option.text[isVi ? "vi" : "en"]));
+  const hasRequiredFindingEvidence = sectionId !== "findings" || (hasCitedFindingCount && hasSampleLimitation);
+  const canCompleteTask = Boolean(activeTask && !activeTask.done && activeTask.blocked === null);
+  const isLocked = Boolean(activeTask && !activeTask.done && activeTask.blocked === "locked");
+  const words = useMemo(() => currentText.trim().split(/\s+/).filter(Boolean).length, [currentText]);
+  const atLimit = progress >= freeWorkMaxPercent;
+  const timeUp = timeLeftMinutes <= 0;
+  const sessionMinutes = Math.max(1, Math.min(240, timeLeftMinutes, plannedWorkMinutes));
+  const sessionSimulation = useMemo(() => {
+    if (!deepWork) return null;
     return simulateThesisSession({
-      startElapsedMinutes,
-      plannedMinutes: earnedMinutes,
+      startElapsedMinutes: elapsedMinutes(deepWork.state, deepWork.scenario),
+      plannedMinutes: sessionMinutes,
       startFatigue: deepWork.state.resources.fatigue,
-      startProgress: progress,
+      startProgress: progress + (deepWork.state.world.thesisWorkRemainderUnits ?? 0) / 1000,
       freeWorkMaxPercent,
       baseMinutesPerPercent: deepWork.baseMinutesPerPercent,
       mode: focusMode,
       fatigueConfig: deepWork.fatigueConfig,
     });
-  }, [deepWork, startElapsedMinutes, earnedMinutes, progress, freeWorkMaxPercent, focusMode]);
+  }, [deepWork, focusMode, freeWorkMaxPercent, progress, sessionMinutes]);
+  const sessionInterruptions = useMemo(() => {
+    if (!deepWork || !sessionSimulation || sessionSimulation.effectiveMinutesSpent < 1) return [];
+    return findSessionInterruptions(deepWork.state, deepWork.scenario, sessionSimulation.effectiveMinutesSpent, focusMode);
+  }, [deepWork, focusMode, sessionSimulation]);
+  const nextInterruption = sessionInterruptions.find((item) => item.atSessionMinute < (sessionSimulation?.effectiveMinutesSpent ?? 0)) ?? null;
 
-  const liveHour = useMemo(() => {
-    if (!deepWork) return 10;
-    return storyClockHourAt(startElapsedMinutes + earnedMinutes);
-  }, [deepWork, startElapsedMinutes, earnedMinutes]);
+  const updateText = useCallback((next: string) => {
+    setContent((previous) => ({ ...previous, [sectionId]: next }));
+    if (deepWork?.documentDraft) deepWork.documentDraft.current.content[sectionId] = next;
+    setSaveMessage("");
+  }, [deepWork?.documentDraft, sectionId]);
 
-  const liveClockLabel = deepWork ? formatClockFromHour(liveHour) : null;
-  const isLateNight = liveHour >= 1 && liveHour < 5.25;
-  const liveFatigue = (deepWork?.state.resources.fatigue ?? 0) + (liveSimulation?.fatigueGain ?? 0);
-  const isFatigued = liveFatigue >= 65;
+  const saveDocument = useCallback(() => {
+    if (!hasChanges || timeUp || activeTask?.blocked === "time" || activeTask?.blocked === "complete") return;
+    setSavedContent((previous) => ({ ...previous, [sectionId]: currentText }));
+    if (deepWork?.documentDraft) deepWork.documentDraft.current.savedContent[sectionId] = currentText;
+    deepWork?.onSaveDraft?.(sectionId, currentText);
+    setSaveMessage(isVi ? "Đã lưu vào thesis-draft.docx" : "Saved to thesis-draft.docx");
+  }, [activeTask, currentText, deepWork?.documentDraft, deepWork?.onSaveDraft, hasChanges, isVi, sectionId, timeUp]);
 
-  // Keep Room 6.07 & outside Saigon sky time-lapsing as Alex completes each interactive desk step!
-  useEffect(() => {
-    deepWork?.onPreviewMinutesOffset?.(earnedMinutes > 0 ? earnedMinutes : null);
-  }, [deepWork, earnedMinutes]);
+  const resolveComment = useCallback(() => {
+    if (!hasRevision || !hasRequiredFindingEvidence || !canCompleteTask || !activeTask || timeUp) return;
+    setSavedContent((previous) => ({ ...previous, [sectionId]: currentText }));
+    if (deepWork?.documentDraft) deepWork.documentDraft.current.savedContent[sectionId] = currentText;
+    deepWork?.onSaveDraft?.(sectionId, currentText);
+    setSaveMessage(isVi ? "Đã lưu vào thesis-draft.docx" : "Saved to thesis-draft.docx");
+    const appliedNotes = RESEARCH_NOTES
+      .filter((note) => note.id !== "coding-sheet" && (
+        currentText.includes(note.text[isVi ? "vi" : "en"])
+        || FINDING_SYNTHESIS_OPTIONS.some((option) => option.id === note.id && currentText.includes(option.text[isVi ? "vi" : "en"]))
+      ))
+      .map((note) => note.id as ThesisResearchNoteId);
+    onTask(activeTask.id, appliedNotes);
+  }, [activeTask, canCompleteTask, currentText, deepWork?.documentDraft, deepWork?.onSaveDraft, hasRequiredFindingEvidence, hasRevision, isVi, onTask, sectionId, timeUp]);
 
-  useEffect(() => {
-    return () => {
-      deepWork?.onPreviewMinutesOffset?.(null);
+  const jumpToComment = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const anchor = activeSection.anchor[isVi ? "vi" : "en"];
+    const index = currentText.indexOf(anchor);
+    if (index < 0) return;
+    editor.focus();
+    editor.setSelectionRange(index, index + anchor.length);
+  }, [activeSection, currentText, isVi]);
+
+  const insertNote = useCallback((note: (typeof RESEARCH_NOTES)[number]) => {
+    const inserted = insertAtSelection(currentText, note.text[isVi ? "vi" : "en"], editorRef.current);
+    updateText(inserted.value);
+    requestAnimationFrame(() => {
+      editorRef.current?.focus();
+      editorRef.current?.setSelectionRange(inserted.cursor, inserted.cursor);
+    });
+  }, [currentText, isVi, updateText]);
+
+  const insertFindingSynthesis = useCallback(() => {
+    const option = FINDING_SYNTHESIS_OPTIONS.find((candidate) => candidate.id === findingFocus);
+    if (!option || currentText.includes(option.text[isVi ? "vi" : "en"])) return;
+    const paragraphs = currentText.split(/\n\s*\n/);
+    const index = paragraphIndexAtAnchor(initialText, activeSection.anchor[isVi ? "vi" : "en"]);
+    if (index < 0 || !paragraphs[index]) return;
+    paragraphs[index] = `${paragraphs[index].trim()} ${option.text[isVi ? "vi" : "en"]}`;
+    updateText(paragraphs.join("\n\n"));
+    setFindingFocus(null);
+  }, [activeSection, currentText, findingFocus, initialText, isVi, updateText]);
+
+  const previewSessionSegment = useCallback((minutes: number, mode: ThesisFocusMode, sessionElapsedMinutes = 0) => {
+    if (!deepWork) return null;
+    const startElapsedMinutes = elapsedMinutes(deepWork.state, deepWork.scenario);
+    const input = {
+      startElapsedMinutes,
+      sessionElapsedMinutes,
+      plannedMinutes: minutes,
+      startFatigue: deepWork.state.resources.fatigue,
+      startProgress: progress + (deepWork.state.world.thesisWorkRemainderUnits ?? 0) / 1000,
+      freeWorkMaxPercent,
+      baseMinutesPerPercent: deepWork.baseMinutesPerPercent,
+      mode,
+      fatigueConfig: deepWork.fatigueConfig,
+    } as const;
+    const block = simulateThesisSession(input);
+    const interruption = findSessionInterruptions(deepWork.state, deepWork.scenario, block.effectiveMinutesSpent, mode)
+      .find((item) => item.atSessionMinute < block.effectiveMinutesSpent);
+    const spent = interruption ? Math.min(block.effectiveMinutesSpent, interruption.atSessionMinute) : block.effectiveMinutesSpent;
+    return {
+      interruption,
+      simulation: interruption ? simulateThesisSession({ ...input, plannedMinutes: spent }) : block,
     };
+  }, [deepWork, freeWorkMaxPercent, progress]);
+
+  const runWorkSession = useCallback((minutes: number, mode: ThesisFocusMode) => {
+    if (!deepWork || timeUp || atLimit || minutes < 1 || pausedForInterruption) return;
+    const preview = previewSessionSegment(minutes, mode);
+    if (!preview || preview.simulation.effectiveMinutesSpent < 1) return;
+    deepWork.onPreviewMinutesOffset?.(null);
+    // The reducer owns event ordering and stores any remainder in ChapterState; this UI estimate
+    // is only for the post-action summary, never the source of the session boundary.
+    onWork(minutes, mode);
+    setLastSession({
+      minutes: preview.simulation.effectiveMinutesSpent,
+      progressGain: preview.simulation.progressGain,
+      fatigueGain: preview.simulation.fatigueGain,
+      interrupted: preview.interruption !== null,
+    });
+  }, [atLimit, deepWork, onWork, pausedForInterruption, previewSessionSegment, timeUp]);
+
+  const resumeWorkSession = useCallback(() => {
+    if (!deepWork || !pausedForInterruption) return;
+    const preview = previewSessionSegment(
+      pausedForInterruption.remainingMinutes,
+      pausedForInterruption.mode,
+      pausedForInterruption.elapsedMinutes,
+    );
+    deepWork.onResumeSession?.();
+    if (preview) {
+      setLastSession({
+        minutes: preview.simulation.effectiveMinutesSpent,
+        progressGain: preview.simulation.progressGain,
+        fatigueGain: preview.simulation.fatigueGain,
+        interrupted: preview.interruption !== null,
+      });
+    }
+  }, [deepWork, pausedForInterruption, previewSessionSegment]);
+
+  const setSessionDuration = useCallback((value: number) => {
+    const next = Math.max(15, Math.min(240, Math.floor(value || 15)));
+    setPlannedWorkMinutes(next);
+    deepWork?.onPreviewMinutesOffset?.(next);
   }, [deepWork]);
 
-  // Trigger non-blocking desk-buzz notification when accumulated minutes cross a real Mission 01 event!
-  useEffect(() => {
-    if (!deepWork || earnedMinutes <= 0) return;
-    const hit = plannedInterruptions.find(
-      (intr) =>
-        intr.atSessionMinute <= earnedMinutes && !dismissedInterruptionsRef.current.has(intr.id),
-    );
-    if (hit && activeInterruption?.id !== hit.id) {
-      setActiveInterruption(hit);
-      playDeskSfx(audioCtxRef, "buzz");
+  const findNext = useCallback(() => {
+    const editor = editorRef.current;
+    const needle = findQuery.trim();
+    if (!editor || !needle) return;
+    const start = editor.selectionEnd;
+    const lower = currentText.toLocaleLowerCase();
+    const foundAt = lower.indexOf(needle.toLocaleLowerCase(), start);
+    const index = foundAt >= 0 ? foundAt : lower.indexOf(needle.toLocaleLowerCase());
+    if (index >= 0) {
+      editor.focus();
+      editor.setSelectionRange(index, index + needle.length);
     }
-  }, [deepWork, earnedMinutes, plannedInterruptions, activeInterruption]);
+  }, [currentText, findQuery]);
 
-  /** Commit all accumulated desk effort through deterministic chapterReducer WORK_ON_THESIS! */
-  const commitDeskSprint = useCallback(
-    (minutesToCommit: number, inspectAppHint?: "email" | "chat" | "bank" | "phone") => {
-      if (minutesToCommit <= 0) return;
-      const clamped = Math.min(Math.max(1, minutesToCommit), Math.max(1, timeLeftMinutes));
-      setEarnedMinutes(0);
-      setEarnedWords(0);
-      setStepsInSprint(0);
-      deepWork?.onPreviewMinutesOffset?.(null);
-      onWork(clamped, focusMode);
-      setCommitBanner(
-        isVi
-          ? `✓ Đã lưu phiên viết (${formatDuration(text, clamped)}) vào bản thảo!`
-          : `✓ Saved sprint (${formatDuration(text, clamped)}) to thesis draft!`,
-      );
-      window.setTimeout(() => setCommitBanner(null), 2600);
-      if (inspectAppHint) {
-        const targetAppId = desktopAppIdForHint(inspectAppHint);
-        if (targetAppId && desktopNav) {
-          desktopNav.openApp(targetAppId);
-        }
-        deepWork?.onInspectInterruption?.(inspectAppHint);
-      }
-    },
-    [deepWork, desktopNav, focusMode, isVi, onWork, text, timeLeftMinutes],
-  );
+  React.useEffect(() => () => deepWork?.onPreviewMinutesOffset?.(null), [deepWork?.onPreviewMinutesOffset]);
 
-  /** Called whenever the player nails a Type phrase, Drag-Stamps the right citation, or Slashes a Red-Pen mistake! */
-  const completeCurrentStep = useCallback(
-    (step: ThesisDeskStep, finishedSentence: string) => {
-      playDeskSfx(audioCtxRef, "chime");
-      const nextCombo = combo + 1;
-      const modeMult = focusMode === "rush" ? 1.25 : focusMode === "deep" ? 1.15 : 1.0;
-      const comboMult = 1 + Math.min(0.45, nextCombo * 0.12);
-      const minsGain = Math.round(step.minutesReward * modeMult * comboMult);
-      const wordsGain = Math.round(step.wordsReward * comboMult);
-
-      const nextEarnedMins = earnedMinutes + minsGain;
-      const nextStepsInSprint = stepsInSprint + 1;
-
-      setCombo(nextCombo);
-      setEarnedWords((w) => w + wordsGain);
-      setCompletedLog((prev) => [...prev.slice(-2), finishedSentence]);
-      setFloatingReward({
-        id: Date.now(),
-        text: isVi
-          ? `+${wordsGain} từ · COMBO ×${nextCombo}`
-          : `+${wordsGain} words · COMBO ×${nextCombo}`,
-      });
-      window.setTimeout(() => setFloatingReward(null), 1300);
-
-      // Reset per-step interactive state & advance to the next rotating challenge!
-      setTypedCount(0);
-      setSelectedCardId(null);
-      setDraggingCardId(null);
-      setStampFeedback(null);
-      setProofErrorMsg(null);
-      setProofSolved(false);
-      setStepCursor((c) => c + 1);
-
-      // Every 3 hands-on steps (or once enough minutes for >=1% thesis gain), commit automatically!
-      const minForOnePercent = deepWork?.baseMinutesPerPercent ?? 60;
-      if (nextStepsInSprint >= STEPS_PER_COMMIT || nextEarnedMins >= minForOnePercent) {
-        commitDeskSprint(Math.max(nextEarnedMins, minForOnePercent));
-      } else {
-        setEarnedMinutes(nextEarnedMins);
-        setStepsInSprint(nextStepsInSprint);
-      }
-    },
-    [combo, commitDeskSprint, deepWork, earnedMinutes, focusMode, isVi, stepsInSprint],
-  );
-
-  // Physical Keyboard Listener for Step Kind = "type" (Monkeytype accent-tolerant live matching!)
-  useEffect(() => {
-    if (!deepWork || blocked || currentStep.kind !== "type") return;
-    const displayTarget = getDisplayTargetPhrase(currentStep, isVi);
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "Escape") return;
-
-      // Tab auto-completes one word chunk for accessibility / one-handed play
-      if (e.key === "Tab") {
-        e.preventDefault();
-        const nextSpace = displayTarget.indexOf(" ", typedCount + 1);
-        const nextPos = nextSpace === -1 ? displayTarget.length : nextSpace + 1;
-        playDeskSfx(audioCtxRef, "space");
-        if (nextPos >= displayTarget.length) {
-          const sentence = `${isVi ? currentStep.leadIn.vi : currentStep.leadIn.en}${displayTarget}${isVi ? currentStep.tail.vi : currentStep.tail.en}`;
-          completeCurrentStep(currentStep, sentence);
-        } else {
-          setTypedCount(nextPos);
-        }
-        return;
-      }
-
-      if (e.key.length !== 1) return;
-      e.preventDefault();
-      const expected = displayTarget[typedCount];
-      if (!expected) return;
-
-      if (matchDeskKey(e.key, expected)) {
-        playDeskSfx(audioCtxRef, expected === " " ? "space" : "key");
-        const now = performance.now();
-        const recent = keyTimestampsRef.current.filter((ts) => now - ts < 5000);
-        recent.push(now);
-        keyTimestampsRef.current = recent;
-        setLiveWpm(Math.min(135, Math.round((recent.length / 5) * 12)));
-
-        const nextPos = typedCount + 1;
-        if (nextPos >= displayTarget.length) {
-          const sentence = `${isVi ? currentStep.leadIn.vi : currentStep.leadIn.en}${displayTarget}${isVi ? currentStep.tail.vi : currentStep.tail.en}`;
-          completeCurrentStep(currentStep, sentence);
-        } else {
-          setTypedCount(nextPos);
-        }
-      } else {
-        playDeskSfx(audioCtxRef, "error");
-        setCombo(0);
-        setWrongFlash(true);
-        window.setTimeout(() => setWrongFlash(false), 220);
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        saveDocument();
       }
     };
-
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [blocked, completeCurrentStep, currentStep, deepWork, isVi, typedCount]);
+  }, [saveDocument]);
 
-  /** Handle stamping an evidence card into the manuscript slot (works via Drag-and-Drop OR Click-Snap!). */
-  const handleApplyCitationCard = (cardId: string) => {
-    if (currentStep.kind !== "cite" || blocked) return;
-    const card = DESK_EVIDENCE_CARDS[cardId];
-    if (!card) return;
-    setSlotHover(false);
-    setDraggingCardId(null);
-
-    if (cardId === currentStep.correctCardId) {
-      playDeskSfx(audioCtxRef, "stamp");
-      setStampFeedback({
-        ok: true,
-        msg: isVi ? card.stampLabel.vi : card.stampLabel.en,
-      });
-      const sentence = `${isVi ? currentStep.beforeSlot.vi : currentStep.beforeSlot.en}${isVi ? card.stampLabel.vi : card.stampLabel.en}${isVi ? currentStep.afterSlot.vi : currentStep.afterSlot.en}`;
-      window.setTimeout(() => {
-        completeCurrentStep(currentStep, sentence);
-      }, 360);
-    } else {
-      playDeskSfx(audioCtxRef, "error");
-      setCombo(0);
-      setStampFeedback({
-        ok: false,
-        msg: card.verified
-          ? isVi
-            ? "Nguồn thật nhưng lệch chủ đề đoạn này — xem lại gợi ý!"
-            : "Verified source, but wrong section — check the slot hint!"
-          : isVi
-            ? "⚠ BẪY NGUỒN GIẢ! TS. Nguyễn sẽ đánh rớt nếu trích nguồn chưa kiểm chứng!"
-            : "⚠ FAKE SOURCE TRAP! Dr. Nguyễn rejects unverified rumors!",
-      });
-    }
-  };
-
-  /** Handle Red-Pen proofreading slash on a sentence segment. */
-  const handleProofreadSegment = (segId: string) => {
-    if (currentStep.kind !== "proofread" || blocked || proofSolved) return;
-    const seg = currentStep.segments.find((s) => s.id === segId);
-    if (!seg) return;
-
-    if (seg.isError) {
-      playDeskSfx(audioCtxRef, "pen");
-      setProofSolved(true);
-      setProofErrorMsg(null);
-      const correctedSentence = currentStep.segments
-        .map((s) =>
-          s.isError && s.correction
-            ? isVi
-              ? s.correction.vi
-              : s.correction.en
-            : isVi
-              ? s.text.vi
-              : s.text.en,
-        )
-        .join("");
-      window.setTimeout(() => {
-        completeCurrentStep(currentStep, correctedSentence);
-      }, 520);
-    } else {
-      playDeskSfx(audioCtxRef, "error");
-      setCombo(0);
-      setProofErrorMsg(
-        isVi
-          ? "Đoạn này chính xác rồi — tìm chỗ sai số liệu hoặc lời khuyên mất an toàn!"
-          : "That part is accurate — spot the wrong statistic or unsafe advice!",
-      );
-    }
-  };
-
-  /** Primary quick-action button (preserves instant deterministic Vitest behavior + 1-click assist for mouse users). */
-  const handleQuickWorkButton = () => {
-    if (blocked) return;
-    if (!deepWork || import.meta.env.MODE === "test") {
-      onWork(sessionMinutes);
-      return;
-    }
-    // If player already accumulated steps, save immediately; otherwise auto-complete current step!
-    if (earnedMinutes > 0) {
-      commitDeskSprint(Math.max(earnedMinutes, sessionMinutes));
-      return;
-    }
-    if (currentStep.kind === "type") {
-      const displayTarget = getDisplayTargetPhrase(currentStep, isVi);
-      const sentence = `${isVi ? currentStep.leadIn.vi : currentStep.leadIn.en}${displayTarget}${isVi ? currentStep.tail.vi : currentStep.tail.en}`;
-      completeCurrentStep(currentStep, sentence);
-    } else if (currentStep.kind === "cite") {
-      handleApplyCitationCard(currentStep.correctCardId);
-    } else if (currentStep.kind === "proofread") {
-      const errSeg = currentStep.segments.find((s) => s.isError);
-      if (errSeg) handleProofreadSegment(errSeg.id);
-    }
-  };
-
-  const displayProgress = Math.min(100, progress + (liveSimulation?.progressGain ?? 0));
-  const currentWords = Math.round((displayProgress / 100) * THESIS_TOTAL_WORDS) + earnedWords;
-
-  const interruptionIcon = (hint?: "email" | "chat" | "bank" | "phone") => {
-    if (hint === "email") return Mail;
-    if (hint === "bank") return Landmark;
-    if (hint === "chat") return MessageSquare;
-    return Smartphone;
-  };
-
-  // Legacy / non-deepWork fallback (for dark Schedule overlay & minimal unit tests)
-  if (!deepWork) {
+  // The schedule overlay remains a compact planning surface; actual document revisions happen in the laptop's paper-tone editor.
+  if (!deepWork || tone === "dark") {
     return (
-      <section aria-labelledby="thesis-panel-heading" data-testid="thesis-panel" className={k.card}>
-        <h3 id="thesis-panel-heading" className={`${k.label} flex items-center gap-2`}>
-          <GraduationCap className="h-4 w-4" aria-hidden="true" />
-          {t("planner.thesis.heading")}
-        </h3>
-        <p className={`mt-2 text-sm font-medium ${k.text}`} data-testid="thesis-progress">
-          {t("planner.thesis.progress", { value: progress })}
-        </p>
-        <p className={`mt-1 text-xs ${k.muted}`} data-testid="thesis-limit">
-          {t("planner.thesis.limit", { percent: freeWorkMaxPercent })}
-        </p>
-        <p className={`${k.body} mt-2`}>
-          {t("planner.thesis.session", {
-            time: formatDuration(text, sessionMinutes),
-            percent: sessionPercent,
-          })}
-        </p>
-        <button
-          type="button"
-          className={`${k.primary} mt-2`}
-          disabled={blocked}
-          data-testid="thesis-work"
-          onClick={() => onWork(sessionMinutes)}
-        >
-          {t("planner.thesis.work", { time: formatDuration(text, sessionMinutes) })}
-        </button>
-        {fatigue !== undefined && fatigue.level !== "rested" && (
-          <p className={`${k.body} mt-2`} data-testid="thesis-fatigue">
-            {t(`planner.thesis.fatigueNote.${fatigue.level}`, { percent: fatigue.slowdownPercent })}
-          </p>
-        )}
-        {rest !== undefined && (
-          <div className="mt-3" data-testid="rest-panel">
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className={k.secondary} disabled={timeUp} data-testid="rest-nap" onClick={() => rest.onRest("nap")}>
-                {t("planner.thesis.nap", { time: formatDuration(text, rest.napMinutes) })}
-              </button>
-              <button type="button" className={k.secondary} disabled={timeUp} data-testid="rest-sleep" onClick={() => rest.onRest("sleep")}>
-                {t("planner.thesis.sleep", { time: formatDuration(text, rest.sleepMinutes) })}
-              </button>
-            </div>
-          </div>
-        )}
-        {tasks.length > 0 && (
-          <ul className="mt-3 space-y-1.5">
-            {tasks.map((task) => (
-              <li key={task.id} className="space-y-0.5">
-                <button
-                  type="button"
-                  className={k.secondary}
-                  disabled={task.blocked !== null}
-                  data-testid={`thesis-task-${task.id}`}
-                  onClick={() => onTask(task.id)}
-                >
-                  {task.label}
-                </button>
-                {task.blocked !== null && (
-                  <p className={`text-xs ${k.muted}`}>
-                    {t(`planner.thesis.blocked.${task.blocked}`)}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+      <section aria-labelledby="thesis-panel-heading" data-testid="thesis-panel" className={tone === "dark" ? UI.card : ""}>
+        <h3 id="thesis-panel-heading" className={tone === "dark" ? UI.label : "text-sm font-semibold text-slate-700"}>{t("planner.thesis.heading")}</h3>
+        <p className="mt-2 text-sm" data-testid="thesis-progress">{t("planner.thesis.progress", { value: progress })}</p>
+        <p className="mt-1 text-xs text-slate-500" data-testid="thesis-limit">{t("planner.thesis.limit")}</p>
+        <p className="mt-1 text-xs text-slate-500">{t("planner.thesis.session", { time: formatDuration(text, legacySessionMinutes) })}</p>
+        <p className="mt-2 text-xs">{isVi ? "Mở bản thảo trên laptop để đọc nhận xét và chỉnh sửa nội dung." : "Open the draft on your laptop to review comments and revise the document."}</p>
+        {onOpenDocument && <button type="button" className={`${UI.buttonPrimary} mt-3`} data-testid="thesis-open-document" onClick={() => onOpenDocument()}>{isVi ? "Mở bản thảo" : "Open thesis draft"}</button>}
+        {fatigue && fatigue.level !== "rested" && <p className="mt-2 text-xs" data-testid="thesis-fatigue">{t(`planner.thesis.fatigueNote.${fatigue.level}`, { percent: fatigue.slowdownPercent })}</p>}
+        {rest && <div className="mt-3 flex gap-2" data-testid="rest-panel"><button type="button" data-testid="rest-nap" disabled={timeUp} onClick={() => rest.onRest("nap")}>{t("planner.thesis.nap", { time: formatDuration(text, rest.napMinutes) })}</button><button type="button" data-testid="rest-sleep" disabled={timeUp} onClick={() => rest.onRest("sleep")}>{t("planner.thesis.sleep", { time: formatDuration(text, rest.sleepMinutes) })}</button></div>}
       </section>
     );
   }
 
-  // Cards displayed on the right-hand Research Desk tray
-  const deskCards: DeskEvidenceCard[] =
-    currentStep.kind === "cite"
-      ? currentStep.cardIds.map((id) => DESK_EVIDENCE_CARDS[id]).filter(Boolean)
-      : [DESK_EVIDENCE_CARDS.minh_csv, DESK_EVIDENCE_CARDS.ueh_report, DESK_EVIDENCE_CARDS.coba_interview];
+  const completedSections = tasks.filter((task) => task.done).length;
+  const pageTone = tone === "paper" ? "bg-[#f8fafc] text-[#253247]" : "bg-[#111b2b] text-slate-100";
+  const mutedTone = tone === "paper" ? "text-slate-500" : "text-slate-400";
+  const borderTone = tone === "paper" ? "border-slate-200" : "border-white/10";
+  const translate = (value: Localized) => value[isVi ? "vi" : "en"];
 
   return (
-    <section
-      aria-labelledby="thesis-panel-heading"
-      data-testid="thesis-panel"
-      className={`${k.card} flex h-full flex-col gap-2.5`}
-    >
-      {/* Compact Top Status Ribbon (zero wasted vertical space!) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2 dark:border-white/10">
-        <div className="flex items-center gap-2.5">
-          <h3 id="thesis-panel-heading" className={`${k.label} flex items-center gap-1.5`}>
-            <GraduationCap className="h-4 w-4" aria-hidden="true" />
-            {t("planner.thesis.heading")}
-          </h3>
-          <span className={`text-xs font-bold ${k.text}`} data-testid="thesis-progress">
-            {t("planner.thesis.progress", { value: displayProgress })}
-          </span>
-          <span className={`text-[11px] ${k.muted}`} data-testid="thesis-limit">
-            ({t("planner.thesis.limit", { percent: freeWorkMaxPercent })})
-          </span>
-        </div>
+    <section aria-labelledby="thesis-panel-heading" data-testid="thesis-panel" className={`flex h-full min-h-0 flex-col overflow-hidden rounded-lg ${pageTone}`}>
+      <div className={`flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2 ${borderTone} bg-white/70 text-slate-700`}>
+        <div className="flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-blue-700" /><h3 id="thesis-panel-heading" className="truncate text-xs font-semibold" data-testid="thesis-progress">thesis-draft.docx</h3></div>
+        <div className="flex shrink-0 items-center gap-3 text-[10px] text-slate-500"><span className="flex items-center gap-1" data-testid="thesis-save-status">{hasChanges ? <Clock3 className="h-3 w-3 text-amber-600" /> : <Check className="h-3 w-3 text-emerald-600" />}{saveMessage || (hasChanges ? (isVi ? "Chưa lưu thay đổi" : "Unsaved changes") : (isVi ? "Đã lưu" : "Saved"))}</span><span className="hidden sm:inline">{isVi ? `Tiến độ ${Math.round(progress)}%` : `Progress ${Math.round(progress)}%`}</span></div>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono font-semibold text-slate-700">
-            {currentWords.toLocaleString()} / {THESIS_TOTAL_WORDS.toLocaleString()} {isVi ? "từ" : "w"}
-          </span>
-          {combo > 0 && (
-            <span className="flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 font-mono font-bold text-emerald-700">
-              <Zap className="h-3 w-3" />
-              COMBO ×{combo}
-            </span>
-          )}
-          {liveWpm > 0 && (
-            <span className="rounded-md bg-indigo-500/12 px-2 py-0.5 font-mono font-semibold text-indigo-700">
-              {liveWpm} WPM
-            </span>
-          )}
-          {liveClockLabel && (
-            <span
-              className={`flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-semibold ${
-                isLateNight ? "bg-amber-500/20 text-amber-800" : "bg-slate-100 text-slate-700"
-              }`}
-            >
-              {isLateNight ? <Moon className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-              {liveClockLabel}
-            </span>
-          )}
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-[#f1f4f9] px-3 py-1.5 text-[10px] text-slate-600">
+        <span className="text-[9px] font-medium uppercase tracking-wide text-slate-400">{isVi ? "Đang chỉnh sửa" : "Document editor"}</span>
+        <div className="ml-auto flex min-w-0 items-center gap-1.5">
+          <div className="flex h-7 min-w-0 items-center gap-1 rounded-md border border-[#d9e0eb] bg-white px-1.5"><Search className="h-3 w-3 shrink-0 text-slate-400" /><input aria-label={isVi ? "Tìm trong tài liệu" : "Find in document"} value={findQuery} onChange={(event) => setFindQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") findNext(); }} placeholder={isVi ? "Tìm" : "Find"} className="w-16 bg-transparent text-[10px] text-slate-700 outline-none sm:w-28" /><button type="button" aria-label={isVi ? "Tìm tiếp" : "Find next"} onClick={findNext} className="shrink-0 text-[10px] font-medium text-blue-700">↵</button></div>
+          <button type="button" data-testid="thesis-save" onClick={saveDocument} disabled={!hasChanges || timeUp || activeTask?.blocked === "time" || activeTask?.blocked === "complete"} className="flex h-7 shrink-0 items-center gap-1.5 rounded-md bg-[#315aa8] px-2.5 text-[10px] font-semibold text-white hover:bg-[#274b91] disabled:cursor-not-allowed disabled:bg-slate-300"><Save className="h-3 w-3" />{isVi ? "Lưu" : "Save"}</button>
         </div>
       </div>
 
-      {/* Main 2-Column Interactive Desk (fits completely on screen — ZERO scrolling!) */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[1.48fr_1fr]">
-        {/* LEFT PANE: LIVING INTERACTIVE WORD MANUSCRIPT */}
-        <div
-          className={`${k.paper} relative flex flex-col justify-between transition-all duration-300`}
-          style={
-            combo >= 2
-              ? { boxShadow: "0 0 0 1.5px rgba(16,185,129,0.5), 0 8px 24px -12px rgba(16,185,129,0.35)" }
-              : isLateNight || isFatigued
-                ? { backgroundColor: tone === "paper" ? "#fffaf0" : undefined }
-                : undefined
-          }
-        >
-          {/* Floating Combo Reward Pop */}
-          {floatingReward && (
-            <div className="pointer-events-none absolute top-3 right-3 z-10 animate-bounce rounded-full bg-emerald-600 px-3 py-1 font-mono text-xs font-bold text-white shadow-md">
-              {floatingReward.text}
-            </div>
-          )}
-
-          <div>
-            {/* Document Section Header + Mode Indicator */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
-              <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-[#1e3a8a]">
-                <FileText className="h-3.5 w-3.5 text-[#3a63c2]" />
-                thesis-draft.docx — {isVi ? currentStep.sectionTitle.vi : currentStep.sectionTitle.en}
-              </span>
-              <span
-                className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                  currentStep.kind === "type"
-                    ? "bg-indigo-100 text-indigo-800"
-                    : currentStep.kind === "cite"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-rose-100 text-rose-800"
-                }`}
-              >
-                {currentStep.kind === "type" ? (
-                  <>
-                    <Keyboard className="h-3 w-3" />
-                    {isVi ? "Gõ bàn phím thật" : "Live Typing"}
-                  </>
-                ) : currentStep.kind === "cite" ? (
-                  <>
-                    <Stamp className="h-3 w-3" />
-                    {isVi ? "Kéo thả dẫn chứng" : "Stamp Citation"}
-                  </>
-                ) : (
-                  <>
-                    <PenTool className="h-3 w-3" />
-                    {isVi ? "Bút đỏ soát lỗi" : "Red-Pen Edit"}
-                  </>
-                )}
-              </span>
-            </div>
-
-            {/* Recently Completed Manuscript Sentences (shows real thesis growing line by line!) */}
-            {completedLog.length > 0 && (
-              <div className="mt-2.5 space-y-1.5 border-l-2 border-emerald-400/70 pl-2.5 font-serif text-[12px] leading-relaxed text-slate-500">
-                {completedLog.map((line, i) => (
-                  <p key={i} className="line-clamp-2">
-                    {line}
-                  </p>
-                ))}
-              </div>
-            )}
-
-            {/* ACTIVE INTERACTIVE CHALLENGE RIGHT ON THE PAPER */}
-            {!blocked ? (
-              <div className="mt-3">
-                {/* MODE 1: MONKEYTYPE ACCENT-TOLERANT LIVE KEYBOARD DRAFTING */}
-                {currentStep.kind === "type" && (() => {
-                  const target = getDisplayTargetPhrase(currentStep, isVi);
-                  const typedPart = target.slice(0, typedCount);
-                  const activeChar = target[typedCount] ?? "";
-                  const remainingPart = target.slice(typedCount + 1);
-                  return (
-                    <div
-                      className={`rounded-xl border p-3.5 transition ${
-                        wrongFlash
-                          ? "border-rose-400 bg-rose-50/70"
-                          : "border-indigo-200/90 bg-indigo-50/35"
-                      }`}
-                      data-testid="desk-challenge-type"
-                    >
-                      <p className="font-serif text-[15px] leading-7 text-slate-800">
-                        <span>{isVi ? currentStep.leadIn.vi : currentStep.leadIn.en}</span>
-                        <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[15px] font-bold shadow-xs">
-                          <span className="text-emerald-700">{typedPart}</span>
-                          {activeChar && (
-                            <span
-                              className={`rounded px-0.5 ${
-                                wrongFlash
-                                  ? "bg-rose-500 text-white"
-                                  : "bg-[#3a63c2] text-white"
-                              }`}
-                            >
-                              {activeChar === " " ? "␣" : activeChar}
-                            </span>
-                          )}
-                          <span className="text-slate-400">{remainingPart}</span>
-                        </span>
-                        <span className="text-slate-400">
-                          {isVi ? currentStep.tail.vi : currentStep.tail.en}
-                        </span>
-                      </p>
-                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-                        <span>
-                          {isVi
-                            ? "⌨️ Gõ thẳng cụm chữ in đậm trên bàn phím (không cần gõ dấu vẫn nhận!) · [Tab] điền nhanh 1 từ"
-                            : "⌨️ Type the highlighted phrase on your keyboard · [Tab] auto-fills next word"}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* MODE 2: PAPERS-PLEASE DRAG-AND-DROP EVIDENCE CITATION STAMP */}
-                {currentStep.kind === "cite" && (
-                  <div
-                    className="rounded-xl border border-amber-200/90 bg-amber-50/35 p-3.5"
-                    data-testid="desk-challenge-cite"
-                  >
-                    <p className="font-serif text-[15px] leading-8 text-slate-800">
-                      <span>{isVi ? currentStep.beforeSlot.vi : currentStep.beforeSlot.en}</span>
-                      <span
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          setSlotHover(true);
-                        }}
-                        onDragLeave={() => setSlotHover(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const droppedId = e.dataTransfer.getData("text/plain") || draggingCardId;
-                          if (droppedId) handleApplyCitationCard(droppedId);
-                        }}
-                        onClick={() => {
-                          if (selectedCardId) handleApplyCitationCard(selectedCardId);
-                        }}
-                        className={`mx-1 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-dashed px-2.5 py-0.5 font-sans text-xs font-bold transition ${
-                          stampFeedback?.ok
-                            ? "border-emerald-500 bg-emerald-100 text-emerald-800"
-                            : slotHover || selectedCardId
-                              ? "border-emerald-500 bg-emerald-50 text-emerald-700 scale-[1.03]"
-                              : "border-amber-400 bg-amber-100/70 text-amber-900"
-                        }`}
-                      >
-                        <Stamp className="h-3.5 w-3.5" />
-                        {stampFeedback?.ok
-                          ? stampFeedback.msg
-                          : isVi
-                            ? currentStep.slotHint.vi
-                            : currentStep.slotHint.en}
-                      </span>
-                      <span>{isVi ? currentStep.afterSlot.vi : currentStep.afterSlot.en}</span>
-                    </p>
-                    {stampFeedback && !stampFeedback.ok ? (
-                      <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800">
-                        <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                        {stampFeedback.msg}
-                      </p>
-                    ) : (
-                      <p className="mt-2 text-[11px] text-amber-900/80">
-                        {isVi
-                          ? "📄 Kéo thẻ tài liệu đúng ở bàn bên phải thả vào ô vàng (hoặc bấm chọn thẻ rồi bấm vào ô) — coi chừng bẫy nguồn giả!"
-                          : "📄 Drag the matching verified slip from the right desk into the amber slot (or click slip → click slot) — watch for fake sources!"}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* MODE 3: RED-PEN PROOFREADING (SPOT & SLASH THE MISTAKE) */}
-                {currentStep.kind === "proofread" && (
-                  <div
-                    className="rounded-xl border border-rose-200/90 bg-rose-50/35 p-3.5"
-                    data-testid="desk-challenge-proofread"
-                  >
-                    <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-rose-800">
-                      <PenTool className="h-3.5 w-3.5" />
-                      {isVi ? currentStep.instruction.vi : currentStep.instruction.en}
-                    </p>
-                    <p className="font-serif text-[15px] leading-8 text-slate-800">
-                      {currentStep.segments.map((seg) => {
-                        const segText = isVi ? seg.text.vi : seg.text.en;
-                        if (proofSolved && seg.isError && seg.correction) {
-                          return (
-                            <span key={seg.id} className="mx-0.5 inline-flex flex-wrap items-baseline gap-1.5">
-                              <span className="text-rose-500 line-through decoration-2">{segText}</span>
-                              <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-xs font-bold text-emerald-800">
-                                ✓ {isVi ? seg.correction.vi : seg.correction.en}
-                              </span>
-                            </span>
-                          );
-                        }
-                        return (
-                          <button
-                            key={seg.id}
-                            type="button"
-                            onClick={() => handleProofreadSegment(seg.id)}
-                            className="mx-0.5 inline cursor-pointer rounded px-1 py-0.5 underline decoration-rose-400/70 decoration-wavy underline-offset-4 transition hover:bg-rose-200/65"
-                          >
-                            {segText}
-                          </button>
-                        );
-                      })}
-                    </p>
-                    {proofErrorMsg && (
-                      <p className="mt-2 text-xs font-semibold text-rose-700">{proofErrorMsg}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
-                {complete
-                  ? t("planner.thesis.complete")
-                  : timeUp
-                    ? t("planner.thesis.timeUp")
-                    : isVi
-                      ? "Đã đạt giới hạn viết tự do — hoàn thành nhiệm vụ bên phải để mở khóa phần cuối!"
-                      : "Reached free-drafting cap — complete a thesis task on the right to unlock the final stretch!"}
-              </div>
-            )}
+      {deepWork && <section className="shrink-0 border-b border-slate-200 bg-[#f7f9fc] px-3 py-2.5" data-testid="thesis-session-planner">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[145px] flex-1">
+            <div className="flex items-center justify-between gap-2"><label htmlFor="thesis-session-duration" className="text-[10px] font-semibold text-slate-700">{isVi ? "Phiên làm việc" : "Work session"}</label><div className="flex items-center gap-1"><input id="thesis-session-duration" aria-label={isVi ? "Số phút làm luận văn" : "Thesis work minutes"} data-testid="thesis-session-minutes" type="number" min={Math.min(15, Math.max(1, timeLeftMinutes))} max={Math.min(240, timeLeftMinutes)} step={1} value={sessionMinutes} onChange={(event) => setSessionDuration(Number(event.target.value))} className="w-14 rounded border border-slate-300 bg-white px-1.5 py-1 text-right text-[10px] text-slate-700" /><span className="text-[9px] text-slate-500">{isVi ? "phút" : "min"}</span></div></div>
+            <input aria-label={isVi ? "Thanh chọn thời lượng làm luận văn" : "Thesis session length slider"} data-testid="thesis-session-slider" type="range" min={Math.min(15, Math.max(1, timeLeftMinutes))} max={Math.max(1, Math.min(240, timeLeftMinutes))} step={1} value={sessionMinutes} onChange={(event) => setSessionDuration(Number(event.target.value))} className="mt-1 w-full accent-blue-700" />
           </div>
-
-          {/* Bottom Bar of the Word Page: Sprint Progress Dots + Save/Assist Action */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 pt-2.5">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className={`h-2.5 w-6 rounded-full transition-all ${
-                      i < stepsInSprint ? "bg-emerald-500" : "bg-slate-200"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="font-mono text-[11px] font-semibold text-slate-600">
-                {stepsInSprint}/{STEPS_PER_COMMIT} {isVi ? "chặng" : "blocks"}
-                {earnedMinutes > 0 && ` (+${earnedMinutes}m)`}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {commitBanner && (
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  {commitBanner}
-                </span>
-              )}
-              <button
-                type="button"
-                className={k.primary}
-                disabled={blocked}
-                data-testid="thesis-work"
-                onClick={handleQuickWorkButton}
-              >
-                <FileCheck2 className="h-3.5 w-3.5" />
-                {earnedMinutes > 0
-                  ? isVi
-                    ? `Lưu tiến độ (+${earnedMinutes}p)`
-                    : `Save Draft (+${earnedMinutes}m)`
-                  : isVi
-                    ? "Hoàn thành nhanh bước này"
-                    : "Quick-Complete Step"}
-              </button>
-            </div>
+          <div className="flex items-center gap-1" role="group" aria-label={isVi ? "Chọn nhịp làm việc" : "Choose work pace"}>
+            {(["normal", "deep", "rush"] as const).map((mode) => <button key={mode} type="button" data-testid={`thesis-focus-${mode}`} aria-pressed={focusMode === mode} onClick={() => setFocusMode(mode)} className={`rounded-md border px-2 py-1.5 text-[9px] font-semibold ${focusMode === mode ? "border-blue-600 bg-blue-50 text-blue-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{mode === "normal" ? (isVi ? "Bình thường" : "Steady") : mode === "deep" ? (isVi ? "Tập trung sâu" : "Deep focus") : (isVi ? "Nước rút" : "Sprint")}</button>)}
           </div>
+          <button type="button" data-testid="thesis-start-session" disabled={!sessionSimulation || sessionSimulation.effectiveMinutesSpent < 1 || Boolean(pausedForInterruption) || atLimit || timeUp} onClick={() => runWorkSession(sessionMinutes, focusMode)} className="rounded-md bg-[#315aa8] px-3 py-2 text-[10px] font-semibold text-white hover:bg-[#274b91] disabled:cursor-not-allowed disabled:bg-slate-300">{isVi ? `Bắt đầu ${sessionMinutes} phút` : `Start ${sessionMinutes}-min block`}</button>
         </div>
-
-        {/* RIGHT PANE: ALEX'S PHYSICAL RESEARCH DESK (Evidence Slips + Focus Mode + Rest + Non-Blocking Phone Buzz) */}
-        <div className="flex min-h-0 flex-col gap-2.5">
-          {/* Draggable Papers-Please Evidence Slips Tray */}
-          <div className={`${k.surface} flex flex-col gap-1.5`}>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                {isVi ? "Tài liệu trên bàn (Kéo thả)" : "Desk Evidence Slips (Drag)"}
-              </span>
-              {currentStep.kind === "cite" && (
-                <span className="animate-pulse rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                  {isVi ? "ĐANG CẦN CHÈN!" : "DROP NEEDED!"}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              {deskCards.map((card) => {
-                const isSelected = selectedCardId === card.id;
-                const activeCite = currentStep.kind === "cite";
-                return (
-                  <div
-                    key={card.id}
-                    draggable={activeCite}
-                    onDragStart={(e) => {
-                      setDraggingCardId(card.id);
-                      e.dataTransfer.setData("text/plain", card.id);
-                    }}
-                    onDragEnd={() => {
-                      setDraggingCardId(null);
-                      setSlotHover(false);
-                    }}
-                    onClick={() => {
-                      if (!activeCite) return;
-                      if (isSelected) {
-                        handleApplyCitationCard(card.id);
-                      } else {
-                        setSelectedCardId(card.id);
-                      }
-                    }}
-                    className={`flex items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition ${
-                      activeCite ? "cursor-grab active:cursor-grabbing" : "opacity-80"
-                    } ${
-                      isSelected
-                        ? "border-[#3a63c2] bg-indigo-50 ring-1 ring-[#3a63c2]"
-                        : "border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/40"
-                    }`}
-                  >
-                    <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`rounded px-1 py-0.2 font-mono text-[9px] font-bold ${
-                            card.verified
-                              ? "bg-slate-800 text-white"
-                              : "bg-amber-200 text-amber-950"
-                          }`}
-                        >
-                          {card.badge}
-                        </span>
-                        <span className="truncate text-xs font-bold text-slate-800">
-                          {isVi ? card.title.vi : card.title.en}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-[10.5px] leading-snug text-slate-500">
-                        {isVi ? card.detail.vi : card.detail.en}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Compact Focus Mode + Fatigue/Rest Strip */}
-          <div className={`${k.surface} space-y-2`}>
-            <div className="grid grid-cols-3 gap-1">
-              {(
-                [
-                  { id: "normal", icon: Sparkles, en: "Normal", vi: "Thường" },
-                  { id: "deep", icon: BellOff, en: "Deep", vi: "Úp máy" },
-                  { id: "rush", icon: Flame, en: "Sprint", vi: "Nước rút" },
-                ] as const
-              ).map((item) => {
-                const Icon = item.icon;
-                const active = focusMode === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    disabled={blocked}
-                    onClick={() => setFocusMode(item.id)}
-                    className={`flex cursor-pointer items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-[11px] font-semibold transition ${
-                      active ? k.chipActive : k.chipIdle
-                    }`}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {isVi ? item.vi : item.en}
-                  </button>
-                );
-              })}
-            </div>
-
-            {fatigue !== undefined && fatigue.level !== "rested" && (
-              <p className="text-[11px] font-medium text-amber-700" data-testid="thesis-fatigue">
-                {t(`planner.thesis.fatigueNote.${fatigue.level}`, {
-                  percent: fatigue.slowdownPercent,
-                })}
-              </p>
-            )}
-
-            {rest !== undefined && (
-              <div className="flex flex-wrap gap-1.5" data-testid="rest-panel">
-                <button
-                  type="button"
-                  className={`${k.secondary} flex-1 justify-center`}
-                  disabled={timeUp}
-                  data-testid="rest-nap"
-                  onClick={() => rest.onRest("nap")}
-                >
-                  {t("planner.thesis.nap", { time: formatDuration(text, rest.napMinutes) })}
-                </button>
-                <button
-                  type="button"
-                  className={`${k.secondary} flex-1 justify-center`}
-                  disabled={timeUp}
-                  data-testid="rest-sleep"
-                  onClick={() => rest.onRest("sleep")}
-                >
-                  {t("planner.thesis.sleep", { time: formatDuration(text, rest.sleepMinutes) })}
-                </button>
-              </div>
-            )}
-
-            {tasks.length > 0 && (
-              <div className="space-y-1 border-t border-slate-200/80 pt-1.5">
-                {tasks.map((task) => (
-                  <div key={task.id} className="space-y-0.5">
-                    <button
-                      type="button"
-                      className={`${k.secondary} w-full justify-between text-[11px]`}
-                      disabled={task.blocked !== null}
-                      data-testid={`thesis-task-${task.id}`}
-                      onClick={() => onTask(task.id)}
-                    >
-                      <span className="truncate">{task.label}</span>
-                      <span className="font-mono font-bold text-[#3a63c2]">+{task.progressGain}%</span>
-                    </button>
-                    {task.blocked !== null && (
-                      <p className="text-[10px] text-slate-500">
-                        {t(`planner.thesis.blocked.${task.blocked}`)}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Non-Blocking Diegetic Desk Phone Notification (Never covers the paper!) */}
-          {activeInterruption && (
-            <div
-              className={`rounded-xl border p-2.5 text-white shadow-lg ${
-                activeInterruption.urgent
-                  ? "border-rose-400/70 bg-gradient-to-r from-slate-950 to-rose-950"
-                  : "border-amber-400/60 bg-slate-950"
-              }`}
-              data-testid="thesis-interruption"
-            >
-              <div className="flex items-center justify-between gap-1.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold">
-                  {React.createElement(interruptionIcon(activeInterruption.appHint), {
-                    className: "h-3.5 w-3.5 text-amber-300",
-                  })}
-                  <span className="truncate">
-                    {isVi ? activeInterruption.title.vi : activeInterruption.title.en}
-                  </span>
-                </div>
-                {activeInterruption.urgent && (
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-400" />
-                )}
-              </div>
-              <div className="mt-2 flex gap-1.5">
-                <button
-                  type="button"
-                  className="flex-1 cursor-pointer rounded-md bg-amber-400 px-2 py-1 text-[11px] font-bold text-slate-950 hover:bg-amber-300"
-                  onClick={() =>
-                    commitDeskSprint(Math.max(1, earnedMinutes), activeInterruption.appHint)
-                  }
-                >
-                  {isVi ? "Lưu & Mở ngay" : "Save & Check"}
-                </button>
-                <button
-                  type="button"
-                  className="cursor-pointer rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[11px] text-white/90 hover:bg-white/20"
-                  onClick={() => {
-                    dismissedInterruptionsRef.current.add(activeInterruption.id);
-                    setActiveInterruption(null);
-                  }}
-                >
-                  {isVi ? "Úp máy" : "Ignore"}
-                </button>
-              </div>
-            </div>
-          )}
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] leading-relaxed text-slate-600" data-testid="thesis-session-preview">
+          <span>{isVi ? `Dự kiến +${sessionSimulation?.progressGain ?? 0}% (~${sessionSimulation?.wordsGain ?? 0} từ)` : `Estimated +${sessionSimulation?.progressGain ?? 0}% (~${sessionSimulation?.wordsGain ?? 0} words)`}</span>
+          {fatigue && <span>{isVi ? `Mệt mỏi +${sessionSimulation?.fatigueGain ?? 0}` : `Fatigue +${sessionSimulation?.fatigueGain ?? 0}`}</span>}
+          <span>{isVi ? `Nhịp Flow ${sessionSimulation?.peakFlowMinutes ?? 0}p · quá tải ${sessionSimulation?.burnoutMinutes ?? 0}p` : `Flow ${sessionSimulation?.peakFlowMinutes ?? 0}m · burnout ${sessionSimulation?.burnoutMinutes ?? 0}m`}</span>
+          {nextInterruption && <span className="font-medium text-amber-800">{isVi ? "Có thể bị ngắt giữa phiên" : "An interruption may break this block"}</span>}
         </div>
+        <p className="mt-1 text-[9px] text-slate-500">{focusMode === "normal" ? (isVi ? "Nhịp cân bằng; thông báo thường vẫn có thể chen vào." : "Balanced pace; routine notifications may interrupt.") : focusMode === "deep" ? (isVi ? "Tắt thông báo thường; cảnh báo khẩn vẫn có thể ngắt phiên." : "Routine notifications are muted; urgent alerts can still break through.") : (isVi ? "Khởi động nhanh nhưng xuống sức sớm và dễ quá tải." : "Fast start, but fatigue rises quickly and burnout comes sooner.")}</p>
+        {pausedForInterruption && <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2.5" data-testid="thesis-session-interruption">
+          <p className="text-[10px] font-semibold text-amber-950">{pausedForInterruption.interruption.title[isVi ? "vi" : "en"]} · {isVi ? `phút ${pausedForInterruption.interruption.atSessionMinute}` : `minute ${pausedForInterruption.interruption.atSessionMinute}`}</p>
+          <p className="mt-1 text-[9px] leading-relaxed text-amber-900">{pausedForInterruption.interruption.body[isVi ? "vi" : "en"]}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {pausedForInterruption.interruption.appHint && <button type="button" data-testid="thesis-check-interruption" onClick={() => { const hint = pausedForInterruption.interruption.appHint; deepWork.onInspectInterruption?.(hint); }} className="rounded bg-amber-800 px-2 py-1 text-[9px] font-semibold text-white">{isVi ? "Mở điện thoại kiểm tra" : "Check on phone"}</button>}
+            {pausedForInterruption.interruption.kind === "eye_strain" && rest && <button type="button" data-testid="thesis-interruption-rest" disabled={timeUp} onClick={() => rest.onRest("nap")} className="rounded border border-amber-300 bg-white px-2 py-1 text-[9px] font-semibold text-amber-950 disabled:opacity-50">{isVi ? `Nghỉ ${rest.napMinutes} phút` : `Take ${rest.napMinutes}-min break`}</button>}
+            {pausedForInterruption.remainingMinutes > 0 && <button type="button" data-testid="thesis-resume-session" onClick={resumeWorkSession} className="rounded border border-amber-300 bg-white px-2 py-1 text-[9px] font-semibold text-amber-950">{isVi ? `Bỏ qua, viết tiếp ${pausedForInterruption.remainingMinutes} phút` : `Ignore and resume ${pausedForInterruption.remainingMinutes} min`}</button>}
+            <button type="button" data-testid="thesis-end-session" onClick={() => deepWork.onEndSession?.()} className="rounded border border-amber-300 bg-white px-2 py-1 text-[9px] text-amber-950">{isVi ? "Kết thúc phiên" : "End session"}</button>
+          </div>
+        </div>}
+        {lastSession && <p className={`mt-2 text-[9px] ${lastSession.interrupted ? "text-amber-800" : "text-emerald-700"}`} data-testid="thesis-last-session">{isVi ? `Đã làm ${lastSession.minutes} phút · +${lastSession.progressGain}% · mệt mỏi +${lastSession.fatigueGain}${lastSession.interrupted ? " · bị ngắt" : ""}` : `Worked ${lastSession.minutes} min · +${lastSession.progressGain}% · fatigue +${lastSession.fatigueGain}${lastSession.interrupted ? " · interrupted" : ""}`}</p>}
+      </section>}
+
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(130px,auto)] overflow-hidden md:grid-cols-[118px_minmax(0,1fr)_210px] md:grid-rows-1">
+        <aside className={`hidden border-r p-2.5 md:block ${borderTone}`}>
+          <div className={`mb-2 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide ${mutedTone}`}><BookOpen className="h-3 w-3" />{isVi ? "Điều hướng" : "Navigation"}</div>
+          <div className="space-y-0.5">{SECTIONS.map((section, index) => {
+            const task = tasks.find((item) => item.id === section.taskId);
+            const selected = section.id === sectionId;
+            return <button key={section.id} type="button" onClick={() => { setSectionId(section.id); setSaveMessage(""); }} className={`flex w-full items-start gap-1.5 rounded-md px-2 py-2 text-left text-[10px] leading-snug ${selected ? "bg-blue-50 font-semibold text-blue-800" : "text-slate-600 hover:bg-white/70"}`}>
+              {task?.done ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" /> : <span className="mt-0.5 w-3 shrink-0 text-center text-slate-400">{index + 1}</span>}<span>{translate(section.heading)}</span>
+            </button>;
+          })}</div>
+          <div className={`mt-4 border-t pt-3 ${borderTone}`}><div className={`mb-1.5 text-[9px] font-semibold uppercase tracking-wide ${mutedTone}`}>{isVi ? "Tiến độ bản thảo" : "Draft status"}</div><div className="h-1.5 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-blue-600 transition-[width]" style={{ width: `${Math.min(100, progress)}%` }} /></div><p className="mt-1 text-[9px] text-slate-500">{Math.round(progress)}% · {completedSections}/3 {isVi ? "lượt sửa đã xong" : "revisions complete"}</p></div>
+        </aside>
+
+        <main className="thesis-scroll min-h-0 min-w-0 overflow-y-auto bg-[#e8edf4] p-3 sm:p-4" onWheel={(event) => event.stopPropagation()}>
+          <div className="mx-auto min-h-full max-w-[720px] bg-white px-6 py-5 shadow-[0_2px_12px_rgba(33,47,67,0.12)] sm:px-10 sm:py-6">
+            <div className="mb-5 border-b border-slate-200 pb-3 text-center"><p className="text-[9px] uppercase tracking-[0.22em] text-slate-400">{isVi ? "Khóa luận tốt nghiệp" : "Undergraduate thesis"}</p><p className="mt-1 font-serif text-sm font-semibold text-slate-800">{isVi ? "Xác minh yêu cầu trực tuyến trong đời sống sinh viên" : "Verifying online requests in student life"}</p><p className="mt-1 text-[9px] text-slate-400">Alex · {isVi ? "Bản thảo chương 3" : "Chapter 3 draft"} · {isVi ? "Thứ Ba, 17:00" : "Tuesday, 17:00"}</p></div>
+            <h4 className="font-serif text-[17px] font-semibold text-slate-800">{translate(activeSection.heading)}</h4><p className="mt-1 font-serif text-[12px] font-semibold text-slate-700">{translate(activeSection.subheading)}</p>
+            {sectionId === "full-draft" && <div className="mt-3 space-y-3 border-b border-slate-200 pb-4 font-serif text-[11px] leading-relaxed text-slate-600">
+              <section><h5 className="mb-1 font-sans text-[9px] font-semibold uppercase tracking-wide text-slate-400">{translate(SECTIONS[0].heading)}</h5><p className="whitespace-pre-wrap">{content.introduction}</p></section>
+              <section><h5 className="mb-1 font-sans text-[9px] font-semibold uppercase tracking-wide text-slate-400">{translate(SECTIONS[1].heading)}</h5><p className="whitespace-pre-wrap">{content.findings}</p></section>
+              <h5 className="font-sans text-[10px] font-semibold text-slate-700">{isVi ? "Kết luận & giới hạn nghiên cứu — chỉnh sửa bên dưới" : "Conclusion & limitations — revise below"}</h5>
+            </div>}
+            <textarea ref={editorRef} aria-label={isVi ? `Chỉnh sửa ${activeSection.heading.vi}` : `Edit ${activeSection.heading.en}`} data-testid="thesis-document-editor" value={currentText} onChange={(event) => updateText(event.target.value)} spellCheck className="mt-3 min-h-[250px] w-full resize-y border-0 bg-transparent p-0 font-serif text-[12px] leading-[1.85] text-slate-700 outline-none focus:ring-0 sm:min-h-[310px]" />
+            <div className="mt-4 flex flex-wrap items-center justify-between border-t border-slate-100 pt-2 text-[9px] text-slate-400"><span>{isVi ? `${words} từ trong phần này` : `${words} words in this section`}</span><span>{isVi ? "Trang 12 · APA 7" : "Page 12 · APA 7"}</span></div>
+            {isLocked && <p className="mt-3 rounded border border-amber-200 bg-amber-50 px-2.5 py-2 text-[10px] leading-relaxed text-amber-900">{isVi ? "Phần này sẽ mở sau khi xử lý các nhận xét ở phần trước. Em vẫn có thể chỉnh sửa bản nháp." : "This section unlocks after you resolve the earlier comments. You can still edit the draft."}</p>}
+            <div className="mt-4 border-t border-slate-100 pt-3 text-[10px] leading-relaxed text-slate-500">{isVi ? "Có thể lưu nháp bất cứ lúc nào. Khi thấy phần sửa đã ổn, hãy xử lý nhận xét của giảng viên ở bên cạnh." : "Save a draft whenever you like. When you are satisfied with the revision, resolve the supervisor's comment beside the document."}</div>
+          </div>
+        </main>
+
+        <aside className={`thesis-scroll min-h-0 max-h-56 overflow-y-auto border-t bg-white/55 p-2.5 md:col-span-1 md:max-h-none md:border-l md:border-t-0 ${borderTone}`}>
+          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold text-slate-600"><MessageSquareText className="h-3.5 w-3.5 text-blue-700" />{isVi ? "Nhận xét" : "Comments"}</div>
+          <div data-testid="thesis-supervisor-comment" className="rounded-md border border-blue-100 bg-blue-50/70 p-2.5">
+            <div className="flex items-center gap-1.5"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#dce7ff] text-[9px] font-bold text-blue-800">N</span><span className="text-[9px] font-semibold text-slate-700">{isVi ? "TS. Nguyễn · Giảng viên hướng dẫn" : "Dr. Nguyen · Supervisor"}</span></div>
+            <p className="mt-2 text-[9px] font-semibold text-blue-800">{translate(activeSection.anchorLocation)}</p>
+            <blockquote className="mt-1 border-l-2 border-blue-200 pl-2 font-serif text-[9px] italic leading-relaxed text-slate-500">“{translate(activeSection.anchor)}”</blockquote>
+            <p className="mt-2 text-[10px] leading-relaxed text-slate-700">{translate(activeSection.comment)}</p>
+            {sectionId === "findings" && !activeTask?.done && <div className="mt-2 rounded-md border border-violet-200 bg-violet-50/70 p-2" data-testid="thesis-synthesis-builder">
+              <p className="text-[9px] font-semibold text-violet-950">{isVi ? "Tổng hợp kết quả" : "Synthesize the finding"}</p>
+              <p className="mt-1 text-[9px] leading-relaxed text-slate-600">{isVi ? "Chọn một kết quả để làm trọng tâm. Cả hai đều là hướng phân tích hợp lệ; giữ kết luận trong phạm vi 24 cuộc phỏng vấn." : "Choose which result to foreground. Both are valid angles; keep the claim within these 24 interviews."}</p>
+              <div className="mt-2 space-y-1">
+                {FINDING_SYNTHESIS_OPTIONS.map((option) => <button key={option.id} type="button" data-testid={`thesis-synthesis-choice-${option.id}`} aria-pressed={findingFocus === option.id} onClick={() => setFindingFocus(option.id)} className={`w-full rounded border px-2 py-1.5 text-left text-[9px] leading-relaxed ${findingFocus === option.id ? "border-violet-500 bg-white text-violet-950 ring-1 ring-violet-300" : "border-violet-100 bg-white/60 text-slate-700 hover:bg-white"}`}>
+                  <span className="mb-0.5 block font-semibold">{option.id === "saved-channel" ? (isVi ? "Kênh đã biết · 9/24" : "Known channel · 9/24") : (isVi ? "Hỏi bạn cùng lớp · 6/24" : "Ask a classmate · 6/24")}</span>
+                  {isVi ? (option.id === "saved-channel" ? "Đối chiếu yêu cầu với portal hoặc số liên hệ từng dùng." : "Tìm đúng phòng ban nhờ bạn học khi chưa biết liên hệ ai.") : (option.id === "saved-channel" ? "Check a request against a portal or contact used before." : "Use peer support to identify the right office.")}
+                </button>)}
+              </div>
+              {findingFocus && <p className="mt-2 rounded bg-white p-2 text-[9px] leading-relaxed text-slate-700" data-testid="thesis-synthesis-preview">{FINDING_SYNTHESIS_OPTIONS.find((option) => option.id === findingFocus)?.text[isVi ? "vi" : "en"]}</p>}
+              <button type="button" data-testid="thesis-insert-synthesis" disabled={!findingFocus} onClick={insertFindingSynthesis} className="mt-2 w-full rounded bg-violet-700 px-2 py-1.5 text-[9px] font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300">{isVi ? "Chèn phần tổng hợp vào đoạn đang sửa" : "Add synthesis to the paragraph"}</button>
+            </div>}
+            {sectionId === "findings" && !activeTask?.done && <div className="mt-2 rounded-md border border-amber-200 bg-amber-50/70 p-2 text-[9px] leading-relaxed" data-testid="thesis-evidence-checklist">
+              <p className="mb-1 font-semibold text-amber-950">{isVi ? "Trước khi gửi phần kết quả" : "Before you submit these findings"}</p>
+              <p className={hasCitedFindingCount ? "text-emerald-700" : "text-amber-900"}>{hasCitedFindingCount ? "✓" : "○"} {isVi ? "Dẫn ít nhất một số liệu phỏng vấn (9/24 hoặc 6/24)." : "Cite at least one interview count (9/24 or 6/24)."}</p>
+              <p className={hasSampleLimitation ? "text-emerald-700" : "text-amber-900"}>{hasSampleLimitation ? "✓" : "○"} {isVi ? "Nêu rõ giới hạn của mẫu phỏng vấn." : "State the limitation of the interview sample."}</p>
+            </div>}
+            <button type="button" data-testid="thesis-jump-to-comment" onClick={jumpToComment} className="mt-2 text-[9px] font-semibold text-blue-700 hover:underline">{isVi ? "Đến đoạn được nhận xét" : "Go to passage"}</button>
+            {activeTask?.done ? (
+              <p className="mt-2 flex items-center gap-1 border-t border-blue-100 pt-2 text-[9px] font-semibold text-emerald-700" data-testid="thesis-comment-resolved"><Check className="h-3 w-3" />{isVi ? "Đã xử lý nhận xét" : "Comment resolved"}</p>
+            ) : canCompleteTask && activeTask ? (
+              <div className="mt-2 border-t border-blue-100 pt-2">
+                {!hasRevision && <p className="mb-1.5 text-[9px] leading-relaxed text-slate-500">{isVi ? "Chỉnh sửa đoạn được đánh dấu trước; có thể lưu nháp mà chưa cần xử lý nhận xét." : "Revise the marked passage first. You can save a draft without resolving the comment."}</p>}
+                {sectionId === "findings" && !hasRequiredFindingEvidence && <p className="mb-1.5 text-[9px] leading-relaxed text-amber-800">{isVi ? "Đối chiếu ít nhất một số liệu và giới hạn của mẫu trước khi xử lý nhận xét." : "Use at least one count and the sample limitation before resolving this comment."}</p>}
+                <button type="button" data-testid="thesis-resolve-comment" onClick={resolveComment} disabled={!hasRevision || !hasRequiredFindingEvidence || timeUp} className="w-full rounded-md bg-[#315aa8] px-2 py-1.5 text-[9px] font-semibold text-white hover:bg-[#274b91] disabled:cursor-not-allowed disabled:bg-slate-300">{isVi ? "Đánh dấu đã xử lý" : "Resolve comment"}</button>
+              </div>
+            ) : null}
+            <p className="mt-2 text-[9px] text-slate-400">{isVi ? "Hôm nay, 14:20" : "Today, 14:20"}</p>
+          </div>
+          <div className="mt-4 border-t border-slate-200 pt-3"><div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold text-slate-600"><StickyNote className="h-3.5 w-3.5 text-amber-700" />{isVi ? "Ghi chú phỏng vấn" : "Interview notes"}</div><div className="space-y-1.5" data-testid="thesis-research-notes">{RESEARCH_NOTES.map((note, index) => <div key={note.id} className={`rounded-md p-2 text-[9px] leading-relaxed ${index === 0 ? "bg-amber-50 font-medium text-amber-950" : "bg-slate-50 text-slate-600"}`}><p>{translate(note.text)}</p>{index > 0 && <button type="button" data-testid={`thesis-insert-note-${note.id}`} onClick={() => insertNote(note)} className="mt-1 text-[9px] font-semibold text-blue-700 hover:underline">{isVi ? "Chèn vào bản thảo" : "Insert into draft"}</button>}</div>)}</div></div>
+          <div className="mt-4 border-t border-slate-200 pt-2 text-[9px] leading-relaxed text-slate-500"><div className="flex items-center gap-1"><Clock3 className="h-3 w-3" />{isVi ? `Còn ${Math.floor(timeLeftMinutes / 60)} giờ ${timeLeftMinutes % 60} phút` : `${Math.floor(timeLeftMinutes / 60)}h ${timeLeftMinutes % 60}m remaining`}</div>{fatigue && fatigue.level !== "rested" && <p className="mt-1" data-testid="thesis-fatigue">{t(`planner.thesis.fatigueNote.${fatigue.level}`, { percent: fatigue.slowdownPercent })}</p>}{atLimit && <p className="mt-1">{isVi ? "Tiến độ viết tự do đã đến giới hạn; các phần cần sửa vẫn có thể lưu." : "Free-writing progress is at its limit; required revisions can still be saved."}</p>}</div>
+        </aside>
       </div>
+
     </section>
   );
 };

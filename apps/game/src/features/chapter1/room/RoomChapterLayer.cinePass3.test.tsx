@@ -64,19 +64,19 @@ describe("Notes chip", () => {
 });
 
 describe("objective tracker in investigation mode", () => {
-  it("is visible while exploring and hidden while the laptop is open, and returns after", () => {
+  it("steps the full room HUD away while the laptop is open, then restores it on close", () => {
     const rig = setupLayer({ restoreActions: AFTER_DECLINE });
     finishIntro();
-    const slot = screen.getByTestId("objective-tracker-slot");
-    expect(slot.style.visibility).toBe("visible");
+    expect(screen.getByTestId("objective-tracker-slot")).toBeTruthy();
+    expect(screen.getByTestId("hud-hints-chip")).toBeTruthy();
     act(() => rig.bridge.onProp("laptop", "inspect-ready"));
     expect(screen.getByTestId("room-chapter-layer").getAttribute("data-ui-mode")).toBe("investigation");
-    expect(slot.style.visibility).toBe("hidden");
-    // The chips stay.
-    expect(screen.getByTestId("hud-hints-chip")).toBeTruthy();
+    expect(screen.queryByTestId("objective-tracker-slot")).toBeNull();
+    expect(screen.queryByTestId("hud-hints-chip")).toBeNull();
     fireEvent.keyDown(document, { key: "Escape" });
     act(() => rig.bridge.onProp("laptop", "inspect-end"));
-    expect(slot.style.visibility).toBe("visible");
+    expect(screen.getByTestId("objective-tracker-slot")).toBeTruthy();
+    expect(screen.getByTestId("hud-hints-chip")).toBeTruthy();
   });
 
   it("is hidden while the journal is open", () => {

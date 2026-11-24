@@ -20,6 +20,15 @@ const use = (itemId: string, actionId: string): CoreAction => ({ type: "USE_DEVI
 const task = (taskId: string): CoreAction => ({ type: "COMPLETE_THESIS_TASK", taskId });
 
 function step(state: ChapterState, action: CoreAction): ChapterState {
+  if (action.type === "COMPLETE_THESIS_TASK" && action.taskId === "draft.findings" && state.world.thesisDraft.findings === undefined) {
+    const drafted = chapterReducer(state, {
+      type: "SAVE_THESIS_DRAFT",
+      sectionId: "findings",
+      content: "In this interview sample, 6 of 24 participants asked a classmate when they could not identify the right office. This count describes these interviews, not all students.",
+    }, S);
+    expect(drafted.accepted, drafted.reason).toBe(true);
+    state = drafted.state;
+  }
   const result = chapterReducer(state, action, S);
   expect(result.accepted, `${action.type} ${JSON.stringify(action)}: ${result.reason ?? ""}`).toBe(true);
   return result.state;
@@ -56,9 +65,11 @@ describe("the scenario", () => {
     let state = run([START]);
     expect(status(state, "m01.missing-access")).toBe("open");
     expect(path(state, "m01.missing-access")).toBe("default");
-    expect(selectOpenMissions(state, S).map((mission) => mission.objective)).toEqual([
-      "Finish the draft and confirm that you can reach the submission system.",
-    ]);
+    const openMissions = selectOpenMissions(state, S);
+    expect(openMissions.find((mission) => mission.id === "m01.missing-access")?.objective).toBe(
+      "Finish the draft by Wednesday, 06:00, and confirm you can sign in to submit by Friday, 17:00.",
+    );
+    expect(openMissions.map((mission) => mission.id)).toContain("m01.final-submission");
     expect(Object.hasOwn(state.device.items, "mail.clearance")).toBe(false);
     state = step(state, advance(10));
     const email = selectDeviceView(state, S, "phone").apps.mail.find((item) => item.id === "mail.clearance")!;
@@ -90,6 +101,45 @@ describe("the draft on the laptop", () => {
     expect(state.resources.thesisProgress).toBe(67);
     expect(state.resources.timeMinutes).toBe(CHAPTER_DURATION_MINUTES - 240);
     expect(status(state, "m01.missing-access")).toBe("completed");
+  });
+
+  it("rejects a new-editor findings completion when the saved section has no evidence", () => {
+    const state = run([START, task("draft.intro-review")]);
+    const attempt = chapterReducer(state, {
+      type: "COMPLETE_THESIS_TASK",
+      taskId: "draft.findings",
+      researchNotes: [],
+    }, S);
+    expect(attempt.accepted).toBe(false);
+    expect(attempt.reason).toBe("Cite an interview count and state the sample limitation before resolving the findings revision.");
+    expect(attempt.state.world.thesisTasksDone).not.toContain("draft.findings");
+    expect(attempt.state.resources.timeMinutes).toBe(state.resources.timeMinutes);
+  });
+
+  it("makes the findings usable in the email only when Alex actually includes the saved-channel interview note", () => {
+    const withoutSource = run([START, advance(10), task("draft.intro-review"), task("draft.findings")]);
+    expect(withoutSource.persistent.researchSavedChannelIncluded).toBe(false);
+    const plainEmail = selectDeviceView(withoutSource, S, "phone").apps.mail.find((item) => item.id === "mail.clearance")!;
+    expect(plainEmail.actions.some((action) => action.id === "compare-fee-with-saved-portal")).toBe(false);
+
+    const withSource = run([
+      START,
+      advance(10),
+      task("draft.intro-review"),
+      {
+        type: "SAVE_THESIS_DRAFT",
+        sectionId: "findings",
+        content: "Across the interviews, students described checking an unexpected request against a channel they already knew. In this interview sample, 9 of 24 participants described checking a saved portal or a contact they had used before. This count describes these interviews, not all students.",
+      },
+      { type: "COMPLETE_THESIS_TASK", taskId: "draft.findings", researchNotes: ["saved-channel"] },
+    ]);
+    expect(withSource.persistent.researchSavedChannelIncluded).toBe(true);
+    const informedEmail = selectDeviceView(withSource, S, "phone").apps.mail.find((item) => item.id === "mail.clearance")!;
+    expect(informedEmail.actions.some((action) => action.id === "compare-fee-with-saved-portal")).toBe(true);
+    const compared = run([use("mail.clearance", "compare-fee-with-saved-portal")], withSource);
+    expect(compared.persistent.schoolFeeClaimContradicted).toBe(true);
+    expect(compared.persistent.schoolAccessVerified).toBe(false);
+    expect(compared.device.items["file.fee-comparison"]).toBeDefined();
   });
 
   it("goes on after the internal deadline, with the cost of working through the night", () => {
@@ -175,9 +225,13 @@ describe("way A: follow the link", () => {
     expect(state.device.ledger.map((entry) => entry.amount)).toEqual([-FEE, -T1.amountVnd, -T2.amountVnd, -T3.amountVnd]);
     expect(state.resources.cash).toBe(2_500_000 - FEE - T1.amountVnd - T2.amountVnd - T3.amountVnd);
     expect(state.resources.cash).toBeLessThan(2_500_000 / 4);
-    expect(ids(selectDeviceView(state, S, "phone").apps.messages)).toEqual(
-      expect.arrayContaining(["msg.bank-alert-1", "msg.bank-alert-2", "msg.bank-alert-3"]),
-    );
+    const alerts = selectDeviceView(state, S, "phone").apps.messages;
+    expect(ids(alerts)).toEqual(expect.arrayContaining(["msg.bank-alert-1", "msg.bank-alert-2", "msg.bank-alert-3"]));
+    [T1, T2, T3].forEach((transfer, index) => {
+      expect(alerts.find((item) => item.id === `msg.bank-alert-${index + 1}`)?.body).toContain(
+        `${transfer.amountVnd.toLocaleString("en-US")} VND`,
+      );
+    });
   });
 
   it("puts every transfer in the ledger at its scheduled minute, even after one long wait", () => {
@@ -448,8 +502,10 @@ describe("Vietnamese text", () => {
     const format = (amount: number) => amount.toLocaleString("de-DE");
     expect(vi_["device/mail.clearance/body"]).toContain(format(FEE));
     expect(vi_["device/page.fee/body"]).toContain(format(FEE));
-    // The alerts never repeat an amount: the ledger is the one place that shows what left.
-    [1, 2, 3].forEach((index) => expect(vi_[`device/msg.bank-alert-${index}/body`]).not.toMatch(/\d/));
+    // Each alert states the exact transfer amount, with Vietnamese thousands separators.
+    [T1, T2, T3].forEach((transfer, index) =>
+      expect(vi_[`device/msg.bank-alert-${index + 1}/body`]).toContain(`${transfer.amountVnd.toLocaleString("de-DE")} VNĐ`),
+    );
   });
 });
 

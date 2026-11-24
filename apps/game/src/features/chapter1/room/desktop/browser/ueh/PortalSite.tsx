@@ -24,6 +24,8 @@ export interface PortalFacts {
   draftFinished: boolean;
   /** Ids of the thesis tasks done (`draft.intro-review`, `draft.findings`, `draft.final`). */
   tasksDone: readonly string[];
+  accessVerified?: boolean;
+  submissionDeadlineMissed?: boolean;
 }
 
 export interface PortalSiteProps {
@@ -76,9 +78,15 @@ export const PortalSite: React.FC<PortalSiteProps> = ({ section, view, facts, go
 
   const savedPortal: DeviceItemView | null = view.apps.files.find((item) => item.id === "portal.saved") ?? null;
   const checkAction = savedPortal?.actions.find((action) => action.id === "check-account") ?? null;
+  const submitAction = savedPortal?.actions.find((action) => action.id === "submit-thesis") ?? null;
   const checked = checkAction?.blocked === "done";
+  const submitted = view.calendar.submission === "submitted";
   const timeLeft = formatSpan(t, view.calendar.minutesLeft);
-  const accessText = facts.accountLocked ? t("ueh.portal.accessLocked") : t("ueh.portal.accessActive");
+  const accessText = facts.accountLocked
+    ? t("ueh.portal.accessLocked")
+    : facts.accessVerified
+      ? t("ueh.portal.accessActive")
+      : t("ueh.portal.accessNotChecked");
 
   const navItems = SECTIONS.map((id) => {
     const Icon = NAV_ICONS[id];
@@ -203,7 +211,27 @@ export const PortalSite: React.FC<PortalSiteProps> = ({ section, view, facts, go
           <Row label={t("ueh.portal.thesis.deadlineLabel")} value={t("ueh.portal.thesis.deadlineValue")} />
           <Row label={t("ueh.portal.thesis.timeLeftLabel")} value={timeLeft} />
           <Row label={t("ueh.portal.thesis.access")} value={accessText} testId="portal-access-thesis" />
+          <Row label={t("ueh.portal.thesis.submission")} value={submitted ? t("device.calendar.status.submitted") : t("device.calendar.status.not-submitted")} testId="portal-submission-status" />
         </dl>
+        {submitted ? (
+          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800" role="status" data-testid="portal-submission-receipt">
+            {t("ueh.portal.thesis.submittedReceipt")}
+          </p>
+        ) : submitAction ? (
+          <div className="mt-3">
+            <button
+              type="button"
+              data-testid="portal-submit-thesis"
+              disabled={!submitAction.available}
+              onClick={() => onUseItem("portal.saved", "submit-thesis")}
+              className={`w-full ${siteButtonClass("primary")} disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              {t("ueh.portal.thesis.submitButton")}
+              {submitAction.available ? ` · ${formatSpan(t, submitAction.timeCostMinutes)}` : ""}
+            </button>
+            {!submitAction.available && <p className="mt-2 text-xs" style={{ color: C.muted }} data-testid="portal-submit-blocked-hint">{facts.submissionDeadlineMissed ? t("ueh.portal.thesis.deadlineMissed") : t("ueh.portal.thesis.blockedHint")}</p>}
+          </div>
+        ) : null}
       </Card>
     </div>
   );
@@ -269,6 +297,12 @@ export const PortalSite: React.FC<PortalSiteProps> = ({ section, view, facts, go
         <p className="mt-2 text-xs" style={{ color: C.muted }}>
           {t("ueh.portal.services.feesNote")}
         </p>
+        <dl className="mt-2 border-t pt-2" style={{ borderColor: C.line }} data-testid="portal-payment-route">
+          <Row
+            label={t("ueh.portal.services.paymentPortalLabel")}
+            value={<span data-testid="portal-payment-domain">{t("ueh.portal.services.paymentPortalDomain")}</span>}
+          />
+        </dl>
       </Card>
     </div>
   );
