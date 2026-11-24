@@ -67,6 +67,7 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
     storyContext,
     (event) => bridge.transit(event),
     (npcId, replyId) => bridge.storyReply(npcId, replyId),
+    (npcId) => bridge.storyStart(npcId),
   );
 
   // The chapter happens in the apartment, whatever scene a new or old session names.
@@ -188,7 +189,13 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
         <PrologueHud objective={null} prompt={null} showResume={showResume} cursorMode={cursorMode} crosshair={false} />
       )}
 
-      {playing && !paused && <OutsideHud state={outside} suppressPrompt={Boolean(roomUI?.prompt)} />}
+      {playing && !paused && (
+        <OutsideHud
+          state={outside}
+          suppressPrompt={Boolean(roomUI?.prompt)}
+          voice={{ soundEnabled: settings.soundEnabled, englishFallback: settings.englishVoiceFallback }}
+        />
+      )}
       {paused && !settingsOpen && (
         <ProloguePauseMenu
           onHoverSound={onHoverSound}

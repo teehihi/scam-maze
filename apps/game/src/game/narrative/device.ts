@@ -120,6 +120,8 @@ export interface ConversationLineView {
   text: string;
   /** Simulated minute at which the action finished. */
   atMinute: number;
+  /** Stable recorded voice ID, when this line has a clip. */
+  voiceId?: string;
 }
 
 export interface LedgerEntryView {
@@ -206,7 +208,15 @@ function conversationView(item: DeviceItemDef, itemState: DeviceItemState): Conv
     const action = (item.actions ?? []).find((candidate) => candidate.id === actionId);
     if (action?.transcript === undefined) continue;
     const atMinute = itemState.doneAt !== undefined && Object.hasOwn(itemState.doneAt, actionId) ? itemState.doneAt[actionId] : itemState.arrivedAtMinute;
-    action.transcript.forEach((line, index) => lines.push({ key: `${item.id}/${actionId}/${index}`, speaker: line.speaker, text: line.text, atMinute }));
+    action.transcript.forEach((line, index) =>
+      lines.push({
+        key: `${item.id}/${actionId}/${index}`,
+        speaker: line.speaker,
+        text: line.text,
+        atMinute,
+        voiceId: line.voiceId,
+      }),
+    );
   }
   return lines;
 }

@@ -745,6 +745,8 @@ export type DeviceKind = "phone" | "laptop";
 export interface ConversationLine {
   speaker: "alex" | "other";
   text: string;
+  /** Stable recording key when this line is voiced; absent lines remain subtitle-only. */
+  voiceId?: string;
 }
 
 export interface DeviceItemActionDef {

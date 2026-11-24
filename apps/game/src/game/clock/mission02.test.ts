@@ -100,19 +100,39 @@ describe("Mission 02 content", () => {
     expect(result.state).toBe(state);
   });
 
-  it("completes the interview on the tracked bus for the printed fare and 34 minutes", () => {
+  it("records tracked arrival before the physical interview, then completes after a question", () => {
     const actions = [START, OPEN_AT, use("map.bus06-stop", "read-board")];
     const base = run(actions);
     const timeBefore = base.resources.timeMinutes;
     const cashBefore = base.resources.cash;
     const paid = run([...actions, use("travel.bus06", "pay-fare")]);
-    const state = run([...actions, use("travel.bus06", "pay-fare"), use("travel.bus06", "arrive")]);
+    const arrived = run([...actions, use("travel.bus06", "pay-fare"), use("travel.bus06", "arrive")]);
+    expect(paid.persistent.interviewArrived).toBe(false);
     expect(paid.persistent.interviewCompleted).toBe(false);
-    expect(state.persistent.interviewCompleted).toBe(true);
-    expect(state.resources.timeMinutes).toBe(timeBefore - MISSION_02_CONFIG.busRideMinutes);
-    expect(state.resources.cash).toBe(cashBefore - MISSION_02_CONFIG.busFareVnd);
-    expect(state.device.location).toBe("district5");
-    expect(selectClosedMissions(state, M02)).toContainEqual({
+    expect(arrived.persistent.interviewArrived).toBe(true);
+    expect(arrived.persistent.interviewCompleted).toBe(false);
+    expect(arrived.resources.timeMinutes).toBe(timeBefore - MISSION_02_CONFIG.busRideMinutes);
+    expect(arrived.resources.cash).toBe(cashBefore - MISSION_02_CONFIG.busFareVnd);
+    expect(arrived.device.location).toBe("district5");
+
+    const started = run([
+      ...actions,
+      use("travel.bus06", "pay-fare"),
+      use("travel.bus06", "arrive"),
+      use("interview.coba", "start"),
+    ]);
+    expect(started.persistent.interviewStarted).toBe(true);
+    expect(started.persistent.interviewCompleted).toBe(false);
+    const completed = run([
+      ...actions,
+      use("travel.bus06", "pay-fare"),
+      use("travel.bus06", "arrive"),
+      use("interview.coba", "start"),
+      use("interview.coba", "ask-transfer"),
+    ]);
+    expect(completed.persistent.interviewEvidenceSaved).toBe(true);
+    expect(completed.persistent.interviewCompleted).toBe(true);
+    expect(selectClosedMissions(completed, M02)).toContainEqual({
       id: "m02.the-ride",
       title: "THE RIDE",
       optional: false,
@@ -133,23 +153,79 @@ describe("Mission 02 content", () => {
     expect(mission(state)?.path).toBe("off-platform");
   });
 
-  it("reaches the interview on foot after the wrong stop, and the ledger keeps the cash fare", () => {
-    const state = run([...MET_DRIVER, use("ride.off-platform", "take-ride"), use("ride.wrong-stop", "walk")]);
-    expect(state.persistent.interviewCompleted).toBe(true);
+  it("reaches the market office on foot after the wrong stop, and the ledger keeps the cash fare", () => {
+    const actions = [...MET_DRIVER, use("ride.off-platform", "take-ride"), use("ride.wrong-stop", "walk")];
+    const state = run(actions);
+    expect(state.persistent.interviewArrived).toBe(true);
+    expect(state.persistent.interviewCompleted).toBe(false);
     const ledger = selectDeviceView(state, M02, "phone").bank.ledger;
     expect(ledger.map((entry) => entry.label)).toContain(MISSION_02_LEDGER_LABELS["ledger.unofficial-ride"]);
     expect(ledger.every((entry) => entry.counterparty !== "")).toBe(true);
+    // The interview still has to happen face to face.
+    const completed = run([...actions, use("interview.coba", "start"), use("interview.coba", "ask-process")]);
+    expect(completed.persistent.interviewCompleted).toBe(true);
   });
 
-  it("marks the appointment missed when the window closes without an interview", () => {
+  it("records a missed appointment at 12:30 without ending the mission", () => {
     const state = run([START, advance(MISSION_02_CONFIG.interviewEndMinute + 1)]);
     expect(state.persistent.interviewMissed).toBe(true);
-    expect(selectClosedMissions(state, M02)).toContainEqual({
+    // It is recoverable: the mission stays open for the late/rescheduled conversation.
+    expect(selectClosedMissions(state, M02)).toEqual([]);
+    expect(mission(state)?.id).toBe("m02.the-ride");
+  });
+
+  it("can reschedule a late arrival and still complete the physical interview", () => {
+    const late = run([START, advance(MISSION_02_CONFIG.interviewEndMinute + 1)]);
+    expect(late.persistent.interviewMissed).toBe(true);
+    const afterArrival = run([
+      START,
+      advance(MISSION_02_CONFIG.interviewEndMinute + 1),
+      use("travel.bus06", "pay-fare"),
+      use("travel.bus06", "arrive"),
+    ]);
+    expect(afterArrival.persistent.interviewArrived).toBe(true);
+    expect(afterArrival.persistent.interviewMissed).toBe(true);
+    // Missed does not falsely complete the interview.
+    expect(afterArrival.persistent.interviewCompleted).toBe(false);
+    const rescheduled = run([
+      START,
+      advance(MISSION_02_CONFIG.interviewEndMinute + 1),
+      use("travel.bus06", "pay-fare"),
+      use("travel.bus06", "arrive"),
+      use("interview.coba", "reschedule"),
+    ]);
+    expect(rescheduled.persistent.interviewRescheduled).toBe(true);
+    expect(rescheduled.persistent.interviewMissed).toBe(false);
+    expect(rescheduled.persistent.interviewCompleted).toBe(false);
+    const completed = run([
+      START,
+      advance(MISSION_02_CONFIG.interviewEndMinute + 1),
+      use("travel.bus06", "pay-fare"),
+      use("travel.bus06", "arrive"),
+      use("interview.coba", "reschedule"),
+      use("interview.coba", "start-rescheduled"),
+      use("interview.coba", "ask-exception"),
+    ]);
+    expect(completed.persistent.interviewCompleted).toBe(true);
+    expect(selectClosedMissions(completed, M02)).toContainEqual({
       id: "m02.the-ride",
       title: "THE RIDE",
       optional: false,
       status: "completed",
     });
+  });
+
+  it("never completes the interview from arrival or from a refusal", () => {
+    const arrivedOnly = run([START, OPEN_AT, use("travel.bus06", "pay-fare"), use("travel.bus06", "arrive")]);
+    expect(arrivedOnly.persistent.interviewCompleted).toBe(false);
+    // The physical meeting starts the interview; it still does not complete it.
+    const started = chapterReducer(arrivedOnly, use("interview.coba", "start"), M02);
+    expect(started.accepted).toBe(true);
+    expect(started.state.persistent.interviewStarted).toBe(true);
+    expect(started.state.persistent.interviewCompleted).toBe(false);
+    // Asking a question without starting the interview is rejected too.
+    const noStart = chapterReducer(arrivedOnly, use("interview.coba", "ask-transfer"), M02);
+    expect(noStart.accepted).toBe(false);
   });
 
   it("never forces a fare: opening, reading and confirming cost no cash", () => {

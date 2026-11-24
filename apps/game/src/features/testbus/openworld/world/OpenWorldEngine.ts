@@ -166,7 +166,9 @@ export interface ExternalHost {
    * The player picked a reply in a street conversation. The host records what the character said
    * in the chapter store, so a street talk can count as asking a question in the phone record.
    */
-  onStoryReply?: (npcId: string, replyId: string) => void;
+  onStoryReply?: (npcId: string, replyId: string) => Partial<StoryNpcRuntimeContext> | void;
+  /** The player opened a conversation; a host may return the synchronous narrative context patch. */
+  onStoryStart?: (npcId: string) => Partial<StoryNpcRuntimeContext> | void;
 }
 export interface ViewLens {
   fov: number;
@@ -1313,6 +1315,11 @@ export class OpenWorldEngine {
     if (this.feet.y < 1.2) {
       const targetNpc = this.storyNpcs.nearestInteractable(this.feet);
       if (targetNpc) {
+        // Let the chapter reducer record the physical interaction first. A host hands its fresh
+        // narrative context straight back, so the opening turn is resolved on the right branch
+        // (notably Cô Ba's on-time late/rescheduled states) instead of one render late.
+        const patch = this.external?.onStoryStart?.(targetNpc.npc.id);
+        if (patch) this.storyNpcs.setContext(patch);
         this.storyNpcs.beginDialogue(targetNpc.npc.id);
         return;
       }
@@ -2640,11 +2647,23 @@ export class OpenWorldEngine {
     const dialogue = this.storyNpcs.selectReply(index);
     if (!dialogue) return;
     const replyId = dialogue.askedReplyIds[dialogue.askedReplyIds.length - 1];
-    if (replyId) this.external?.onStoryReply?.(dialogue.npcId, replyId);
+    if (!replyId) return;
+    // A reply may synchronously change the reducer flags (late reschedule, interview start, etc.).
+    // Push that patch into the director and re-resolve the active turn so the next reply strip is
+    // immediately the new branch instead of stale options from the previous state.
+    const patch = this.external?.onStoryReply?.(dialogue.npcId, replyId);
+    if (patch) {
+      this.storyNpcs.setContext(patch);
+      this.storyNpcs.refreshDialogue();
+    }
   }
 
   public advanceStoryDialogue() {
     this.storyNpcs.advanceDialogue();
+  }
+
+  public refreshStoryDialogue() {
+    this.storyNpcs.refreshDialogue();
   }
 
   public closeStoryDialogue() {

@@ -169,8 +169,16 @@ export const MISSION_02_DEVICE_ITEMS: DeviceItemDef[] = [
         timeCostMinutes: M.confirmAppointment,
         once: true,
         transcript: [
-          { speaker: "alex", text: "Hello, this is Alex. I am calling the number in my interview notes about the 11:30 appointment." },
-          { speaker: "other", text: "Yes, I am expecting you at the market office. Come to the main entrance on the market side, not the alley. Call me if the traffic holds you up." },
+          {
+            speaker: "alex",
+            voiceId: "m02.coba.confirm.0",
+            text: "Hello, this is Alex. I am calling the number in my interview notes about the 11:30 appointment.",
+          },
+          {
+            speaker: "other",
+            voiceId: "m02.coba.confirm.1",
+            text: "Yes, I am expecting you at the market office. Come to the main entrance on the market side, not the alley. Call me if the traffic holds you up.",
+          },
         ],
         effects: [
           { kind: "setPersistent", flag: "rideVerifiedIndependently", value: true },
@@ -183,8 +191,9 @@ export const MISSION_02_DEVICE_ITEMS: DeviceItemDef[] = [
 
   // --- The two trips ------------------------------------------------------------------------------
   // The ride is two steps because the street runs it: the validator records the fare when the player
-  // taps it on the bus, and the interview is complete only after stepping off at Chợ Lớn. The world's
-  // own clock carries the 34 minutes while the bus drives, so neither step charges that time again.
+  // taps it on the bus, and stepping off only records arrival. The interview is complete only after
+  // the player physically talks to Cô Ba and asks a question. The world's own clock carries the
+  // 34 minutes while the bus drives, so neither step charges that time again.
   // Without the 3D street (a browser that cannot start it) both steps stay on the phone.
   {
     id: "travel.bus06",
@@ -196,7 +205,6 @@ export const MISSION_02_DEVICE_ITEMS: DeviceItemDef[] = [
       {
         id: "pay-fare",
         label: "Pay the Bus 06 fare at the validator",
-        visibleWhen: [{ kind: "not", condition: persistent("interviewMissed") }],
         requires: [travelAllowed],
         cashCost: MISSION_02_CONFIG.busFareVnd,
         ledgerLabel: "ledger.bus06-fare",
@@ -206,14 +214,176 @@ export const MISSION_02_DEVICE_ITEMS: DeviceItemDef[] = [
       {
         id: "arrive",
         label: "Step off at Chợ Lớn and go up to the market office",
-        visibleWhen: [{ kind: "not", condition: persistent("interviewMissed") }],
         requires: [travelAllowed, done("travel.bus06", "pay-fare")],
         // Phone-only fallback simulates the same physical trip; the street bridge can replace this
-        // action with its arrival event when the player is actually on Bus 06.
+        // action with its arrival event when the player is actually on Bus 06. Stepping off only
+        // records arrival: the interview itself happens face to face with Cô Ba.
         timeCostMinutes: MISSION_02_CONFIG.busRideMinutes,
         once: true,
         moveTo: "district5",
-        effects: [{ kind: "setPersistent", flag: "interviewCompleted", value: true }],
+        effects: [{ kind: "setPersistent", flag: "interviewArrived", value: true }],
+      },
+    ],
+  },
+  {
+    id: "interview.coba",
+    app: "files",
+    folder: "interview",
+    title: "Cô Ba — Chợ Lớn interview",
+    body:
+      "The market office is at the main entrance. Cô Ba is waiting there for the thesis interview; arriving at the district is not the same as completing the interview.",
+    arrives: { when: [persistent("interviewArrived")] },
+    actions: [
+      {
+        id: "start",
+        label: "Meet Cô Ba at the market office entrance",
+        requires: [
+          { kind: "atLocation", placeId: "district5" },
+          persistent("interviewArrived"),
+          persistent("interviewStarted", false),
+          persistent("interviewCompleted", false),
+          persistent("interviewMissed", false),
+          persistent("interviewRescheduled", false),
+        ],
+        timeCostMinutes: 1,
+        once: true,
+        effects: [{ kind: "setPersistent", flag: "interviewStarted", value: true }],
+      },
+      {
+        id: "reschedule",
+        label: "Ask Cô Ba to reschedule after arriving late",
+        visibleWhen: [persistent("interviewMissed"), { kind: "not", condition: persistent("interviewRescheduled") }],
+        requires: [
+          { kind: "atLocation", placeId: "district5" },
+          persistent("interviewArrived"),
+          persistent("interviewMissed"),
+          persistent("interviewStarted", false),
+          persistent("interviewCompleted", false),
+        ],
+        timeCostMinutes: 2,
+        once: true,
+        effects: [
+          { kind: "setPersistent", flag: "interviewRescheduled", value: true },
+          { kind: "setPersistent", flag: "interviewMissed", value: false },
+        ],
+      },
+      {
+        id: "decline-reschedule",
+        label: "Leave without rescheduling the interview",
+        visibleWhen: [persistent("interviewMissed"), { kind: "not", condition: persistent("interviewRescheduled") }],
+        requires: [
+          { kind: "atLocation", placeId: "district5" },
+          persistent("interviewArrived"),
+          persistent("interviewMissed"),
+          persistent("interviewStarted", false),
+          persistent("interviewCompleted", false),
+        ],
+        timeCostMinutes: 1,
+        once: true,
+      },
+      {
+        id: "start-rescheduled",
+        label: "Begin the rescheduled interview at the market office",
+        requires: [
+          { kind: "atLocation", placeId: "district5" },
+          persistent("interviewArrived"),
+          persistent("interviewRescheduled"),
+          persistent("interviewStarted", false),
+          persistent("interviewCompleted", false),
+        ],
+        timeCostMinutes: 1,
+        once: true,
+        effects: [{ kind: "setPersistent", flag: "interviewStarted", value: true }],
+      },
+      {
+        id: "reschedule-and-start",
+        label: "Accept the late interview and begin now",
+        requires: [
+          { kind: "atLocation", placeId: "district5" },
+          persistent("interviewArrived"),
+          persistent("interviewMissed"),
+          persistent("interviewStarted", false),
+          persistent("interviewCompleted", false),
+        ],
+        timeCostMinutes: 2,
+        once: true,
+        effects: [
+          { kind: "setPersistent", flag: "interviewRescheduled", value: true },
+          { kind: "setPersistent", flag: "interviewMissed", value: false },
+          { kind: "setPersistent", flag: "interviewStarted", value: true },
+        ],
+      },
+      {
+        id: "ask-transfer",
+        label: "Ask how shopkeepers verify a transfer receipt",
+        requires: [persistent("interviewStarted"), persistent("interviewCompleted", false)],
+        timeCostMinutes: 8,
+        once: true,
+        transcript: [
+          {
+            speaker: "alex",
+            voiceId: "m02.coba.interview.transfer_check.alex",
+            text: "How do you check a transfer receipt?",
+          },
+          {
+            speaker: "other",
+            voiceId: "m02.coba.interview.transfer_check",
+            text: "We check the amount in our own bank app, match the sender name, and wait for the balance to update. A screenshot is not payment.",
+          },
+        ],
+        effects: [
+          { kind: "setPersistent", flag: "interviewEvidenceSaved", value: true },
+          { kind: "setPersistent", flag: "interviewCompleted", value: true },
+          { kind: "adjustResource", resource: "evidence", delta: 1 },
+        ],
+      },
+      {
+        id: "ask-process",
+        label: "Ask for the shop's step-by-step check",
+        requires: [persistent("interviewStarted"), persistent("interviewCompleted", false)],
+        timeCostMinutes: 8,
+        once: true,
+        transcript: [
+          {
+            speaker: "alex",
+            voiceId: "m02.coba.interview.process.alex",
+            text: "What is your full checking process?",
+          },
+          {
+            speaker: "other",
+            voiceId: "m02.coba.interview.process",
+            text: "First we pause the handover. Then we check our account, confirm the amount, and only release the goods after the credit appears.",
+          },
+        ],
+        effects: [
+          { kind: "setPersistent", flag: "interviewEvidenceSaved", value: true },
+          { kind: "setPersistent", flag: "interviewCompleted", value: true },
+          { kind: "adjustResource", resource: "evidence", delta: 1 },
+        ],
+      },
+      {
+        id: "ask-exception",
+        label: "Ask what happens when a receipt looks wrong",
+        requires: [persistent("interviewStarted"), persistent("interviewCompleted", false)],
+        timeCostMinutes: 8,
+        once: true,
+        transcript: [
+          {
+            speaker: "alex",
+            voiceId: "m02.coba.interview.exception.alex",
+            text: "What if the receipt looks wrong?",
+          },
+          {
+            speaker: "other",
+            voiceId: "m02.coba.interview.exception",
+            text: "We do not argue over it. We stop the sale, ask the customer to check with their bank, and call our own bank if the transfer is still unclear.",
+          },
+        ],
+        effects: [
+          { kind: "setPersistent", flag: "interviewEvidenceSaved", value: true },
+          { kind: "setPersistent", flag: "interviewCompleted", value: true },
+          { kind: "adjustResource", resource: "evidence", delta: 1 },
+        ],
       },
     ],
   },
@@ -260,21 +430,19 @@ export const MISSION_02_DEVICE_ITEMS: DeviceItemDef[] = [
       {
         id: "walk",
         label: "Walk the last three blocks to the main entrance",
-        visibleWhen: [{ kind: "not", condition: persistent("interviewMissed") }],
         timeCostMinutes: M.walkFromWrongStop,
         once: true,
-        effects: [{ kind: "setPersistent", flag: "interviewCompleted", value: true }],
+        effects: [{ kind: "setPersistent", flag: "interviewArrived", value: true }],
       },
       {
         id: "pay-extra",
         label: "Pay 30,000 VND more to be taken around the block",
-        visibleWhen: [{ kind: "not", condition: persistent("interviewMissed") }],
         timeCostMinutes: M.payExtraRide,
         cashCost: MISSION_02_CONFIG.wrongStopExtraVnd,
         ledgerLabel: "ledger.unofficial-extra",
         counterparty: "Street Driver",
         once: true,
-        effects: [{ kind: "setPersistent", flag: "interviewCompleted", value: true }],
+        effects: [{ kind: "setPersistent", flag: "interviewArrived", value: true }],
       },
     ],
   },
@@ -292,6 +460,9 @@ export const MISSION_02_EVENTS: GameEventDef[] = [
       atMinute: MISSION_02_CONFIG.interviewEndMinute,
       when: [persistent("interviewCompleted", false)],
     },
+    // Missing the appointment records a recoverable failure state. The mission stays open so
+    // arriving at the office can produce an explicit reschedule conversation instead of silently
+    // completing the mission at the window boundary.
     onFire: [{ kind: "setPersistent", flag: "interviewMissed", value: true }],
     responses: [],
   },
@@ -372,10 +543,10 @@ const CONFIRM = step({
 });
 const ARRIVE = step({
   id: "arrive",
-  label: "Reach the market office by 12:30",
+  label: "Meet Cô Ba and complete the interview at the market office",
   target: "phone",
-  app: "map",
-  doneWhen: [{ kind: "anyOf", conditions: [persistent("interviewCompleted"), persistent("interviewMissed")] }],
+  app: "files",
+  doneWhen: [persistent("interviewCompleted")],
 });
 
 export const MISSION_02_MISSIONS: MissionDef[] = [
@@ -385,9 +556,9 @@ export const MISSION_02_MISSIONS: MissionDef[] = [
     optional: false,
     opensWhen: { atMinute: MISSION_02_CONFIG.opensAtMinute },
     deadlineAtMinute: MISSION_02_CONFIG.missionDeadlineMinute,
-    completeWhen: [
-      { kind: "anyOf", conditions: [persistent("interviewCompleted"), persistent("interviewMissed")] },
-    ],
+    // Missing the original appointment is recoverable. Only the face-to-face interview completes
+    // the mission; the 14:00 deadline remains the terminal failure branch.
+    completeWhen: [persistent("interviewCompleted")],
     onFail: [{ kind: "setPersistent", flag: "interviewMissed", value: true }],
     paths: [
       {

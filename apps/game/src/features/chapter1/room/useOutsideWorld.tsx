@@ -9,7 +9,10 @@ import { CinemaNpcHud } from "../../testbus/openworld/CinemaNpcHud";
 import { DistrictArrivalBanner, StreetActionPrompt } from "../../testbus/openworld/StreetHudElements";
 import type { SaigonRadarData } from "../hud/SaigonMinimap";
 import type { StoryNpcRuntimeContext } from "../../../game/narrative/chapter1/storyCast";
+import type { GameLocale } from "@scammaze/shared-types";
 import { useGameLocale } from "../../../i18n";
+import { mission02VoiceUrl } from "../voice/mission02Voice";
+import { lineVoiceKey, playLineVoice, stopLineVoice } from "../device/lineVoice";
 
 export interface OutsideWorldState {
   /** The street is live around the room (the door can open onto it). */
@@ -60,7 +63,8 @@ export function useOutsideWorld(
   enabled: boolean,
   storyContext?: Partial<StoryNpcRuntimeContext>,
   onTransit?: (event: TransitEvent) => void,
-  onStoryReply?: (npcId: string, replyId: string) => void,
+  onStoryReply?: (npcId: string, replyId: string) => Partial<StoryNpcRuntimeContext> | void,
+  onStoryStart?: (npcId: string) => Partial<StoryNpcRuntimeContext> | void,
 ): OutsideWorldState {
   const [state, setState] = useState<OutsideWorldState>(IDLE);
   const handleRef = useRef<OutsideWorldHandle | null>(null);
@@ -71,6 +75,8 @@ export function useOutsideWorld(
   transitRef.current = onTransit;
   const storyReplyRef = useRef(onStoryReply);
   storyReplyRef.current = onStoryReply;
+  const storyStartRef = useRef(onStoryStart);
+  storyStartRef.current = onStoryStart;
 
   useEffect(() => {
     if (handleRef.current && storyContext) {
@@ -138,7 +144,8 @@ export function useOutsideWorld(
           });
         },
         onTransit: (event) => transitRef.current?.(event),
-        onStoryReply: (npcId, replyId) => storyReplyRef.current?.(npcId, replyId),
+        onStoryReply: (npcId, replyId) => storyReplyRef.current?.(npcId, replyId) ?? undefined,
+        onStoryStart: (npcId) => storyStartRef.current?.(npcId) ?? undefined,
       })
         .then((h) => {
           if (!h) return;
@@ -202,11 +209,52 @@ export interface OutsideHudProps {
   state: OutsideWorldState;
   /** Suppresses the street prompt when the room door prompt is already displayed on screen. */
   suppressPrompt?: boolean;
+  /** Sound settings of the chapter: the recorded street voice obeys them. */
+  voice?: StreetVoiceSettings;
+}
+
+/** What the street voice needs from the player's settings. */
+export interface StreetVoiceSettings {
+  soundEnabled: boolean;
+  englishFallback: boolean;
+}
+
+/**
+ * Plays the recorded clip of the street line on screen, when the line has one. The subtitles are
+ * always shown by `CinemaNpcHud`; a line without a recording simply stays silent, and a new line
+ * replaces the one playing (one voice at a time).
+ */
+function useStreetVoice(
+  dialogue: ActiveStoryNpcDialogue | null,
+  ambientBark: AmbientStreetBark | null,
+  locale: GameLocale,
+  voice: StreetVoiceSettings | undefined,
+): void {
+  const soundOn = voice?.soundEnabled ?? true;
+  const englishFallback = voice?.englishFallback ?? false;
+  const lineKey = dialogue?.lineKey ?? null;
+  const dialogueVoiceId = dialogue?.currentVoiceId ?? null;
+  const barkVoiceId = dialogue === null ? (ambientBark?.voiceId ?? null) : null;
+
+  useEffect(() => {
+    if (!soundOn) return undefined;
+    if (lineKey === null && barkVoiceId === null) return undefined;
+    const voiceId = lineKey === null ? barkVoiceId : dialogueVoiceId;
+    const clipUrl = mission02VoiceUrl(voiceId, locale, englishFallback);
+    if (clipUrl === null) return undefined;
+    const key = lineKey === null ? `street-bark:${voiceId}` : `street-line:${lineKey}`;
+    void playLineVoice(key, "", locale, clipUrl, { synthetic: false });
+    return () => {
+      if (lineVoiceKey() === key) stopLineVoice();
+    };
+  }, [soundOn, englishFallback, locale, lineKey, dialogueVoiceId, barkVoiceId]);
 }
 
 /** Street prompt, cinematic district arrival banner, ambient/bump whispers, and cinema Story NPC dialogue while outside. */
-export function OutsideHud({ state, suppressPrompt = false }: OutsideHudProps) {
+export function OutsideHud({ state, suppressPrompt = false, voice }: OutsideHudProps) {
   const language = useGameLocale();
+  const locale: GameLocale = language === "vi" ? "vi" : "en";
+  useStreetVoice(state.storyDialogue, state.ambientBark, locale, voice);
   if (!state.outdoors) return null;
   return (
     <div className="pointer-events-none absolute inset-0 z-[40]" data-testid="outside-hud">

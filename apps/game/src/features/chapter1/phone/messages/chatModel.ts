@@ -12,13 +12,15 @@ export interface Bubble {
   atMinute: number;
   /** Key of the conversation line (it can have a voice), or null for the opening message. */
   lineKey: string | null;
+  /** Stable recorded voice ID, when the scenario authors one. */
+  voiceId?: string;
 }
 
 /** The opening message of the other side, then the lines of the actions that were done, in order. */
 export function threadBubbles(item: DeviceItemView, visibleLines: number = item.conversation.length): Bubble[] {
   const bubbles: Bubble[] = [{ key: `${item.id}/opening`, side: "in", text: item.body, atMinute: item.arrivedAtMinute, lineKey: null }];
   item.conversation.slice(0, visibleLines).forEach((line) => {
-    bubbles.push({ key: line.key, side: line.speaker === "alex" ? "out" : "in", text: line.text, atMinute: line.atMinute, lineKey: line.key });
+    bubbles.push({ key: line.key, side: line.speaker === "alex" ? "out" : "in", text: line.text, atMinute: line.atMinute, lineKey: line.key, voiceId: line.voiceId });
   });
   return bubbles;
 }

@@ -31,6 +31,12 @@ export interface ActiveStoryNpcDialogue {
   turn: StoryNpcDialogueTurn;
   /** Currently displayed spoken line (opening line or NPC response to Alex's chosen reply). */
   currentText: LocalizedPair;
+  /**
+   * Stable recording key of the line being spoken now, or null for subtitle-only lines. A voice
+   * player resolves this against its manifest; nothing here loads audio by itself.
+   */
+  /** Stable recording key for the currently displayed NPC line, when one is authored. */
+  currentVoiceId?: string | null;
   /** Brief echo of the reply Alex just chose (makes dialogue feel naturally two-way). */
   lastPlayerReply?: LocalizedPair | null;
   currentMood: StoryNpcMood;
@@ -48,6 +54,8 @@ export interface AmbientStreetBark {
   npcId: StoryNpcId;
   speaker: LocalizedPair;
   text: LocalizedPair;
+  /** Stable recorded voice ID for this ambient callout, when one exists. */
+  voiceId?: string | null;
 }
 
 export interface StoryNpcInteractionTarget {
@@ -70,6 +78,11 @@ export interface StoryNpcDirector {
   /** Select an interactive RDR2/GTA-6 style reply by 0-based index (keys 1 / 2 / 3 or click). */
   selectReply(index: number): ActiveStoryNpcDialogue | null;
   advanceDialogue(): ActiveStoryNpcDialogue | null;
+  /**
+   * Re-resolves the open conversation's turn against the current context while keeping the line
+   * being spoken. Used when the player's reply changed story state that the dialogue branches on.
+   */
+  refreshDialogue(): ActiveStoryNpcDialogue | null;
   closeDialogue(): void;
   getActiveDialogue(): ActiveStoryNpcDialogue | null;
   getAmbientBark(): AmbientStreetBark | null;
@@ -365,6 +378,7 @@ export function createStoryNpcDirector(
             npcId: npc.profile.id,
             speaker: turn.speaker,
             text: turn.ambientBark,
+            voiceId: turn.ambientVoiceId ?? null,
           };
           barkExpiresAt = time + 4.8;
         }
@@ -438,6 +452,7 @@ export function createStoryNpcDirector(
         npcId,
         turn,
         currentText: firstLine,
+        currentVoiceId: turn.openingVoiceId ?? null,
         lastPlayerReply: null,
         currentMood: turn.mood,
         activeInsight: turn.hookNote ?? null,
@@ -459,6 +474,7 @@ export function createStoryNpcDirector(
       activeDialogue = {
         ...activeDialogue,
         currentText: reply.response,
+        currentVoiceId: reply.voiceId ?? null,
         lastPlayerReply: reply.label,
         currentMood: reply.nextMood,
         activeInsight: reply.insight ?? activeDialogue.activeInsight,
@@ -483,6 +499,12 @@ export function createStoryNpcDirector(
         return null;
       }
       return this.selectReply(nextIdx);
+    },
+    refreshDialogue() {
+      if (!activeDialogue) return null;
+      const turn = resolveStoryNpcDialogue(activeDialogue.npcId, context);
+      activeDialogue = { ...activeDialogue, turn };
+      return activeDialogue;
     },
     closeDialogue() {
       activeDialogue = null;

@@ -738,17 +738,49 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
         // A ride before the mission opens, or after the window closed, is simply not recorded.
         if (action && store.getState().status === "playing") store.dispatch(action as CoreAction);
       },
-      onStoryReply(npcId) {
-        // The street conversation is the physical equivalent of asking the driver at the stop.
-        // Record it once so the offer, contact and off-platform choice appear in the deterministic
-        // core even when the player never opens the phone's map first. Later replies are harmless:
-        // the authored action is `once`, so the reducer rejects the duplicate without changing state.
-        if (npcId !== "unverified_driver" || store.getState().status !== "playing") return;
-        store.dispatch({
-          type: "USE_DEVICE_ITEM",
-          itemId: "map.bus06-stop",
-          actionId: "ask-driver",
-        });
+      onStoryStart(npcId) {
+        if (npcId === "unverified_driver") {
+          if (store.getState().status === "playing") {
+            store.dispatch({ type: "USE_DEVICE_ITEM", itemId: "map.bus06-stop", actionId: "ask-driver" });
+          }
+          return;
+        }
+        if (npcId !== "interviewee_q5" || store.getState().status !== "playing") return undefined;
+        const before = store.getState();
+        // Late or already-rescheduled visits stay in their own conversation branch; the player's reply
+        // is what accepts or starts that interview. A normal on-time visit starts as they walk up.
+        if (before.persistent.interviewMissed || before.persistent.interviewRescheduled) {
+          return { flags: before.persistent };
+        }
+        const result = store.dispatch({ type: "USE_DEVICE_ITEM", itemId: "interview.coba", actionId: "start" });
+        if (!result.accepted) return { flags: before.persistent };
+        // Hand the reducer's fresh flags back so the physical dialogue opens on the right branch
+        // on its very first turn instead of one render late.
+        return { flags: result.state.persistent };
+      },
+      onStoryReply(npcId, replyId) {
+        if (npcId === "unverified_driver") {
+          // The street conversation is the physical equivalent of asking the driver at the stop.
+          // The authored action is `once`, so repeated replies are harmless.
+          if (store.getState().status === "playing") {
+            store.dispatch({ type: "USE_DEVICE_ITEM", itemId: "map.bus06-stop", actionId: "ask-driver" });
+          }
+          return;
+        }
+        if (npcId !== "interviewee_q5" || store.getState().status !== "playing") return;
+        const actionByReply: Record<string, string> = {
+          coba_transfer_check: "ask-transfer",
+          coba_process: "ask-process",
+          coba_exception: "ask-exception",
+          // Late acceptance is deliberately two-step: reschedule now, then reopen the conversation
+          // and explicitly begin the rescheduled interview.
+          coba_late_reschedule: "reschedule",
+          coba_start_rescheduled: "start-rescheduled",
+        };
+        const actionId = actionByReply[replyId];
+        if (!actionId) return undefined;
+        const result = store.dispatch({ type: "USE_DEVICE_ITEM", itemId: "interview.coba", actionId });
+        return result.accepted ? { flags: result.state.persistent } : undefined;
       },
     });
     return () => bridge.detach();

@@ -82,6 +82,10 @@ export type StoryNpcMood = "calm" | "urgent" | "guarded" | "persuasive" | "suppo
 
 export interface StoryNpcReplyOption {
   id: string;
+  /** Stable recording key for the NPC's spoken answer; absent on legacy dialogue until it is voiced. */
+  voiceId?: string;
+  /** Stable recording key for Alex's spoken version of this reply label. */
+  labelVoiceId?: string;
   /** Short RDR2/GTA-6 style reply label shown next to [1] / [2] / [3]. */
   label: LocalizedPair;
   /** Tone badge for quick reading. */
@@ -96,12 +100,16 @@ export interface StoryNpcReplyOption {
 
 export interface StoryNpcDialogueTurn {
   npcId: StoryNpcId;
+  /** Stable voice/subtitle recording key for the opening spoken line. */
+  openingVoiceId?: string;
   speaker: LocalizedPair;
   role: LocalizedPair;
   missionBadge: string;
   mood: StoryNpcMood;
   /** Natural ambient street callout when Alex passes within ~7.5m (before pressing [E]). */
   ambientBark: LocalizedPair;
+  /** Stable recording key for the ambient callout; absent when it stays a written callout. */
+  ambientVoiceId?: string;
   /** Opening spoken line when Alex engages the NPC. */
   lines: readonly LocalizedPair[];
   /** Interactive RDR2/GTA-6 style player replies ([1], [2], [3]). */
@@ -301,13 +309,25 @@ export const STORY_NPC_CAST: readonly StoryNpcProfile[] = [
     role: { en: "District 5 Thesis Interviewee", vi: "Nhân vật phỏng vấn Q.5" },
     shortTag: { en: "M02 · Last Interview", vi: "NV 02 · Phỏng Vấn Cuối" },
     accentColor: "#60a5fa",
+    worldAnchor: {
+      x: 3.4,
+      y: CURB_Y,
+      z: -124.2,
+      yaw: 2.8,
+      height: 1.64,
+      modelFile: "npc-sofia.optimized.glb",
+      propKind: "clipboard",
+      stagingCue: { en: "At the market office main entrance in Chợ Lớn", vi: "Ở cửa chính văn phòng chợ tại Chợ Lớn" },
+      district: { en: "Chợ Lớn Market Office · District 5", vi: "Văn phòng chợ Chợ Lớn · Quận 5" },
+    },
     schedule: [
       {
-        startMinute: 960,
+        // Wednesday 11:00–14:00, matching the M02 travel and mission deadline window.
+        startMinute: 1080,
         endMinute: 1260,
-        location: { en: "District 5 — Wed 11:30", vi: "Quận 5 — 11:30 Thứ Tư" },
+        location: { en: "Chợ Lớn market office main entrance", vi: "Cửa chính văn phòng chợ Chợ Lớn" },
         activity: "idle",
-        inOpenWorld: false,
+        inOpenWorld: true,
       },
     ],
   },
@@ -472,6 +492,7 @@ export function resolveStoryNpcDialogue(
             en: "Alex! Grab an iced coffee — Chapter 3 is finally looking sharp!",
             vi: "Alex! Qua làm ly cà phê sữa đá đi — Chương 3 cuối cùng cũng ra dáng rồi!",
           },
+          openingVoiceId: "m02.minh.setup",
           lines: [
             {
               en: "Chapter 3 finally looks solid! Don't forget our final District 5 interview at 11:30 tomorrow — Cô Ba hates waiting.",
@@ -481,6 +502,7 @@ export function resolveStoryNpcDialogue(
           replies: [
             {
               id: "minh_m02_route",
+              voiceId: "m02.minh.minh_m02_route",
               tone: "inquire",
               label: { en: "Best way down to District 5?", vi: "Mai đi Quận 5 bằng gì tiện nhất?" },
               response: {
@@ -495,6 +517,7 @@ export function resolveStoryNpcDialogue(
             },
             {
               id: "minh_m02_coba",
+              voiceId: "m02.minh.minh_m02_coba",
               tone: "inquire",
               label: { en: "What should I ask Cô Ba?", vi: "Gặp Cô Ba cần chốt số liệu gì?" },
               response: {
@@ -505,6 +528,7 @@ export function resolveStoryNpcDialogue(
             },
             {
               id: "minh_leave",
+              voiceId: "m02.minh.minh_leave",
               tone: "leave",
               label: { en: "See you tomorrow morning.", vi: "Hẹn sáng mai nha Minh." },
               response: {
@@ -776,6 +800,8 @@ export function resolveStoryNpcDialogue(
         role: npc.role,
         missionBadge: "M02 · THE RIDE",
         mood: "persuasive",
+        openingVoiceId: "m02.driver.opening",
+        ambientVoiceId: "m02.driver.ambient",
         ambientBark: {
           en: "District 5, student? Skip Bus 06 — hop on my bike, 60k cash right now!",
           vi: "Đi Quận 5 không em? Chờ Buýt 06 nắng lắm, 60 ngàn anh chở liền luôn!",
@@ -789,6 +815,8 @@ export function resolveStoryNpcDialogue(
         replies: [
           {
             id: "driver_ask_app",
+            voiceId: "m02.driver.driver_ask_app",
+            labelVoiceId: "m02.driver.driver_ask_app.alex",
             tone: "challenge",
             label: { en: "Why don't you run through the ride app?", vi: "Sao anh không bật app để em đặt cho an toàn?" },
             response: {
@@ -803,6 +831,8 @@ export function resolveStoryNpcDialogue(
           },
           {
             id: "driver_ask_plate",
+            voiceId: "m02.driver.driver_ask_plate",
+            labelVoiceId: "m02.driver.driver_ask_plate.alex",
             tone: "inquire",
             label: { en: "Which route do you take to District 5?", vi: "Anh chạy tuyến nào xuống Quận 5?" },
             response: {
@@ -817,6 +847,8 @@ export function resolveStoryNpcDialogue(
           },
           {
             id: "driver_wait_bus",
+            voiceId: "m02.driver.driver_wait_bus",
+            labelVoiceId: "m02.driver.driver_wait_bus.alex",
             tone: "leave",
             label: { en: "No thanks — I'll take Bus 06.", vi: "Thôi cảm ơn anh — em đi xe Buýt 06." },
             response: {
@@ -938,6 +970,313 @@ export function resolveStoryNpcDialogue(
               vi: "Tập trung bảo vệ cho tốt trước đi — email tuyển dụng chính thức có trên website công ty nhé.",
             },
             nextMood: "calm",
+          },
+        ],
+      };
+
+    case "interviewee_q5":
+      // Cô Ba is a real, physical interviewee in Chợ Lớn. Her dialogue is the interview scene itself:
+      // no branch here marks the interview complete. The deterministic device actions do that, and only
+      // when Alex actually asks one of the interview questions and the core state says so.
+      if (f.interviewCompleted) {
+        return {
+          npcId,
+          speaker: npc.name,
+          role: npc.role,
+          missionBadge: "M02 · INTERVIEW DONE",
+          openingVoiceId: "m02.coba.after.opening",
+          mood: "supportive",
+          ambientBark: {
+            en: "Thank you, Alex. Send me the chapter when it is finished.",
+            vi: "Cảm ơn cháu, Alex. Xong chương rồi gửi cô xem nhé.",
+          },
+          lines: [
+            {
+              en: "That is everything I use at the stall. Put it in the chapter before you hand it in.",
+              vi: "Đó là tất cả những gì cô làm ở sạp. Cháu ghi vào bài trước khi nộp nhé.",
+            },
+          ],
+          replies: [
+            {
+              id: "coba_after_thanks",
+              voiceId: "m02.coba.after.thanks",
+              labelVoiceId: "m02.coba.after.thanks.alex",
+              tone: "support",
+              label: { en: "Thank you for the time, Cô Ba.", vi: "Cảm ơn cô đã dành thời gian ạ." },
+              response: {
+                en: "Go on, you still have a chapter to finish. Call me if you need me to check a line.",
+                vi: "Đi đi, cháu còn cả chương phải làm. Cần cô xem lại câu nào thì gọi.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_after_recap",
+              voiceId: "m02.coba.after.recap",
+              labelVoiceId: "m02.coba.after.recap.alex",
+              tone: "inquire",
+              label: { en: "Anything else I should not miss?", vi: "Cô còn điều gì cháu không nên bỏ sót ạ?" },
+              response: {
+                en: "The balance, not the screenshot. And never release goods on a promise.",
+                vi: "Là số dư, không phải ảnh chụp. Và đừng bao giờ giao hàng chỉ vì một lời hứa.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_after_leave",
+              voiceId: "m02.coba.after.leave",
+              labelVoiceId: "m02.coba.after.leave.alex",
+              tone: "leave",
+              label: { en: "I should get going.", vi: "Cháu phải đi đây ạ." },
+              response: {
+                en: "Careful on the road. The market gets crowded at this hour.",
+                vi: "Đi đường cẩn thận. Giờ này chợ đông lắm.",
+              },
+              nextMood: "calm",
+            },
+          ],
+        };
+      }
+      if (f.interviewStarted) {
+        return {
+          npcId,
+          speaker: npc.name,
+          role: npc.role,
+          missionBadge: "M02 · INTERVIEW",
+          openingVoiceId: "m02.coba.interview.opening",
+          mood: "supportive",
+          ambientBark: {
+            en: "Take your notes out when you are ready. I have the shop records here.",
+            vi: "Cháu lấy sổ ra khi sẵn sàng nhé. Cô có sổ tiệm ở đây rồi.",
+          },
+          lines: [
+            {
+              en: "Sit here where the light is better. Ask what you need for the chapter.",
+              vi: "Cháu ngồi đây cho đủ sáng. Cần gì cho bài thì hỏi cô.",
+            },
+          ],
+          replies: [
+            {
+              id: "coba_transfer_check",
+              voiceId: "m02.coba.interview.transfer_check",
+              labelVoiceId: "m02.coba.interview.transfer_check.alex",
+              tone: "inquire",
+              label: { en: "How do you check a transfer receipt?", vi: "Cô kiểm tra bill chuyển khoản thế nào?" },
+              response: {
+                en: "We check the amount in our own bank app, match the sender name, and wait for the balance to update. A screenshot is not payment.",
+                vi: "Cô kiểm tra số tiền trên app ngân hàng của mình, đối chiếu tên người gửi rồi chờ số dư cập nhật. Ảnh chụp màn hình không phải là tiền về.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_process",
+              voiceId: "m02.coba.interview.process",
+              labelVoiceId: "m02.coba.interview.process.alex",
+              tone: "inquire",
+              label: { en: "What is your full checking process?", vi: "Quy trình kiểm tra đầy đủ của cô là gì?" },
+              response: {
+                en: "First we pause the handover. Then we check our account, confirm the amount, and only release the goods after the credit appears.",
+                vi: "Đầu tiên cô tạm dừng giao hàng. Sau đó kiểm tra tài khoản, xác nhận số tiền, rồi chỉ giao khi tiền đã hiện trong tài khoản.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_exception",
+              voiceId: "m02.coba.interview.exception",
+              labelVoiceId: "m02.coba.interview.exception.alex",
+              tone: "challenge",
+              label: { en: "What if the receipt looks wrong?", vi: "Nếu bill có gì không đúng thì sao cô?" },
+              response: {
+                en: "We do not argue over it. We stop the sale, ask the customer to check with their bank, and call our own bank if the transfer is still unclear.",
+                vi: "Cô không tranh cãi chuyện đó. Cô dừng giao dịch, bảo khách kiểm tra với ngân hàng của họ, rồi gọi ngân hàng của cô nếu giao dịch vẫn chưa rõ.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_invite_reschedule",
+              voiceId: "m02.coba.interview.invite_reschedule",
+              labelVoiceId: "m02.coba.interview.invite_reschedule.alex",
+              tone: "leave",
+              label: { en: "I am late — can we reschedule?", vi: "Cháu tới trễ rồi — mình dời lại được không cô?" },
+              response: {
+                en: "We can still finish now that you are here. If you need another day, call before you come.",
+                vi: "Cháu tới rồi thì mình làm luôn được. Nếu cần hôm khác thì gọi trước khi tới.",
+              },
+              nextMood: "calm",
+            },
+          ],
+        };
+      }
+      if (f.interviewRescheduled) {
+        return {
+          npcId,
+          speaker: npc.name,
+          role: npc.role,
+          missionBadge: "M02 · RESCHEDULED INTERVIEW",
+          openingVoiceId: "m02.coba.rescheduled.opening",
+          mood: "supportive",
+          ambientBark: {
+            en: "You made it back. We can do the interview now, before the market closes.",
+            vi: "Cháu quay lại rồi. Mình phỏng vấn luôn nhé, trước khi chợ đóng cửa.",
+          },
+          lines: [
+            {
+              en: "You came back. Sit down — we can still do the interview today.",
+              vi: "Cháu quay lại rồi. Ngồi xuống đi — hôm nay mình vẫn phỏng vấn được.",
+            },
+          ],
+          replies: [
+            {
+              id: "coba_start_rescheduled",
+              voiceId: "m02.coba.rescheduled.start",
+              labelVoiceId: "m02.coba.rescheduled.start.alex",
+              tone: "support",
+              label: { en: "Thank you for fitting me in.", vi: "Cảm ơn cô đã sắp xếp lại cho cháu." },
+              response: {
+                en: "Of course. Let us keep it focused: how do you check a transfer before handing over goods?",
+                vi: "Không có gì. Mình tập trung nhé: cô kiểm tra giao dịch thế nào trước khi giao hàng?",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_confirm_rescheduled",
+              voiceId: "m02.coba.rescheduled.confirm",
+              labelVoiceId: "m02.coba.rescheduled.confirm.alex",
+              tone: "inquire",
+              label: { en: "Can we use the main entrance again?", vi: "Mình vẫn gặp ở cửa chính phải không cô?" },
+              response: {
+                en: "Yes, the main entrance. Do not come through the alley; the market staff will redirect you.",
+                vi: "Đúng rồi, cửa chính. Đừng đi vào hẻm; nhân viên chợ sẽ hướng dẫn cháu ra.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_leave_rescheduled",
+              voiceId: "m02.coba.rescheduled.leave",
+              labelVoiceId: "m02.coba.rescheduled.leave.alex",
+              tone: "leave",
+              label: { en: "I should come back another day.", vi: "Chắc cháu nên quay lại hôm khác." },
+              response: {
+                en: "All right. Call before you come next time so I can keep a slot open.",
+                vi: "Được thôi. Lần sau cháu gọi trước để cô giữ giờ nhé.",
+              },
+              nextMood: "calm",
+            },
+          ],
+        };
+      }
+      if (f.interviewMissed) {
+        return {
+          npcId,
+          speaker: npc.name,
+          role: npc.role,
+          missionBadge: "M02 · MISSED APPOINTMENT",
+          openingVoiceId: "m02.coba.late.opening",
+          mood: "calm",
+          ambientBark: {
+            en: "Alex? The 11:30 slot has passed. Are you still coming today?",
+            vi: "Alex hả cháu? Giờ hẹn 11:30 qua rồi. Hôm nay cháu còn tới không?",
+          },
+          lines: [
+            {
+              en: "I waited until half past twelve, then I had to open the stall. We can still talk if you came all this way.",
+              vi: "Cô đợi tới 12 giờ rưỡi rồi phải mở sạp. Cháu đi cả quãng đường tới đây thì mình vẫn nói chuyện được.",
+            },
+          ],
+          replies: [
+            {
+              id: "coba_late_reschedule",
+              voiceId: "m02.coba.late.reschedule",
+              labelVoiceId: "m02.coba.late.reschedule.alex",
+              tone: "inquire",
+              label: { en: "Could we do it now, at the entrance?", vi: "Mình làm luôn bây giờ ở cửa chính được không cô?" },
+              response: {
+                en: "Yes — sit with me for a few minutes. It is better than another trip across the city.",
+                vi: "Được — cháu ngồi với cô vài phút. Còn hơn phải đi thêm một chuyến qua cả thành phố.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_late_thanks",
+              voiceId: "m02.coba.late.thanks",
+              labelVoiceId: "m02.coba.late.thanks.alex",
+              tone: "support",
+              label: { en: "I am sorry I kept you waiting.", vi: "Cháu xin lỗi vì để cô phải đợi." },
+              response: {
+                en: "Traffic is traffic. What matters is that you tell me what you need for the chapter.",
+                vi: "Kẹt xe thì kẹt xe thôi. Quan trọng là cháu nói cô cần gì cho bài.",
+              },
+              nextMood: "supportive",
+            },
+            {
+              id: "coba_late_leave",
+              voiceId: "m02.coba.late.leave",
+              labelVoiceId: "m02.coba.late.leave.alex",
+              tone: "leave",
+              label: { en: "I should not keep you from the stall.", vi: "Cháu không giữ cô khỏi việc bán hàng nữa." },
+              response: {
+                en: "Then call me before you come next time. I will keep a slot for you.",
+                vi: "Vậy lần sau cháu gọi trước khi tới. Cô sẽ giữ giờ cho cháu.",
+              },
+              nextMood: "calm",
+            },
+          ],
+        };
+      }
+      // Not arrived yet (or the player walked up early): she is at the entrance, but the interview
+      // cannot start until Alex reaches the market office in the story.
+      return {
+        npcId,
+        speaker: npc.name,
+        role: npc.role,
+        missionBadge: "M02 · MARKET OFFICE",
+        openingVoiceId: "m02.coba.waiting.opening",
+        mood: "calm",
+        ambientBark: {
+          en: "Alex, is that you? The market office entrance is on this side.",
+          vi: "Alex phải không cháu? Cửa chính văn phòng chợ ở phía này nè.",
+        },
+        lines: [
+          {
+            en: "Are you here for the 11:30 interview? Come to the main entrance, not the alley.",
+            vi: "Cháu tới phỏng vấn lúc 11:30 phải không? Vào cửa chính nhé, đừng đi hẻm.",
+          },
+        ],
+        replies: [
+          {
+            id: "coba_waiting_where",
+            voiceId: "m02.coba.waiting.where",
+            labelVoiceId: "m02.coba.waiting.where.alex",
+            tone: "inquire",
+            label: { en: "Where exactly is the main entrance?", vi: "Cửa chính nằm chính xác ở đâu ạ?" },
+            response: {
+              en: "Past the money changers, the wide door with the green sign. Not the narrow alley on the left.",
+              vi: "Qua mấy quầy đổi tiền, cái cửa rộng có bảng màu xanh. Không phải con hẻm nhỏ bên trái đâu.",
+            },
+            nextMood: "calm",
+          },
+          {
+            id: "coba_waiting_slot",
+            voiceId: "m02.coba.waiting.slot",
+            labelVoiceId: "m02.coba.waiting.slot.alex",
+            tone: "support",
+            label: { en: "I will be there at 11:30.", vi: "11:30 cháu sẽ có mặt ạ." },
+            response: {
+              en: "Good. I will be at the entrance with the shop ledger.",
+              vi: "Vậy thì tốt. Cô sẽ đứng ở cửa chính với sổ tiệm.",
+            },
+            nextMood: "supportive",
+          },
+          {
+            id: "coba_waiting_ledger",
+            voiceId: "m02.coba.waiting.ledger",
+            labelVoiceId: "m02.coba.waiting.ledger.alex",
+            tone: "inquire",
+            label: { en: "Should I bring anything to the interview?", vi: "Cháu có cần mang gì tới buổi phỏng vấn không cô?" },
+            response: {
+              en: "A pen and your questions. I have the shop records from the last three months.",
+              vi: "Cây viết và mấy câu hỏi của cháu. Cô có sổ sách ba tháng gần đây rồi.",
+            },
+            nextMood: "supportive",
           },
         ],
       };
