@@ -45,6 +45,8 @@ export const PERSISTENT_FLAG_IDS = [
   "minhTrustsAlex",
   /** Alex confirmed with the Training Office that the submission account is active and no fee exists. */
   "schoolAccessVerified",
+  /** Alex compared the suspicious fee against the saved portal's official services information. */
+  "schoolFeeClaimContradicted",
   /** Alex entered his student login on a page that was not the school's. */
   "loginCredentialsExposed",
   /** Alex gave a verification code to that page. */
@@ -77,6 +79,10 @@ export const PERSISTENT_FLAG_IDS = [
   "goldenFeesPaid",
   /** The full draft was finished (on time or late). */
   "draftFinished",
+  /** The final submission mission reached Friday 17:00 without a submitted receipt. */
+  "submissionDeadlineMissed",
+  /** Alex included the interview finding about checking through a previously known channel in the thesis revision. */
+  "researchSavedChannelIncluded",
 ] as const;
 export type PersistentFlagId = (typeof PERSISTENT_FLAG_IDS)[number];
 export type PersistentFlags = Record<PersistentFlagId, boolean>;
@@ -124,6 +130,7 @@ export const CHAPTER_1_INITIAL_STATE: ChapterInitialState = {
     housingDepositLost: false,
     minhTrustsAlex: true,
     schoolAccessVerified: false,
+    schoolFeeClaimContradicted: false,
     loginCredentialsExposed: false,
     verificationCodeExposed: false,
     accountEverCompromised: false,
@@ -140,6 +147,8 @@ export const CHAPTER_1_INITIAL_STATE: ChapterInitialState = {
     goldenPlatformJoined: false,
     goldenFeesPaid: false,
     draftFinished: false,
+    submissionDeadlineMissed: false,
+    researchSavedChannelIncluded: false,
   },
 };
 

@@ -58,7 +58,7 @@ export function createInitialWorld(scenario: ScenarioDefinition): WorldState {
   for (const mission of scenario.missions ?? []) {
     missions[mission.id] = { status: "locked", path: null, pathHistory: [], openedAtMinute: null, closedAtMinute: null };
   }
-  return { events: {}, thesisTasksDone: [], missions };
+  return { events: {}, thesisTasksDone: [], thesisWorkRemainderUnits: 0, thesisWorkSession: null, thesisDraft: {}, missions };
 }
 
 /** Minutes since the chapter started: start time left minus time left now. */

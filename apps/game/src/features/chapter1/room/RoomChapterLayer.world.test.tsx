@@ -152,35 +152,18 @@ describe("RoomChapterLayer with a running world clock", () => {
     expect(timeLeft(rig)).toBe(paused);
   });
 
-  it("works on the thesis from the schedule while the deadline keeps running", async () => {
-    const rig = mountLayer({ clockPaused: false });
-    finishIntro();
-    await waitFor(() => expect(rig.store().getState().status).toBe("playing"));
-    fireEvent.click(screen.getByTestId("hud-planner-chip"));
-    const planner = await screen.findByTestId("planner-overlay");
-    const before = rig.store().getState().resources;
-    act(() => {
-      fireEvent.click(within(planner).getByTestId("thesis-work"));
-    });
-    const after = rig.store().getState().resources;
-    expect(after.thesisProgress).toBe(before.thesisProgress + 1);
-    expect(before.timeMinutes - after.timeMinutes).toBeGreaterThanOrEqual(60);
-    expect(within(planner).getByTestId("thesis-progress").textContent).toContain("61%");
-  });
-
-  it("completes a thesis task from the schedule: progress by achievement, not by waiting", async () => {
+  it("opens the laptop draft from the schedule without granting thesis progress", async () => {
     const rig = mountLayer({ clockPaused: true });
     finishIntro();
     fireEvent.click(screen.getByTestId("hud-planner-chip"));
     const planner = await screen.findByTestId("planner-overlay");
-    expect(within(planner).getByTestId("thesis-limit").textContent).toContain("90%");
     const before = rig.store().getState().resources;
-    fireEvent.click(within(planner).getByTestId("thesis-task-test.task"));
-    const after = rig.store().getState().resources;
-    expect(after.thesisProgress).toBe(before.thesisProgress + 5);
-    expect(before.timeMinutes - after.timeMinutes).toBe(30);
-    expect((within(planner).getByTestId("thesis-task-test.task") as HTMLButtonElement).disabled).toBe(true);
-    expect(within(planner).getByText("Done")).toBeTruthy();
+    expect(within(planner).queryByTestId("thesis-work")).toBeNull();
+    expect(within(planner).queryByTestId("thesis-task-test.task")).toBeNull();
+    fireEvent.click(within(planner).getByTestId("thesis-open-document"));
+    expect(screen.getByTestId("laptop-desktop")).toBeTruthy();
+    expect(rig.store().getState().resources.thesisProgress).toBe(before.thesisProgress);
+    expect(rig.store().getState().resources.timeMinutes).toBe(before.timeMinutes);
   });
 
   it("shows the simulated time of day on the shared game clock", async () => {

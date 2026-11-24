@@ -54,8 +54,8 @@ describe("UEH Student Portal", () => {
   function portal(section: "dashboard" | "thesis" | "services" | "account", over: { view?: DeviceView; facts?: PortalFacts } = {}) {
     const go = vi.fn();
     const onUseItem = vi.fn();
-    render(<PortalSite section={section} view={over.view ?? viewOf([], [savedPortal()])} facts={over.facts ?? FACTS} go={go} onUseItem={onUseItem} />);
-    return { go, onUseItem };
+    const rendered = render(<PortalSite section={section} view={over.view ?? viewOf([], [savedPortal()])} facts={over.facts ?? FACTS} go={go} onUseItem={onUseItem} />);
+    return { go, onUseItem, unmount: rendered.unmount };
   }
 
   it("shows the dashboard: the student, the status, the key dates and the notices, with breadcrumbs and a sidebar", () => {
@@ -63,12 +63,34 @@ describe("UEH Student Portal", () => {
     expect(screen.getByTestId("portal-site").getAttribute("data-section")).toBe("dashboard");
     expect(screen.getByText("Welcome, Alex")).toBeTruthy();
     expect(screen.getByText("Final-year international student")).toBeTruthy();
-    expect(screen.getByTestId("portal-access-dashboard").textContent).toBe("Active");
+    expect(screen.getByTestId("portal-access-dashboard").textContent).toBe("Not yet checked");
     expect(screen.getByText("Friday, 17:00")).toBeTruthy();
     expect(screen.getByText("Thesis submission closes on Friday at 17:00")).toBeTruthy();
     expect(screen.getByTestId("site-breadcrumbs")).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Portal sections" })).toBeTruthy();
     expect(screen.getByTestId("portal-nav-dashboard").getAttribute("aria-current")).toBe("page");
+  });
+
+  it("offers a real submit action only when the draft, account and access are ready, then shows a receipt", () => {
+    const readyFacts: PortalFacts = {
+      accountLocked: false,
+      accessVerified: true,
+      draftFinished: true,
+      tasksDone: ["draft.intro-review", "draft.findings", "draft.final"],
+    };
+    const { onUseItem, unmount } = portal("thesis", {
+      view: viewOf([], [savedPortal(act1("submit-thesis", { timeCostMinutes: 5 }))]),
+      facts: readyFacts,
+    });
+    fireEvent.click(screen.getByTestId("portal-submit-thesis"));
+    expect(onUseItem).toHaveBeenCalledWith("portal.saved", "submit-thesis");
+    expect(screen.getByTestId("portal-submission-status").textContent).toBe("Not submitted");
+    unmount();
+
+    const submittedView = viewOf([], [savedPortal(act1("submit-thesis", { available: false, blocked: "done" }))]);
+    submittedView.calendar.submission = "submitted";
+    portal("thesis", { view: submittedView, facts: readyFacts });
+    expect(screen.getByTestId("portal-submission-receipt").textContent).toContain("Submission received");
   });
 
   it("states that it is a game simulation and uses the school's name", () => {
@@ -95,7 +117,7 @@ describe("UEH Student Portal", () => {
     expect(screen.getByTestId("portal-task-intro").getAttribute("data-done")).toBe("false");
     expect(screen.getByTestId("portal-draft-status").textContent).toBe("In progress");
     expect(screen.getByText("Friday, 17:00")).toBeTruthy();
-    expect(screen.getByTestId("portal-access-thesis").textContent).toBe("Active");
+    expect(screen.getByTestId("portal-access-thesis").textContent).toBe("Not yet checked");
   });
 
   it("lists the published fees, and no international student confirmation fee", () => {
@@ -103,6 +125,8 @@ describe("UEH Student Portal", () => {
     expect(screen.getByTestId("portal-fee-thesis").textContent).toContain("No fee");
     expect(screen.getByTestId("portal-fee-transcript").textContent).toContain("30,000 VND");
     expect(screen.getByTestId("portal-fees").textContent).not.toMatch(/confirmation/i);
+    expect(screen.getByTestId("portal-payment-domain").textContent).toBe("payment.ueh.edu.vn");
+    expect(screen.queryByRole("link", { name: "payment.ueh.edu.vn" })).toBeNull();
     expect(screen.getByTestId("portal-training-phone").textContent).toBe("+000 100 0200");
     expect(screen.getByTestId("portal-training-email").textContent).toBe("training@ueh.edu.vn");
   });
@@ -127,9 +151,10 @@ describe("UEH Student Portal", () => {
     act(() => {
       applyLocale("vi");
     });
-    portal("dashboard");
-    expect(screen.getByText("Chào mừng, Alex")).toBeTruthy();
-    expect(screen.getByTestId("portal-access-dashboard").textContent).toBe("Đang hoạt động");
+    portal("services");
+    expect(screen.getByRole("heading", { level: 2, name: "Dịch vụ sinh viên" })).toBeTruthy();
+    expect(screen.getByTestId("portal-payment-domain").textContent).toBe("payment.ueh.edu.vn");
+    expect(screen.getByText("Cổng thanh toán (được ghi trong sổ tay sinh viên)")).toBeTruthy();
     expect(screen.getByText("Mô phỏng trong trò chơi. Đây không phải website chính thức của UEH.")).toBeTruthy();
   });
 });

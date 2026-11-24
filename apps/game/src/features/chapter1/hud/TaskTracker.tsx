@@ -136,6 +136,11 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ mission, others = [], 
               {where}
             </span>
           )}
+          {mission.objective !== "" && (
+            <p data-testid="task-objective" className="mt-1 max-w-sm font-menu text-sm leading-snug text-zinc-300">
+              {mission.objective}
+            </p>
+          )}
           {mission.minutesLeft !== null && (
             <span className="mt-0.5 font-menu text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">
               {t("taskSystem.due", { time: formatSpan(text, mission.minutesLeft) })}

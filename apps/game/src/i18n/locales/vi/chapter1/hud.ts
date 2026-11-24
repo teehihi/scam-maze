@@ -113,11 +113,11 @@ const hud: LocaleShape<typeof en> = {
     thesis: {
       heading: "Khóa luận",
       progress: "Tiến độ: {{value}}%",
-      session: "Mỗi lượt làm mất {{time}} và thêm {{percent}}%. Các hạn chót khác vẫn tiếp tục chạy.",
+      session: "Một lượt chỉnh sửa tập trung thường mất {{time}}. Các hạn chót khác vẫn tiếp tục khi Alex làm việc.",
       work: "Làm khóa luận {{time}}",
       complete: "Khóa luận đã hoàn thành.",
       timeUp: "Không còn thời gian.",
-      limit: "Làm tự do chỉ đến {{percent}}%. Muốn tiến thêm cần hoàn thành các nhiệm vụ khóa luận.",
+      limit: "Lưu chỉnh sửa nhỏ để giữ bản nháp; cần sửa đổi đáng kể để khóa luận tiến triển.",
       tasksHeading: "Nhiệm vụ khóa luận",
       noTasks: "Chưa có nhiệm vụ khóa luận nào.",
       fatigueNote: {

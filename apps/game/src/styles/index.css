@@ -56,6 +56,33 @@
   }
 }
 
+/* Restrained, light scrollbars for the manuscript panes (avoid browser-default dark rails). */
+.thesis-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.38) transparent;
+}
+
+.thesis-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.thesis-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thesis-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.38);
+  background-clip: padding-box;
+}
+
+.thesis-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.58);
+  background-clip: padding-box;
+}
+
 html, body {
   margin: 0;
   padding: 0;

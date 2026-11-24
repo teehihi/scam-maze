@@ -4,9 +4,11 @@
 // numbers are not translated. Mission 01 text is here; each later mission adds its own.
 import type { NarrativeOverlay } from "../../game/narrative/localize";
 
-/** The alert never repeats an amount: the ledger is the one place that shows what actually left. */
-const TRANSFER_ALERT =
-  "Một giao dịch chuyển tiền từ tài khoản của bạn đến một tài khoản bạn không biết đã được duyệt. Số tiền có trong ứng dụng ngân hàng. Nếu không phải bạn, hãy gọi đường dây chính thức của ngân hàng.";
+const TRANSFER_ALERTS = [
+  "Một giao dịch 300.000 VNĐ đến người nhận không quen vừa được thực hiện. Nếu không phải bạn, hãy gọi số in trên thẻ ngân hàng.",
+  "Một giao dịch 500.000 VNĐ đến người nhận không quen vừa được thực hiện. Nếu không phải bạn, hãy gọi số in trên thẻ ngân hàng.",
+  "Một giao dịch 700.000 VNĐ đến người nhận không quen vừa được thực hiện. Nếu không phải bạn, hãy gọi số in trên thẻ ngân hàng.",
+] as const;
 
 export const LAST_SUBMISSION_NARRATIVE_VI: NarrativeOverlay = {
   title: "LAST SUBMISSION: 72 GIỜ CUỐI",
@@ -35,6 +37,7 @@ export const LAST_SUBMISSION_NARRATIVE_VI: NarrativeOverlay = {
     "Thanh toán ngay để mở khóa tài khoản: https://payment-ueh.vn/confirm\n\n" +
     "Nếu không thanh toán trong hôm nay, tài khoản sẽ tiếp tục bị khóa và bạn có thể lỡ đợt tốt nghiệp.\n\nVăn phòng Tốt nghiệp",
   "device/mail.clearance/actions/open-link/label": "Mở liên kết thanh toán",
+  "device/mail.clearance/actions/compare-fee-with-saved-portal/label": "So sánh khoản phí với mục dịch vụ trên cổng sinh viên đã lưu",
   "device/page.fee/title": "Trang thanh toán: phí xác nhận sinh viên quốc tế",
   "device/page.fee/from": "Trang thanh toán",
   "device/page.fee/detail": "payment-ueh.vn",
@@ -51,8 +54,11 @@ export const LAST_SUBMISSION_NARRATIVE_VI: NarrativeOverlay = {
   "device/portal.saved/detail": "student.ueh.edu.vn",
   "device/portal.saved/body": "Đường dẫn bạn đã lưu cho cổng nộp luận văn từ lúc đăng ký.",
   "device/portal.saved/actions/check-account/label": "Đăng nhập cổng đã lưu và kiểm tra tài khoản của tôi",
+  "device/portal.saved/actions/submit-thesis/label": "Nộp khóa luận bản cuối và lưu biên nhận",
   "device/file.portal-status/title": "Trạng thái cổng (đã lưu)",
   "device/file.portal-status/body": "Tài khoản nộp luận văn: đang hoạt động.\nKhoản phí còn nợ: không có.",
+  "device/file.fee-comparison/title": "Đối chiếu địa chỉ thanh toán",
+  "device/file.fee-comparison/body": "Cổng sinh viên đã lưu liệt kê payment.ueh.edu.vn là địa chỉ thanh toán. Email yêu cầu chuyển tới payment-ueh.vn. Hai tên miền không khớp; đối chiếu này không xác nhận trạng thái tài khoản.",
   "device/contact.training-office/title": "Phòng Đào tạo (liên hệ chính thức)",
   "device/contact.training-office/detail": "+000 100 0200",
   "device/contact.training-office/body": "Số của phòng được lưu trong điện thoại từ sổ tay sinh viên.",
@@ -107,13 +113,13 @@ export const LAST_SUBMISSION_NARRATIVE_VI: NarrativeOverlay = {
     "Hệ thống ghi nhận một lần đăng nhập vào tài khoản sinh viên từ thiết bị chưa quen. Nếu không phải bạn, hãy đổi mật khẩu.",
   "device/msg.bank-alert-1/title": "Thông báo ngân hàng",
   "device/msg.bank-alert-1/from": "Ngân hàng",
-  "device/msg.bank-alert-1/body": TRANSFER_ALERT,
+  "device/msg.bank-alert-1/body": TRANSFER_ALERTS[0],
   "device/msg.bank-alert-2/title": "Thông báo ngân hàng",
   "device/msg.bank-alert-2/from": "Ngân hàng",
-  "device/msg.bank-alert-2/body": TRANSFER_ALERT,
+  "device/msg.bank-alert-2/body": TRANSFER_ALERTS[1],
   "device/msg.bank-alert-3/title": "Thông báo ngân hàng",
   "device/msg.bank-alert-3/from": "Ngân hàng",
-  "device/msg.bank-alert-3/body": TRANSFER_ALERT,
+  "device/msg.bank-alert-3/body": TRANSFER_ALERTS[2],
 
   // Ordinary life of Alex
   "device/msg.minh/title": "Minh",
@@ -303,9 +309,14 @@ export const LAST_SUBMISSION_NARRATIVE_VI: NarrativeOverlay = {
 
   // Missions
   "missions/m01.missing-access/title": "THE MISSING ACCESS",
-  "missions/m01.missing-access/paths/breach/objective": "Tài khoản của bạn đang gặp rủi ro. Hãy bảo vệ chúng trước, rồi hoàn thành bản thảo.",
-  "missions/m01.missing-access/paths/verified/objective": "Đã xác nhận quyền truy cập với Phòng Đào tạo. Hãy hoàn thành bản thảo.",
-  "missions/m01.missing-access/paths/default/objective": "Hoàn thành bản thảo và xác nhận bạn vào được hệ thống nộp bài.",
+  "missions/m01.missing-access/paths/breach/objective": "Trước tiên, bảo vệ các tài khoản. Hoàn thành bản thảo trước 06:00 thứ Tư để kịp hạn nộp 17:00 thứ Sáu.",
+  "missions/m01.missing-access/paths/verified/objective": "Đã xác nhận truy cập hệ thống nộp bài. Hoàn thành bản thảo trước 06:00 thứ Tư; nộp bài trước 17:00 thứ Sáu.",
+  "missions/m01.missing-access/paths/default/objective": "Hoàn thành bản thảo trước 06:00 thứ Tư và xác nhận bạn đăng nhập được vào hệ thống nộp bài trước 17:00 thứ Sáu.",
+  "missions/m01.final-submission/title": "NỘP BÀI CUỐI CÙNG",
+  "missions/m01.final-submission/paths/ready/objective": "Bản thảo cuối và tài khoản đã sẵn sàng. Nộp qua cổng đã lưu trước 17:00 thứ Sáu.",
+  "missions/m01.final-submission/paths/blocked/objective": "Hoàn thành bản thảo, xác minh quyền truy cập và xử lý khóa tài khoản trước 17:00 thứ Sáu.",
+  "missions/m01.final-submission/paths/ready/steps/submit-thesis": "Nộp khóa luận cuối qua cổng đã lưu và giữ biên nhận",
+  "missions/m01.final-submission/paths/blocked/steps/submit-thesis": "Nộp khóa luận cuối qua cổng đã lưu và giữ biên nhận",
   "missions/m01.security-breach/title": "SECURITY BREACH",
   "missions/m01.security-breach/paths/code/objective":
     "Báo cáo các giao dịch cho ngân hàng qua đường dây chính thức, rồi bảo vệ các tài khoản.",

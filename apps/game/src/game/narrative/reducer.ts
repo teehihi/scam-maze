@@ -48,7 +48,7 @@ import {
 } from "./resources";
 import { applyEffect, applyEffects, evaluateConditions, recordTransaction } from "./conditions";
 import { canRecordDeduction, matchDeduction } from "./deductions";
-import { simulateThesisSession, THESIS_FOCUS_MODES } from "./thesisSession";
+import { findSessionInterruptions, simulateThesisSession, THESIS_FOCUS_MODES } from "./thesisSession";
 import { createInitialDeviceItems, deviceItemDef, itemActionDef } from "./device";
 import { WORLD_TAG_PREFIX, createInitialWorld, elapsedMinutes, eventDef, gameplayConfig, responseFor, settleWorld } from "./world";
 import { REST_MODES, effectiveWorkMinutes, restOption, workFatigue } from "./fatigue";
@@ -113,6 +113,12 @@ export const REASONS = {
   thesisComplete: "The thesis is already complete.",
   workTooShort: "That is too little time to make progress.",
   thesisNeedsTasks: "More progress needs a thesis task, such as the supervisor's confirmation.",
+  thesisSessionAlreadyActive: "A thesis session is already paused.",
+  noPausedThesisSession: "There is no paused thesis session to continue.",
+  noThesisSessionToEnd: "There is no paused thesis session to end.",
+  draftAlreadySaved: "This manuscript version is already saved.",
+  thesisEvidenceMissing: "Cite an interview count and state the sample limitation before resolving the findings revision.",
+  notEnoughTimeForAction: "There is not enough time left to complete this action.",
   restUnavailable: "Resting is not part of this scenario.",
   unknownThesisTask: "This thesis task does not exist.",
   thesisTaskDone: "This thesis task is already done.",
@@ -139,6 +145,8 @@ export type ReasonCode = keyof typeof REASONS;
 
 const RING_REASONS: readonly RingReason[] = ["first-interaction", "exploration-timer", "re-ring", "callback", "follow-up"];
 const INCOMING_CALL_IDS: readonly IncomingCallId[] = CALL_IDS.filter((id): id is IncomingCallId => id !== "call.official");
+const THESIS_DRAFT_SECTIONS = ["introduction", "findings", "full-draft"] as const;
+const MAX_THESIS_DRAFT_CHARACTERS = 30_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -154,6 +162,9 @@ export const MAX_ADVANCE_MINUTES = 72 * 60;
 export const MAX_WORK_MINUTES = 24 * 60;
 function isWholeMinutes(value: unknown, max: number): boolean {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= max;
+}
+function isOptionalElapsedMinutes(value: unknown): boolean {
+  return value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= MAX_WORK_MINUTES);
 }
 function isShortId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 80;
@@ -203,8 +214,16 @@ export function isCoreAction(value: unknown): value is CoreAction {
     case "WORK_ON_THESIS":
       return (
         isWholeMinutes(value.minutes, MAX_WORK_MINUTES) &&
-        (value.focusMode === undefined || isOneOf(THESIS_FOCUS_MODES, value.focusMode))
+        (value.focusMode === undefined || isOneOf(THESIS_FOCUS_MODES, value.focusMode)) &&
+        isOptionalElapsedMinutes(value.sessionElapsedMinutes)
       );
+    case "START_THESIS_SESSION":
+      return isWholeMinutes(value.minutes, MAX_WORK_MINUTES) && isOneOf(THESIS_FOCUS_MODES, value.mode);
+    case "RESUME_THESIS_SESSION":
+    case "END_THESIS_SESSION":
+      return true;
+    case "SAVE_THESIS_DRAFT":
+      return isOneOf(THESIS_DRAFT_SECTIONS, value.sectionId) && typeof value.content === "string" && value.content.length <= MAX_THESIS_DRAFT_CHARACTERS;
     case "REST":
       return isOneOf(REST_MODES, value.mode);
     case "RESPOND_EVENT":
@@ -372,6 +391,71 @@ const FIRST_CALL_REJECTED_FLAG: FlagId = "first_call_rejected";
 // ---------------------------------------------------------------------------
 // Per-action guard and apply
 // ---------------------------------------------------------------------------
+
+function applyThesisSessionWork(
+  state: ChapterState,
+  scenario: ScenarioDefinition,
+  plannedMinutes: number,
+  mode: "normal" | "deep" | "rush",
+  sessionElapsedMinutes: number,
+): ApplyResult {
+  if (state.call.current !== null) return reject(REASONS.callInProgress);
+  if (state.conversation !== null) return reject(REASONS.conversationInProgress);
+  if (state.resources.timeMinutes <= 0) return reject(REASONS.timeIsUp);
+  if (state.resources.thesisProgress >= 100) return reject(REASONS.thesisComplete);
+  const config = gameplayConfig(scenario);
+  const progressRemainder = state.world.thesisWorkRemainderUnits ?? 0;
+  const exactProgress = state.resources.thesisProgress + progressRemainder / 1000;
+  if (config.thesisFreeWorkMaxPercent - exactProgress <= 0) return reject(REASONS.thesisNeedsTasks);
+  const minutes = Math.min(plannedMinutes, state.resources.timeMinutes);
+  const input = {
+    startElapsedMinutes: elapsedMinutes(state, scenario),
+    sessionElapsedMinutes,
+    plannedMinutes: minutes,
+    startFatigue: state.resources.fatigue,
+    startProgress: exactProgress,
+    freeWorkMaxPercent: config.thesisFreeWorkMaxPercent,
+    baseMinutesPerPercent: config.thesisMinutesPerPercent,
+    mode,
+    fatigueConfig: config.fatigue,
+  } as const;
+  const full = simulateThesisSession(input);
+  if (full.effectiveMinutesSpent < 1) return reject(REASONS.workTooShort);
+  const interruption = findSessionInterruptions(state, scenario, full.effectiveMinutesSpent, mode)
+    .find((item) => item.atSessionMinute < full.effectiveMinutesSpent) ?? null;
+  const spent = interruption ? Math.min(full.effectiveMinutesSpent, interruption.atSessionMinute) : full.effectiveMinutesSpent;
+  const segment = interruption ? simulateThesisSession({ ...input, plannedMinutes: spent }) : full;
+  if (segment.effectiveMinutesSpent < 1) return reject(REASONS.workTooShort);
+
+  const totalProgressUnits = progressRemainder + segment.progressUnitsGain;
+  const worked = applyEffects(
+    state,
+    [
+      { kind: "adjustResource", resource: "thesisProgress", delta: Math.floor(totalProgressUnits / 1000) },
+      { kind: "adjustResource", resource: "timeMinutes", delta: -segment.effectiveMinutesSpent },
+      { kind: "adjustResource", resource: "fatigue", delta: segment.fatigueGain },
+    ],
+    scenario,
+  );
+  const remainingMinutes = Math.max(0, full.effectiveMinutesSpent - segment.effectiveMinutesSpent);
+  const thesisWorkSession = interruption !== null && remainingMinutes > 0
+    ? {
+        mode,
+        plannedMinutes,
+        elapsedMinutes: sessionElapsedMinutes + segment.effectiveMinutesSpent,
+        remainingMinutes,
+        interruption,
+      }
+    : null;
+  return accept({
+    ...worked,
+    world: {
+      ...worked.world,
+      thesisWorkRemainderUnits: totalProgressUnits % 1000,
+      thesisWorkSession,
+    },
+  }, [`${WORLD_TAG_PREFIX}thesis_session:${mode}`]);
+}
 
 function applyAction(state: ChapterState, action: CoreAction, scenario: ScenarioDefinition): ApplyResult {
   if (action.type !== "START_CHAPTER" && action.type !== "FINISH_CHAPTER" && state.status === "not-started") {
@@ -596,6 +680,27 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       if (state.resources.timeMinutes <= 0) return reject(REASONS.timeIsUp);
       return accept(applyEffect(state, { kind: "adjustResource", resource: "timeMinutes", delta: -action.minutes }, scenario));
     }
+    case "START_THESIS_SESSION": {
+      if (state.world.thesisWorkSession !== null) return reject(REASONS.thesisSessionAlreadyActive);
+      return applyThesisSessionWork(state, scenario, action.minutes, action.mode, 0);
+    }
+    case "RESUME_THESIS_SESSION": {
+      const session = state.world.thesisWorkSession;
+      if (session === null) return reject(REASONS.noPausedThesisSession);
+      return applyThesisSessionWork(state, scenario, session.remainingMinutes, session.mode, session.elapsedMinutes);
+    }
+    case "END_THESIS_SESSION": {
+      if (state.world.thesisWorkSession === null) return reject(REASONS.noThesisSessionToEnd);
+      return accept({ ...state, world: { ...state.world, thesisWorkSession: null } }, [`${WORLD_TAG_PREFIX}thesis_session:end`]);
+    }
+    case "SAVE_THESIS_DRAFT": {
+      if (state.resources.timeMinutes <= 0) return reject(REASONS.timeIsUp);
+      if (state.world.thesisDraft[action.sectionId] === action.content) return reject(REASONS.draftAlreadySaved);
+      return accept({
+        ...state,
+        world: { ...state.world, thesisDraft: { ...state.world.thesisDraft, [action.sectionId]: action.content } },
+      }, [`${WORLD_TAG_PREFIX}thesis_draft:${action.sectionId}`]);
+    }
     case "WORK_ON_THESIS": {
       if (state.call.current !== null) return reject(REASONS.callInProgress);
       if (state.conversation !== null) return reject(REASONS.conversationInProgress);
@@ -603,32 +708,40 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       if (state.resources.thesisProgress >= 100) return reject(REASONS.thesisComplete);
       const config = gameplayConfig(scenario);
       // Free work gets the thesis only to the configured limit; the rest comes from thesis tasks.
-      const room = config.thesisFreeWorkMaxPercent - state.resources.thesisProgress;
-      if (room < 1) return reject(REASONS.thesisNeedsTasks);
+      const room = config.thesisFreeWorkMaxPercent - state.resources.thesisProgress - (state.world.thesisWorkRemainderUnits ?? 0) / 1000;
+      if (room <= 0) return reject(REASONS.thesisNeedsTasks);
       const minutes = Math.min(action.minutes, state.resources.timeMinutes);
       if (action.focusMode !== undefined) {
         // Non-linear Deep-Work Session (Warm-up -> Flow -> Burnout + circadian night curve).
         const sim = simulateThesisSession({
           startElapsedMinutes: elapsedMinutes(state, scenario),
+          sessionElapsedMinutes: action.sessionElapsedMinutes,
           plannedMinutes: minutes,
           startFatigue: state.resources.fatigue,
-          startProgress: state.resources.thesisProgress,
+          startProgress: state.resources.thesisProgress + (state.world.thesisWorkRemainderUnits ?? 0) / 1000,
           freeWorkMaxPercent: config.thesisFreeWorkMaxPercent,
           baseMinutesPerPercent: config.thesisMinutesPerPercent,
           mode: action.focusMode,
           fatigueConfig: config.fatigue,
         });
         if (sim.effectiveMinutesSpent < 1) return reject(REASONS.workTooShort);
+        const totalProgressUnits = (state.world.thesisWorkRemainderUnits ?? 0) + sim.progressUnitsGain;
+        const wholeProgressGain = Math.floor(totalProgressUnits / 1000);
+        const remainderUnits = totalProgressUnits % 1000;
+        const worked = applyEffects(
+          state,
+          [
+            { kind: "adjustResource", resource: "thesisProgress", delta: wholeProgressGain },
+            { kind: "adjustResource", resource: "timeMinutes", delta: -sim.effectiveMinutesSpent },
+            { kind: "adjustResource", resource: "fatigue", delta: sim.fatigueGain },
+          ],
+          scenario,
+        );
         return accept(
-          applyEffects(
-            state,
-            [
-              { kind: "adjustResource", resource: "thesisProgress", delta: sim.progressGain },
-              { kind: "adjustResource", resource: "timeMinutes", delta: -sim.effectiveMinutesSpent },
-              { kind: "adjustResource", resource: "fatigue", delta: sim.fatigueGain },
-            ],
-            scenario,
-          ),
+          {
+            ...worked,
+            world: { ...worked.world, thesisWorkRemainderUnits: remainderUnits },
+          },
           [`${WORLD_TAG_PREFIX}thesis_session:${action.focusMode}`],
         );
       }
@@ -675,16 +788,32 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       const task = scenario.thesisTasks?.find((candidate) => candidate.id === action.taskId);
       if (task === undefined) return reject(REASONS.unknownThesisTask);
       if (state.world.thesisTasksDone.includes(task.id)) return reject(REASONS.thesisTaskDone);
+      if (task.id === "draft.findings" && action.researchNotes !== undefined) {
+        // `researchNotes` marks the new editor workflow. Older replay logs have no field and retain
+        // their historical task semantics; new UI actions must prove the saved text is grounded.
+        const findings = state.world.thesisDraft.findings ?? "";
+        const hasCount = /(?:9|6)\s*(?:of|out of)\s*24|(?:9|6)\s*trong số\s*24/i.test(findings);
+        const hasSampleLimit = /not an? (?:estimate|generalization)|not all students|không (?:phải|đại diện)|không suy rộng/i.test(findings);
+        if (!hasCount || !hasSampleLimit) return reject(REASONS.thesisEvidenceMissing);
+      }
       if (state.resources.thesisProgress >= 100) return reject(REASONS.thesisComplete);
       if (!evaluateConditions(task.requires, state, scenario)) return reject(REASONS.thesisTaskUnavailable);
       const taskConfig = gameplayConfig(scenario);
       const timeCost = effectiveWorkMinutes(task.timeCostMinutes ?? 0, state.resources.fatigue, taskConfig.fatigue);
       if (timeCost > 0 && state.resources.timeMinutes <= 0) return reject(REASONS.timeIsUp);
+      if (timeCost > state.resources.timeMinutes) return reject(REASONS.notEnoughTimeForAction);
       let next: ChapterState = { ...state, world: { ...state.world, thesisTasksDone: [...state.world.thesisTasksDone, task.id] } };
       next = applyEffect(next, { kind: "adjustResource", resource: "fatigue", delta: workFatigue(timeCost, taskConfig.fatigue) }, scenario);
       next = applyEffect(next, { kind: "adjustResource", resource: "thesisProgress", delta: task.progressGain }, scenario);
       if (timeCost > 0) next = applyEffect(next, { kind: "adjustResource", resource: "timeMinutes", delta: -timeCost }, scenario);
       next = applyEffects(next, task.effects, scenario);
+      // The persistent consequence is derived from the saved manuscript, never a UI-supplied note ID.
+      // Only the known-channel finding can inform this later choice; the classmate finding does not.
+      const savedFindings = state.world.thesisDraft.findings ?? "";
+      const citesSavedChannel = /9\s*(?:of|trong số)\s*24.{0,180}(?:saved portal|cổng thông tin đã lưu)/i.test(savedFindings);
+      if (task.id === "draft.findings" && citesSavedChannel) {
+        next = { ...next, persistent: { ...next.persistent, researchSavedChannelIncluded: true } };
+      }
       return accept(next, [`${WORLD_TAG_PREFIX}thesis:${task.id}`]);
     }
     case "RESPOND_EVENT": {
@@ -754,6 +883,7 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       if (cashCost > 0 && def.allowDebt !== true && state.resources.cash < cashCost) return reject(REASONS.notEnoughCash);
       const timeCost = def.timeCostMinutes ?? 0;
       if (timeCost > 0 && state.resources.timeMinutes <= 0) return reject(REASONS.timeIsUp);
+      if (timeCost > state.resources.timeMinutes) return reject(REASONS.notEnoughTimeForAction);
       if (def.callId !== undefined) {
         if (state.call.current !== null) return reject(REASONS.callInProgress);
         if (state.conversation !== null) return reject(REASONS.conversationInProgress);

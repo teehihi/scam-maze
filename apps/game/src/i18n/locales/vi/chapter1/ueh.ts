@@ -12,6 +12,7 @@ const ueh: LocaleShape<typeof en> = {
       navLabel: "Các mục của cổng",
       home: "Cổng sinh viên",
       accessActive: "Đang hoạt động",
+      accessNotChecked: "Chưa xác minh",
       accessLocked: "Quyền truy cập bị khóa",
       nav: {
         dashboard: "Tổng quan",
@@ -70,6 +71,10 @@ const ueh: LocaleShape<typeof en> = {
         deadlineValue: "Thứ Sáu, 17:00",
         timeLeftLabel: "Thời gian còn lại",
         access: "Quyền truy cập hệ thống nộp bài",
+        submitButton: "Nộp khóa luận bản cuối",
+        submittedReceipt: "Đã nhận bài nộp. Hãy lưu biên nhận này.",
+        blockedHint: "Hoàn thành bản thảo, xác minh quyền truy cập và xử lý khóa tài khoản trước khi nộp.",
+        deadlineMissed: "Đã quá hạn mà chưa có biên nhận nộp bài.",
       },
       services: {
         heading: "Dịch vụ sinh viên",
@@ -99,6 +104,8 @@ const ueh: LocaleShape<typeof en> = {
           thesisAmount: "Không thu phí",
         },
         feesNote: "Có thắc mắc về một khoản phí: hãy hỏi Phòng Đào tạo.",
+        paymentPortalLabel: "Cổng thanh toán (được ghi trong sổ tay sinh viên)",
+        paymentPortalDomain: "payment.ueh.edu.vn",
       },
       account: {
         heading: "Tài khoản và bảo mật",

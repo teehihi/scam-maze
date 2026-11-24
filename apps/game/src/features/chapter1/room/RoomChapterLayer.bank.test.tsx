@@ -165,7 +165,7 @@ describe("SECURITY BREACH in the Banking app", () => {
     fireEvent.click(rows[0]);
     expect(within(laptop).getByTestId("bank-tx-amount").textContent).toBe(`${MINUS}${money(T1.amountVnd)}`);
     expect(within(laptop).getByTestId("bank-tx-recipient").textContent).toBe("Unknown recipient");
-    expect(within(laptop).getByTestId("bank-related-msg.bank-alert-1").textContent).toContain("A transfer from your account");
+    expect(within(laptop).getByTestId("bank-related-msg.bank-alert-1").textContent).toContain(money(T1.amountVnd));
     expect(within(laptop).getByTestId("bank-tx-report")).toBeTruthy();
   });
 

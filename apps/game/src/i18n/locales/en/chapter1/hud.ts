@@ -119,11 +119,11 @@ const hud = {
     thesis: {
       heading: "Thesis",
       progress: "Progress: {{value}}%",
-      session: "Each session takes {{time}} and adds {{percent}}%. Other deadlines keep running.",
+      session: "A focused revision typically takes {{time}}. Other deadlines keep running while Alex works.",
       work: "Work for {{time}}",
       complete: "The thesis is complete.",
       timeUp: "There is no time left.",
-      limit: "Free work stops at {{percent}}%. More progress comes from thesis tasks.",
+      limit: "Saving small edits keeps a local draft; a substantive revision moves the thesis forward.",
       tasksHeading: "Thesis tasks",
       noTasks: "No thesis tasks yet.",
       fatigueNote: {
