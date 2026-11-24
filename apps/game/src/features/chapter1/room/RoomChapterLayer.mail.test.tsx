@@ -288,7 +288,8 @@ describe("the in-game browser from Mail", () => {
     fireEvent.click(within(laptop).getByTestId("browser-bookmarks"));
     fireEvent.click(within(laptop).getByTestId("menu-bookmark-https://student.ueh.edu.vn/"));
     await within(laptop).findByTestId("portal-site");
-    expect(within(laptop).getByTestId("portal-access-dashboard").textContent).toBe("Active");
+    // Nothing has verified the account yet: the portal says so instead of claiming it is active.
+    expect(within(laptop).getByTestId("portal-access-dashboard").textContent).toBe("Not yet checked");
     // Services: the published fees and the Training Office number saved in the phone.
     fireEvent.click(within(laptop).getByTestId("portal-nav-services"));
     await within(laptop).findByTestId("portal-fees");
@@ -307,6 +308,9 @@ describe("the in-game browser from Mail", () => {
     expect(state.device.items["file.portal-status"]).toBeDefined();
     expect(state.resources.cash).toBe(saved.resources.cash);
     expect(within(laptop).getByTestId("portal-check-result")).toBeTruthy();
+    // The check is what flips the portal from "not yet checked" to an active account.
+    fireEvent.click(within(laptop).getByTestId("portal-nav-dashboard"));
+    expect((await within(laptop).findByTestId("portal-access-dashboard")).textContent).toBe("Active");
   });
 
   it("shows the Browser and the clearance site in Vietnamese", async () => {

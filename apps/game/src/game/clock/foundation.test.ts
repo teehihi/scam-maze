@@ -101,6 +101,9 @@ describe("a new game", () => {
       goldenPlatformJoined: false,
       goldenFeesPaid: false,
       draftFinished: false,
+      researchSavedChannelIncluded: false,
+      schoolFeeClaimContradicted: false,
+      submissionDeadlineMissed: false,
     });
   });
 
