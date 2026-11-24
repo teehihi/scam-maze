@@ -48,7 +48,8 @@ export function districtFinishes(loader: T.TextureLoader) {
     }
   }) as T.MeshStandardMaterial;
   apron.map!.wrapS = apron.map!.wrapT = T.RepeatWrapping;
-  apron.map!.repeat.set(1.7, 3.8);
+  // One repeat per UV unit: survey462.ts sets the UVs from world coordinates (0.66 repeats per metre).
+  apron.map!.repeat.set(1, 1);
   apron.map!.anisotropy = 4;
   apron.bumpMap = apron.map;
   apron.bumpScale = 0.014;

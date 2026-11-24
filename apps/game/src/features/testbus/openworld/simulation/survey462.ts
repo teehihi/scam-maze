@@ -46,6 +46,34 @@ export function surveyCamera(cam: T.PerspectiveCamera, n: number, travel = 0) {
     "YXZ",
   );
 }
+/** Paving lines of the public footpath (m from the curb): the shop apron is laid out to this common edge. */
+const APRON_EDGE = 2.0;
+/** Apron pattern density (texture repeats per metre, both axes). */
+const APRON_DENSITY = 0.66;
+
+/**
+ * The orange fan-pattern apron of one shop: from 0.9 m behind its front to the common line APRON_EDGE, so the edge stays
+ * straight when the shop fronts are set back by different amounts, and the full shop width, so neighbours meet without gaps.
+ * UVs follow world coordinates, so the pattern continues from shop to shop (the texture repeat is 1 in q10-materials.ts).
+ */
+function apron(g: T.Group, surface: T.Material, side: number, front: number, z: number, w: number) {
+  const inner = front + side * 0.9;
+  const outer = side > 0 ? APRON_EDGE : -SURVEY.width - APRON_EDGE;
+  const length = Math.abs(inner - outer);
+  if (length < 0.2) return;
+  const geometry = new T.PlaneGeometry(1, 1);
+  const uv = geometry.attributes.uv, pos = geometry.attributes.position;
+  const cx = (inner + outer) / 2;
+  for (let i = 0; i < pos.count; i++) {
+    // The mesh is turned -90 degrees about X: local x is world x, local y is world -z.
+    uv.setXY(i, (cx + pos.getX(i) * length) * APRON_DENSITY, -(z - pos.getY(i) * w) * APRON_DENSITY);
+  }
+  const item = mesh(g, geometry, surface, [cx, 0.167, z], false);
+  item.scale.set(length, w, 1);
+  item.rotation.set(-Math.PI / 2, 0, 0);
+  item.receiveShadow = true;
+}
+
 export function makeSurveyKit(
   stucco: T.Texture,
   shops: T.MeshStandardMaterial[],
@@ -159,6 +187,7 @@ export function makeSurveyKit(
                 : fog;
       for (const g of [near, far]) {
         const low = g === far;
+        apron(g, finishes.apron, side, front, z, w);
         if (k === "hem") {
           const openToBoardingHouse = index === 8 && side === 1;
           // A passage between party walls; Block 8 East opens seamlessly into Dãy Trọ 462/14.
@@ -226,15 +255,6 @@ export function makeSurveyKit(
         );
         for (const off of [-w * 0.475, w * 0.475])
           bx(g, 0.02, 1.72, off, 0.3, 3.15, 0.2, wallMat);
-        // Each shop maintains its own threshold. Leave the public walking strip continuous.
-        plane(
-          g,
-          [face(0.39), 0.167, z],
-          [2.58, w - 0.11],
-          finishes.apron,
-          0,
-          -Math.PI / 2,
-        );
         if (counter) {
           const bladeZ = z + w * 0.435,
             blade = k === "phone" ? phoneBlade : kitchenBlade;
