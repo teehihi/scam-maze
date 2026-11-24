@@ -143,9 +143,10 @@ export function castStreet(
       });
     }
     for (let i = 0; i < names.length && !disposed; i++) {
+      // The vendor file is authored 1.18 m tall; the neighborhood stands her at 1.55 m beside the cart (khupho humans.ts).
       const actor = await load(
         names[i] + ".optimized",
-        1.62 + (i % 4) * 0.045,
+        names[i] === "banhmi-vendor" ? 1.55 : 1.62 + (i % 4) * 0.045,
         scene,
       );
       if (!actor) {
@@ -318,6 +319,32 @@ export function castStreet(
         idleAction.setEffectiveWeight(0);
         idleAction.play();
       }
+      // The bánh mì vendor works as in the neighborhood (khupho people.ts, Vendor): her own idle, now and then a look
+      // for customers or bread preparation, and a welcome when the player comes close. No procedural layer on top:
+      // her rig is not the street NPCs' one, and the gesture layer bent her arms up.
+      const vendor = names[i] === "banhmi-vendor" && mixer ? mixer : null;
+      const vendorClip = (name: string) => data.animations.find((a) => a.name === name);
+      let vendorNext = 4,
+        vendorGreetT = 0,
+        vendorNear = false,
+        vendorBusy = false;
+      const vendorOnce = (name: string) => {
+        const clipOnce = vendorClip(name);
+        if (!vendor || !clipOnce || !walkAction) return;
+        const one = vendor.clipAction(clipOnce);
+        one.reset().setLoop(T.LoopOnce, 1);
+        one.clampWhenFinished = true;
+        one.crossFadeFrom(walkAction, 0.35, false).play();
+        vendorBusy = true;
+        const done = (ev: { action: T.AnimationAction }) => {
+          if (ev.action !== one) return;
+          vendor.removeEventListener("finished", done);
+          walkAction!.reset().play();
+          walkAction!.crossFadeFrom(one, 0.45, false);
+          vendorBusy = false;
+        };
+        vendor.addEventListener("finished", done);
+      };
       let moveBlend = walker ? 1 : 0;
       let approach = 0;
       if (i === 3) onCore();
@@ -411,6 +438,22 @@ export function castStreet(
         detail.update(distance);
         if (!root.visible) return;
         mixer?.update(dt);
+        if (vendor) {
+          vendorGreetT -= dt;
+          const near = distance < 3.2 && cam.y < 1.9;
+          if (near && !vendorNear && vendorGreetT <= 0 && !vendorBusy) {
+            vendorGreetT = 25;
+            vendorOnce(Math.random() < 0.5 ? "Welcome" : "Invite");
+            vendorNext = 9;
+          }
+          vendorNear = near;
+          vendorNext -= dt;
+          if (vendorNext <= 0 && !vendorBusy) {
+            vendorNext = 9 + Math.random() * 7;
+            vendorOnce(Math.random() < 0.55 ? "LookForCustomer" : "PrepareBread");
+          }
+          return;
+        }
         if (held && hand) {
           root.worldToLocal(hand.getWorldPosition(handPos));
           held.position.copy(handPos);
@@ -429,9 +472,6 @@ export function castStreet(
           activity = "crossing";
         } else if (curSpeed > 0.12) {
           activity = "walking";
-        } else if (i === 7) {
-          // The bánh mì vendor just stands at her cart (her own VendorIdle clip); no talking gestures on top.
-          activity = "idle";
         } else if (i % 3 === 1) {
           activity = "talking";
         } else if (i % 3 === 2) {
@@ -444,8 +484,7 @@ export function castStreet(
           focusPoint,
           moveSpeed: curSpeed,
           activity,
-          // Seated under the shelter and the vendor at her cart do not shield themselves from the rain.
-          rain: seated ? rainIntensity * 0.25 : i === 7 ? 0 : rainIntensity,
+          rain: seated ? rainIntensity * 0.25 : rainIntensity,
           hasActiveMixer: Boolean(mixer),
         });
       });

@@ -536,7 +536,8 @@ export class SaigonTrafficManager {
     }
 
     // Subtle Saigon motorbike green-light launch rev when starting from standstill!
-    if (v.category === "moto" && prevSpeed < 0.25 && acc > 1.6 && v.lodTier === 0 && this.nextRand() < 0.08) {
+    // Only the reckless rider revs (netpo.mp3); ordinary bikes pull away quietly.
+    if (v.reckless && prevSpeed < 0.25 && acc > 1.6 && v.lodTier === 0 && this.nextRand() < 0.35) {
       this.audio.playMotoRev(v.x, v.z, input.playerX, input.playerZ, input.playerYaw);
     }
 

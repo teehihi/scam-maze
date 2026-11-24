@@ -6,7 +6,7 @@ import type { VehicleAgent, VehicleCategory } from "./types";
  * Uses the repo's authentic Vietnamese sound assets (`/audio/horn.mp3`, `/audio/netpo.mp3`)
  * combined with lightweight procedural WebAudio beds:
  *  - Distance-attenuated + stereo-panned Vietnamese motorbike/car horn when player blocks traffic
- *  - Subtle motorbike launch rev (`netpo.mp3`) on green-light waves
+ *  - Engine rev (`netpo.mp3`) for the reckless rider ("Báo Thủ") only: when held up and pulling away
  *  - Continuous speed-reactive tire pass-by & wet-asphalt spray hiss when `wetness > 0.15`
  *  - Bus 06 pneumatic air-brake hiss on curb stops
  *
@@ -260,7 +260,10 @@ export class SaigonStreetAudio {
       this.nextStreetHorn -= dt;
       if (this.nextStreetHorn <= 0) {
         this.nextStreetHorn = 5 + Math.random() * 9;
-        const near = vehicles.filter((v) => v.speed > 1.5 && !v.externalControl && Math.hypot(v.x - listenerX, v.z - listenerZ) < 40);
+        // Ordinary traffic only: the reckless rider never honks, he revs (netpo.mp3, TrafficManager).
+        const near = vehicles.filter(
+          (v) => v.speed > 1.5 && !v.externalControl && !v.reckless && Math.hypot(v.x - listenerX, v.z - listenerZ) < 40,
+        );
         const v = near[Math.floor(Math.random() * near.length)];
         if (v) this.playHorn(v.x, v.z, listenerX, listenerZ, listenerYaw, v.category, false);
       }
