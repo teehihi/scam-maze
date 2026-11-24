@@ -4,6 +4,7 @@ import { attachOutsideWorld, type OutsideWorldHandle } from "./outsideWorld";
 import type { ActiveStoryNpcDialogue, AmbientStreetBark } from "../../testbus/openworld/simulation/storyNpcs";
 import type { CrowdReactionBark } from "../../testbus/openworld/simulation/humanPresence";
 import type { WeatherPreset } from "../../testbus/openworld/world/AtmosphereSystem";
+import type { TransitEvent } from "../../testbus/openworld/simulation/transit";
 import { CinemaNpcHud } from "../../testbus/openworld/CinemaNpcHud";
 import { DistrictArrivalBanner, StreetActionPrompt } from "../../testbus/openworld/StreetHudElements";
 import type { SaigonRadarData } from "../hud/SaigonMinimap";
@@ -58,11 +59,18 @@ export function useOutsideWorld(
   engine: RoomEngine | null,
   enabled: boolean,
   storyContext?: Partial<StoryNpcRuntimeContext>,
+  onTransit?: (event: TransitEvent) => void,
+  onStoryReply?: (npcId: string, replyId: string) => void,
 ): OutsideWorldState {
   const [state, setState] = useState<OutsideWorldState>(IDLE);
   const handleRef = useRef<OutsideWorldHandle | null>(null);
   const latestCtxRef = useRef(storyContext);
   latestCtxRef.current = storyContext;
+  // The route lives longer than any render, so the handler is read through a ref.
+  const transitRef = useRef(onTransit);
+  transitRef.current = onTransit;
+  const storyReplyRef = useRef(onStoryReply);
+  storyReplyRef.current = onStoryReply;
 
   useEffect(() => {
     if (handleRef.current && storyContext) {
@@ -129,6 +137,8 @@ export function useOutsideWorld(
             };
           });
         },
+        onTransit: (event) => transitRef.current?.(event),
+        onStoryReply: (npcId, replyId) => storyReplyRef.current?.(npcId, replyId),
       })
         .then((h) => {
           if (!h) return;

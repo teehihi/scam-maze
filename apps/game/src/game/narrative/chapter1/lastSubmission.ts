@@ -15,6 +15,12 @@ import {
   MISSION_01_THESIS_TASKS,
 } from "./mission01";
 import {
+  MISSION_02_DEVICE_ITEMS,
+  MISSION_02_EVENTS,
+  MISSION_02_LEDGER_LABELS,
+  MISSION_02_MISSIONS,
+} from "./mission02";
+import {
   MISSION_01_OFFERS_DEVICE_ITEMS,
   MISSION_01_OFFERS_EVENTS,
   MISSION_01_OFFERS_LEDGER_LABELS,
@@ -80,9 +86,9 @@ export const LAST_SUBMISSION_SCENARIO: ScenarioDefinition = {
   // Faster rates break the balance intent in `clock/balance.test.ts` (at 20 minutes per percent,
   // writing through the night reaches 90% before sleeping does); 30 keeps every assert there.
   gameplay: { ...FOUNDATION_SCENARIO.gameplay, fatigue: { enabled: true }, thesisMinutesPerPercent: 30 },
-  events: [...MISSION_01_EVENTS, MISSION_01_LATE_RECOVERY_EVENT, ...MISSION_01_OFFERS_EVENTS],
-  missions: [...MISSION_01_MISSIONS, ...MISSION_01_OFFERS_MISSIONS],
+  events: [...MISSION_01_EVENTS, MISSION_01_LATE_RECOVERY_EVENT, ...MISSION_01_OFFERS_EVENTS, ...MISSION_02_EVENTS],
+  missions: [...MISSION_01_MISSIONS, ...MISSION_01_OFFERS_MISSIONS, ...MISSION_02_MISSIONS],
   thesisTasks: MISSION_01_THESIS_TASKS,
-  deviceItems: [...MISSION_01_DEVICE_ITEMS, ...MISSION_01_OFFERS_DEVICE_ITEMS],
-  ledgerLabels: { ...MISSION_01_LEDGER_LABELS, ...MISSION_01_OFFERS_LEDGER_LABELS },
+  deviceItems: [...MISSION_01_DEVICE_ITEMS, ...MISSION_01_OFFERS_DEVICE_ITEMS, ...MISSION_02_DEVICE_ITEMS],
+  ledgerLabels: { ...MISSION_01_LEDGER_LABELS, ...MISSION_01_OFFERS_LEDGER_LABELS, ...MISSION_02_LEDGER_LABELS },
 };

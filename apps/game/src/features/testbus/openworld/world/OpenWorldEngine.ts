@@ -27,7 +27,7 @@ import {
 } from "../simulation/boarding";
 import { buildStreet } from "../simulation/street";
 import { buildBus } from "../simulation/bus";
-import { BusRouteController } from "../simulation/transit";
+import { BusRouteController, type TransitEvent } from "../simulation/transit";
 import { castStreet } from "../simulation/residents";
 import {
   createStoryNpcDirector,
@@ -157,6 +157,16 @@ export interface ExternalHost {
   onDoor?: () => void;
   /** A lightning strike outside (0..1): the host plays the thunder. */
   onThunder?: (intensity: number) => void;
+  /**
+   * Bus 06 route events (boarded, fare-paid, departed, arrived, transfer-complete). The host turns
+   * them into deterministic chapter actions; the world keeps driving the bus itself.
+   */
+  onTransit?: (event: TransitEvent) => void;
+  /**
+   * The player picked a reply in a street conversation. The host records what the character said
+   * in the chapter store, so a street talk can count as asking a question in the phone record.
+   */
+  onStoryReply?: (npcId: string, replyId: string) => void;
 }
 export interface ViewLens {
   fov: number;
@@ -869,7 +879,7 @@ export class OpenWorldEngine {
     });
 
     // 6. EXACT ROUTE 06 BUS & 15 EXACT BUS STATION NPCS + DRIVER (UNIFIED WITH SAIGON TRAFFIC!)
-    this.route = new BusRouteController();
+    this.route = new BusRouteController({ onEvent: (event) => this.external?.onTransit?.(event) });
     this.route.wait();
     this.route.update(6.5, { front: false, rear: false }, false);
     this.traffic.registerBus06(this.route.x, this.route.z, Math.PI + this.route.yaw);
@@ -2627,7 +2637,10 @@ export class OpenWorldEngine {
   }
 
   public selectStoryReply(index: number) {
-    this.storyNpcs.selectReply(index);
+    const dialogue = this.storyNpcs.selectReply(index);
+    if (!dialogue) return;
+    const replyId = dialogue.askedReplyIds[dialogue.askedReplyIds.length - 1];
+    if (replyId) this.external?.onStoryReply?.(dialogue.npcId, replyId);
   }
 
   public advanceStoryDialogue() {

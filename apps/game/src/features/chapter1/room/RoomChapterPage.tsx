@@ -61,7 +61,13 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
   // The Saigon open world around the room: live through the window and the open door, walkable with no cut.
   const [roomEngine, setRoomEngine] = useState<RoomEngine | null>(null);
   const [storyContext, setStoryContext] = useState<Partial<StoryNpcRuntimeContext> | undefined>(undefined);
-  const outside = useOutsideWorld(roomEngine, true, storyContext);
+  const outside = useOutsideWorld(
+    roomEngine,
+    true,
+    storyContext,
+    (event) => bridge.transit(event),
+    (npcId, replyId) => bridge.storyReply(npcId, replyId),
+  );
 
   // The chapter happens in the apartment, whatever scene a new or old session names.
   const layerSession = useMemo<ChapterSession>(() => ({ ...session, sceneId: "apartment" }), [session]);

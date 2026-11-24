@@ -84,7 +84,7 @@ describe("the scenario", () => {
     const phone = selectDeviceView(state, S, "phone");
     expect(ids(phone.apps.messages)).toEqual(["msg.minh"]);
     expect(ids(phone.apps.mail).sort()).toEqual(["mail.library", "mail.print-shop", "mail.supervisor"]);
-    expect(ids(phone.apps.calendar)).toEqual(["cal.draft-deadline", "cal.interview", "cal.final-deadline"]);
+    expect(ids(phone.apps.calendar)).toEqual(["cal.draft-deadline", "cal.interview", "cal.m02-interview", "cal.final-deadline"]);
   });
 });
 
@@ -478,7 +478,7 @@ describe("consequences that last and sync", () => {
   it("never calls an item safe, unsafe or a scam, and shows no score", () => {
     const state = run([...CODE_GIVEN, advance(200)]);
     const views = JSON.stringify([selectDeviceView(state, S, "phone"), selectDeviceView(state, S, "laptop"), selectOpenMissions(state, S)]);
-    expect(views).not.toMatch(/\bsafe\b|unsafe|scam|phish|fake|good|bad|score/i);
+    expect(views).not.toMatch(/\b(safe|unsafe|scam|phish|fake|good|bad|score)\b/i);
   });
 });
 

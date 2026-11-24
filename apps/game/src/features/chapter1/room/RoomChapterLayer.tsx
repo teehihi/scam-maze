@@ -725,6 +725,31 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
       canLeaveInspect: (id) => lookup(cacheRef.current.leave, id, true),
       doorLocked: () => cacheRef.current.doorLocked,
       overlayOpen: () => cacheRef.current.overlayOpen,
+      onTransit(event) {
+        // The street runs the bus; its route events are the deterministic record of the ride. Only
+        // two of them change story state, and only once: the fare at the validator and stepping off
+        // at Chợ Lớn. Everything else (waiting, boarding, passing a stop) is presentation.
+        const action =
+          event.type === "fare-paid"
+            ? { type: "USE_DEVICE_ITEM", itemId: "travel.bus06", actionId: "pay-fare" }
+            : event.type === "transfer-complete"
+              ? { type: "USE_DEVICE_ITEM", itemId: "travel.bus06", actionId: "arrive" }
+              : null;
+        // A ride before the mission opens, or after the window closed, is simply not recorded.
+        if (action && store.getState().status === "playing") store.dispatch(action as CoreAction);
+      },
+      onStoryReply(npcId) {
+        // The street conversation is the physical equivalent of asking the driver at the stop.
+        // Record it once so the offer, contact and off-platform choice appear in the deterministic
+        // core even when the player never opens the phone's map first. Later replies are harmless:
+        // the authored action is `once`, so the reducer rejects the duplicate without changing state.
+        if (npcId !== "unverified_driver" || store.getState().status !== "playing") return;
+        store.dispatch({
+          type: "USE_DEVICE_ITEM",
+          itemId: "map.bus06-stop",
+          actionId: "ask-driver",
+        });
+      },
     });
     return () => bridge.detach();
   }, [bridge, openOverlay, store, updateOverlays]);

@@ -5,6 +5,16 @@
 // See .kiro/specs/chapter-01-double-deception/design.md, "RoomStoryBridge".
 import type { RoomPropId, RoomStoryCommands, RoomStoryPort } from "../../roomv2/game/outside";
 
+/** Structural copy keeps this room-only bridge's import boundary independent of the street module. */
+export interface TransitEvent {
+  type: "wait-started" | "bus-at-stop" | "boarded" | "left-bus" | "fare-paid" | "departed" | "passed-stop" | "arrived" | "transfer-complete";
+  at: number;
+  route: string;
+  stop?: string;
+  amount?: number;
+  onTime?: boolean;
+}
+
 /**
  * What the layer provides while it is mounted. Every member is optional; a missing member uses the
  * same default as "not attached".
@@ -12,6 +22,10 @@ import type { RoomPropId, RoomStoryCommands, RoomStoryPort } from "../../roomv2/
 export interface RoomStoryHandlers extends Partial<RoomStoryPort> {
   /** True while a chapter overlay (call, phone, laptop, journal, decision, debrief, pause) is open. */
   overlayOpen?(): boolean;
+  /** A Bus 06 route event from the street: boarded, fare paid, departed, arrived, transfer done. */
+  onTransit?(event: TransitEvent): void;
+  /** A street NPC reply selected by the player. */
+  onStoryReply?(npcId: string, replyId: string): void;
 }
 
 export class RoomStoryBridge implements RoomStoryPort {
@@ -68,5 +82,18 @@ export class RoomStoryBridge implements RoomStoryPort {
   /** True while a chapter overlay is open. Hosts use it to skip their own Escape handling. */
   overlayOpen(): boolean {
     return this.handlers?.overlayOpen?.() ?? false;
+  }
+
+  /**
+   * Passes a Bus 06 event from the street to the layer. The street calls this while the player is
+   * out of the room; nothing happens before the layer attaches.
+   */
+  transit(event: TransitEvent): void {
+    this.handlers?.onTransit?.(event);
+  }
+
+  /** Passes a street NPC reply to the layer. Nothing happens before the layer attaches. */
+  storyReply(npcId: string, replyId: string): void {
+    this.handlers?.onStoryReply?.(npcId, replyId);
   }
 }

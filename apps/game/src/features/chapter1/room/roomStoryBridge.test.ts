@@ -134,6 +134,18 @@ describe("RoomStoryBridge attach and detach", () => {
   });
 });
 
+describe("RoomStoryBridge transit events", () => {
+  it("forwards Bus 06 events to the layer and ignores them when detached", () => {
+    const bridge = new RoomStoryBridge();
+    const onTransit = vi.fn();
+    expect(() => bridge.transit({ type: "boarded", at: 0, route: "06" })).not.toThrow();
+    expect(onTransit).not.toHaveBeenCalled();
+    bridge.attach({ onTransit });
+    bridge.transit({ type: "fare-paid", at: 60, route: "06", amount: 7000 });
+    expect(onTransit).toHaveBeenCalledWith({ type: "fare-paid", at: 60, route: "06", amount: 7000 });
+  });
+});
+
 describe("RoomStoryBridge door lock", () => {
   it("follows the attached handler and unlocks when detached", () => {
     const bridge = new RoomStoryBridge();
