@@ -429,6 +429,9 @@ export function castStreet(
           activity = "crossing";
         } else if (curSpeed > 0.12) {
           activity = "walking";
+        } else if (i === 7) {
+          // The bánh mì vendor just stands at her cart (her own VendorIdle clip); no talking gestures on top.
+          activity = "idle";
         } else if (i % 3 === 1) {
           activity = "talking";
         } else if (i % 3 === 2) {
@@ -441,7 +444,8 @@ export function castStreet(
           focusPoint,
           moveSpeed: curSpeed,
           activity,
-          rain: seated ? rainIntensity * 0.25 : rainIntensity,
+          // Seated under the shelter and the vendor at her cart do not shield themselves from the rain.
+          rain: seated ? rainIntensity * 0.25 : i === 7 ? 0 : rainIntensity,
           hasActiveMixer: Boolean(mixer),
         });
       });
