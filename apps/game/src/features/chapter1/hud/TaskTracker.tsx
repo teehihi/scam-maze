@@ -144,11 +144,11 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ mission, others = [], 
         </span>
       </button>
       {others.length > 0 && (
-        <ul className="mt-2.5 space-y-1" data-testid="task-others">
+        <ul className="mt-2 space-y-1 opacity-70 transition-opacity duration-200 hover:opacity-100" data-testid="task-others">
           {others.map((other) => (
             <li key={other.id} className="flex items-start gap-2 pl-[34px]">
-              <span aria-hidden="true" className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rotate-45 bg-[#b9a5f5]" />
-              <span className="font-menu text-sm leading-snug tracking-[0.02em] text-zinc-300">
+              <span aria-hidden="true" className="mt-[0.42rem] h-1.5 w-1.5 shrink-0 rotate-45 bg-[#b9a5f5]/80" />
+              <span className="font-menu text-[13px] leading-snug tracking-[0.02em] text-zinc-300">
                 <span className="font-semibold uppercase tracking-[0.06em]">{other.title}</span>
                 {other.current ? <span className="text-zinc-400"> · {other.current.label}</span> : null}
               </span>

@@ -29,6 +29,19 @@ import { buildStreet } from "../simulation/street";
 import { buildBus } from "../simulation/bus";
 import { BusRouteController } from "../simulation/transit";
 import { castStreet } from "../simulation/residents";
+import {
+  createStoryNpcDirector,
+  type ActiveStoryNpcDialogue,
+  type AmbientStreetBark,
+  type StoryNpcRadarBlip,
+} from "../simulation/storyNpcs";
+import {
+  createHumanPresenceSystem,
+  type CrowdReactionBark,
+  type HumanPresenceSystem,
+} from "../simulation/humanPresence";
+import type { StoryNpcRuntimeContext } from "../../../../game/narrative/chapter1/storyCast";
+import { i18n } from "../../../../i18n";
 import { SaigonTrafficManager } from "../traffic";
 
 import {
@@ -53,6 +66,8 @@ export interface OpenWorldSnapshot {
   district: string;
   position: { x: number; y: number; z: number };
   headingDeg: number;
+  busPosition: { x: number; z: number };
+  npcBlips: readonly StoryNpcRadarBlip[];
   atmosphere: AtmosphereState;
   streaming: StreamingStats;
   doorOpen: boolean;
@@ -61,6 +76,9 @@ export interface OpenWorldSnapshot {
   busStatus: string;
   prompt: string | null;
   activeModal: "phone" | "note" | null;
+  storyDialogue: ActiveStoryNpcDialogue | null;
+  ambientBark: AmbientStreetBark | null;
+  crowdReaction: CrowdReactionBark | null;
   pointerLocked: boolean;
   fps: number;
   isIndoors: boolean;
@@ -231,6 +249,8 @@ export class OpenWorldEngine {
   public route: BusRouteController;
   public bus: ReturnType<typeof buildBus>;
   public cast: ReturnType<typeof castStreet>;
+  public storyNpcs: ReturnType<typeof createStoryNpcDirector>;
+  public humanPresence: HumanPresenceSystem = createHumanPresenceSystem();
   public districts: SaigonDistricts;
   public traffic: SaigonTrafficManager;
   public streamer: WorldStreamer;
@@ -302,6 +322,8 @@ export class OpenWorldEngine {
   private readonly _winNightCol = new T.Color(0x8d97c8);
   private readonly _outDayCol = new T.Color(0xfff0d4);
   private readonly _outNightCol = new T.Color(0x9fb8e8);
+  private readonly _convEyePos = new T.Vector3();
+  private convBlend = 0;
 
   // Input state
   private keys = new Set<string>();
@@ -868,10 +890,20 @@ export class OpenWorldEngine {
       () => {},
       this.street.solids,
       this.traffic,
+      this.humanPresence,
     );
 
     // 7. EXPANDED HO CHI MINH CITY DISTRICTS + EXACT BITEXCO TOWER & LANDMARK 81 + UNIFIED FLEET & NPCS
-    this.districts = buildSaigonDistricts(extScene, this.streamer, this.software, onAssetLoaded, this.traffic);
+    this.districts = buildSaigonDistricts(
+      extScene,
+      this.streamer,
+      this.software,
+      onAssetLoaded,
+      this.traffic,
+      this.humanPresence,
+    );
+    this.storyNpcs = createStoryNpcDirector(onAssetLoaded, this.humanPresence);
+    this.exteriorGroup.add(this.storyNpcs.group);
     this.outdoorLightSpecs = [...this.boardingHouse.lightSpecs, ...this.districts.lightSpecs];
 
     this.solidsGround = [
@@ -1123,7 +1155,13 @@ export class OpenWorldEngine {
     return 0.0;
   }
 
-  private resolveCollisions(nx: number, nz: number, y: number): { x: number; z: number } {
+  private resolveCollisions(
+    nx: number,
+    nz: number,
+    y: number,
+    playerSpeed = 0,
+    dt = 0.016,
+  ): { x: number; z: number } {
     const r = 0.26;
     let x = nx;
     let z = nz;
@@ -1193,6 +1231,26 @@ export class OpenWorldEngine {
         this.bumpVx = vehCol.impulseX;
         this.bumpVz = vehCol.impulseZ;
       }
+
+      // Solid physical human collision + shoulder-bump recoil against ALL Street Residents, Story NPCs & District Pedestrians!
+      const humCol = this.humanPresence.resolvePlayerCollision(
+        x,
+        z,
+        y,
+        r,
+        playerSpeed,
+        this.elapsed,
+        dt,
+      );
+      x = humCol.x;
+      z = humCol.z;
+      if (humCol.bumped) {
+        this.bumpVx = humCol.impulseX;
+        this.bumpVz = humCol.impulseZ;
+        if (this.audio.started && !this.external) {
+          this.audio.footstep(Math.min(1.4, 0.75 + humCol.impactStrength * 0.4));
+        }
+      }
     }
 
     if (!this.districts.isWithinOpenWorld(x, z)) {
@@ -1225,6 +1283,11 @@ export class OpenWorldEngine {
       return;
     }
 
+    if (this.storyNpcs.getActiveDialogue()) {
+      this.storyNpcs.advanceDialogue();
+      return;
+    }
+
     if (this.onBus) {
       // E sits on the nearest seat, or stands up again (the doors decide whether the player can get off).
       if (this.busSeat) {
@@ -1235,6 +1298,14 @@ export class OpenWorldEngine {
       const seat = this.nearestBusSeat();
       if (seat) this.busSeat = seat;
       return;
+    }
+
+    if (this.feet.y < 1.2) {
+      const targetNpc = this.storyNpcs.nearestInteractable(this.feet);
+      if (targetNpc) {
+        this.storyNpcs.beginDialogue(targetNpc.npc.id);
+        return;
+      }
     }
     const doorPos = this.busDoorWorldPos();
     if (Math.hypot(this.feet.x - doorPos.x, this.feet.z - doorPos.z) < 4.8 && this.feet.y < 1.2) {
@@ -1308,6 +1379,20 @@ export class OpenWorldEngine {
       }
       return;
     }
+    if (this.feet.y < 1.2 && !this.storyNpcs.getActiveDialogue()) {
+      const targetNpc = this.storyNpcs.nearestInteractable(this.feet);
+      if (targetNpc) {
+        const lang = i18n.language === "en" ? "en" : "vi";
+        const name = lang === "vi" ? targetNpc.npc.name.vi : targetNpc.npc.name.en;
+        const role = lang === "vi" ? targetNpc.npc.role.vi : targetNpc.npc.role.en;
+        this.currentPrompt =
+          lang === "vi"
+            ? `[E] Nói chuyện với ${name} (${role})`
+            : `[E] Talk to ${name} (${role})`;
+        return;
+      }
+    }
+
     const busDoor = this.busDoorWorldPos();
     if (this.feet.y < 1.2 && Math.hypot(this.feet.x - busDoor.x, this.feet.z - busDoor.z) < 4.8) {
       this.currentPrompt =
@@ -1830,7 +1915,13 @@ export class OpenWorldEngine {
       dx = (dx / len) * speed * dt;
       dz = (dz / len) * speed * dt;
 
-      const resolved = this.resolveCollisions(this.feet.x + dx, this.feet.z + dz, this.feet.y);
+      const resolved = this.resolveCollisions(
+        this.feet.x + dx,
+        this.feet.z + dz,
+        this.feet.y,
+        speed,
+        dt,
+      );
       const moved = Math.hypot(resolved.x - this.feet.x, resolved.z - this.feet.z);
       this.feet.x = resolved.x;
       this.feet.z = resolved.z;
@@ -1854,6 +1945,8 @@ export class OpenWorldEngine {
           this.feet.x + this.bumpVx * dt,
           this.feet.z + this.bumpVz * dt,
           this.feet.y,
+          Math.hypot(this.bumpVx, this.bumpVz),
+          dt,
         );
         this.feet.x = pushed.x;
         this.feet.z = pushed.z;
@@ -1869,6 +1962,20 @@ export class OpenWorldEngine {
             this.bumpVx = standHit.impulseX;
             this.bumpVz = standHit.impulseZ;
           }
+        }
+        // Even while standing still, moving walkers push cleanly past Alex & lingering triggers personal-space awareness!
+        const humStand = this.humanPresence.resolvePlayerCollision(
+          this.feet.x,
+          this.feet.z,
+          this.feet.y,
+          0.26,
+          0,
+          this.elapsed,
+          dt,
+        );
+        if (humStand.hitHuman) {
+          this.feet.x = humStand.x;
+          this.feet.z = humStand.z;
         }
       }
       const targetY = this.getFloorHeight(this.feet.x, this.feet.z, this.feet.y);
@@ -2045,7 +2152,59 @@ export class OpenWorldEngine {
     const showBusCast = !indoors && this.outdoorWarmupFrames >= 3 && distToBusHub < 105;
     this.busCastGroup.visible = showBusCast;
     if (showBusCast) {
-      this.cast.update(dt, this.elapsed, this.camera.position);
+      this.cast.update(dt, this.elapsed, this.camera.position, atm.rainIntensity);
+    }
+    this.storyNpcs.group.visible = !indoors && this.outdoorWarmupFrames >= 3;
+    if (this.storyNpcs.group.visible) {
+      this.storyNpcs.update(dt, this.elapsed, this.camera.position, atm.rainIntensity);
+    }
+
+    // Smooth GTA-6 / Cyberpunk cinematic conversation camera framing (works in BOTH /testbus AND Room Chapter 1!).
+    // Frames the speaker's head, eyes, and gesturing hands cleanly so their face is NEVER cut off.
+    if (!viewMode) {
+      const inConversation = this.storyNpcs.getConversationEyePos(this._convEyePos);
+      this.convBlend = T.MathUtils.damp(this.convBlend, inConversation ? 1 : 0, 5.8, dt);
+
+      if (this.convBlend > 0.005 || (!this.external && Math.abs(this.camera.fov - 64) > 0.05)) {
+        const baseFov = this.external ? this.camera.fov : 64;
+        const targetFov = inConversation ? 50 : baseFov;
+        if (this.external) {
+          if (this.convBlend > 0.005) {
+            this.camera.fov = T.MathUtils.lerp(baseFov, 50, this.convBlend);
+            this.camera.updateProjectionMatrix();
+          }
+        } else if (Math.abs(this.camera.fov - targetFov) > 0.05) {
+          this.camera.fov = T.MathUtils.damp(this.camera.fov, targetFov, 6.2, dt);
+          this.camera.updateProjectionMatrix();
+        }
+      }
+
+      if (inConversation && !this.dragging) {
+        const dx = this._convEyePos.x - this.camera.position.x;
+        // Aim slightly below crown of head (~eye/chin line) so full head + shoulders sit cleanly in upper third!
+        const dy = this._convEyePos.y - 0.14 - this.camera.position.y;
+        const dz = this._convEyePos.z - this.camera.position.z;
+        const horiz = Math.hypot(dx, dz);
+        if (horiz > 0.3) {
+          const desiredYaw = Math.atan2(-dx, -dz);
+          let dyaw = desiredYaw - this.yaw;
+          while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+          while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+          const desiredPitch = T.MathUtils.clamp(Math.atan2(dy, horiz), -0.35, 0.38);
+
+          if (this.external) {
+            // Blend embedded Room Chapter 1 camera smoothly toward the speaker's face every frame!
+            const blend = this.convBlend * 0.88;
+            this.yaw += dyaw * blend;
+            this.pitch = T.MathUtils.lerp(this.pitch, desiredPitch, blend);
+            this.syncCamera();
+          } else {
+            this.yaw += dyaw * Math.min(1, dt * 4.8);
+            this.pitch = T.MathUtils.damp(this.pitch, desiredPitch, 4.8, dt);
+            this.syncCamera();
+          }
+        }
+      }
     }
 
     // 8. Hover Interaction Prompt (throttled to 15 Hz so CPU raycast never spikes camera turns!)
@@ -2290,6 +2449,11 @@ export class OpenWorldEngine {
           z: Number(this.feet.z.toFixed(1)),
         },
         headingDeg: Math.round(deg),
+        busPosition: {
+          x: Number(this.bus.root.position.x.toFixed(1)),
+          z: Number(this.bus.root.position.z.toFixed(1)),
+        },
+        npcBlips: this.storyNpcs.getRadarBlips(),
         atmosphere: { ...atm },
         streaming: streamStats,
         doorOpen: this.doorOpen,
@@ -2298,6 +2462,9 @@ export class OpenWorldEngine {
         busStatus: phaseLabel(this.route.phase),
         prompt: this.currentPrompt,
         activeModal: this.activeModal,
+        storyDialogue: this.storyNpcs.getActiveDialogue(),
+        ambientBark: this.storyNpcs.getAmbientBark(),
+        crowdReaction: this.humanPresence.getActiveReaction(this.elapsed),
         pointerLocked: this.pointerLocked,
         fps: this.fps,
         isIndoors: indoors,
@@ -2316,7 +2483,24 @@ export class OpenWorldEngine {
       this.ensureAudio();
       if (e.code === "KeyE") this.tryInteract();
       if (e.code === "KeyF" && !e.repeat) this.confirmRide();
-      if (e.code === "Escape" && this.activeModal) this.activeModal = null;
+      if (e.code === "Escape") {
+        if (this.activeModal) this.activeModal = null;
+        if (this.storyNpcs.getActiveDialogue()) this.storyNpcs.closeDialogue();
+      }
+      if (this.storyNpcs.getActiveDialogue() && !e.repeat) {
+        if (e.code === "Digit1") {
+          this.storyNpcs.selectReply(0);
+          return;
+        }
+        if (e.code === "Digit2") {
+          this.storyNpcs.selectReply(1);
+          return;
+        }
+        if (e.code === "Digit3") {
+          this.storyNpcs.selectReply(2);
+          return;
+        }
+      }
       if (!this.external) {
         if (e.code === "Digit1") this.setWeather("clear");
         if (e.code === "Digit2") this.setWeather("overcast");
@@ -2438,6 +2622,22 @@ export class OpenWorldEngine {
     };
   }
 
+  public setStoryContext(ctx: Partial<StoryNpcRuntimeContext>) {
+    this.storyNpcs.setContext(ctx);
+  }
+
+  public selectStoryReply(index: number) {
+    this.storyNpcs.selectReply(index);
+  }
+
+  public advanceStoryDialogue() {
+    this.storyNpcs.advanceDialogue();
+  }
+
+  public closeStoryDialogue() {
+    this.storyNpcs.closeDialogue();
+  }
+
   public dispose() {
     this.disposed = true;
     this.unsubPbrWarmup?.();
@@ -2450,6 +2650,8 @@ export class OpenWorldEngine {
     this.boardingHouse.dispose();
     this.street.dispose();
     this.cast.dispose();
+    this.storyNpcs.dispose();
+    this.humanPresence.clear();
     if (!this.external) this.cityRT.dispose();
     this.warmupRT.dispose();
     this.warmupViewRT?.dispose();

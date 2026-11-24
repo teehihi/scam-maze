@@ -56,8 +56,8 @@ export type CoreAction =
   | { type: "COMBINE_EVIDENCE"; evidenceIds: EvidenceId[] }
   /** Lets simulated time pass (free roam). Whole minutes, 1 to 4320. Scheduled events and deadlines run in time order. */
   | { type: "ADVANCE_TIME"; minutes: number }
-  /** Works on the thesis for `minutes`. Costs that time and adds progress at the configured rate. */
-  | { type: "WORK_ON_THESIS"; minutes: number }
+  /** Works on the thesis for `minutes`. Optional `focusMode` engages the non-linear Warm-up -> Flow -> Burnout deep-work model. */
+  | { type: "WORK_ON_THESIS"; minutes: number; focusMode?: "normal" | "deep" | "rush" }
   /** Rests: a short break or a night of sleep. Costs the time of the option and lowers fatigue. */
   | { type: "REST"; mode: RestMode }
   /** Answers a pending event with one of its responses: act on it, postpone it or ignore it. */

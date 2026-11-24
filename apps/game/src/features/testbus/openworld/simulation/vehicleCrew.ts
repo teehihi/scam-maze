@@ -2,7 +2,7 @@ import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
-import { warmSkin } from "./drive-look";
+import { upgradeHumanMaterials } from "./humanRealism";
 import { mergeVehicleBody } from "./vehicleLod";
 
 /**
@@ -694,15 +694,11 @@ export async function addCrew(
   const targetHeight = kind === "moto" ? 1.65 + (variant % 3) * 0.03 : 1.66 + (variant % 4) * 0.025;
   obj.scale.setScalar(targetHeight / rawH);
 
+  upgradeHumanMaterials(obj);
   obj.traverse((o) => {
     if (o instanceof T.Mesh) {
       o.castShadow = false;
       o.receiveShadow = false;
-      if (o.name === "HumanBody") {
-        for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-          if (m instanceof T.MeshStandardMaterial) warmSkin(m);
-        }
-      }
     }
   });
 

@@ -1,4 +1,5 @@
-import {warmSkin} from "./drive-look";
+import { upgradeHumanMaterials, createHumanRealismRig, type HumanActivity } from "./humanRealism";
+import type { HumanPresenceSystem } from "./humanPresence";
 import { streetClips } from "./streetClips";
 import { actorDetail } from "./detail";
 import type { Solid } from "./boarding";
@@ -58,11 +59,15 @@ export function castStreet(
   onCore: () => void,
   solids: Solid[],
   trafficMgr?: SaigonTrafficManager,
+  humanPresence?: HumanPresenceSystem,
 ) {
   let disposed = false;
   const details: Awaited<ReturnType<typeof actorDetail>>[] = [];
+  const presenceCleanups: (() => void)[] = [];
   const others: T.Group[] = [];
   const shadow = contactMaterial(0.53);
+  let rainIntensity = 0;
+  const busFocus = new T.Vector3();
   const actors: ((dt: number, t: number, cam: T.Vector3) => void)[] = [];
   async function load(file: string, height: number, parent: T.Object3D) {
     const data = await loader
@@ -94,13 +99,7 @@ export function castStreet(
     root.add(obj);
     parent.add(root);
     root.updateMatrixWorld(true);
-    obj.traverse((n) => {
-      if (n instanceof T.Mesh) {
-        n.castShadow = true;
-        n.receiveShadow = true;
-        if(n.name==='HumanBody')for(const m of Array.isArray(n.material)?n.material:[n.material])if(m instanceof T.MeshStandardMaterial)warmSkin(m);
-      }
-    });
+    upgradeHumanMaterials(obj);
     onChange();
     return { root, obj, data, clips, height };
   }
@@ -282,15 +281,49 @@ export function castStreet(
           seed: i + 1,
         });
       }
-      const head = obj.getObjectByName("head"),
-        chest = obj.getObjectByName("spine_03");
-      const q = head?.quaternion.clone(),
-        rest = chest?.quaternion.clone(),
-        rot = new T.Quaternion(),
-        axis = new T.Vector3(0, 1, 0);
+      const realism = createHumanRealismRig(root, obj, i + 1);
+      if (humanPresence) {
+        const resLabel =
+          i === 2
+            ? { en: "Bánh Mì Vendor", vi: "Cô bán bánh mì" }
+            : seated
+              ? { en: "Bus Stop Passenger", vi: "Khách chờ xe buýt" }
+              : queue
+                ? { en: "Bus Commuter", vi: "Hành khách xe buýt" }
+                : walker
+                  ? { en: "Passerby", vi: "Người đi bộ" }
+                  : { en: "Resident", vi: "Người dân phố" };
+        presenceCleanups.push(
+          humanPresence.register({
+            id: `resident_${i}`,
+            label: resLabel,
+            object: root,
+            radius: seated ? 0.42 : 0.34,
+            canSidestep: !seated,
+            onBump: (dx, dz, strength) => {
+              realism.triggerBump(dx, dz, strength);
+              if (smartPed && !seated) {
+                smartPed.x += dx * 0.14;
+                smartPed.z += dz * 0.14;
+              }
+            },
+            onPersonalSpace: (closeness) => realism.setPersonalSpace(closeness),
+          }),
+        );
+      }
+      const idleClip = data.animations.find((a) => /idle/i.test(a.name)) ?? streetSet.idle;
+      let idleAction: T.AnimationAction | undefined;
+      if (walker && mixer && idleClip && idleClip !== clip) {
+        idleAction = mixer.clipAction(idleClip);
+        idleAction.setEffectiveWeight(0);
+        idleAction.play();
+      }
+      let moveBlend = walker ? 1 : 0;
       let approach = 0;
       if (i === 3) onCore();
       actors.push((dt, t, cam) => {
+        let curSpeed = 0;
+        let onRoad = false;
         if (queue && route.phase === "approaching") approach = 0;
         if (queue) {
           const active =
@@ -308,6 +341,7 @@ export function castStreet(
             root.position.set(route.x + 0.11, 0.62, route.z - 3.12 + i * 0.48);
             root.rotation.y = Math.PI;
           } else if (active) {
+            curSpeed = 0.8;
             root.rotation.y = -Math.PI / 2;
             thigh.forEach((bone, j) => {
               if (bone)
@@ -321,16 +355,24 @@ export function castStreet(
             root.position.x = smartPed.x;
             root.position.z = smartPed.z;
             // Smooth curb step-down when crossing asphalt roadway (x ∈ [-12.6, -0.2]) vs sidewalk (0.16)
-            const onRoad = smartPed.x > -12.6 && smartPed.x < -0.2;
+            onRoad = smartPed.x > -12.6 && smartPed.x < -0.2;
             const targetY = onRoad ? 0.0 : 0.16;
             root.position.y += (targetY - root.position.y) * Math.min(1, dt * 10);
             root.rotation.y = smartPed.yaw;
+            curSpeed = smartPed.speed;
+            const targetMove = smartPed.speed > 0.08 ? 1 : 0;
+            moveBlend = T.MathUtils.damp(moveBlend, targetMove, 7.5, dt);
             if (walkAction) {
-              // Feet stay planted: freeze stride when waiting at red light curb, hurry up on flashing green!
-              walkAction.timeScale = smartPed.speed > 0.08 ? smartPed.speed / walkClipSpeed : 0.0;
+              walkAction.setEffectiveWeight(moveBlend);
+              walkAction.timeScale = Math.max(0.15, smartPed.speed / walkClipSpeed);
+            }
+            if (idleAction) {
+              idleAction.setEffectiveWeight(1 - moveBlend);
             }
           } else {
-            const next = walkZ + walkSide * 0.72 * dt;
+            const rainBoost = 1 + rainIntensity * 0.22;
+            curSpeed = 0.72 * rainBoost;
+            const next = walkZ + walkSide * curSpeed * dt;
             if (Math.abs(next - z) > 7) walkSide *= -1;
             let lane = x;
             for (const r of solids) {
@@ -354,9 +396,14 @@ export function castStreet(
                 lane += n.position.x > lane ? -0.48 : 0.48;
             }
             root.position.x = T.MathUtils.damp(root.position.x, lane, 5, dt);
-            walkZ += walkSide * 0.72 * dt;
+            walkZ += walkSide * curSpeed * dt;
             root.position.z = walkZ;
-            root.rotation.y = walkSide > 0 ? 0 : Math.PI;
+            const targetYaw = walkSide > 0 ? 0 : Math.PI;
+            let diff = targetYaw - root.rotation.y;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            root.rotation.y += diff * Math.min(1, dt * 6.5);
+            if (walkAction) walkAction.timeScale = curSpeed / walkClipSpeed;
           }
         }
         const distance = root.position.distanceTo(cam);
@@ -368,18 +415,35 @@ export function castStreet(
           root.worldToLocal(hand.getWorldPosition(handPos));
           held.position.copy(handPos);
         }
-        if (head && q)
-          head.quaternion
-            .copy(q)
-            .multiply(
-              rot.setFromAxisAngle(axis, 0.16 * Math.sin(t * 0.59 + i * 1.31)),
-            );
-        if (chest && rest)
-          chest.quaternion
-            .copy(rest)
-            .multiply(
-              rot.setFromAxisAngle(axis, 0.025 * Math.sin(t * 0.87 + i)),
-            );
+        let activity: HumanActivity = "idle";
+        let focusPoint: T.Vector3 | null = null;
+        if (seated) {
+          activity = "phone";
+        } else if (queue && approach < 1) {
+          activity = "waiting_bus";
+          if (route.phase === "approaching" || route.phase === "boarding") {
+            busFocus.set(route.x, 1.5, route.z - 4.2);
+            focusPoint = busFocus;
+          }
+        } else if (onRoad) {
+          activity = "crossing";
+        } else if (curSpeed > 0.12) {
+          activity = "walking";
+        } else if (i % 3 === 1) {
+          activity = "talking";
+        } else if (i % 3 === 2) {
+          activity = "listening";
+        }
+        realism.update({
+          dt,
+          time: t,
+          playerPos: cam,
+          focusPoint,
+          moveSpeed: curSpeed,
+          activity,
+          rain: seated ? rainIntensity * 0.25 : rainIntensity,
+          hasActiveMixer: Boolean(mixer),
+        });
       });
     }
     for (const [name, h, x, z] of [
@@ -399,11 +463,14 @@ export function castStreet(
     onCore();
   });
   return {
-    update(dt: number, t: number, cam: T.Vector3) {
+    update(dt: number, t: number, cam: T.Vector3, rain = 0) {
+      rainIntensity = rain;
       actors.forEach((f) => f(dt, t, cam));
     },
     dispose() {
       disposed = true;
+      for (const cleanup of presenceCleanups) cleanup();
+      presenceCleanups.length = 0;
       details.forEach((d) => d.dispose());
       actors.length = 0;
     },
