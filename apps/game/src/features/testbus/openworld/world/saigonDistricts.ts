@@ -9,6 +9,7 @@ import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import { CURB_HEIGHT, rect, type Solid } from "../simulation/boarding";
 import {
+  asset,
   box,
   contact,
   contactMaterial,
@@ -111,6 +112,42 @@ function neonSignMat(title: string, sub: string, bg: string, fg: string, glow: s
     mat.emissiveIntensity = 0.85;
   }
   return mat as T.MeshStandardMaterial;
+}
+
+/** Width / height of signs made from a supplied image, so their planes keep the artwork's proportions. */
+const signAspect = new WeakMap<T.Material, number>();
+/** Height (m) of a retail sign plane `width` m wide; image signs keep their aspect, the generated ones use `fallback`. */
+const signHeight = (mat: T.Material, width: number, fallback: number) => {
+  const aspect = signAspect.get(mat);
+  return aspect ? width / aspect : fallback;
+};
+
+/**
+ * A lit sign drawn from an image file (same glow treatment as neonSignMat). The material starts with a 1x1 placeholder
+ * map and gets the real texture when it has loaded, so the shader is not recompiled when it arrives.
+ */
+function imageSignMat(file: string, aspect: number, fill: string, glow: string) {
+  const hex = new T.Color(fill).getHex();
+  const placeholder = new T.DataTexture(new Uint8Array([(hex >> 16) & 255, (hex >> 8) & 255, hex & 255, 255]), 1, 1);
+  placeholder.colorSpace = T.SRGBColorSpace;
+  placeholder.needsUpdate = true;
+  const mat = new T.MeshStandardMaterial({
+    map: placeholder,
+    color: 0xd4d2cc,
+    roughness: 0.42,
+    metalness: 0.12,
+    emissiveMap: placeholder,
+    emissive: new T.Color(glow).lerp(new T.Color(0xffe8cc), 0.35),
+    emissiveIntensity: 0.85,
+  });
+  new T.TextureLoader().load(asset(file), (texture) => {
+    texture.colorSpace = T.SRGBColorSpace;
+    texture.anisotropy = 4;
+    mat.map = texture;
+    mat.emissiveMap = texture;
+  });
+  signAspect.set(mat, aspect);
+  return mat;
 }
 
 export function buildSaigonDistricts(
@@ -312,11 +349,12 @@ export function buildSaigonDistricts(
   const haloMat = createSoftVolumetricLampHaloMaterial();
   haloMats.push(haloMat);
 
-  // Authentic illuminated Saigon ground-floor tower retail signage (Highlands, Vietcombank, GS25, Phở 24, FamilyMart, Trung Nguyên)
+  // Authentic illuminated Saigon ground-floor tower retail signage (Highlands, Vietcombank, GS36, Phở 24, FamilyMart, Trung Nguyên)
   const retailSignMats = [
     neonSignMat("HIGHLANDS COFFEE", "CÀ PHÊ · TRÀ SEN VÀNG", "#5a1414", "#fff4dc", "#ff5238"),
     neonSignMat("VIETCOMBANK", "PGD QUẬN 1 · ATM 24/7", "#0d4a26", "#f0ffe8", "#3ce878"),
-    neonSignMat("GS25 · 24/7", "CỬA HÀNG TIỆN LỢI", "#0c3568", "#e8f6ff", "#44b8ff"),
+    // Supplied artwork (signs/gs36.webp, 1459 x 198): the convenience store is GS36 now.
+    imageSignMat("signs/gs36.webp", 1459 / 198, "#004ccc", "#44b8ff"),
     neonSignMat("PHỞ 24 · SÀI GÒN", "HƯƠNG VỊ TRUYỀN THỐNG", "#164632", "#fff6d8", "#48e090"),
     neonSignMat("TRUNG NGUYÊN LEGEND", "CÀ PHÊ NĂNG LƯỢNG", "#2c1e16", "#f7e2b8", "#ffb648"),
     neonSignMat("FAMILYMART 24H", "MỞ CỬA SUỐT ĐÊM", "#0c4252", "#ecfff6", "#3ae8a6"),
@@ -497,12 +535,12 @@ export function buildSaigonDistricts(
       const s = canopySide === "+z" ? 1 : -1;
       box(nearParent, [x, 4.15, z + s * (pd * 0.5 + canDepth * 0.48)], [Math.min(w * 0.56, 8.0), 0.18, canDepth], bronzeMetal, false);
       box(nearParent, [x, 4.02, z + s * (pd * 0.5 + canDepth * 0.45)], [Math.min(w * 0.52, 7.6), 0.05, canDepth * 0.85], warmSoffitMat, false);
-      plane(nearParent, [x, 5.25, z + s * (pd * 0.5 + 0.06)], [Math.min(w * 0.58, 6.2), 1.35], retailMat, s > 0 ? 0 : Math.PI);
+      plane(nearParent, [x, 5.25, z + s * (pd * 0.5 + 0.06)], [Math.min(w * 0.58, 6.2), signHeight(retailMat, Math.min(w * 0.58, 6.2), 1.35)], retailMat, s > 0 ? 0 : Math.PI);
     } else {
       const s = canopySide === "+x" ? 1 : -1;
       box(nearParent, [x + s * (pw * 0.5 + canDepth * 0.48), 4.15, z], [canDepth, 0.18, Math.min(d * 0.56, 8.0)], bronzeMetal, false);
       box(nearParent, [x + s * (pw * 0.5 + canDepth * 0.45), 4.02, z], [canDepth * 0.85, 0.05, Math.min(d * 0.52, 7.6)], warmSoffitMat, false);
-      plane(nearParent, [x + s * (pw * 0.5 + 0.06), 5.25, z], [Math.min(d * 0.58, 6.2), 1.35], retailMat, s > 0 ? Math.PI / 2 : -Math.PI / 2);
+      plane(nearParent, [x + s * (pw * 0.5 + 0.06), 5.25, z], [Math.min(d * 0.58, 6.2), signHeight(retailMat, Math.min(d * 0.58, 6.2), 1.35)], retailMat, s > 0 ? Math.PI / 2 : -Math.PI / 2);
     }
 
     // 3. Stepped Upper Tower Shaft (distinct architectural silhouette per archetype!)
@@ -902,9 +940,9 @@ export function buildSaigonDistricts(
     const signM = retailSignMats[(i + 2) % retailSignMats.length];
     const s = side === "+z" || side === "+x" ? 1 : -1;
     if (side === "+z" || side === "-z") {
-      plane(chunkEastBlvd, [x, 3.8, z + s * (d * 0.5 + 0.08)], [Math.min(w * 0.62, 5.8), 1.2], signM, s > 0 ? 0 : Math.PI);
+      plane(chunkEastBlvd, [x, 3.8, z + s * (d * 0.5 + 0.08)], [Math.min(w * 0.62, 5.8), signHeight(signM, Math.min(w * 0.62, 5.8), 1.2)], signM, s > 0 ? 0 : Math.PI);
     } else {
-      plane(chunkEastBlvd, [x + s * (w * 0.5 + 0.08), 3.8, z], [Math.min(d * 0.62, 5.8), 1.2], signM, s > 0 ? Math.PI / 2 : -Math.PI / 2);
+      plane(chunkEastBlvd, [x + s * (w * 0.5 + 0.08), 3.8, z], [Math.min(d * 0.62, 5.8), signHeight(signM, Math.min(d * 0.62, 5.8), 1.2)], signM, s > 0 ? Math.PI / 2 : -Math.PI / 2);
     }
     solids.push(rect(x, z, w + 0.2, d + 0.2));
   });
