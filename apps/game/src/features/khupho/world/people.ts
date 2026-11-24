@@ -557,8 +557,8 @@ class ShopStaff {
 }
 
 /** Street NPC models used for the people living in the houses, in turn. */
-const RESIDENT_WOMEN: HumanModelId[] = ['npcAlice', 'npcLinMei', 'npcSofia', 'npcFreya'];
-const RESIDENT_MEN: HumanModelId[] = ['npcAlan', 'npcArthur', 'npcArchetype', 'npcNapole', 'npcYoshida', 'npcBlackGuy'];
+const RESIDENT_WOMEN: HumanModelId[] = ['npcAlice', 'npcLinMei', 'npcSofia', 'npcFreya', 'npcLinh'];
+const RESIDENT_MEN: HumanModelId[] = ['npcAlan', 'npcArthur', 'npcArchetype', 'npcNapole', 'npcYoshida', 'npcBlackGuy', 'npcMinh'];
 const RESIDENT_ELDERS: HumanModelId[] = ['npcNguoiGia'];
 
 /** Street NPC models used as shop staff, in turn. */

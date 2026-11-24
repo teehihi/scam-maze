@@ -21,6 +21,10 @@
  *   TINT_TEXTURE_MEAN and the color factor rescaled, so the look is unchanged and the game can set
  *   any clothing color directly (see humans.ts).
  *
+ * Rigged scans (`rig`, npc-linh and npc-minh): a T-pose scan with one mesh and no skeleton is simplified and
+ * auto-rigged onto the street NPC skeleton first (rig-tpose.cjs), then optimized like the others. They have no
+ * clip of their own and take juno3's idle, walk and wave at load, like the street NPCs.
+ *
  * To add a character: put its .glb in assets-src/characters/<id>/, add an entry to CHARACTERS
  * below, run this script, then register it in src/features/khupho/world/humans.ts.
  *
@@ -34,6 +38,7 @@ const { ALL_EXTENSIONS, EXTTextureWebP } = require("@gltf-transform/extensions")
 const { prune, dedup, weld, resample, quantize, reorder, meshopt, simplify } = require("@gltf-transform/functions");
 const { MeshoptEncoder, MeshoptDecoder, MeshoptSimplifier } = require("meshoptimizer");
 const sharp = require("sharp");
+const { rigScan } = require("./rig-tpose.cjs");
 
 const SRC = path.resolve(__dirname, "../assets-src/characters");
 const OUT = path.resolve(__dirname, "../public/assets/3d/optimized/characters");
@@ -54,6 +59,8 @@ const STREET_TINT = /^Asset_(top|fullbody|bottom|shoes)_/;
 const TINT_TEXTURE_MEAN = 0.8;
 const street = (id, file, remove = []) => ({ id, file: `street/${file}`, colorSize: 512, dataSize: 512, ratio: 1, street: true, remove });
 
+const rigged = (id, file, rig, triangles = 45_000) => ({ id, file, colorSize: 1024, dataSize: 1024, ratio: 1, rig, triangles });
+
 const CHARACTERS = [
   { id: "banhmi-vendor", file: "banhmi-vendor/banhmi_vendor_animated.glb", colorSize: 2048, dataSize: 1024, ratio: 0.5, error: 0.0015 },
   { id: "manvn", file: "manvn/manVN_rigged_animated.glb", colorSize: 1024, dataSize: 1024, ratio: 1 },
@@ -70,6 +77,9 @@ const CHARACTERS = [
   street("npc-freya", "freya_new.glb"),
   street("npc-nguoigia", "nguoigia_new.glb"),
   street("npc-sofia", "sofia_new.glb"),
+  // T-pose scans without a skeleton (one 1M+ triangle mesh): simplified and auto-rigged onto the street NPC skeleton (rig-tpose.cjs).
+  rigged("npc-linh", "linh-model/new_VnWomen.glb", "linh"),
+  rigged("npc-minh", "minhModel/lqk_new.glb", "minh"),
 ];
 
 /**
@@ -160,7 +170,12 @@ async function optimize(io, c) {
   const doc = await io.read(input);
   const root = doc.getRoot();
   const before = triangles(doc);
-  const note = c.street ? await cleanStreetNpc(doc, c) : "";
+  let note = c.street ? await cleanStreetNpc(doc, c) : "";
+  if (c.rig) {
+    note = rigScan(doc, MeshoptSimplifier, c.rig, c.triangles);
+    // Plain PBR like the street NPCs (the scan only carries a default specular extension).
+    for (const ext of root.listExtensionsUsed()) if (ext.extensionName === "KHR_materials_specular") ext.dispose();
+  }
 
   doc.createExtension(EXTTextureWebP).setRequired(true);
   const colorTextures = new Set(root.listMaterials().map((m) => m.getBaseColorTexture()).filter(Boolean));

@@ -69,6 +69,10 @@ export const HUMAN_MODELS = {
   // Authored 1.23 m tall; the owner asked for 1.5 m.
   npcNguoiGia: { ...street('npc-nguoigia.optimized.glb'), height: 1.5 },
   npcSofia: street('npc-sofia.optimized.glb'),
+  // Scans auto-rigged onto the same skeleton (scripts/rig-tpose.cjs): own face and clothes, so no recolor and no sunglasses.
+  // Authored 1.15 m tall; sized like the story cast (Minh 1.72 m, Linh 1.64 m).
+  npcMinh: { ...street('npc-minh.optimized.glb'), outfit: false, glasses: false, height: 1.72 },
+  npcLinh: { ...street('npc-linh.optimized.glb'), outfit: false, glasses: false, height: 1.64 },
 } satisfies Record<string, HumanModelSpec>;
 
 export type HumanModelId = keyof typeof HUMAN_MODELS;

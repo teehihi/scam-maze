@@ -56,6 +56,22 @@ with THREE.GLTFExporter r187): one 53-bone rig (`Root`, `pelvis`, `thigh_l`...),
 - Animation: `idle`, `walk` and `wave` are retargeted at load from `juno3`'s Mixamo clips
   (`src/features/khupho/world/retarget.ts`).
 
+## Rigged scans (`linh-model/`, `minhModel/`, added 2026-11-24)
+
+Two owner-supplied T-pose scans (one unskinned mesh each, 4096 px PBR textures, no skeleton, no clips; license: not
+provided). `node apps/game/scripts/optimize-characters.cjs npc-linh npc-minh` simplifies each to 45,000 triangles and
+rigs it automatically (`scripts/rig-tpose.cjs`) onto the street NPC skeleton names and hierarchy, minus the finger
+bones (hands are rigid). Idle, walk, wave and sit then work through the same retargeting as the street NPCs.
+
+| Id | Source | Character | Size | Triangles |
+|---|---|---|---|---|
+| `npc-linh` | `linh-model/new_VnWomen.glb` | Linh (story cast, M01) | 68.82 -> 0.80 MB | 1,493,784 -> 45,000 |
+| `npc-minh` | `minhModel/lqk_new.glb` | Minh (story cast, M01-M05) | 54.21 -> 0.76 MB | 1,000,004 -> 45,000 |
+
+- Landmarks (joint positions) are measured per scan in `MODELS` in `rig-tpose.cjs`; a new scan needs its own entry.
+- Skin weights are computed automatically (distance falloff per bone, smoothed). Check new rigs on a walk and a sit pose.
+- Used for Minh and Linh in the story cast (`storyCast.ts`) and in the /khupho resident pools (`npcMinh`, `npcLinh`).
+
 ## Adding a character
 
 1. Put the `.glb` in `characters/<id>/` (Git LFS) and add an entry to `CHARACTERS` in the script.
