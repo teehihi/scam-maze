@@ -402,6 +402,23 @@ export class SaigonTrafficManager {
     this.vehicleById.set(agent.id, agent);
   }
 
+  /**
+   * Takes Bus 06 out of the traffic while it waits off-route (Chapter 1: until it is called), so no AI vehicle queues
+   * behind a bus nobody sees. `registerBus06` puts it back.
+   */
+  unregisterBus06() {
+    const agent = this.vehicleById.get(this.busAgentId);
+    if (!agent) return;
+    this.vehicleById.delete(this.busAgentId);
+    const index = this.vehicles.indexOf(agent);
+    if (index >= 0) this.vehicles.splice(index, 1);
+  }
+
+  /** True while Bus 06 is part of the traffic. */
+  get bus06Registered(): boolean {
+    return this.vehicleById.has(this.busAgentId);
+  }
+
   /** Sync Bus 06's live world pose & speed every frame from `BusRouteController`. */
   syncBus06(x: number, z: number, yaw: number, speed: number, accel: number, listenerX?: number, listenerZ?: number) {
     const bus = this.vehicleById.get(this.busAgentId);

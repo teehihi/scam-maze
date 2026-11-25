@@ -243,6 +243,66 @@ export class SaigonStreetAudio {
     src.start(now);
   }
 
+  /**
+   * Bus 06 front door: a pneumatic hiss with a soft mechanical thud at the end of the stroke (opening and closing).
+   * Distance-attenuated like the air brake; the door takes about a second, so the thud comes after the hiss.
+   */
+  playBusDoor(open: boolean, doorX: number, doorZ: number, listenerX: number, listenerZ: number) {
+    if (!this.ctx || !this.masterGain || this.ctx.state !== "running") return;
+    const dist = Math.hypot(doorX - listenerX, doorZ - listenerZ);
+    if (dist > 30) return;
+    const level = Math.max(0, 1 - dist / 30);
+    const now = this.ctx.currentTime;
+    const len = Math.floor(this.ctx.sampleRate * 0.75);
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      d[i] = (Math.random() * 2 - 1) * Math.min(1, t * 12) * Math.exp(-t * 3.2);
+    }
+    const hiss = this.ctx.createBufferSource();
+    hiss.buffer = buf;
+    const band = this.ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.value = open ? 1500 : 1100;
+    band.Q.value = 0.8;
+    const hg = this.ctx.createGain();
+    hg.gain.value = level * 0.16;
+    hiss.connect(band).connect(hg).connect(this.masterGain);
+    hiss.start(now);
+    // End-of-stroke thud.
+    const thud = this.ctx.createOscillator();
+    thud.type = "sine";
+    thud.frequency.setValueAtTime(110, now + 0.85);
+    thud.frequency.exponentialRampToValueAtTime(55, now + 1.0);
+    const tg = this.ctx.createGain();
+    tg.gain.setValueAtTime(0, now);
+    tg.gain.setValueAtTime(level * 0.22, now + 0.85);
+    tg.gain.exponentialRampToValueAtTime(0.0001, now + 1.05);
+    thud.connect(tg).connect(this.masterGain);
+    thud.start(now + 0.85);
+    thud.stop(now + 1.1);
+  }
+
+  /** The fare validator accepting a card: two short high beeps, close to the player (they tap it). */
+  playValidatorBeep() {
+    if (!this.ctx || !this.masterGain || this.ctx.state !== "running") return;
+    const now = this.ctx.currentTime;
+    for (const at of [0, 0.16]) {
+      const osc = this.ctx.createOscillator();
+      osc.type = "square";
+      osc.frequency.value = 2350;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0, now + at);
+      g.gain.linearRampToValueAtTime(0.05, now + at + 0.01);
+      g.gain.setValueAtTime(0.05, now + at + 0.09);
+      g.gain.linearRampToValueAtTime(0, now + at + 0.11);
+      osc.connect(g).connect(this.masterGain);
+      osc.start(now + at);
+      osc.stop(now + at + 0.12);
+    }
+  }
+
   /** Update continuous tire spray / Doppler pass-by hiss from nearby moving traffic. */
   updateFrame(
     dt: number,

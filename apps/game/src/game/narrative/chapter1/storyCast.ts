@@ -56,6 +56,11 @@ export interface StoryNpcWorldAnchor {
   /** Human-readable physical staging cue ("Beside the sidewalk café table"). */
   stagingCue: LocalizedPair;
   district: LocalizedPair;
+  /**
+   * Present when the NPC notices Alex and walks up to him (the street driver), then walks back to this spot. Distances
+   * in metres; `minX`..`maxX` is the sidewalk band he keeps to. Absent: the NPC stays at the spot.
+   */
+  approach?: { noticeRadius: number; stopDistance: number; leash: number; minX: number; maxX: number };
 }
 
 export interface StoryNpcProfile {
@@ -229,8 +234,11 @@ export const STORY_NPC_CAST: readonly StoryNpcProfile[] = [
       z: 7.6,
       yaw: -2.35,
       height: 1.69,
-      modelFile: "manvn.optimized.glb",
+      // Owner-supplied scan, auto-rigged (scripts/rig-tpose.cjs `driver`); walks with the street NPC clips.
+      modelFile: "npc-driver.optimized.glb",
       propKind: "helmet",
+      // He spots a customer coming to the stop and walks over to make his offer, on the sidewalk only.
+      approach: { noticeRadius: 9, stopDistance: 1.75, leash: 7, minX: 0.6, maxX: 6.2 },
       stagingCue: { en: "Leaning beside his parked Super Cub at Bus 06", vi: "Đứng cạnh chiếc xe máy ngay mép trạm Buýt 06" },
       district: { en: "Lý Thái Tổ Bus 06 Stop", vi: "Trạm Buýt 06 Lý Thái Tổ" },
     },
@@ -309,13 +317,15 @@ export const STORY_NPC_CAST: readonly StoryNpcProfile[] = [
     role: { en: "District 5 Thesis Interviewee", vi: "Nhân vật phỏng vấn Q.5" },
     shortTag: { en: "M02 · Last Interview", vi: "NV 02 · Phỏng Vấn Cuối" },
     accentColor: "#60a5fa",
+    // At her stall in the authored Chợ Lớn market (world/choLon.ts, cobaStall), facing the customer side.
     worldAnchor: {
       x: -18.35,
       y: CURB_Y,
       z: -130,
       yaw: 2.8,
-      height: 1.64,
-      modelFile: "npc-sofia.optimized.glb",
+      height: 1.58,
+      // Owner-supplied scan, auto-rigged (scripts/rig-tpose.cjs `coba`).
+      modelFile: "npc-coba.optimized.glb",
       propKind: "clipboard",
       stagingCue: { en: "At the market office main entrance in Chợ Lớn", vi: "Ở cửa chính văn phòng chợ tại Chợ Lớn" },
       district: { en: "Chợ Lớn Market Office · District 5", vi: "Văn phòng chợ Chợ Lớn · Quận 5" },
@@ -503,6 +513,7 @@ export function resolveStoryNpcDialogue(
             {
               id: "minh_m02_route",
               voiceId: "m02.minh.minh_m02_route",
+              labelVoiceId: "m02.minh.minh_m02_route.alex",
               tone: "inquire",
               label: { en: "Best way down to District 5?", vi: "Mai đi Quận 5 bằng gì tiện nhất?" },
               response: {
@@ -518,6 +529,7 @@ export function resolveStoryNpcDialogue(
             {
               id: "minh_m02_coba",
               voiceId: "m02.minh.minh_m02_coba",
+              labelVoiceId: "m02.minh.minh_m02_coba.alex",
               tone: "inquire",
               label: { en: "What should I ask Cô Ba?", vi: "Gặp Cô Ba cần chốt số liệu gì?" },
               response: {
@@ -529,6 +541,7 @@ export function resolveStoryNpcDialogue(
             {
               id: "minh_leave",
               voiceId: "m02.minh.minh_leave",
+              labelVoiceId: "m02.minh.minh_leave.alex",
               tone: "leave",
               label: { en: "See you tomorrow morning.", vi: "Hẹn sáng mai nha Minh." },
               response: {
