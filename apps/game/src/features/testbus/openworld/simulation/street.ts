@@ -9,8 +9,6 @@ import {streetVehicles, VAN_LENGTH, type ParkedBikeSlot} from './vehicles';
 import { attachDynamicLamps } from './vehicleLights';
 import { type SaigonTrafficManager } from '../traffic';
 import * as T from 'three';
-import { createMastArmSignal } from '../world/mastArmSignal';
-import { SIGNAL_APPROACHES, signalBasePosition } from '../world/signalPlacement';
 import { CURB_HEIGHT, rect, ROUTE_BOARD, STOP_SIGN, type Point, type Solid } from './boarding';
 import { ROUTE } from './transit';
 import { asset, batch, box, contact, contactMaterial, granular, label, lamp, material, mesh, orb, plane, polygon, random, rod, rounded, textLabel, tube, write } from './scene-kit';
@@ -564,34 +562,6 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
       plane(dressing, [x - side * 3.27, h * 0.5, z], [6.7, h], skyline[i % 2], side * X_ANGLE);
     }
   }
-  // Per-intersection QCVN 41:2024 traffic signal heads + glowing 2-digit Vietnamese LED countdown panels!
-  const legacySignalColours = { r: lamp(0xe94b37, 0), y: lamp(0xf1ae40, 0), g: lamp(0x58bf78, 0) };
-  // Vietnamese mast-arm signals on the driver's right-hand curb of each Ly Thai To approach.
-  // The Duong 3/2 and Dien Bien Phu approaches of these junctions are owned by saigonDistricts.ts.
-  for (const a of SIGNAL_APPROACHES) {
-    if (a.owner !== 'ltt') continue;
-    const pos = signalBasePosition(a);
-    const signal = createMastArmSignal({
-      x: pos.x,
-      y: CURB_HEIGHT,
-      z: pos.z,
-      heading: a.heading,
-      lamps: trafficMgr ? undefined : legacySignalColours,
-      onCountdown: trafficMgr
-        ? (countdown, lamps) =>
-            trafficMgr.bindSignalVisual({
-              intersectionId: a.intersectionId,
-              axis: a.axis,
-              redMat: lamps.r,
-              amberMat: lamps.y,
-              greenMat: lamps.g,
-              countdown,
-            })
-        : undefined,
-    });
-    dressing.add(signal.group);
-    solids.push(rect(pos.x, pos.z, 0.28, 0.28));
-  }
   const leafStain = [material(0x514d32), material(0x78694a), material(0x87805b)];
   const wear = label(384, 192, (ctx) => {
     const wearRng = random(109027);
@@ -876,11 +846,6 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
 
       const tick = time % 22;
       const signal = tick < 10 ? 2 : tick < 12 ? 1 : 0;
-      const legacyLamps = [legacySignalColours.r, legacySignalColours.y, legacySignalColours.g];
-      for (let i = 0; i < 3; i++) {
-        legacyLamps[i].color.setScalar(signal === i ? 0.25 : 0.015);
-        legacyLamps[i].emissiveIntensity = signal === i ? 1.8 : 0.025;
-      }
 
       for (const [i, slot] of traffic.entries()) {
         const { root, direction, speed } = slot;

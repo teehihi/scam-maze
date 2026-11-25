@@ -6,7 +6,8 @@
  * so for a heading (dx, dz) the driver's right-hand side is (-dz, dx):
  *   northbound (0,-1) -> +X, southbound (0,1) -> -X, eastbound (1,0) -> +Z, westbound (-1,0) -> -Z.
  */
-import type { SignalAxis } from "../traffic/types";
+import type { RoadEdge, SignalAxis } from "../traffic/types";
+import type { SaigonRoadGraph } from "../traffic/roadGraph";
 
 export interface Heading { dx: number; dz: number }
 
@@ -17,7 +18,7 @@ export const WESTBOUND: Heading = { dx: -1, dz: 0 };
 
 /** Unit vector pointing to the driver's right for a given heading. */
 export function rightOf(h: Heading): { x: number; z: number } {
-  return { x: -h.dz + 0, z: h.dx + 0 };
+  return { x: -h.dz || 0, z: h.dx || 0 };
 }
 
 /**
@@ -28,74 +29,86 @@ export function signalYaw(h: Heading): number {
   return Math.atan2(h.dx, h.dz);
 }
 
+/** Gap between the kerb line and the pole axis, on the pavement (m). */
+export const SIDEWALK_INSET = 0.8;
+/** Distance from the carriageway edge to the kerb (RoadEdge.width/2 + KERB_MARGIN is the kerb offset). */
+export const KERB_MARGIN = 0.3;
+/** The pole stands this far before the stop line, so the lower head is seen just ahead of the driver. */
+export const POLE_BEHIND_STOP = 1.0;
+/** Arm overhang past the outermost lane centre (m). */
+const ARM_OVERHANG = 0.5;
+
 export interface SignalApproach {
+  /** `${intersectionId}:${edgeId}`, unique and stable. */
+  id: string;
   /** Owning intersection id in the road graph. */
   intersectionId: string;
   /** Road graph edge that arrives at the intersection on this approach. */
   edgeId: string;
   axis: SignalAxis;
+  /** Unit tangent at the end of the edge (direction of travel at the stop line). */
   heading: Heading;
-  /** Junction centre (median crossing). */
-  center: { x: number; z: number };
-  /** Distance from the junction centre back along the approach to the pole. */
-  setback: number;
-  /** Distance from the road median to the pole, measured to the driver's right. */
-  lateral: number;
-  /** Which world chunk builds this signal. */
-  owner: "ltt" | "east";
+  /** RoadEdge.end, the stop line the simulation uses. */
+  stopLine: { x: number; z: number };
+  /** Distance from the edge centreline to the kerb on the driver's right. */
+  kerbDistance: number;
+  /** Distance from the edge centreline to the pole, to the driver's right. */
+  poleLateral: number;
+  /** Distance from the stop line back along the approach to the pole. */
+  poleBehindStop: number;
+  /** Length of the mast arm over the road. */
+  armLength: number;
+  /** Distance of each car lane centre from the pole along the arm. */
+  laneCentres: number[];
 }
 
-/** Pole base position: back along the approach by `setback`, out to the right by `lateral`. */
-export function signalBasePosition(a: Pick<SignalApproach, "heading" | "center" | "setback" | "lateral">) {
+/** Unit tangent at the end of an edge. Edges are straight today; a polyline would use its last segment. */
+export function edgeEndTangent(edge: Pick<RoadEdge, "tx" | "tz"> & { points?: { x: number; z: number }[] }): Heading {
+  const pts = edge.points;
+  if (pts && pts.length >= 2) {
+    const a = pts[pts.length - 2];
+    const b = pts[pts.length - 1];
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    if (len > 1e-6) return { dx: (b.x - a.x) / len, dz: (b.z - a.z) / len };
+  }
+  return { dx: edge.tx, dz: edge.tz };
+}
+
+/** One signal per edge that arrives at a signalized intersection, ordered by intersection id then edge id. */
+export function deriveSignalApproaches(graph: SaigonRoadGraph): SignalApproach[] {
+  const out: SignalApproach[] = [];
+  for (const inter of graph.intersections.values()) {
+    if (!inter.signalized) continue;
+    for (const edge of graph.edges.values()) {
+      if (edge.toNode !== inter.id) continue;
+      const kerbDistance = edge.width / 2 + KERB_MARGIN;
+      const poleLateral = kerbDistance + SIDEWALK_INSET;
+      const offsets = edge.carLaneOffsets.length > 0 ? edge.carLaneOffsets : [0];
+      out.push({
+        id: `${inter.id}:${edge.id}`,
+        intersectionId: inter.id,
+        edgeId: edge.id,
+        axis: edge.axis,
+        heading: edgeEndTangent(edge),
+        stopLine: { x: edge.end.x, z: edge.end.z },
+        kerbDistance,
+        poleLateral,
+        poleBehindStop: POLE_BEHIND_STOP,
+        armLength: poleLateral - Math.min(...offsets) + ARM_OVERHANG,
+        laneCentres: offsets.map((o) => poleLateral - o),
+      });
+    }
+  }
+  return out.sort((a, b) =>
+    a.intersectionId === b.intersectionId ? (a.edgeId < b.edgeId ? -1 : a.edgeId > b.edgeId ? 1 : 0) : a.intersectionId < b.intersectionId ? -1 : 1,
+  );
+}
+
+/** Pole base: back from the stop line by `poleBehindStop`, out to the driver's right by `poleLateral`. */
+export function signalBasePosition(a: Pick<SignalApproach, "heading" | "stopLine" | "poleBehindStop" | "poleLateral">) {
   const r = rightOf(a.heading);
   return {
-    x: a.center.x - a.heading.dx * a.setback + r.x * a.lateral,
-    z: a.center.z - a.heading.dz * a.setback + r.z * a.lateral,
+    x: a.stopLine.x - a.heading.dx * a.poleBehindStop + r.x * a.poleLateral,
+    z: a.stopLine.z - a.heading.dz * a.poleBehindStop + r.z * a.poleLateral,
   };
 }
-
-const LTT_X = -6.4;
-const LTT_LATERAL = 6.8; // x = 0.4 (east curb side) / -13.2 (west curb side)
-const BLVD_LATERAL = 7.0; // 1 m behind the 6 m half-width kerb, on the sidewalk
-const approach = (
-  intersectionId: string,
-  edgeId: string,
-  axis: SignalAxis,
-  heading: Heading,
-  center: { x: number; z: number },
-  setback: number,
-  lateral: number,
-  owner: "ltt" | "east",
-): SignalApproach => ({ intersectionId, edgeId, axis, heading, center, setback, lateral, owner });
-
-const C_LTT_32 = { x: LTT_X, z: -76 };
-const C_LTT_DBP = { x: LTT_X, z: -147 };
-const C_LTT_PED = { x: LTT_X, z: -96 };
-const C_HT_32 = { x: 56, z: -76 };
-const C_HT_DBP = { x: 56, z: -147 };
-
-/**
- * One signal per existing approach. T-junctions (J_LTT_32, J_LTT_DBP, J_HT_32) have no leg on one
- * side, so they get three. J_LTT_PED is a midblock pedestrian crossing with one per direction.
- */
-export const SIGNAL_APPROACHES: readonly SignalApproach[] = [
-  approach("J_LTT_32", "LTT_S_NB", "ns", NORTHBOUND, C_LTT_32, 8, LTT_LATERAL, "ltt"),
-  approach("J_LTT_32", "LTT_M1_SB", "ns", SOUTHBOUND, C_LTT_32, 8, LTT_LATERAL, "ltt"),
-  approach("J_LTT_32", "D32_W_WB", "ew", WESTBOUND, C_LTT_32, 14.4, BLVD_LATERAL, "east"),
-
-  approach("J_LTT_PED", "LTT_M1_NB", "ns", NORTHBOUND, C_LTT_PED, 3.6, LTT_LATERAL, "ltt"),
-  approach("J_LTT_PED", "LTT_M2_SB", "ns", SOUTHBOUND, C_LTT_PED, 3.6, LTT_LATERAL, "ltt"),
-
-  approach("J_LTT_DBP", "LTT_M2_NB", "ns", NORTHBOUND, C_LTT_DBP, 8, LTT_LATERAL, "ltt"),
-  approach("J_LTT_DBP", "LTT_N_SB", "ns", SOUTHBOUND, C_LTT_DBP, 8, LTT_LATERAL, "ltt"),
-  approach("J_LTT_DBP", "DBP_W_WB", "ew", WESTBOUND, C_LTT_DBP, 14.4, BLVD_LATERAL, "east"),
-
-  approach("J_HT_32", "D32_W_EB", "ew", EASTBOUND, C_HT_32, 10.8, BLVD_LATERAL, "east"),
-  approach("J_HT_32", "D32_E_WB", "ew", WESTBOUND, C_HT_32, 10.8, BLVD_LATERAL, "east"),
-  approach("J_HT_32", "HT_S_SB", "ns", SOUTHBOUND, C_HT_32, 11.2, BLVD_LATERAL, "east"),
-
-  approach("J_HT_DBP", "HT_S_NB", "ns", NORTHBOUND, C_HT_DBP, 10.8, BLVD_LATERAL, "east"),
-  approach("J_HT_DBP", "HT_N_SB", "ns", SOUTHBOUND, C_HT_DBP, 11.8, BLVD_LATERAL, "east"),
-  approach("J_HT_DBP", "DBP_W_EB", "ew", EASTBOUND, C_HT_DBP, 10.8, BLVD_LATERAL, "east"),
-  approach("J_HT_DBP", "DBP_E_WB", "ew", WESTBOUND, C_HT_DBP, 10.8, BLVD_LATERAL, "east"),
-];

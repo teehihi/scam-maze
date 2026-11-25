@@ -10,19 +10,24 @@ import type {
 
 const PED_FLASH_SEC = 4.0;
 
+export interface CountdownHandle {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  texture: T.CanvasTexture;
+  lastKey: string;
+}
+
 export interface SignalVisualBinding {
   intersectionId: string;
   axis: SignalAxis;
   redMat: T.MeshStandardMaterial;
   amberMat: T.MeshStandardMaterial;
   greenMat: T.MeshStandardMaterial;
-  countdown?: {
-    canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
-    texture: T.CanvasTexture;
-    lastKey: string;
-  };
+  /** One handle, or several when a signal drives more than one canvas. */
+  countdown?: CountdownHandle | CountdownHandle[];
 }
+
+const COUNTDOWN_GEOMETRY = new T.PlaneGeometry(0.32, 0.34);
 
 function makeAxisState(
   lamp: LampColor,
@@ -65,26 +70,28 @@ export class TrafficSignalController {
     this.applyBinding(binding);
   }
 
-  /** Build a 2-digit glowing Vietnamese LED countdown panel texture & mesh for a signal head. */
-  static createCountdownPanel(): {
-    mesh: T.Mesh;
-    handle: NonNullable<SignalVisualBinding["countdown"]>;
-  } {
+  /**
+   * Build ONE canvas, texture and material for a 2-digit Vietnamese LED countdown. `createPanelMesh`
+   * makes any number of meshes that show the same texture, so one handle updates all of them.
+   */
+  static createSharedCountdown(): { createPanelMesh: () => T.Mesh; handle: CountdownHandle } {
     const canvas = document.createElement("canvas");
     canvas.width = 64;
     canvas.height = 64;
     const ctx = canvas.getContext("2d")!;
     const texture = new T.CanvasTexture(canvas);
     texture.colorSpace = T.SRGBColorSpace;
-    const mat = new T.MeshBasicMaterial({
-      map: texture,
-      toneMapped: false,
-    });
-    const mesh = new T.Mesh(new T.PlaneGeometry(0.32, 0.34), mat);
+    const mat = new T.MeshBasicMaterial({ map: texture, toneMapped: false });
     return {
-      mesh,
+      createPanelMesh: () => new T.Mesh(COUNTDOWN_GEOMETRY, mat),
       handle: { canvas, ctx, texture, lastKey: "" },
     };
+  }
+
+  /** Build a 2-digit glowing Vietnamese LED countdown panel texture & mesh for a signal head. */
+  static createCountdownPanel(): { mesh: T.Mesh; handle: CountdownHandle } {
+    const shared = TrafficSignalController.createSharedCountdown();
+    return { mesh: shared.createPanelMesh(), handle: shared.handle };
   }
 
   update(simTime: number) {
@@ -187,22 +194,26 @@ export class TrafficSignalController {
       const secs = Math.max(0, Math.min(99, Math.ceil(st.countdown)));
       const col = isGrn ? "#2eff78" : isAmb ? "#ffbb24" : "#ff3628";
       const key = `${col}:${secs}`;
-      if (key !== b.countdown.lastKey) {
-        b.countdown.lastKey = key;
-        const { ctx, canvas, texture } = b.countdown;
-        ctx.fillStyle = "#08090c";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#22262e";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
-        ctx.fillStyle = col;
-        ctx.font = "bold 36px monospace";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(secs).padStart(2, "0"), canvas.width / 2, canvas.height / 2 + 2);
-        texture.needsUpdate = true;
-      }
+      const handles = Array.isArray(b.countdown) ? b.countdown : [b.countdown];
+      for (const h of handles) this.drawCountdown(h, key, col, secs);
     }
+  }
+
+  private drawCountdown(h: CountdownHandle, key: string, col: string, secs: number) {
+    if (key === h.lastKey) return;
+    h.lastKey = key;
+    const { ctx, canvas, texture } = h;
+    ctx.fillStyle = "#08090c";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#22262e";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+    ctx.fillStyle = col;
+    ctx.font = "bold 36px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(secs).padStart(2, "0"), canvas.width / 2, canvas.height / 2 + 2);
+    texture.needsUpdate = true;
   }
 
   /** Helper for telemetry/debugging */
