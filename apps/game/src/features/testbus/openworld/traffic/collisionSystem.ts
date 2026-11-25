@@ -1,3 +1,4 @@
+import { VN_TRAFFIC_TUNING } from "./driverModels";
 import type { SaigonRoadGraph } from "./roadGraph";
 import { sampleEdge, sampleTurn } from "./roadGraph";
 import type { OBB2D, PedestrianObstacle, PlayerCollisionResult, VehicleAgent } from "./types";
@@ -343,7 +344,12 @@ export class TrafficCollisionSystem {
       const headingDot = fx * oObb.fx + fz * oObb.fz;
 
       // Speed-dependent lateral safety pad (tighter for Saigon motorbikes!)
-      const latPad = v.category === "moto" && other.category === "moto" ? 0.24 : 0.32;
+      const latPad =
+        v.category === "moto"
+          ? other.category === "moto"
+            ? 0.24
+            : VN_TRAFFIC_TUNING.moto.hazardLatPad
+          : 0.32;
       if (
         headingDot > 0.6 &&
         along > 0 &&

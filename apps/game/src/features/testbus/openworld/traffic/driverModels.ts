@@ -2,6 +2,74 @@ import type { DriverPersonality, RoadEdge, VehicleAgent, VehicleCategory } from 
 
 const ACC_COOL = 0.99;
 
+/**
+ * Vietnamese street behaviour tuning, one block per vehicle kind (all lengths in m, times in s, speeds in m/s).
+ * Every random decision made from these numbers uses the traffic manager's seeded behaviour RNG.
+ */
+export const VN_TRAFFIC_TUNING = {
+  /** Chance that a blocked driver actually swerves out to overtake when the lane-change rule allows it. */
+  overtakeWillingness: { moto: 1.0, car: 0.3, van: 0.2, bus: 0.15 } as Record<VehicleCategory, number>,
+  /** Chance of swerving out around a bus that is halted at a stop (it is not going to move soon). */
+  busStopOvertakeWillingness: { moto: 1.0, car: 0.85, van: 0.7, bus: 0.4 } as Record<VehicleCategory, number>,
+  /** Extra MOBIL incentive for leaving the lane behind a halted bus. */
+  busStopOvertakeBias: 1.5,
+  /** A leader this close (net gap) and slower than us makes a lane change an overtake (subject to willingness). */
+  blockedLeaderGap: 45,
+  /** Cooldown after a driver declines to overtake, before the next decision. */
+  declineCooldown: 2.5,
+  car: {
+    /** Seconds held up mid-block before a stopped car (or van) considers nosing out into the other lane. */
+    stuckWait: 2.5,
+    /** Sideways speed (m/s) while nosing out from standstill. */
+    stuckLatSpeed: 0.6,
+  },
+  moto: {
+    /** Required side clearance (m) when squeezing through a gap, instead of the speed-dependent 0.36..0.80. */
+    squeezeLatGap: 0.2,
+    /** Lateral planner re-evaluation period while blocked. */
+    blockedReplan: 0.2,
+    /** Leader within this net distance and slower than blockedLeaderSpeed counts as blocking a rider. */
+    blockedLeaderGap: 9,
+    blockedLeaderSpeed: 2.0,
+    /** Sideways speed (m/s) a blocked rider can still make while nearly stationary. */
+    blockedLatSpeed: 0.7,
+    /** Forward creep speed (m/s) a rider keeps when there is room and no red light. */
+    creepSpeed: 0.6,
+    creepAccel: 0.8,
+    /** Free space (m) beyond the rider's standstill gap that must be open before creeping forward. */
+    creepMinGap: 1.2,
+    /** Lateral pad (m) of the collision look-ahead against cars, vans and buses. */
+    hazardLatPad: 0.14,
+  },
+  bus: {
+    /** Distance before the stop where the bus signals right and starts moving to the curb. */
+    approachDist: 40,
+    dwellMin: 5,
+    dwellMax: 9,
+    /** Seconds the left indicator shows before the bus leaves the curb. */
+    indicatorLead: 2.0,
+    /** Sideways speed (m/s) while pulling in or out. */
+    lateralRate: 0.9,
+    /** Distance (m) the curb position sits beyond the outer lane centre, bounded by the road edge. */
+    curbInset: 0.85,
+    /** Stop lane index used after pulling out (0 = middle/inner lane). */
+    pullOutLane: 0 as 0 | 1,
+    /** Space that must be free in the target lane to pull out: behind (plus 1.5 s of the follower's speed) and ahead. */
+    clearBehind: 16,
+    clearAhead: 6,
+    /** Distance past the stop point at which a bus that overshot gives up and drives on. */
+    overshootGiveUp: 4,
+  },
+} as const;
+
+/** Mulberry32 step on a mutable state holder, returns [0, 1). */
+export function mulberry32(state: { s: number }): number {
+  let t = (state.s += 0x6d2b79f5);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
 function fastTanh(x: number): number {
   if (x > 20) return 1;
   if (x < -20) return -1;
@@ -204,13 +272,15 @@ export function computeSaigonMotoSublaneTarget(opts: {
   distToStop: number;
   signalIsRedOrAmber: boolean;
   upcomingTurnKind: "straight" | "right" | "left" | "uturn" | null;
+  /** Blocked rider: accept the tightest side clearance and look at more sublanes to find a gap to fill. */
+  squeeze?: boolean;
 }): number {
-  const { v, edge, neighbors, distToStop, signalIsRedOrAmber, upcomingTurnKind } = opts;
+  const { v, edge, neighbors, distToStop, signalIsRedOrAmber, upcomingTurnKind, squeeze } = opts;
   const [minLat, maxLat] = edge.motoLatRange;
 
   // Speed-dependent required lateral clearance (SUMO SL2015 LATGAP_SPEED_THRESHOLD)
   const speedFrac = Math.min(1, v.speed / 12.0);
-  const reqLatGap = 0.36 + 0.44 * speedFrac;
+  const reqLatGap = squeeze ? VN_TRAFFIC_TUNING.moto.squeezeLatGap : 0.36 + 0.44 * speedFrac;
 
   // Preferred baseline lateral position:
   // - Turning right -> hug right curb (+1.55)
@@ -224,7 +294,7 @@ export function computeSaigonMotoSublaneTarget(opts: {
   }
 
   // Evaluate 9 candidate continuous sublane positions across [minLat, maxLat]
-  const SAMPLES = 9;
+  const SAMPLES = squeeze ? 17 : 9;
   let bestLat = v.latOffset;
   let bestScore = -Infinity;
 
