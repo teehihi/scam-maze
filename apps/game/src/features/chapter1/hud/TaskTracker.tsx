@@ -1,7 +1,8 @@
 // Task tracker under the map, in the style of the neighborhood quest tracker: the tracked mission's
 // title, its current step in large type (press it, or T, for the task list), where the step happens
 // with the distance to it, and the deadline. A new step glows for a moment as "New task"; a finished
-// step shows "Complete" for a moment. Other open missions are one dim line each.
+// step shows "Complete" for a moment. Only the tracked task shows here; the other tasks and sub-tasks
+// are picked in the task list (click the task).
 // Presentation only: the steps come from `selectOpenMissions`.
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,8 +22,6 @@ export const TASK_LIST_KEY = "T";
 export interface TaskTrackerProps {
   /** The tracked mission. */
   mission: MissionView;
-  /** The other open missions, shown as one line each. */
-  others?: readonly MissionView[];
   /** Metres to the current step's prop, or null when unknown. */
   distance?: number | null;
   onOpenList: () => void;
@@ -31,7 +30,7 @@ export interface TaskTrackerProps {
   compact?: boolean;
 }
 
-export const TaskTracker: React.FC<TaskTrackerProps> = ({ mission, others = [], distance = null, onOpenList, onHoverSound, compact = false }) => {
+export const TaskTracker: React.FC<TaskTrackerProps> = ({ mission, distance = null, onOpenList, onHoverSound, compact = false }) => {
   const { t } = useTranslation("chapter1");
   const text = t as unknown as Tx;
   const step = mission.current;
@@ -148,19 +147,6 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ mission, others = [], 
           )}
         </span>
       </button>
-      {others.length > 0 && (
-        <ul className="mt-2 space-y-1 opacity-70 transition-opacity duration-200 hover:opacity-100" data-testid="task-others">
-          {others.map((other) => (
-            <li key={other.id} className="flex items-start gap-2 pl-[34px]">
-              <span aria-hidden="true" className="mt-[0.42rem] h-1.5 w-1.5 shrink-0 rotate-45 bg-[#b9a5f5]/80" />
-              <span className="font-menu text-[13px] leading-snug tracking-[0.02em] text-zinc-300">
-                <span className="font-semibold uppercase tracking-[0.06em]">{other.title}</span>
-                {other.current ? <span className="text-zinc-400"> · {other.current.label}</span> : null}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
       <p className="sr-only" aria-live="polite">
         {step ? t("taskSystem.announce.newStep", { step: step.label }) : ""}
         {finished !== null ? ` ${t("taskSystem.announce.stepDone", { step: finished })}` : ""}

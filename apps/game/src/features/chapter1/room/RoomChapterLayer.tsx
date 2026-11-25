@@ -63,6 +63,7 @@ import type { SaigonRadarData } from "../hud/SaigonMinimap";
 import { TaskListPanel } from "../hud/TaskListPanel";
 import { TaskMarker, type TaskMarkerSource } from "../hud/TaskMarker";
 import { TaskTracker } from "../hud/TaskTracker";
+import { hudScaleStyle, useHudScale } from "../hud/hudScale";
 import { KEYCAP, KEYCAP_HOVER, SHADOW } from "../../prologue/PrologueHud";
 import { Mission01VoiceCaption } from "../voice/Mission01VoiceCaption";
 import { useMission01Voice, type VoiceView } from "../voice/useMission01Voice";
@@ -918,12 +919,25 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
   const taskMode = useMemo(() => (scenario.missions ?? []).some((mission) => mission.paths.some((path) => (path.steps?.length ?? 0) > 0)), [scenario]);
   // The tracker and the marker follow the mission the player tracks, else the first required one with a step to do.
   const [trackedMissionId, setTrackedMissionId] = useState<string | null>(null);
-  const trackedMission =
+  // A sub-task the player picked in the list. It only counts while it belongs to the tracked mission and is not done.
+  const [trackedStepId, setTrackedStepId] = useState<string | null>(null);
+  const hudScale = useHudScale();
+  const trackMission = useCallback((missionId: string) => {
+    setTrackedMissionId(missionId);
+    setTrackedStepId(null);
+  }, []);
+  const trackStep = useCallback((missionId: string, stepId: string) => {
+    setTrackedMissionId(missionId);
+    setTrackedStepId(stepId);
+  }, []);
+  const baseTrackedMission =
     openMissions.find((mission) => mission.id === trackedMissionId) ??
     openMissions.find((mission) => !mission.optional && mission.current !== null) ??
     openMissions.find((mission) => mission.current !== null) ??
     openMissions[0] ??
     null;
+  const pickedStep = baseTrackedMission && trackedStepId !== null ? baseTrackedMission.steps.find((step) => step.id === trackedStepId && !step.done) : undefined;
+  const trackedMission = baseTrackedMission && pickedStep ? { ...baseTrackedMission, current: pickedStep } : baseTrackedMission;
   // The laptop app of the current step (its icon carries the task marker on the desktop).
   const currentStep = trackedMission?.current ?? null;
   const laptopTaskAppId = taskMode && currentStep?.target === "laptop" && currentStep.app ? (currentStep.app === "thesis" ? "thesis" : `device-${currentStep.app}`) : null;
@@ -1414,7 +1428,9 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
             open={openMissions}
             closed={closedMissions}
             trackedId={trackedMission?.id ?? null}
-            onTrack={setTrackedMissionId}
+            trackedStepId={trackedMission?.current?.id ?? null}
+            onTrack={trackMission}
+            onTrackStep={trackStep}
             onClose={closeTasks}
             onHoverSound={onHoverSound}
           />
@@ -1575,6 +1591,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
               className="pointer-events-none absolute left-[clamp(1rem,3vw,2.5rem)] top-4 z-10 flex flex-col items-start gap-3"
               data-testid="objective-tracker-slot"
               style={{
+                ...hudScaleStyle(hudScale, "top left"),
                 // Focused overlays own the screen: the room HUD steps aside, then returns.
                 opacity: trackerHidden ? 0 : 1,
                 visibility: trackerHidden ? "hidden" : "visible",
@@ -1590,7 +1607,6 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
               {taskMode && trackedMission ? (
                 <TaskTracker
                   mission={trackedMission}
-                  others={openMissions.filter((mission) => mission.id !== trackedMission.id)}
                   distance={markerTarget === null ? null : taskDistance}
                   onOpenList={toggleTasks}
                   onHoverSound={onHoverSound}
@@ -1618,6 +1634,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
             <div
               className="absolute right-[clamp(1rem,3vw,2.5rem)] top-4 z-10"
               style={{
+                ...hudScaleStyle(hudScale, "top right"),
                 opacity: trackerHidden ? 0 : 1,
                 visibility: trackerHidden ? "hidden" : "visible",
                 transition: `opacity ${CINE.motion.baseMs}ms ${CINE.motion.ease}, visibility ${CINE.motion.baseMs}ms`,
@@ -1636,7 +1653,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
               className={`absolute bottom-4 right-[clamp(1rem,3vw,2.5rem)] z-10 flex flex-col-reverse items-end gap-2 transition-opacity duration-300 ${
                 chipRailCalm ? "opacity-65 hover:opacity-100 focus-within:opacity-100" : "opacity-100"
               }`}
-              style={callFocused ? { zIndex: 45 } : undefined}
+              style={{ ...hudScaleStyle(hudScale, "bottom right"), ...(callFocused ? { zIndex: 45 } : {}) }}
               data-testid="hud-chip-row"
               onMouseDown={stopMouseDown}
             >
