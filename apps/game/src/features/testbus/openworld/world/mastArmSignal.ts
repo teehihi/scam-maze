@@ -11,19 +11,29 @@ export interface LampSet {
 
 export interface MastArmSignalOptions {
   /** World position of the pole base (y is the sidewalk height). */
-  x: number;
-  y: number;
-  z: number;
-  /** Direction of travel of the approaching traffic this signal controls. */
-  heading: Heading;
+  x?: number;
+  y?: number;
+  z?: number;
+  /**
+   * Direction of travel of the approaching traffic this signal controls. When omitted the signal is built
+   * unrotated at the given position (the caller's container carries the yaw).
+   */
+  heading?: Heading;
   /** Reuse lamp materials (legacy shared cycle). Fresh materials are created when omitted. */
   lamps?: LampSet;
   /** Create the shared countdown display and report its handle once for binding. Omit for no countdowns. */
   onCountdown?: (countdown: CountdownHandle, lamps: LampSet) => void;
+  /** An already created shared countdown (its handle is bound by the caller). Takes precedence over `onCountdown`. */
+  countdown?: SharedCountdown;
   /** Mast arm length from the pole. Defaults to 5.2 m. */
   armLength?: number;
   /** Distance of each lane centre from the pole along the arm; one overhead head hangs over each. */
   laneCentres?: number[];
+}
+
+export interface SharedCountdown {
+  createPanelMesh: () => T.Mesh;
+  handle: CountdownHandle;
 }
 
 export interface MastArmSignal {
@@ -50,8 +60,8 @@ export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
   const armLen = opts.armLength ?? 5.2;
   const lamps = opts.lamps ?? { r: lamp(0xff3426, 0.03), y: lamp(0xffb524, 0.03), g: lamp(0x28e672, 0.03) };
   const group = new T.Group();
-  group.position.set(opts.x, opts.y, opts.z);
-  group.rotation.y = signalYaw(opts.heading);
+  group.position.set(opts.x ?? 0, opts.y ?? 0, opts.z ?? 0);
+  if (opts.heading) group.rotation.y = signalYaw(opts.heading);
 
   const pole = new T.Group();
   box(pole, [0, 0.04, 0], [0.4, 0.08, 0.4], steel, false);
@@ -67,7 +77,7 @@ export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
   const countdownPanels: T.Mesh[] = [];
 
   // All countdown panels of one signal show the same number, so they share one canvas and texture.
-  const shared = opts.onCountdown ? TrafficSignalController.createSharedCountdown() : null;
+  const shared = opts.countdown ?? (opts.onCountdown ? TrafficSignalController.createSharedCountdown() : null);
   const addCountdown = (parent: T.Object3D, x: number, y: number) => {
     box(parent, [x, y, 0], [0.46, 0.44, 0.18], housing, false);
     if (!shared) return;
@@ -108,7 +118,7 @@ export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
   box(group, [0.19, 2.9, 0], [0.2, 0.06, 0.06], steel, false);
   addCountdown(group, 0.38, 2.0);
   orb(group, [0, 6.68, 0], [0.09, 0.09, 0.09], steel, 8);
-  if (shared) opts.onCountdown!(shared.handle, lamps);
+  if (shared && !opts.countdown) opts.onCountdown!(shared.handle, lamps);
 
   return { group, pole, arm, lamps, heads, countdownPanels };
 }

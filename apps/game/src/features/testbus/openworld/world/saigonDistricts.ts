@@ -827,7 +827,7 @@ export function buildSaigonDistricts(
     plane(chunkEastBlvd, [56, 0.008, z], [0.16, 2.8], whitePaint, 0, -Math.PI / 2);
   }
   // Every signal of every signalized intersection is built here, once, from the road graph.
-  const signals = buildIntersectionSignals({ trafficMgr, streamer, solids, curbHeight: CURB_HEIGHT, parent: root });
+  const signals = buildIntersectionSignals({ trafficMgr, streamer, solids, curbHeight: CURB_HEIGHT, parent: root, onAssetLoaded });
   trafficSignalMats.push(...signals.staticLamps);
   const nearSignalPole = (x: number, z: number) => signals.poles.some((p) => Math.hypot(p.x - x, p.z - z) < 2.0);
   const addTreeClearOfSignals = (parent: T.Group, x: number, z: number, scale: number, isPalm: boolean) => {
