@@ -15,6 +15,10 @@ export const VN_TRAFFIC_TUNING = {
   busStopOvertakeBias: 1.5,
   /** A leader this close (net gap) and slower than us makes a lane change an overtake (subject to willingness). */
   blockedLeaderGap: 45,
+  /** Seconds a car or van stands behind a halted bus before it noses out around it. */
+  busStopPatience: 2.5,
+  /** Side clearance (m) a car keeps between its body and a halted bus while passing (must exceed the 0.32 hazard pad). */
+  busPassClearance: 0.4,
   /** Cooldown after a driver declines to overtake, before the next decision. */
   declineCooldown: 2.5,
   car: {

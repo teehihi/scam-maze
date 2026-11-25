@@ -138,11 +138,24 @@ export class SaigonTrafficManager {
       if (o.id === v.id || !this.isHaltedBus(o)) continue;
       const ds = o.s - v.s - (v.halfLength + o.halfLength);
       if (ds < -0.5 || ds >= bestDs) continue;
-      if (Math.abs(o.latOffset - v.latOffset) > v.halfWidth + o.halfWidth + 0.4) continue;
+      // Only a bus whose body overlaps our own strip is ahead of us; one beside our lane is just passed
+      if (Math.abs(o.latOffset - v.latOffset) > v.halfWidth + o.halfWidth) continue;
       best = o;
       bestDs = ds;
     }
     return best;
+  }
+
+  /**
+   * Lateral position that lets `v` pass a halted bus `bus` clear of it by `busPassClearance` (left side first,
+   * then right), or null when the carriageway is too narrow on both sides.
+   */
+  private passLatBeside(v: VehicleAgent, bus: VehicleAgent, edge: RoadEdge): number | null {
+    const half = edge.width / 2 - v.halfWidth - 0.02;
+    const gap = v.halfWidth + bus.halfWidth + VN_TRAFFIC_TUNING.busPassClearance;
+    const left = bus.latOffset - gap;
+    const right = bus.latOffset + gap;
+    return -half <= left ? left : right <= half ? right : null;
   }
 
   /** True when no vehicle occupies the strip around `lat` from `behind` m behind to `ahead` m ahead of `v`. */
@@ -932,7 +945,8 @@ export class SaigonTrafficManager {
 
       const busAhead = this.haltedBusAhead(v, sameEdge);
       // Standing behind a halted bus or held up mid-block for a while: the driver may nose out from standstill
-      const stuck = v.speed <= 1.8 && (!!busAhead || v.waitTime > tune.car.stuckWait);
+      const stuck =
+        v.speed <= 1.8 && v.waitTime > (busAhead ? tune.busStopPatience : tune.car.stuckWait);
       if (v.laneChangeCooldown <= 0 && distToStop > 14 && (v.speed > 1.8 || stuck)) {
         const altLane: 0 | 1 = v.laneIndex === 0 ? 1 : 0;
         const curLat = edge.carLaneOffsets[v.laneIndex];
@@ -947,6 +961,11 @@ export class SaigonTrafficManager {
             altLat - v.halfWidth - 0.3 < obs.latMax,
         );
 
+        // A halted bus at the curb is wider than the gap beside the lane centre: it only blocks the other
+        // lane if we cannot clear it by shifting sideways (see the nudge below)
+        const passLat = busAhead ? this.passLatBeside(v, busAhead, edge) : null;
+        const busPassable = busAhead !== null && passLat !== null && Math.abs(passLat - altLat) < 1.0;
+
         if (!altBlockedByPark) {
           const findLeadLag = (laneLat: number) => {
             let lead: VehicleAgent | null = null;
@@ -955,6 +974,11 @@ export class SaigonTrafficManager {
             let minLag = Infinity;
             for (const o of sameEdge) {
               if (o.id === v.id) continue;
+              if (busPassable && laneLat === altLat) {
+                if (o.id === busAhead!.id) continue;
+                // Queued vehicles in our own lane overlap the lane strip but are not in the lane we move to
+                if (Math.abs(o.latOffset - curLat) < Math.abs(o.latOffset - altLat)) continue;
+              }
               if (Math.abs(o.latOffset - laneLat) > v.halfWidth + o.halfWidth + 0.35) continue;
               const ds = o.s - v.s;
               if (ds >= 0 && ds < minLead) {
@@ -981,8 +1005,22 @@ export class SaigonTrafficManager {
             ? v.s - altLL.lag.s - (v.halfLength + altLL.lag.halfLength)
             : Infinity;
 
+          // In a queue behind a halted bus the front vehicle swerves out first; the ones behind wait until every
+          // car or van ahead of them has left the lane (otherwise they block its way out and nobody can move)
+          const waitsForLeader =
+            busPassable &&
+            sameEdge.some(
+              (o) =>
+                o.id !== v.id &&
+                o.id !== busAhead!.id &&
+                o.category !== "moto" &&
+                o.s > v.s &&
+                o.s < busAhead!.s &&
+                Math.abs(o.latOffset - curLat) < Math.abs(o.latOffset - altLat),
+            );
+
           // Never merge if side-by-side overlap exists
-          if (gapAlt > 1.2 && gapLagAlt > 2.0) {
+          if (!waitsForLeader && gapAlt > 1.2 && gapLagAlt > 2.0) {
             const accOwnOld = computeAccIdmPlus(
               gapCur,
               v.speed,
@@ -1027,7 +1065,10 @@ export class SaigonTrafficManager {
               : 0;
 
             const turnBias = altLane === desiredLane && desiredLane !== v.laneIndex ? 1.15 : 0;
-            const bias = turnBias + (busAhead ? tune.busStopOvertakeBias : 0);
+            // Only favour the lane that gets us away from the bus
+            const awayFromBus =
+              !!busAhead && Math.abs(altLat - busAhead.latOffset) > Math.abs(curLat - busAhead.latOffset);
+            const bias = turnBias + (awayFromBus ? tune.busStopOvertakeBias : 0);
             const shouldChange = evaluateMobilLaneChange({
               vRel: Math.min(1, v.speed / Math.max(edge.speedLimit, 1)),
               accOwnOld,
@@ -1044,10 +1085,13 @@ export class SaigonTrafficManager {
               !!curLL.lead &&
               gapCur < tune.blockedLeaderGap &&
               curLL.lead.speed < v.speed * 0.8 + 0.5;
+            // Once a driver has stood behind a halted bus for busStopPatience, it always goes round
             const willing = busAhead
-              ? tune.busStopOvertakeWillingness[v.category]
+              ? stuck
+                ? 1
+                : tune.busStopOvertakeWillingness[v.category]
               : tune.overtakeWillingness[v.category];
-            if (shouldChange && blockedAhead && this.behaviourRand() >= willing) {
+            if (shouldChange && blockedAhead && willing < 1 && this.behaviourRand() >= willing) {
               v.laneChangeCooldown = tune.declineCooldown;
             } else if (shouldChange) {
               v.laneIndex = altLane;
@@ -1058,6 +1102,26 @@ export class SaigonTrafficManager {
       }
 
       v.targetLatOffset = edge.carLaneOffsets[v.laneIndex];
+      // Beside or about to pass a halted bus that overlaps our lane: hold off to its side while going by
+      for (const o of sameEdge) {
+        if (o.id === v.id || !this.isHaltedBus(o)) continue;
+        const ds = o.s - v.s;
+        if (ds > o.halfLength + v.halfLength + 14 || ds < -(o.halfLength + v.halfLength + 2)) continue;
+        const need = v.halfWidth + o.halfWidth + tune.busPassClearance;
+        if (Math.abs(v.targetLatOffset - o.latOffset) >= need) continue;
+        const shifted = this.passLatBeside(v, o, edge);
+        if (shifted === null || Math.abs(shifted - v.targetLatOffset) >= 1.0) continue;
+        // Hold in lane if another vehicle already occupies the strip we would shift into
+        const strip = sameEdge.some(
+          (n) =>
+            n.id !== v.id &&
+            n.id !== o.id &&
+            Math.abs(n.s - v.s) < n.halfLength + v.halfLength + 1.5 &&
+            Math.abs(n.latOffset - shifted) < n.halfWidth + v.halfWidth + 0.1 &&
+            Math.abs(n.latOffset - shifted) < Math.abs(n.latOffset - v.targetLatOffset),
+        );
+        if (!strip) v.targetLatOffset = shifted;
+      }
       const latErr = v.targetLatOffset - v.latOffset;
       const maxLatSpd = Math.max(
         v.speed > 0.5 ? Math.min(1.15, v.speed * 0.14) : 0,
