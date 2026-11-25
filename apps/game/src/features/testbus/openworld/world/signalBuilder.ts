@@ -1,9 +1,8 @@
 import * as T from "three";
 import { CURB_HEIGHT, rect, type Solid } from "../simulation/boarding";
 import { SaigonRoadGraph, type SaigonTrafficManager } from "../traffic";
-import { lamp } from "../simulation/scene-kit";
 import { TrafficSignalController } from "../traffic/signalController";
-import { createMastArmSignal, type LampSet, type SharedCountdown } from "./mastArmSignal";
+import { createMastArmSignal, signalLampMaterial, type LampSet, type SharedCountdown } from "./mastArmSignal";
 import { deriveSignalApproaches, signalBasePosition, signalYaw, type SignalApproach } from "./signalPlacement";
 import { createGlbMastArmSignal, loadTrafficSignalTemplate } from "./trafficSignalModel";
 import { createSignalDebugOverlay, isSignalDebugEnabled } from "./signalDebug";
@@ -89,7 +88,7 @@ export function buildIntersectionSignals(opts: BuildIntersectionSignalsOptions):
     const pos = signalBasePosition(a);
     // Lamps and countdown belong to the signal, not to its model, so they are bound right away and the
     // GLB (or the procedural fallback) only has to wear them when it arrives.
-    const lamps: LampSet = { r: lamp(0xff3426, 0.03), y: lamp(0xffb524, 0.03), g: lamp(0x28e672, 0.03) };
+    const lamps: LampSet = { r: signalLampMaterial(0xff3426), y: signalLampMaterial(0xffb524), g: signalLampMaterial(0x28e672) };
     const countdown = TrafficSignalController.createSharedCountdown();
     if (trafficMgr) {
       trafficMgr.bindSignalVisual({

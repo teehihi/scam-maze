@@ -186,9 +186,9 @@ export class TrafficSignalController {
     const isAmb = st.lamp === "amber";
     const isGrn = st.lamp === "green";
 
-    b.redMat.emissiveIntensity = isRed ? 3.8 : 0.03;
-    b.amberMat.emissiveIntensity = isAmb ? 3.5 : 0.03;
-    b.greenMat.emissiveIntensity = isGrn ? 3.6 : 0.03;
+    b.redMat.emissiveIntensity = isRed ? 3.8 : 0;
+    b.amberMat.emissiveIntensity = isAmb ? 3.5 : 0;
+    b.greenMat.emissiveIntensity = isGrn ? 3.6 : 0;
 
     if (b.countdown) {
       const secs = Math.max(0, Math.min(99, Math.ceil(st.countdown)));

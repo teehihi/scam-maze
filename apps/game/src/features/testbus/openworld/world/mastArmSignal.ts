@@ -1,5 +1,5 @@
 import * as T from "three";
-import { box, lamp, material, orb, rod } from "../simulation/scene-kit";
+import { box, material, orb, rod } from "../simulation/scene-kit";
 import { TrafficSignalController, type CountdownHandle } from "../traffic/signalController";
 import { signalYaw, type Heading } from "./signalPlacement";
 
@@ -7,6 +7,14 @@ export interface LampSet {
   r: T.MeshStandardMaterial;
   y: T.MeshStandardMaterial;
   g: T.MeshStandardMaterial;
+}
+
+/**
+ * Signal lens material: the body colour stays black so an unlit lens is fully dark; only the emissive term
+ * carries the lamp colour, and the signal controller switches it between 0 (off) and a bright value (lit).
+ */
+export function signalLampMaterial(emissive: T.ColorRepresentation): T.MeshStandardMaterial {
+  return new T.MeshStandardMaterial({ color: 0x000000, emissive, emissiveIntensity: 0, roughness: 0.35 });
 }
 
 export interface MastArmSignalOptions {
@@ -58,7 +66,7 @@ const lensGeometry = new T.CylinderGeometry(0.12, 0.12, 0.04, 16);
  */
 export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
   const armLen = opts.armLength ?? 5.2;
-  const lamps = opts.lamps ?? { r: lamp(0xff3426, 0.03), y: lamp(0xffb524, 0.03), g: lamp(0x28e672, 0.03) };
+  const lamps = opts.lamps ?? { r: signalLampMaterial(0xff3426), y: signalLampMaterial(0xffb524), g: signalLampMaterial(0x28e672) };
   const group = new T.Group();
   group.position.set(opts.x ?? 0, opts.y ?? 0, opts.z ?? 0);
   if (opts.heading) group.rotation.y = signalYaw(opts.heading);

@@ -291,7 +291,7 @@ describe("signal state agreement", () => {
           const on = { red: b.redMat, amber: b.amberMat, green: b.greenMat };
           for (const [lamp, mat] of Object.entries(on)) {
             if (lamp === st.lamp) expect(mat.emissiveIntensity, `${id} ${b.axis} t=${t}`).toBeGreaterThan(1);
-            else expect(mat.emissiveIntensity, `${id} ${b.axis} t=${t}`).toBeLessThan(0.5);
+            else expect(mat.emissiveIntensity, `${id} ${b.axis} t=${t}`).toBe(0);
           }
         }
         // conflicting axes never both green
