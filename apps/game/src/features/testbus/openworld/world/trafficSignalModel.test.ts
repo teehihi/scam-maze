@@ -5,9 +5,8 @@ import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { MeshoptDecoder } from "meshoptimizer";
 import * as T from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { lamp } from "../simulation/scene-kit";
 import { TrafficSignalController } from "../traffic/signalController";
-import type { LampSet } from "./mastArmSignal";
+import { signalLampMaterial, type LampSet } from "./mastArmSignal";
 import { NORTHBOUND, signalYaw } from "./signalPlacement";
 import { createGlbMastArmSignal, HEAD_PARTS, LENS_PUSH, prepareTemplate, SIGNAL_NODES, type TrafficSignalTemplate } from "./trafficSignalModel";
 
@@ -53,7 +52,7 @@ const worldBox = (o: T.Object3D) => {
   o.updateWorldMatrix(true, true);
   return new T.Box3().setFromObject(o);
 };
-const lampSet = (): LampSet => ({ r: lamp(0xff0000), y: lamp(0xffff00), g: lamp(0x00ff00) });
+const lampSet = (): LampSet => ({ r: signalLampMaterial(0xff0000), y: signalLampMaterial(0xffff00), g: signalLampMaterial(0x00ff00) });
 
 describe("createGlbMastArmSignal", () => {
   beforeEach(() => {

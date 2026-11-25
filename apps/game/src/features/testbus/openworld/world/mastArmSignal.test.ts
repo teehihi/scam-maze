@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as T from "three";
 import { SaigonRoadGraph } from "../traffic";
-import { createMastArmSignal } from "./mastArmSignal";
+import { createMastArmSignal, signalLampMaterial } from "./mastArmSignal";
 import {
   EASTBOUND,
   NORTHBOUND,
@@ -94,5 +94,14 @@ describe("mast-arm signal model", () => {
       if (m.isMesh && [sig.lamps.r, sig.lamps.y, sig.lamps.g].includes(m.material as T.MeshStandardMaterial)) lensMats.add(m.material);
     });
     expect(lensMats.size).toBe(3);
+  });
+});
+
+describe("signalLampMaterial", () => {
+  it("has a black body and no emission until the controller lights it, so unlit lenses show no tint", () => {
+    const m = signalLampMaterial(0xff3426);
+    expect(m.color.getHex()).toBe(0x000000);
+    expect(m.emissiveIntensity).toBe(0);
+    expect(m.emissive.getHex()).toBe(0xff3426);
   });
 });
