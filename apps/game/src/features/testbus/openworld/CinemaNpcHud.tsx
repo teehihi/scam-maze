@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { ActiveStoryNpcDialogue, AmbientStreetBark } from "./simulation/storyNpcs";
 import { ChoicePill } from "../../../components/ui/ChoicePill";
+import { playUiHoverSound } from "../../../components/ui/hoverSound";
 import type { CrowdReactionBark } from "./simulation/humanPresence";
 
 export interface CinemaNpcHudProps {
@@ -111,9 +112,11 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
       if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.code === "ArrowDown") {
         e.preventDefault();
+        playUiHoverSound();
         setActiveIndex((i) => (i + 1) % replyCount);
       } else if (e.code === "ArrowUp") {
         e.preventDefault();
+        playUiHoverSound();
         setActiveIndex((i) => (i - 1 + replyCount) % replyCount);
       } else if (e.code === "Enter" || e.code === "NumpadEnter") {
         if (e.target instanceof HTMLElement && e.target.closest("button")) return; // a focused button handles its own Enter
@@ -215,22 +218,12 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
                 {!dialogue.closing ? (
                   dialogue.turn.replies.map((reply, idx) => {
                     const asked = dialogue.askedReplyIds.includes(reply.id);
-                    const isChallenge = reply.tone === "challenge";
                     const on = idx === activeIndex;
                     return (
                       <li key={reply.id}>
                         <ChoicePill
                           selected={on}
                           dimmed={asked}
-                          cue={
-                            !asked && isChallenge ? (
-                              <span
-                                aria-hidden="true"
-                                data-testid="reply-tone-challenge"
-                                className="relative h-2 w-2 shrink-0 rounded-full bg-amber-500 ring-1 ring-amber-200/70"
-                              />
-                            ) : null
-                          }
                           onClick={() => onSelectReply?.(idx)}
                           onPointerEnter={() => setActiveIndex(idx)}
                           onFocus={() => setActiveIndex(idx)}

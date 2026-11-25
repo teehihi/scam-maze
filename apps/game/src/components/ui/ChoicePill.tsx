@@ -1,5 +1,6 @@
 import React from "react";
 import { useReducedMotion } from "./useReducedMotion";
+import { playUiHoverSound } from "./hoverSound";
 
 /** Chat bubble icon shared by every dialogue reply pill. */
 export const CHOICE_ICON_CHAT = "/assets/ui/hud/scammaze-chat-icon-512.png";
@@ -35,7 +36,10 @@ export const ChoicePill: React.FC<ChoicePillProps> = ({ selected, keyHint, dimme
       data-selected={selected ? "true" : "false"}
       disabled={disabled}
       onClick={onClick}
-      onPointerEnter={onPointerEnter}
+      onPointerEnter={() => {
+        if (!selected && !disabled) playUiHoverSound();
+        onPointerEnter?.();
+      }}
       onFocus={onFocus}
       className={`relative flex w-full min-w-0 cursor-pointer items-center gap-3 overflow-hidden rounded-full border px-4 py-2 text-left text-[15px] font-medium leading-snug whitespace-normal break-words outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-not-allowed disabled:opacity-60 ${tone}`}
     >
