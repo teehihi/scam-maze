@@ -6,9 +6,10 @@
  * sees the live street and walks out and back in with no cut. Nothing inside the room changes: the room engine
  * keeps its props, story port and UI, and only gains a real door and a real outside.
  */
+import { loadStreetFurniture } from "../../khupho/world/streetFurniture";
 import type { Engine as RoomEngine } from "../../roomv2/game/engine";
 import type { OpenWorldEngine, OpenWorldSnapshot } from "../../testbus/openworld/world/OpenWorldEngine";
-import type { TransitEvent } from "../../testbus/openworld/simulation/transit";
+import type { TransitHost, TransitEvent } from "../../testbus/openworld/simulation/transit";
 import type { StoryNpcRuntimeContext } from "../../../game/narrative/chapter1/storyCast";
 
 export interface OutsideWorldHooks {
@@ -16,6 +17,7 @@ export interface OutsideWorldHooks {
   onSnapshot: (snap: OpenWorldSnapshot, outdoors: boolean) => void;
   /** Bus 06 events from the route controller, for the chapter store. */
   onTransit?: (event: TransitEvent) => void;
+  transitHost?: Pick<TransitHost, "chapterSeconds" | "wallet">;
   /** A street NPC reply selected by the player; the host may return updated narrative context. */
   onStoryReply?: (npcId: string, replyId: string) => Partial<StoryNpcRuntimeContext> | void;
   /** A street Story NPC conversation opened; the host may return updated narrative context synchronously. */
@@ -44,6 +46,7 @@ export async function attachOutsideWorld(room: RoomEngine, hooks: OutsideWorldHo
   const { OpenWorldEngine: World } = await import("../../testbus/openworld/world/OpenWorldEngine");
   let world: OpenWorldEngine;
   try {
+    await loadStreetFurniture();
     world = new World(container, (snap) => hooks.onSnapshot(snap, room.outdoors), {
       renderer: room.renderer,
       viewTarget: room.cityRT,
@@ -51,6 +54,7 @@ export async function attachOutsideWorld(room: RoomEngine, hooks: OutsideWorldHo
       onDoor: () => room.toggleOutsideDoor(),
       onThunder: (intensity) => room.outsideThunder(intensity),
       onTransit: hooks.onTransit,
+      transitHost: hooks.transitHost,
       onStoryReply: hooks.onStoryReply,
       onStoryStart: hooks.onStoryStart,
     });

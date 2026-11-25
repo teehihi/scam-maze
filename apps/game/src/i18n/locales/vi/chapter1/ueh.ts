@@ -123,6 +123,15 @@ const ueh: LocaleShape<typeof en> = {
         step3: "Chờ văn phòng xác nhận quyền truy cập của bạn đã hoạt động.",
       },
     },
+    parcel: {
+      heading: "Xác nhận giao lại",
+      body: "Bưu phẩm chưa giao được vì thiếu thông tin người nhận. Cần xác nhận thông tin trước khi giao lại. Phí giao lại: {{fee}}.",
+      recipient: "Thông tin người nhận",
+      confirmed: "Đã xác nhận thông tin người nhận.",
+      feeLabel: "Phí giao lại — {{fee}}",
+      paid: "Đã trả phí. Bưu phẩm sẽ được giao trong chuyến tới.",
+      disclaimer: "Mạng lưới quầy Tốc Hành 24. Trang này chỉ xác nhận lại điều tin nhắn đã nói.",
+    },
     clearance: {
       home: "Trang chủ",
       graduation: "Xét tốt nghiệp",

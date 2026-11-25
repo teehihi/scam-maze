@@ -50,7 +50,8 @@ function loadPhotoTex(
       loaded: false,
       clones: [],
     };
-    const base = loader.load(`/assets/testbus/ow/images/${relPath}`, (loadedTex) => {
+    const srcUrl = `/assets/testbus/ow/images/${relPath}`;
+    const base = loader.load(srcUrl, (loadedTex) => {
       newEntry.loaded = true;
       loadedTex.needsUpdate = true;
       for (const cb of textureLoadedListeners) cb(loadedTex);
@@ -61,6 +62,10 @@ function loadPhotoTex(
         for (const cb of textureLoadedListeners) cb(c);
       }
     });
+    // `Texture.image` stays null until the async decode lands, so the texture cannot otherwise say
+    // which file it is. Anything auditing materials (asset verification, the QA rasteriser) needs
+    // this, and a texture that cannot name its own source is not auditable.
+    base.userData.src = srcUrl;
     base.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace;
     base.wrapS = T.RepeatWrapping;
     base.wrapT = T.RepeatWrapping;
@@ -76,6 +81,7 @@ function loadPhotoTex(
   }
 
   const tex = entry.base.clone();
+  tex.userData.src = entry.base.userData.src;
   tex.colorSpace = srgb ? T.SRGBColorSpace : T.NoColorSpace;
   tex.wrapS = T.RepeatWrapping;
   tex.wrapT = T.RepeatWrapping;

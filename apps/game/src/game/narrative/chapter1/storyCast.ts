@@ -310,9 +310,9 @@ export const STORY_NPC_CAST: readonly StoryNpcProfile[] = [
     shortTag: { en: "M02 · Last Interview", vi: "NV 02 · Phỏng Vấn Cuối" },
     accentColor: "#60a5fa",
     worldAnchor: {
-      x: 3.4,
+      x: -18.35,
       y: CURB_Y,
-      z: -124.2,
+      z: -130,
       yaw: 2.8,
       height: 1.64,
       modelFile: "npc-sofia.optimized.glb",

@@ -13,6 +13,7 @@ import { canonicalPageUrl } from "./sites";
 import { canonicalAddress } from "./urls";
 import { ClearanceSite } from "./ueh/ClearanceSite";
 import { PortalSite, type PortalFacts } from "./ueh/PortalSite";
+import { ParcelSite } from "./ueh/ParcelSite";
 
 /** How long a page takes to load, in milliseconds. 0 shows the page at once. */
 export const DEFAULT_LOAD_MS = 420;
@@ -102,6 +103,9 @@ export const BrowserPage: React.FC<BrowserPageProps> = ({ state, tab, dispatch, 
           onUseItem={onUseItem}
         />
       );
+    }
+    if (page.kind === "parcel") {
+      return <ParcelSite url={page.url} view={view} onOpenItem={onOpenItem} onUseItem={onUseItem} />;
     }
     return <StaticSitePage page={page} />;
   }

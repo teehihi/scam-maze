@@ -55,10 +55,11 @@ describe("routing", () => {
     expect(ACTIVE_SCENARIO).not.toBe(CHAPTER_1_SCENARIO);
   });
 
-  it("defines no story mission yet", () => {
-    for (const key of ["objectives", "interactables", "evidence", "calls", "dialogues", "decisions", "endings", "deviceActions"] as const) {
+  it("does not import the parked story’s fixtures", () => {
+    for (const key of ["objectives", "evidence", "calls", "dialogues", "decisions", "endings", "deviceActions"] as const) {
       expect(Object.keys(ACTIVE_SCENARIO[key]), key).toEqual([]);
     }
+    expect(Object.keys(ACTIVE_SCENARIO.interactables)).toEqual(["obj.note"]);
     expect(ACTIVE_SCENARIO.beats).toEqual([]);
     expect(ACTIVE_SCENARIO.phone.messages).toEqual({});
   });
@@ -109,6 +110,9 @@ describe("a new game", () => {
       finalDraftReviewed: false,
       supervisorFeedbackRequested: false,
       rideVerifiedIndependently: false,
+      parcelCredentialsExposed: false,
+      parcelFeePaid: false,
+      parcelAtCounter: false,
       ridePaidOffPlatform: false,
       rideLostTime: false,
       interviewArrived: false,

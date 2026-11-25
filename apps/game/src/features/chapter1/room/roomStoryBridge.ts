@@ -32,6 +32,9 @@ export interface RoomStoryHandlers extends Partial<RoomStoryPort> {
   overlayOpen?(): boolean;
   /** A Bus 06 route event from the street: boarded, fare paid, departed, arrived, transfer done. */
   onTransit?(event: TransitEvent): void;
+  transitSeconds?(): number;
+  transitBalance?(): number;
+  transitDebit?(amount: number): boolean;
   /** A street NPC reply selected by the player; may return the updated story flags synchronously. */
   onStoryReply?(npcId: string, replyId: string): StoryContextPatch | void;
   /** A street NPC conversation opened; may return the updated story flags synchronously. */
@@ -46,6 +49,14 @@ export class RoomStoryBridge implements RoomStoryPort {
   commands: RoomStoryCommands | null = null;
 
   private handlers: RoomStoryHandlers | null = null;
+
+  readonly transitHost = {
+    chapterSeconds: () => this.handlers?.transitSeconds?.(),
+    wallet: {
+      read: () => this.handlers?.transitBalance?.() ?? 0,
+      debit: (amount: number) => this.handlers?.transitDebit?.(amount) ?? false,
+    },
+  };
 
   /** Connects the layer. A second call replaces the first handlers. */
   attach(handlers: RoomStoryHandlers): void {

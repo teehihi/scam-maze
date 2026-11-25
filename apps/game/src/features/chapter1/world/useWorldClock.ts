@@ -11,17 +11,18 @@ export interface WorldClockOptions {
   scenario: ScenarioDefinition;
   /** True only while the player is free in the room: no intro, overlay, call, pause or ending. */
   running: boolean;
+  isPaused?: () => boolean;
 }
 
-export function useWorldClock({ store, scenario, running }: WorldClockOptions): void {
+export function useWorldClock({ store, scenario, running, isPaused }: WorldClockOptions): void {
   const config = gameplayConfig(scenario);
   useEffect(() => {
     if (!running || !config.clockRuns) return undefined;
     const id = window.setInterval(() => {
       // A hidden tab does not advance the story.
-      if (document.hidden) return;
+      if (document.hidden || isPaused?.()) return;
       store.dispatch({ type: "ADVANCE_TIME", minutes: config.tickMinutes });
     }, config.tickMinutes * config.msPerGameMinute);
     return () => window.clearInterval(id);
-  }, [store, running, config.clockRuns, config.tickMinutes, config.msPerGameMinute]);
+  }, [store, running, isPaused, config.clockRuns, config.tickMinutes, config.msPerGameMinute]);
 }

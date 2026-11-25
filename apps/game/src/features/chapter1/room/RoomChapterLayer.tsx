@@ -1,3 +1,4 @@
+import { chapterTransit } from "./chapterTransit";
 /**
  * RoomChapterLayer (base): the overlay controller of the Room v2 chapter.
  * See .kiro/specs/chapter-01-double-deception/design.md, "RoomChapterLayer responsibilities", and
@@ -451,6 +452,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
   const openersRef = useRef(new Map<OverlayKind, HTMLElement>());
   const overlayLayerRef = useRef<HTMLDivElement>(null);
   const [inspecting, setInspecting] = useState<RoomPropId | null>(null);
+  const transitMoving = useRef(false);
   const inspectingRef = useRef<RoomPropId | null>(null);
   // A call that rings or is active blocks the room like any overlay (its UI is mounted below).
   const callOpen = useChapterState(store, (state) => state.call.status === "ringing" || state.call.status === "active");
@@ -726,19 +728,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
       canLeaveInspect: (id) => lookup(cacheRef.current.leave, id, true),
       doorLocked: () => cacheRef.current.doorLocked,
       overlayOpen: () => cacheRef.current.overlayOpen,
-      onTransit(event) {
-        // The street runs the bus; its route events are the deterministic record of the ride. Only
-        // two of them change story state, and only once: the fare at the validator and stepping off
-        // at Chợ Lớn. Everything else (waiting, boarding, passing a stop) is presentation.
-        const action =
-          event.type === "fare-paid"
-            ? { type: "USE_DEVICE_ITEM", itemId: "travel.bus06", actionId: "pay-fare" }
-            : event.type === "transfer-complete"
-              ? { type: "USE_DEVICE_ITEM", itemId: "travel.bus06", actionId: "arrive" }
-              : null;
-        // A ride before the mission opens, or after the window closed, is simply not recorded.
-        if (action && store.getState().status === "playing") store.dispatch(action as CoreAction);
-      },
+      ...chapterTransit(store, scenario, (moving) => { transitMoving.current = moving; }),
       onStoryStart(npcId) {
         if (npcId === "unverified_driver") {
           if (store.getState().status === "playing") {
@@ -886,7 +876,8 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
   const ringable = useChapterState(store, ringableSelector);
   const free = engineReady && !introOpen && overlays.length === 0 && inspecting === null && !blocking;
   // --- World clock: time passes while the player is free in the room -------------------------
-  useWorldClock({ store, scenario, running: free && !clockPaused && status === "playing" });
+  const transitClockPaused = useCallback(() => transitMoving.current, []);
+  useWorldClock({ store, scenario, running: free && !clockPaused && status === "playing", isPaused: transitClockPaused });
   const pendingEventsSelector = useCallback((state: ChapterState) => selectPendingEvents(state, scenario), [scenario]);
   const phoneDeviceSelector = useCallback((state: ChapterState) => selectDeviceView(state, scenario, "phone"), [scenario]);
   const laptopDeviceSelector = useCallback((state: ChapterState) => selectDeviceView(state, scenario, "laptop"), [scenario]);
