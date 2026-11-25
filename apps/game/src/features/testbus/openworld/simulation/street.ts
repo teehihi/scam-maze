@@ -7,8 +7,10 @@ import {makeSurveyKit,SURVEY} from './survey462';
 import {freezeStaticMatrices} from '../world/meshBatcher';
 import {streetVehicles, VAN_LENGTH, type ParkedBikeSlot} from './vehicles';
 import { attachDynamicLamps } from './vehicleLights';
-import { TrafficSignalController, type SaigonTrafficManager } from '../traffic';
+import { type SaigonTrafficManager } from '../traffic';
 import * as T from 'three';
+import { createMastArmSignal } from '../world/mastArmSignal';
+import { SIGNAL_APPROACHES, signalBasePosition } from '../world/signalPlacement';
 import { CURB_HEIGHT, rect, ROUTE_BOARD, STOP_SIGN, type Point, type Solid } from './boarding';
 import { ROUTE } from './transit';
 import { asset, batch, box, contact, contactMaterial, granular, label, lamp, material, mesh, orb, plane, polygon, random, rod, rounded, textLabel, tube, write } from './scene-kit';
@@ -549,44 +551,32 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
     }
   }
   // Per-intersection QCVN 41:2024 traffic signal heads + glowing 2-digit Vietnamese LED countdown panels!
-  const legacySignalColours = [0xe94b37, 0xf1ae40, 0x58bf78].map(c => lamp(c, 0));
-  const lttSignalSpecs: { z: number; interId: string }[] = [
-    { z: -76, interId: "J_LTT_32" },
-    { z: -96, interId: "J_LTT_PED" },
-    { z: -147, interId: "J_LTT_DBP" },
-  ];
-  for (const { z, interId } of lttSignalSpecs) {
-    const redMat = trafficMgr ? lamp(0xff3426, 0.03) : legacySignalColours[0];
-    const ambMat = trafficMgr ? lamp(0xffb524, 0.03) : legacySignalColours[1];
-    const grnMat = trafficMgr ? lamp(0x28e672, 0.03) : legacySignalColours[2];
-    const perInterMats = [redMat, ambMat, grnMat];
-    for (const side of [1, -1]) {
-      const x = side === 1 ? 0.73 : -12.51;
-      // Place east-side traffic signal on the corner sidewalk cleanly outside the 12m cross-boulevard mouth!
-      const sz = side === 1 && (z === -76 || z === -147) ? z + 7.2 : z - 2.6;
-      rod(dressing, [x, 0.16, sz], [x, 4.15, sz], 0.065, darkMetal);
-      box(dressing, [x - side * 0.19, 3.65, sz], [0.34, 0.81, 0.31], charcoal);
-      for (const [i, light] of perInterMats.entries()) {
-        orb(dressing, [x - side * 0.36, 3.9 - i * 0.25, sz - 0.01], [0.037, 0.083, 0.085], light);
-        // Also add forward-facing lens along Lý Thái Tổ (+Z / -Z) so approaching drivers see the signal clearly!
-        orb(dressing, [x - side * 0.19, 3.9 - i * 0.25, sz + side * 0.16], [0.082, 0.082, 0.035], light);
-      }
-      if (trafficMgr) {
-        const panel = TrafficSignalController.createCountdownPanel();
-        panel.mesh.position.set(x - side * 0.19, 4.26, sz + side * 0.165);
-        panel.mesh.rotation.y = side === 1 ? 0 : Math.PI;
-        environment.add(panel.mesh);
-        trafficMgr.bindSignalVisual({
-          intersectionId: interId,
-          axis: "ns",
-          redMat,
-          amberMat: ambMat,
-          greenMat: grnMat,
-          countdown: panel.handle,
-        });
-      }
-      solids.push(rect(x, sz, 0.19, 0.20));
-    }
+  const legacySignalColours = { r: lamp(0xe94b37, 0), y: lamp(0xf1ae40, 0), g: lamp(0x58bf78, 0) };
+  // Vietnamese mast-arm signals on the driver's right-hand curb of each Ly Thai To approach.
+  // The Duong 3/2 and Dien Bien Phu approaches of these junctions are owned by saigonDistricts.ts.
+  for (const a of SIGNAL_APPROACHES) {
+    if (a.owner !== 'ltt') continue;
+    const pos = signalBasePosition(a);
+    const signal = createMastArmSignal({
+      x: pos.x,
+      y: CURB_HEIGHT,
+      z: pos.z,
+      heading: a.heading,
+      lamps: trafficMgr ? undefined : legacySignalColours,
+      onCountdown: trafficMgr
+        ? (countdown, lamps) =>
+            trafficMgr.bindSignalVisual({
+              intersectionId: a.intersectionId,
+              axis: a.axis,
+              redMat: lamps.r,
+              amberMat: lamps.y,
+              greenMat: lamps.g,
+              countdown,
+            })
+        : undefined,
+    });
+    dressing.add(signal.group);
+    solids.push(rect(pos.x, pos.z, 0.28, 0.28));
   }
   const leafStain = [material(0x514d32), material(0x78694a), material(0x87805b)];
   const wear = label(384, 192, (ctx) => {
@@ -872,9 +862,10 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
 
       const tick = time % 22;
       const signal = tick < 10 ? 2 : tick < 12 ? 1 : 0;
+      const legacyLamps = [legacySignalColours.r, legacySignalColours.y, legacySignalColours.g];
       for (let i = 0; i < 3; i++) {
-        legacySignalColours[i].color.setScalar(signal === i ? 0.25 : 0.015);
-        legacySignalColours[i].emissiveIntensity = signal === i ? 1.8 : 0.025;
+        legacyLamps[i].color.setScalar(signal === i ? 0.25 : 0.015);
+        legacyLamps[i].emissiveIntensity = signal === i ? 1.8 : 0.025;
       }
 
       for (const [i, slot] of traffic.entries()) {

@@ -3,11 +3,13 @@ import { streetClips } from "../simulation/streetClips";
 import { createHumanRealismRig, upgradeHumanMaterials, type HumanActivity, type HumanRealismRig } from "../simulation/humanRealism";
 import type { HumanPresenceSystem } from "../simulation/humanPresence";
 import { addHeadlightBeam, attachDynamicLamps, markLampParts, mountGrabLamps, mountRoundLamp, setVehicleLightLevel } from "../simulation/vehicleLights";
-import { TrafficSignalController, sampleEdge, type SaigonTrafficManager, type SignalAxis, type VehicleAgent } from "../traffic";
+import { sampleEdge, type SaigonTrafficManager, type VehicleAgent } from "../traffic";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import { CURB_HEIGHT, rect, type Solid } from "../simulation/boarding";
+import { createMastArmSignal } from "./mastArmSignal";
+import { SIGNAL_APPROACHES, signalBasePosition, type SignalApproach } from "./signalPlacement";
 import {
   asset,
   box,
@@ -450,55 +452,29 @@ export function buildSaigonDistricts(
     solids.push(rect(x, z, 0.5 * scale, 0.5 * scale));
   };
 
-  // Helper: Animated 3-Aspect Vietnamese Traffic Light Pole + Live LED Countdown Timer
-  const addTrafficSignal = (
-    parent: T.Group,
-    x: number,
-    z: number,
-    rotY: number,
-    intersectionId?: string,
-    axis: SignalAxis = "ew",
-  ) => {
-    const g = new T.Group();
-    g.position.set(x, CURB_HEIGHT, z);
-    g.rotation.y = rotY;
-    rod(g, [0, 0, 0], [0, 5.6, 0], 0.085, steel, 0.065, 8);
-    rod(g, [0, 5.45, 0], [3.6, 5.45, 0], 0.055, steel, 0.045, 8);
-    box(g, [2.4, 5.45, 0.12], [0.36, 0.98, 0.26], darkMetal, false);
-    const r = lamp(0xff2a20, 0.03);
-    const y = lamp(0xffb824, 0.03);
-    const gr = lamp(0x28eb68, 0.03);
-    const mkLens = (ly: number, m: T.MeshStandardMaterial) => {
-      const disc = new T.Mesh(new T.CylinderGeometry(0.11, 0.11, 0.04, 14), m);
-      disc.rotation.x = Math.PI / 2;
-      disc.position.set(2.4, ly, 0.26);
-      g.add(disc);
-      // Reverse-side lens so both directions along the boulevard see the signal clearly
-      const back = disc.clone();
-      back.position.set(2.4, ly, -0.02);
-      g.add(back);
-    };
-    mkLens(5.74, r);
-    mkLens(5.45, y);
-    mkLens(5.16, gr);
-
-    if (trafficMgr && intersectionId) {
-      const panel = TrafficSignalController.createCountdownPanel();
-      panel.mesh.position.set(2.85, 5.45, 0.265);
-      g.add(panel.mesh);
-      trafficMgr.bindSignalVisual({
-        intersectionId,
-        axis,
-        redMat: r,
-        amberMat: y,
-        greenMat: gr,
-        countdown: panel.handle,
-      });
-    } else {
-      trafficSignalMats.push({ r, y, g: gr });
-    }
-    parent.add(g);
-    solids.push(rect(x, z, 0.28, 0.28));
+  // Helper: Vietnamese mast-arm (gia den) traffic signal on the driver's right-hand curb of one approach.
+  const addTrafficSignal = (parent: T.Group, a: SignalApproach) => {
+    const pos = signalBasePosition(a);
+    const signal = createMastArmSignal({
+      x: pos.x,
+      y: CURB_HEIGHT,
+      z: pos.z,
+      heading: a.heading,
+      onCountdown: trafficMgr
+        ? (countdown, lamps) =>
+            trafficMgr.bindSignalVisual({
+              intersectionId: a.intersectionId,
+              axis: a.axis,
+              redMat: lamps.r,
+              amberMat: lamps.y,
+              greenMat: lamps.g,
+              countdown,
+            })
+        : undefined,
+    });
+    if (!trafficMgr) trafficSignalMats.push(signal.lamps);
+    parent.add(signal.group);
+    solids.push(rect(pos.x, pos.z, 0.28, 0.28));
   };
 
   const addCrosswalk = (parent: T.Group, cx: number, cz: number, horizontal: boolean) => {
@@ -821,9 +797,6 @@ export function buildSaigonDistricts(
   addCrosswalk(chunkEastBlvd, 5.6, -76, true);
   addCrosswalk(chunkEastBlvd, 48.0, -76, true);
   addCrosswalk(chunkEastBlvd, 64.0, -76, true);
-  addTrafficSignal(chunkEastBlvd, 8.0, -68.6, 0, "J_LTT_32", "ew");
-  addTrafficSignal(chunkEastBlvd, 48.2, -68.6, 0, "J_HT_32", "ew");
-  addTrafficSignal(chunkEastBlvd, 63.0, -86.2, Math.PI / 2, "J_HT_32", "ns");
 
   // Boulevard street sign on south sidewalk corner
   rod(chunkEastBlvd, [9.6, CURB_HEIGHT, -68.2], [9.6, 3.1, -68.2], 0.045, steel);
@@ -856,9 +829,6 @@ export function buildSaigonDistricts(
   addCrosswalk(chunkEastBlvd, 5.6, -147, true);
   addCrosswalk(chunkEastBlvd, 48.0, -147, true);
   addCrosswalk(chunkEastBlvd, 64.0, -147, true);
-  addTrafficSignal(chunkEastBlvd, 8.0, -139.6, 0, "J_LTT_DBP", "ew");
-  addTrafficSignal(chunkEastBlvd, 48.2, -139.6, 0, "J_HT_DBP", "ew");
-  addTrafficSignal(chunkEastBlvd, 63.0, -157.2, Math.PI / 2, "J_HT_DBP", "ns");
 
   // --- North-South Connector Avenue: Đường Hải Triều (X ∈ [50, 62], Z ∈ [-236, -65.6]) ---
   plane(chunkEastBlvd, [56, 0.003, -150.8], [12.0, 170.4], roadMat, 0, -Math.PI / 2);
@@ -878,6 +848,9 @@ export function buildSaigonDistricts(
   for (let z = -232; z <= -72; z += 6) {
     if (Math.abs(z + 147) < 8 || Math.abs(z + 76) < 8) continue;
     plane(chunkEastBlvd, [56, 0.008, z], [0.16, 2.8], whitePaint, 0, -Math.PI / 2);
+  }
+  for (const approach of SIGNAL_APPROACHES) {
+    if (approach.owner === "east") addTrafficSignal(chunkEastBlvd, approach);
   }
   addCrosswalk(chunkEastBlvd, 56, -84, false);
   addCrosswalk(chunkEastBlvd, 56, -155, false);
