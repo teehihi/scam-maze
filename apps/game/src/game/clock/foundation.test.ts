@@ -108,6 +108,18 @@ describe("a new game", () => {
       findingsReconciled: false,
       finalDraftReviewed: false,
       supervisorFeedbackRequested: false,
+      rideVerifiedIndependently: false,
+      ridePaidOffPlatform: false,
+      rideLostTime: false,
+      interviewArrived: false,
+      interviewStarted: false,
+      interviewCompleted: false,
+      interviewMissed: false,
+      interviewRescheduled: false,
+      interviewEvidenceSaved: false,
+      rideEvidenceSaved: false,
+      driverContactShared: false,
+      minhWarnedAboutRide: false,
     });
   });
 

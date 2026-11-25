@@ -75,3 +75,5 @@ export const PROLOGUE_VOICE_BASE = "/audio/prologue";
 export const MAI_VOICE_BASE = "/assets/audio/mai";
 /** Base URL of the Mission 01 voice of Alex: `<base>/en/alex_<cue>_en.mp3`. Only English clips exist. */
 export const MISSION01_VOICE_BASE = "/audio/mission01";
+/** Base URL of Mission 02 recorded conversation lines: `<base>/<locale>/lines/<stem>.mp3`. */
+export const MISSION02_VOICE_BASE = "/audio/mission02";

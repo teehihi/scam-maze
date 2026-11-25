@@ -18,6 +18,7 @@ import { actionLabel, type Tx } from "../../device/deviceFormat";
 import { LineListen } from "../../device/LineListen";
 import { playLineVoice, stopLineVoice } from "../../device/lineVoice";
 import { mission01LineVoiceUrl } from "../../voice/mission01Voice";
+import { mission02VoiceUrl } from "../../voice/mission02Voice";
 import { ChatAvatar } from "../messages/ChatThread";
 import { clockLabel } from "../messages/chatModel";
 import { useTypingReveal } from "../messages/useTypingReveal";
@@ -76,7 +77,8 @@ export const CallScreen: React.FC<CallScreenProps> = ({ contact, onUseItem, onLe
     if (phase !== "connected" || shown <= initialShown.current) return;
     const line = lines[shown - 1];
     if (line === undefined || line.speaker !== "other") return;
-    void playLineVoice(line.key, line.text, locale, mission01LineVoiceUrl(line.key, locale), { synthetic: false });
+    const clipUrl = mission02VoiceUrl(line.voiceId, locale) ?? mission01LineVoiceUrl(line.key, locale);
+    void playLineVoice(line.key, line.text, locale, clipUrl, { synthetic: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown, phase]);
 
@@ -159,7 +161,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ contact, onUseItem, onLe
                 <span>{line.speaker === "alex" ? t("phone.chat.you") : contact.title}</span>
                 <span aria-hidden="true">·</span>
                 <span className="tabular-nums">{clockLabel(line.atMinute)}</span>
-                <LineListen lineKey={line.key} text={line.text} />
+                <LineListen lineKey={line.key} text={line.text} voiceId={line.voiceId} />
               </div>
             </div>
           ))}

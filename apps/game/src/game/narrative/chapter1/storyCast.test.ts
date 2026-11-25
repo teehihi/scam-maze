@@ -11,7 +11,8 @@ describe("Chapter 1 canonical 5-mission Story NPC system", () => {
     expect(STORY_NPC_CAST.length).toBe(10);
     const coveredMissions = new Set(STORY_NPC_CAST.flatMap((npc) => npc.missions));
     expect([...coveredMissions].sort()).toEqual([1, 2, 3, 4, 5]);
-    expect(OPEN_WORLD_STORY_NPCS.length).toBe(6);
+    // Cô Ba is physical too: the Mission 02 interview happens in Chợ Lớn, not on the phone.
+    expect(OPEN_WORLD_STORY_NPCS.length).toBe(7);
   });
 
   it("stages every Open World Story NPC at collision-free physical Saigon anchors with props", () => {
@@ -93,5 +94,56 @@ describe("Chapter 1 canonical 5-mission Story NPC system", () => {
       flags: { investmentFundsLocked: true },
     });
     expect(hungLocked.mood).toBe("defensive");
+  });
+
+  it("gives Cô Ba a reachable physical dialogue for every interview state", () => {
+    const baseCtx = {
+      elapsedMinutes: 1120,
+      thesisProgress: 65,
+      fatigue: 25,
+      money: 3_500_000,
+      flags: {},
+    };
+    const states = [
+      {},
+      { interviewArrived: true },
+      { interviewArrived: true, interviewStarted: true },
+      { interviewArrived: true, interviewMissed: true },
+      { interviewArrived: true, interviewRescheduled: true },
+      { interviewArrived: true, interviewCompleted: true },
+    ];
+    const seenBadges = new Set<string>();
+    for (const flags of states) {
+      const turn = resolveStoryNpcDialogue("interviewee_q5", { ...baseCtx, flags });
+      expect(turn.replies.length).toBeGreaterThanOrEqual(3);
+      expect(turn.openingVoiceId).toMatch(/^m02\.coba\./);
+      for (const reply of turn.replies) {
+        expect(reply.voiceId, reply.id).toMatch(/^m02\.coba\./);
+        expect(reply.labelVoiceId, reply.id).toMatch(/^m02\.coba\./);
+        expect(reply.response.en.length, reply.id).toBeGreaterThan(10);
+        expect(reply.response.vi.length, reply.id).toBeGreaterThan(10);
+      }
+      seenBadges.add(turn.missionBadge);
+    }
+    expect([...seenBadges].sort()).toEqual([
+      "M02 · INTERVIEW",
+      "M02 · INTERVIEW DONE",
+      "M02 · MARKET OFFICE",
+      "M02 · MISSED APPOINTMENT",
+      "M02 · RESCHEDULED INTERVIEW",
+    ]);
+  });
+
+  it("keeps the interview unfinished from every dialogue branch without a reducer action", () => {
+    // The dialogue is presentation; only the deterministic device actions change story state.
+    const turn = resolveStoryNpcDialogue("interviewee_q5", {
+      elapsedMinutes: 1120,
+      thesisProgress: 65,
+      fatigue: 25,
+      money: 3_500_000,
+      flags: { interviewArrived: true, interviewStarted: true },
+    });
+    expect(turn.replies.map((reply) => reply.id)).toContain("coba_transfer_check");
+    expect(turn.missionBadge).toBe("M02 · INTERVIEW");
   });
 });

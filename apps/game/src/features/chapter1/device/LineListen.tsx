@@ -6,6 +6,7 @@ import { Square, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useGameLocale } from "../../../i18n/useGameLocale";
 import { mission01LineVoiceUrl } from "../voice/mission01Voice";
+import { mission02VoiceUrl } from "../voice/mission02Voice";
 import { lineVoiceKey, playLineVoice, stopLineVoice } from "./lineVoice";
 import { useLineVoiceKey } from "./useLineVoice";
 import type { Tx } from "./deviceFormat";
@@ -13,11 +14,18 @@ import type { Tx } from "./deviceFormat";
 export interface LineListenProps {
   lineKey: string;
   text: string;
+  /** Recorded voice ID of the line, when the scenario authors one. */
+  voiceId?: string;
   /** Extra classes for the button (the color it sits on). */
   className?: string;
 }
 
-export const LineListen: React.FC<LineListenProps> = ({ lineKey, text, className = "" }) => {
+/** The clip of a line: a Mission 02 recording when the line has one, else the Mission 01 layout. */
+function lineClipUrl(lineKey: string, voiceId: string | undefined, locale: Parameters<typeof mission01LineVoiceUrl>[1]): string {
+  return mission02VoiceUrl(voiceId, locale) ?? mission01LineVoiceUrl(lineKey, locale);
+}
+
+export const LineListen: React.FC<LineListenProps> = ({ lineKey, text, voiceId, className = "" }) => {
   const { t: translate } = useTranslation("chapter1");
   const t = translate as unknown as Tx;
   const locale = useGameLocale();
@@ -37,7 +45,7 @@ export const LineListen: React.FC<LineListenProps> = ({ lineKey, text, className
       return;
     }
     setNoVoice(false);
-    void playLineVoice(lineKey, text, locale, mission01LineVoiceUrl(lineKey, locale), { synthetic: true }).then((result) => {
+    void playLineVoice(lineKey, text, locale, lineClipUrl(lineKey, voiceId, locale), { synthetic: true }).then((result) => {
       if (result === "none") setNoVoice(true);
     });
   };

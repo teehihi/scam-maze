@@ -134,6 +134,44 @@ describe("RoomStoryBridge attach and detach", () => {
   });
 });
 
+describe("RoomStoryBridge transit events", () => {
+  it("forwards Bus 06 events to the layer and ignores them when detached", () => {
+    const bridge = new RoomStoryBridge();
+    const onTransit = vi.fn();
+    expect(() => bridge.transit({ type: "boarded", at: 0, route: "06" })).not.toThrow();
+    expect(onTransit).not.toHaveBeenCalled();
+    bridge.attach({ onTransit });
+    bridge.transit({ type: "fare-paid", at: 60, route: "06", amount: 7000 });
+    expect(onTransit).toHaveBeenCalledWith({ type: "fare-paid", at: 60, route: "06", amount: 7000 });
+  });
+});
+
+describe("RoomStoryBridge story conversations", () => {
+  it("forwards conversation start and returns the layer's context patch", () => {
+    const bridge = new RoomStoryBridge();
+    const onStoryStart = vi.fn(() => ({ flags: { interviewStarted: true } }));
+    bridge.attach({ onStoryStart });
+    expect(bridge.storyStart("interviewee_q5")).toEqual({ flags: { interviewStarted: true } });
+    expect(onStoryStart).toHaveBeenCalledWith("interviewee_q5");
+  });
+
+  it("returns undefined when the layer has no context patch and after detach", () => {
+    const bridge = new RoomStoryBridge();
+    bridge.attach({ onStoryStart: () => undefined });
+    expect(bridge.storyStart("minh")).toBeUndefined();
+    bridge.detach();
+    expect(bridge.storyStart("minh")).toBeUndefined();
+  });
+
+  it("forwards replies and returns their context patch", () => {
+    const bridge = new RoomStoryBridge();
+    bridge.attach({ onStoryReply: () => ({ flags: { interviewCompleted: true } }) });
+    expect(bridge.storyReply("interviewee_q5", "coba_transfer_check")).toEqual({
+      flags: { interviewCompleted: true },
+    });
+  });
+});
+
 describe("RoomStoryBridge door lock", () => {
   it("follows the attached handler and unlocks when detached", () => {
     const bridge = new RoomStoryBridge();

@@ -147,7 +147,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({ item, onBack, onUseItem 
                   <span>{bubble.side === "out" ? t("phone.chat.you") : item.title}</span>
                   <span aria-hidden="true">·</span>
                   <span className="tabular-nums">{clockLabel(bubble.atMinute)}</span>
-                  {bubble.lineKey !== null && <LineListen lineKey={bubble.lineKey} text={bubble.text} />}
+                  {bubble.lineKey !== null && <LineListen lineKey={bubble.lineKey} text={bubble.text} voiceId={bubble.voiceId} />}
                 </div>
               </div>
             </React.Fragment>
