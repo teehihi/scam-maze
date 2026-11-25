@@ -196,14 +196,17 @@ describe("AAA Immersive UI/UX Overhaul", () => {
       };
     };
 
-    it("renders every reply as a pill with chat icon and number key, highlighting the first", () => {
+    it("renders every reply as a pill with chat icon and no number badge above the subtitle, highlighting the first", () => {
       const { turn, dialogue } = makeDialogue();
       render(<CinemaNpcHud language="en" dialogue={dialogue} ambientBark={null} crowdReaction={null} onSelectReply={vi.fn()} />);
       const pills = screen.getAllByTestId("choice-pill");
       expect(pills).toHaveLength(turn.replies.length);
       expect(screen.getAllByTestId("choice-icon")).toHaveLength(turn.replies.length);
       expect(screen.getByTestId("cinema-reply-list").tagName).toBe("UL");
-      pills.forEach((pill, i) => expect(pill.textContent).toContain(String(i + 1)));
+      pills.forEach((pill) => expect(pill.querySelector("kbd")).toBeNull());
+      const list = screen.getByTestId("cinema-reply-list");
+      const subtitle = screen.getByText(`“${dialogue.currentText.en}”`);
+      expect(list.compareDocumentPosition(subtitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(pills[0].getAttribute("data-selected")).toBe("true");
       expect(pills[1].getAttribute("data-selected")).toBe("false");
     });
