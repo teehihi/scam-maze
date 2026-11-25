@@ -35,6 +35,22 @@ const MODELS = {
     hip: [0.052, 0.55, 0.0], knee: [0.057, 0.32, -0.02], ankle: [0.05, 0.10, -0.018], ball: [0.05, 0.03, 0.07], toeTip: [0.05, 0.02, 0.119],
     r: { torsoLow: 0.09, torso: 0.085, neck: 0.04, head: 0.085, clavicle: 0.035, upperarm: 0.03, lowerarm: 0.026, hand: 0.026, thigh: 0.055, calf: 0.04, foot: 0.04, ball: 0.035 },
   },
+  // Cô Ba (Mission 02 interviewee) and the street driver at the Bus 06 stop (Mission 02): owner-supplied T-pose scans,
+  // landmarks measured on height slices and arm-axis bands of the source mesh (2026-11-25).
+  coba: {
+    H: 1.184,
+    pelvis: [0, 0.565, 0], spine_01: [0, 0.63, 0], spine_02: [0, 0.73, 0], spine_03: [0, 0.83, 0], neck_01: [0, 0.955, -0.005], head: [0, 1.01, 0], headTop: [0, 1.184, 0],
+    clavicle: [0.025, 0.905, 0], shoulder: [0.10, 0.915, -0.005], elbow: [0.22, 0.90, 0.003], wrist: [0.31, 0.88, 0.03], handTip: [0.365, 0.865, 0.045],
+    hip: [0.058, 0.555, -0.005], knee: [0.061, 0.33, -0.018], ankle: [0.065, 0.10, -0.04], ball: [0.065, 0.03, 0.035], toeTip: [0.065, 0.02, 0.075],
+    r: { torsoLow: 0.10, torso: 0.09, neck: 0.04, head: 0.085, clavicle: 0.035, upperarm: 0.032, lowerarm: 0.027, hand: 0.026, thigh: 0.058, calf: 0.042, foot: 0.04, ball: 0.035 },
+  },
+  driver: {
+    H: 1.16,
+    pelvis: [0, 0.56, 0], spine_01: [0, 0.63, 0], spine_02: [0, 0.72, 0], spine_03: [0, 0.80, 0], neck_01: [0, 0.93, -0.005], head: [0, 0.985, 0.005], headTop: [0, 1.16, 0.01],
+    clavicle: [0.03, 0.885, -0.005], shoulder: [0.13, 0.885, -0.015], elbow: [0.27, 0.868, -0.008], wrist: [0.37, 0.855, 0.015], handTip: [0.44, 0.838, 0.022],
+    hip: [0.06, 0.55, -0.005], knee: [0.068, 0.30, -0.017], ankle: [0.08, 0.085, -0.034], ball: [0.08, 0.03, 0.05], toeTip: [0.08, 0.02, 0.082],
+    r: { torsoLow: 0.115, torso: 0.11, neck: 0.045, head: 0.085, clavicle: 0.04, upperarm: 0.035, lowerarm: 0.03, hand: 0.03, thigh: 0.06, calf: 0.045, foot: 0.045, ball: 0.04 },
+  },
   minh: {
     H: 1.164,
     pelvis: [0, 0.50, 0], spine_01: [0, 0.60, 0], spine_02: [0, 0.70, 0.005], spine_03: [0, 0.80, 0.005], neck_01: [0, 0.935, -0.005], head: [0, 0.99, 0.005], headTop: [0, 1.164, 0.015],
