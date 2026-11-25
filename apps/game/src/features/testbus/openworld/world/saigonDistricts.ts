@@ -2,7 +2,7 @@ import * as T from "three";
 import { streetClips } from "../simulation/streetClips";
 import { createHumanRealismRig, upgradeHumanMaterials, type HumanActivity, type HumanRealismRig } from "../simulation/humanRealism";
 import type { HumanPresenceSystem } from "../simulation/humanPresence";
-import { addHeadlightBeam, attachDynamicLamps, markLampParts, setVehicleLightLevel } from "../simulation/vehicleLights";
+import { addHeadlightBeam, attachDynamicLamps, markLampParts, mountRoundLamp, setVehicleLightLevel } from "../simulation/vehicleLights";
 import { TrafficSignalController, type SaigonTrafficManager, type SignalAxis } from "../traffic";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
@@ -26,7 +26,7 @@ import {
 import { equipVehicle, wheelRadius, wheelSpinSigns, type CrewMember } from "../simulation/vehicleCrew";
 import { fixVanWheels, simplifyInPlace } from "../simulation/vehicleLod";
 import { VAN_LENGTH } from "../simulation/vehicles";
-import { GRAB_DRIVER_FILE, pickGrabClip, type GrabClipName } from "../simulation/grabDriver";
+import { GRAB_DRIVER_FILE, GRAB_HEADLAMP, GRAB_TAILLAMP, pickGrabClip, type GrabClipName } from "../simulation/grabDriver";
 import {
   LONG_Q9_FILE,
   LONG_Q9_HEIGHT,
@@ -1804,7 +1804,30 @@ export function buildSaigonDistricts(
       holder.add(obj);
       vehRoot.add(holder);
       const lamps = markLampParts(holder, obj, new T.Vector3(0, 0, 1));
-      if (lamps.head) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), "moto");
+      // The model has no lamp mesh: mount round lenses on its bones so the head lamp turns with the handlebar.
+      const headBone = obj.getObjectByName(GRAB_HEADLAMP.bone);
+      const tailBone = obj.getObjectByName(GRAB_TAILLAMP.bone);
+      if (headBone) {
+        mountRoundLamp(headBone, {
+          role: "head",
+          name: "GrabHeadlamp",
+          position: new T.Vector3(...GRAB_HEADLAMP.position),
+          radius: GRAB_HEADLAMP.radius,
+          depth: GRAB_HEADLAMP.depth,
+          facing: new T.Vector3(0, 0, 1),
+        });
+      }
+      if (tailBone) {
+        mountRoundLamp(tailBone, {
+          role: "tail",
+          name: "GrabTaillamp",
+          position: new T.Vector3(...GRAB_TAILLAMP.position),
+          radius: GRAB_TAILLAMP.radius,
+          depth: GRAB_TAILLAMP.depth,
+          facing: new T.Vector3(0, 0, -1),
+        });
+      }
+      if (lamps.head || headBone) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), "moto");
       contact(holder, 0, 0.01, 0, 1.0, 2.15, shade);
       const dynamicLights = attachDynamicLamps(holder, 0.44, 1.04, true);
       dynamicRoot.add(vehRoot);

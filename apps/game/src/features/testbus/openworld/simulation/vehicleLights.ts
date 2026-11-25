@@ -425,6 +425,51 @@ export function addHeadlightBeam(host: T.Object3D, vehicle: T.Object3D, forward:
   host.add(beam);
 }
 
+export interface RoundLampOptions {
+  role: "head" | "tail";
+  /** Centre of the lens base in `parent` local space. */
+  position: T.Vector3;
+  radius: number;
+  /** How far the dome stands out of the body, in metres. */
+  depth: number;
+  /** Lens axis in `parent` local space (the direction the light leaves). */
+  facing: T.Vector3;
+  name: string;
+}
+
+/**
+ * Mounts a rounded, emissive lens (shallow dome) on a node of a vehicle rig, for models whose mesh has no lamp
+ * of its own. The material follows the same night level as native lamps: head lenses are driven by
+ * `setVehicleLightLevel`, tail lenses are picked up by `attachDynamicLamps` for the brake light.
+ * Because it is a child of `parent`, it moves with that node (for example a steering bone).
+ */
+export function mountRoundLamp(parent: T.Object3D, opts: RoundLampOptions): T.Mesh {
+  const isHead = opts.role === "head";
+  const mat = new T.MeshStandardMaterial({
+    name: `${opts.name}_lamp_${opts.role}`,
+    color: isHead ? 0xf4f1ea : 0x7a0d09,
+    emissive: isHead ? 0xfff0d2 : 0xff1e0e,
+    roughness: 0.2,
+  });
+  if (isHead) {
+    headMats.push(mat);
+    applyLevel(mat, "head");
+  } else {
+    tailMats.push(mat);
+    applyLevel(mat, "tail");
+  }
+  // Upper half of a sphere squashed along its axis: a round face with a gentle bulge.
+  const geo = new T.SphereGeometry(opts.radius, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+  geo.scale(1, opts.depth / opts.radius, 1);
+  const lens = new T.Mesh(geo, mat);
+  lens.name = opts.name;
+  lens.position.copy(opts.position);
+  lens.quaternion.setFromUnitVectors(_up, opts.facing.clone().normalize());
+  lens.castShadow = false;
+  parent.add(lens);
+  return lens;
+}
+
 interface SurfaceSample {
   pos: T.Vector3;
   normal: T.Vector3;
