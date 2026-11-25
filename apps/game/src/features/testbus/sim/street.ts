@@ -509,16 +509,6 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
   for(const [x,h,w,z] of [[-6,23,4,118],[1,26,6,124],[-16,18,6,115],[7,19,8,110],[-8,16,5,-164]]){
     box(dressing,[x,h*.5,z],[w,h,8],pales[1]);plane(dressing,[x,h*.5,z-Math.sign(z)*4.02],[w,h],skyline[1],z>0?Math.PI:0);
   }
-  const signalColours=[0xe94b37,0xf1ae40,0x58bf78].map(c=>lamp(c,0));
-  for (const z of [-76, -96, -147]) for (const side of [1, -1]) {
-    const x = side === 1 ? 0.73 : -12.51;
-    rod(dressing, [x, 0.16, z - 2.6], [x, 4.15, z - 2.6], 0.065, darkMetal);
-    box(dressing, [x - side * 0.19, 3.65, z - 2.6], [0.34, 0.81, 0.31], charcoal);
-    for (const [i, light] of signalColours.entries()) {
-      orb(dressing, [x - side * 0.36, 3.9 - i * 0.25, z - 2.61], [0.037, 0.083, 0.085], light);
-    }
-    solids.push(rect(x, z - 2.6, 0.19, 0.20));
-  }
   const leafStain = [material(0x514d32), material(0x78694a), material(0x87805b)];
   const wear = label(384, 192, (ctx) => {
     const wearRng = random(109027);
@@ -583,7 +573,6 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
       asphalt.roughness=.89-wetness*.57;asphalt.metalness=.02+wetness*.36;asphalt.color.set(value?0x788999:0xffffff);balconyGlass.emissive.set(value?0xa17b44:0x000000);balconyGlass.emissiveIntensity=.45;},update(dt: number, player: Point, time: number) {
     fleet.update();sway.value=time;if(rotor instanceof T.MeshStandardMaterial)rotor.map!.rotation=time*5;
     const tick=time%22;const signal=tick<10?2:tick<12?1:0;
-    for(let i=0;i<3;i++){signalColours[i].color.setScalar(signal===i?.25:.015);signalColours[i].emissiveIntensity=signal===i?1.8:.025;}
 
     for(const {group,far,start} of blocks){const d=Math.max(0,Math.abs(start+10.5-player.z)-10.5);group.visible=d<(software?24:43);far.visible=!group.visible && d<150;}
     for (const [i, scooter] of traffic.entries()) {

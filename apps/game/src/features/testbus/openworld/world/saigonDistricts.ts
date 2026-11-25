@@ -8,8 +8,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import { CURB_HEIGHT, rect, type Solid } from "../simulation/boarding";
-import { createMastArmSignal } from "./mastArmSignal";
-import { SIGNAL_APPROACHES, signalBasePosition, type SignalApproach } from "./signalPlacement";
+import { buildIntersectionSignals } from "./signalBuilder";
 import {
   asset,
   box,
@@ -455,31 +454,6 @@ export function buildSaigonDistricts(
     solids.push(rect(x, z, 0.5 * scale, 0.5 * scale));
   };
 
-  // Helper: Vietnamese mast-arm (gia den) traffic signal on the driver's right-hand curb of one approach.
-  const addTrafficSignal = (parent: T.Group, a: SignalApproach) => {
-    const pos = signalBasePosition(a);
-    const signal = createMastArmSignal({
-      x: pos.x,
-      y: CURB_HEIGHT,
-      z: pos.z,
-      heading: a.heading,
-      onCountdown: trafficMgr
-        ? (countdown, lamps) =>
-            trafficMgr.bindSignalVisual({
-              intersectionId: a.intersectionId,
-              axis: a.axis,
-              redMat: lamps.r,
-              amberMat: lamps.y,
-              greenMat: lamps.g,
-              countdown,
-            })
-        : undefined,
-    });
-    if (!trafficMgr) trafficSignalMats.push(signal.lamps);
-    parent.add(signal.group);
-    solids.push(rect(pos.x, pos.z, 0.28, 0.28));
-  };
-
   const addCrosswalk = (parent: T.Group, cx: number, cz: number, horizontal: boolean) => {
     for (let i = -4; i <= 4; i++) {
       if (horizontal) {
@@ -852,24 +826,31 @@ export function buildSaigonDistricts(
     if (Math.abs(z + 147) < 8 || Math.abs(z + 76) < 8) continue;
     plane(chunkEastBlvd, [56, 0.008, z], [0.16, 2.8], whitePaint, 0, -Math.PI / 2);
   }
-  for (const approach of SIGNAL_APPROACHES) {
-    if (approach.owner === "east") addTrafficSignal(chunkEastBlvd, approach);
-  }
+  // Every signal of every signalized intersection is built here, once, from the road graph.
+  const signals = buildIntersectionSignals({ trafficMgr, streamer, solids, curbHeight: CURB_HEIGHT, parent: root });
+  trafficSignalMats.push(...signals.staticLamps);
+  const nearSignalPole = (x: number, z: number) => signals.poles.some((p) => Math.hypot(p.x - x, p.z - z) < 2.0);
+  const addTreeClearOfSignals = (parent: T.Group, x: number, z: number, scale: number, isPalm: boolean) => {
+    if (!nearSignalPole(x, z)) addSaigonTree(parent, x, z, scale, isPalm);
+  };
+  const addLampClearOfSignals = (parent: T.Group, x: number, z: number, dx: number, dz: number, light: boolean) => {
+    if (!nearSignalPole(x, z)) addLampPost(parent, x, z, dx, dz, light);
+  };
   addCrosswalk(chunkEastBlvd, 56, -84, false);
   addCrosswalk(chunkEastBlvd, 56, -155, false);
 
   // Botanical Saigon trees, royal palms & volumetric streetlamps strictly on boulevard sidewalks (never on intersections!)
   for (const x of [12, 18, 25, 32, 38, 44, 70, 77, 86, 95, 102, 110, 118, 125]) {
-    addSaigonTree(chunkEastBlvd, x, -67.8, 1.02, x % 3 === 0);
-    addSaigonTree(chunkEastBlvd, x, -84.2, 0.98, x % 3 === 1);
-    if (x % 2 === 0) addLampPost(chunkEastBlvd, x + 3.2, -83.0, 0, 1, x === 32 || x === 86);
-    addSaigonTree(chunkEastBlvd, x, -138.8, 1.0, x % 3 === 2);
-    if (x % 2 === 0) addLampPost(chunkEastBlvd, x + 3.2, -154.0, 0, 1, x === 32 || x === 102);
+    addTreeClearOfSignals(chunkEastBlvd, x, -67.8, 1.02, x % 3 === 0);
+    addTreeClearOfSignals(chunkEastBlvd, x, -84.2, 0.98, x % 3 === 1);
+    if (x % 2 === 0) addLampClearOfSignals(chunkEastBlvd, x + 3.2, -83.0, 0, 1, x === 32 || x === 86);
+    addTreeClearOfSignals(chunkEastBlvd, x, -138.8, 1.0, x % 3 === 2);
+    if (x % 2 === 0) addLampClearOfSignals(chunkEastBlvd, x + 3.2, -154.0, 0, 1, x === 32 || x === 102);
   }
   // Trees & lamps along Đường Hải Triều west sidewalk (X = 48.0)
   for (const z of [-90, -100, -112, -124, -162, -174, -192, -204]) {
-    addSaigonTree(chunkEastBlvd, 48.0, z, 1.0, z % 2 === 0);
-    if (z % 2 === 0) addLampPost(chunkEastBlvd, 49.0, z + 8, 1, 0, z === -174);
+    addTreeClearOfSignals(chunkEastBlvd, 48.0, z, 1.0, z % 2 === 0);
+    if (z % 2 === 0) addLampClearOfSignals(chunkEastBlvd, 49.0, z + 8, 1, 0, z === -174);
   }
 
   // District 1 / District 3 Commercial High-Rises — EVERY lot mathematically cleared from all roads, sidewalks & neighbors!

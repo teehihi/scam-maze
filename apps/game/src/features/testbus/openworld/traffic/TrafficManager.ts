@@ -79,6 +79,7 @@ function wrapAngleDiff(target: number, current: number): number {
  */
 export class SaigonTrafficManager {
   readonly graph: SaigonRoadGraph;
+  private bus06StopLinesCache: { z: number; interId: string }[] | null = null;
   readonly signals: TrafficSignalController;
   readonly intersections: IntersectionManager;
   readonly collisions: TrafficCollisionSystem;
@@ -273,6 +274,19 @@ export class SaigonTrafficManager {
     }
   }
 
+  /** Northbound Ly Thai To stop lines (RoadEdge.end.z of the incoming ns edge) for the three signalized junctions. */
+  private bus06StopLines(): { z: number; interId: string }[] {
+    if (this.bus06StopLinesCache) return this.bus06StopLinesCache;
+    const lines: { z: number; interId: string }[] = [];
+    for (const interId of ["J_LTT_32", "J_LTT_PED", "J_LTT_DBP"]) {
+      for (const e of this.graph.edges.values()) {
+        if (e.toNode === interId && e.axis === "ns" && e.tz < 0) lines.push({ z: e.end.z, interId });
+      }
+    }
+    this.bus06StopLinesCache = lines;
+    return lines;
+  }
+
   /**
    * Query safe target speed cap for Bus 06 along Lý Thái Tổ (-Z northbound) so Bus 06:
    *  - Obeys QCVN 41:2024 red lights at J_LTT_32 (-76), J_LTT_PED (-96), and J_LTT_DBP (-147)
@@ -283,11 +297,7 @@ export class SaigonTrafficManager {
 
     // 1. Check upcoming N-S traffic lights ahead of Bus 06's front bumper (busZ - 5.55)
     const frontZ = busZ - 5.55;
-    const stopLines: { z: number; interId: string }[] = [
-      { z: -67.2, interId: "J_LTT_32" },
-      { z: -91.4, interId: "J_LTT_PED" },
-      { z: -138.2, interId: "J_LTT_DBP" },
-    ];
+    const stopLines = this.bus06StopLines();
     for (const sl of stopLines) {
       const dist = frontZ - sl.z;
       if (dist > -0.6 && dist < 24) {

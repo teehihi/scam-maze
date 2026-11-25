@@ -1,6 +1,6 @@
 import * as T from "three";
 import { box, lamp, material, orb, rod } from "../simulation/scene-kit";
-import { TrafficSignalController, type SignalVisualBinding } from "../traffic/signalController";
+import { TrafficSignalController, type CountdownHandle } from "../traffic/signalController";
 import { signalYaw, type Heading } from "./signalPlacement";
 
 export interface LampSet {
@@ -18,9 +18,12 @@ export interface MastArmSignalOptions {
   heading: Heading;
   /** Reuse lamp materials (legacy shared cycle). Fresh materials are created when omitted. */
   lamps?: LampSet;
-  /** Create countdown displays and report each one for binding. Omit for no countdowns. */
-  onCountdown?: (countdown: NonNullable<SignalVisualBinding["countdown"]>, lamps: LampSet) => void;
+  /** Create the shared countdown display and report its handle once for binding. Omit for no countdowns. */
+  onCountdown?: (countdown: CountdownHandle, lamps: LampSet) => void;
+  /** Mast arm length from the pole. Defaults to 5.2 m. */
   armLength?: number;
+  /** Distance of each lane centre from the pole along the arm; one overhead head hangs over each. */
+  laneCentres?: number[];
 }
 
 export interface MastArmSignal {
@@ -36,6 +39,7 @@ export interface MastArmSignal {
 const steel = material(0x5b646a, 0.4, 0.7);
 const housing = material(0x1f2326, 0.5, 0.55);
 const visorMat = material(0x15181a, 0.6, 0.4);
+const lensGeometry = new T.CylinderGeometry(0.12, 0.12, 0.04, 16);
 
 /**
  * Vietnamese mast-arm (gia den) signal. Built in local space with the pole at the origin, the arm
@@ -62,15 +66,16 @@ export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
   const heads: T.Object3D[] = [];
   const countdownPanels: T.Mesh[] = [];
 
+  // All countdown panels of one signal show the same number, so they share one canvas and texture.
+  const shared = opts.onCountdown ? TrafficSignalController.createSharedCountdown() : null;
   const addCountdown = (parent: T.Object3D, x: number, y: number) => {
     box(parent, [x, y, 0], [0.46, 0.44, 0.18], housing, false);
-    if (!opts.onCountdown) return;
-    const panel = TrafficSignalController.createCountdownPanel();
-    panel.mesh.position.set(x, y, -0.095);
-    panel.mesh.rotation.y = Math.PI;
-    parent.add(panel.mesh);
-    countdownPanels.push(panel.mesh);
-    opts.onCountdown(panel.handle, lamps);
+    if (!shared) return;
+    const mesh = shared.createPanelMesh();
+    mesh.position.set(x, y, -0.095);
+    mesh.rotation.y = Math.PI;
+    parent.add(mesh);
+    countdownPanels.push(mesh);
   };
 
   const addHead = (x: number, y: number, withVisors: boolean) => {
@@ -80,7 +85,7 @@ export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
     const mats = [lamps.r, lamps.y, lamps.g];
     for (let i = 0; i < 3; i++) {
       const ly = 0.32 - i * 0.32;
-      const disc = new T.Mesh(new T.CylinderGeometry(0.12, 0.12, 0.04, 16), mats[i]);
+      const disc = new T.Mesh(lensGeometry, mats[i]);
       disc.rotation.x = Math.PI / 2;
       disc.position.set(0, ly, -0.14);
       head.add(disc);
@@ -92,7 +97,8 @@ export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
   };
 
   // Two overhead heads hung from the arm, each with a countdown beside it (toward the pole).
-  for (const hx of [armLen - 0.9, armLen - 2.6]) {
+  const headXs = opts.laneCentres?.length ? opts.laneCentres : [armLen - 0.9, armLen - 2.6];
+  for (const hx of headXs) {
     rod(group, [hx, 6.28, 0], [hx, 6.0, 0], 0.03, steel, 0.03, 6);
     addHead(hx, 5.5, true);
     addCountdown(group, hx - 0.55, 5.7);
@@ -102,6 +108,7 @@ export function createMastArmSignal(opts: MastArmSignalOptions): MastArmSignal {
   box(group, [0.19, 2.9, 0], [0.2, 0.06, 0.06], steel, false);
   addCountdown(group, 0.38, 2.0);
   orb(group, [0, 6.68, 0], [0.09, 0.09, 0.09], steel, 8);
+  if (shared) opts.onCountdown!(shared.handle, lamps);
 
   return { group, pole, arm, lamps, heads, countdownPanels };
 }

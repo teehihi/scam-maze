@@ -5,7 +5,7 @@ import { createMastArmSignal } from "./mastArmSignal";
 import {
   EASTBOUND,
   NORTHBOUND,
-  SIGNAL_APPROACHES,
+  deriveSignalApproaches,
   SOUTHBOUND,
   WESTBOUND,
   rightOf,
@@ -20,6 +20,8 @@ const headings: [string, Heading, { x: number; z: number }][] = [
   ["eastbound", EASTBOUND, { x: 0, z: 1 }],
   ["westbound", WESTBOUND, { x: 0, z: -1 }],
 ];
+
+const SIGNAL_APPROACHES = deriveSignalApproaches(new SaigonRoadGraph());
 
 describe("signal placement maths", () => {
   it.each(headings)("puts the %s driver's right-hand side where Vietnam traffic expects it", (_n, h, right) => {
@@ -63,10 +65,9 @@ describe("signal placement maths", () => {
       const pos = signalBasePosition(a);
       const r = rightOf(a.heading);
       const lateralFromLane = (pos.x - edge.end.x) * r.x + (pos.z - edge.end.z) * r.z;
-      const lateralFromMedian = (pos.x - a.center.x) * r.x + (pos.z - a.center.z) * r.z;
-      expect(lateralFromLane, a.edgeId).toBeGreaterThan(2.5);
-      expect(lateralFromMedian, a.edgeId).toBeGreaterThan(6.2); // beyond the 6 m half road width
-      const along = (a.center.x - pos.x) * a.heading.dx + (a.center.z - pos.z) * a.heading.dz;
+      expect(lateralFromLane, a.edgeId).toBeCloseTo(a.poleLateral);
+      expect(lateralFromLane, a.edgeId).toBeGreaterThan(a.kerbDistance);
+      const along = (a.stopLine.x - pos.x) * a.heading.dx + (a.stopLine.z - pos.z) * a.heading.dz;
       expect(along, a.edgeId).toBeGreaterThan(0);
     }
   });
@@ -85,7 +86,7 @@ describe("mast-arm signal model", () => {
     expect(sig.arm).toBeTruthy();
     expect(sig.heads.length).toBeGreaterThanOrEqual(2);
     expect(sig.countdownPanels.length).toBe(sig.heads.length);
-    expect(counts).toHaveLength(sig.heads.length);
+    expect(counts).toHaveLength(1);
     for (const entry of counts as [unknown, typeof sig.lamps][]) expect(entry[1]).toBe(sig.lamps);
     const lensMats = new Set<unknown>();
     sig.group.traverse((o) => {
