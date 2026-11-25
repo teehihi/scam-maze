@@ -426,7 +426,8 @@ export function addHeadlightBeam(host: T.Object3D, vehicle: T.Object3D, forward:
 }
 
 export interface RoundLampOptions {
-  role: "head" | "tail";
+  /** `signal_left` and `signal_right` are amber turn lenses that `attachDynamicLamps` binds to the blinker (left is +X). */
+  role: "head" | "tail" | "signal_left" | "signal_right";
   /** Centre of the lens base in `parent` local space. */
   position: T.Vector3;
   radius: number;
@@ -445,16 +446,18 @@ export interface RoundLampOptions {
  */
 export function mountRoundLamp(parent: T.Object3D, opts: RoundLampOptions): T.Mesh {
   const isHead = opts.role === "head";
+  const isTail = opts.role === "tail";
   const mat = new T.MeshStandardMaterial({
     name: `${opts.name}_lamp_${opts.role}`,
-    color: isHead ? 0xf4f1ea : 0x7a0d09,
-    emissive: isHead ? 0xfff0d2 : 0xff1e0e,
+    color: isHead ? 0xf4f1ea : isTail ? 0x7a0d09 : 0x6e3e08,
+    emissive: isHead ? 0xfff0d2 : isTail ? 0xff1e0e : 0xffa40e,
+    emissiveIntensity: isHead || isTail ? 1 : 0.05,
     roughness: 0.2,
   });
   if (isHead) {
     headMats.push(mat);
     applyLevel(mat, "head");
-  } else {
+  } else if (isTail) {
     tailMats.push(mat);
     applyLevel(mat, "tail");
   }
