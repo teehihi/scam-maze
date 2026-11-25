@@ -19,6 +19,8 @@ export const VN_TRAFFIC_TUNING = {
   busStopPatience: 2.5,
   /** Side clearance (m) a car keeps between its body and a halted bus while passing (must exceed the 0.32 hazard pad). */
   busPassClearance: 0.4,
+  /** Smallest side gap (m) a car accepts when the carriageway is too narrow for busPassClearance (above the 0.32 hazard pad). */
+  busSqueezeClearance: 0.34,
   /** Cooldown after a driver declines to overtake, before the next decision. */
   declineCooldown: 2.5,
   car: {

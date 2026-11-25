@@ -131,7 +131,7 @@ export class SaigonTrafficManager {
   }
 
   /** The nearest halted bus ahead in the lane `v` is driving in, if any. */
-  private haltedBusAhead(v: VehicleAgent, sameEdge: readonly VehicleAgent[]): VehicleAgent | null {
+  private haltedBusAhead(v: VehicleAgent, sameEdge: readonly VehicleAgent[], slack = 0): VehicleAgent | null {
     let best: VehicleAgent | null = null;
     let bestDs = 30;
     for (const o of sameEdge) {
@@ -139,7 +139,8 @@ export class SaigonTrafficManager {
       const ds = o.s - v.s - (v.halfLength + o.halfLength);
       if (ds < -0.5 || ds >= bestDs) continue;
       // Only a bus whose body overlaps our own strip is ahead of us; one beside our lane is just passed
-      if (Math.abs(o.latOffset - v.latOffset) > v.halfWidth + o.halfWidth) continue;
+      // (`slack` keeps a car that has already swung out beside the bus counting it as "ahead" until it is past)
+      if (Math.abs(o.latOffset - v.latOffset) > v.halfWidth + o.halfWidth + slack) continue;
       best = o;
       bestDs = ds;
     }
@@ -152,10 +153,16 @@ export class SaigonTrafficManager {
    */
   private passLatBeside(v: VehicleAgent, bus: VehicleAgent, edge: RoadEdge): number | null {
     const half = edge.width / 2 - v.halfWidth - 0.02;
-    const gap = v.halfWidth + bus.halfWidth + VN_TRAFFIC_TUNING.busPassClearance;
-    const left = bus.latOffset - gap;
-    const right = bus.latOffset + gap;
-    return -half <= left ? left : right <= half ? right : null;
+    // Full clearance first; on a narrow carriageway squeeze by with the smallest gap that is still outside the
+    // 0.32 m hazard pad (vehicles brake for anything closer), as Vietnamese drivers do
+    for (const clearance of [VN_TRAFFIC_TUNING.busPassClearance, VN_TRAFFIC_TUNING.busSqueezeClearance]) {
+      const gap = v.halfWidth + bus.halfWidth + clearance;
+      const left = bus.latOffset - gap;
+      const right = bus.latOffset + gap;
+      if (-half <= left) return left;
+      if (right <= half) return right;
+    }
+    return null;
   }
 
   /** True when no vehicle occupies the strip around `lat` from `behind` m behind to `ahead` m ahead of `v`. */
@@ -943,7 +950,7 @@ export class SaigonTrafficManager {
               : v.laneIndex
           : v.laneIndex;
 
-      const busAhead = this.haltedBusAhead(v, sameEdge);
+      const busAhead = this.haltedBusAhead(v, sameEdge, tune.busPassClearance + 0.3);
       // Standing behind a halted bus or held up mid-block for a while: the driver may nose out from standstill
       const stuck =
         v.speed <= 1.8 && v.waitTime > (busAhead ? tune.busStopPatience : tune.car.stuckWait);
@@ -966,7 +973,12 @@ export class SaigonTrafficManager {
         const passLat = busAhead ? this.passLatBeside(v, busAhead, edge) : null;
         const busPassable = busAhead !== null && passLat !== null && Math.abs(passLat - altLat) < 1.0;
 
-        if (!altBlockedByPark) {
+        // A car that is already out beside / behind a halted bus in the lane away from it stays there: swinging back
+        // towards the bus would make it dither between the two lanes without ever getting by
+        const towardBus =
+          !!busAhead && Math.abs(altLat - busAhead.latOffset) < Math.abs(curLat - busAhead.latOffset);
+
+        if (!altBlockedByPark && !towardBus) {
           const findLeadLag = (laneLat: number) => {
             let lead: VehicleAgent | null = null;
             let lag: VehicleAgent | null = null;
