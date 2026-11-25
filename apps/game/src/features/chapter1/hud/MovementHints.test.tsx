@@ -17,6 +17,12 @@ afterEach(() => {
   window.sessionStorage.clear();
 });
 
+
+function setViewport(w: number, h: number) {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: w });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: h });
+}
+
 describe("MovementHints", () => {
   it("shows the move and look hints while active", () => {
     render(<MovementHints active />);
@@ -25,13 +31,14 @@ describe("MovementHints", () => {
     expect(hints.textContent).toContain(enRoom.room.hud.lookHint);
   });
 
-  it("has no box and sits at least 56 px above the bottom edge (clear of the footer strip)", () => {
+  it("has no box and sits at least 56 scaled px above the bottom edge (clear of the footer strip)", () => {
     render(<MovementHints active />);
     const hints = screen.getByTestId("movement-hints");
     expect(hints.style.background).toBe("");
     expect(hints.style.border).toBe("");
     expect(hints.style.backdropFilter).toBe("");
-    expect(parseFloat(hints.style.bottom)).toBeGreaterThanOrEqual(56);
+    const scale = parseFloat(hints.style.transform.replace("scale(", ""));
+    expect(parseFloat(hints.style.bottom)).toBeGreaterThanOrEqual(56 * scale);
   });
 
   it("is scaled from its bottom-left corner with the shared HUD scale", () => {
@@ -83,5 +90,18 @@ describe("MovementHints", () => {
     expect(viRoom.room.hud.moveHint.length).toBeGreaterThan(0);
     expect(viRoom.room.hud.lookHint.length).toBeGreaterThan(0);
     expect(viRoom.room.hud.controlsLabel.length).toBeGreaterThan(0);
+  });
+});
+
+describe("MovementHints scale at a mocked viewport", () => {
+  const saved = { w: window.innerWidth, h: window.innerHeight };
+  afterEach(() => setViewport(saved.w, saved.h));
+
+  it("applies the exact scale and scales the bottom offset with it, so it stays above the footer strip", () => {
+    setViewport(1920, 1080);
+    render(<MovementHints active />);
+    const hints = screen.getByTestId("movement-hints");
+    expect(hints.style.transform).toBe("scale(1.2)");
+    expect(parseFloat(hints.style.bottom)).toBeCloseTo(CINE.hintsBottomPx * 1.2);
   });
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { hudScaleStyle, useHudScale } from "../chapter1/hud/hudScale";
+import { hudOffset, hudScaleStyle, useHudScale } from "../chapter1/hud/hudScale";
 import { CloudRain, DoorOpen, MousePointerClick, Play, Settings, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
 
 /** Keyboard keys are literal text in every language. */
@@ -129,8 +129,8 @@ export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, sho
       )}
 
       <div
-        className={`pointer-events-none absolute inset-x-0 bottom-24 z-10 flex flex-col items-center gap-2 px-4 ${SHADOW}`}
-        style={hudScaleStyle(hudScale, "bottom center")}
+        className={`pointer-events-none absolute inset-x-0 z-10 flex flex-col items-center gap-2 px-4 ${SHADOW}`}
+        style={{ bottom: hudOffset(96, hudScale), ...hudScaleStyle(hudScale, "bottom center") }}
       >
         {showResume && (
           <p

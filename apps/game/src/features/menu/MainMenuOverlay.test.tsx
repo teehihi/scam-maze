@@ -82,4 +82,22 @@ describe("MainMenuOverlay scale", () => {
     expect(wrap.style.transform).toMatch(/^scale\(/);
     expect(wrap.style.transformOrigin.split(" ").sort()).toEqual(["left", "top"]);
   });
+
+  it("sizes the virtual viewport by 100 / menuScale so layout and visual extents match", () => {
+    const saved = { w: window.innerWidth, h: window.innerHeight };
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1920 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 1080 });
+    try {
+      renderMenu(NO_SAVE);
+      const wrap = screen.getByTestId("main-menu-scale");
+      const menuScale = 1.2 / 0.61;
+      expect(parseFloat(wrap.style.transform.replace("scale(", ""))).toBeCloseTo(menuScale, 3);
+      expect(parseFloat(wrap.style.width)).toBeCloseTo(100 / menuScale, 1);
+      expect(parseFloat(wrap.style.height)).toBeCloseTo(100 / menuScale, 1);
+      expect(parseFloat(wrap.style.width) * menuScale).toBeCloseTo(100, 1);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: saved.w });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: saved.h });
+    }
+  });
 });

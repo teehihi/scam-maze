@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { PrologueHud, PrologueTopBar } from "./PrologueHud";
 
 describe("PrologueHud footer hints", () => {
@@ -27,5 +27,24 @@ describe("PrologueHud footer hints", () => {
     const transforms = Array.from(container.querySelectorAll<HTMLElement>("[style*='scale(']")).map((el) => el.style.transformOrigin.split(" ").sort().join(" "));
     expect(transforms).toEqual(expect.arrayContaining(["right top", "left top", "bottom center", "bottom left"]));
     expect(screen.getByTestId("resume-prompt").parentElement?.style.transform).toMatch(/^scale\(/);
+  });
+
+  describe("at a mocked 1920 x 1080 viewport (scale 1.2)", () => {
+    const saved = { w: window.innerWidth, h: window.innerHeight };
+    afterEach(() => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: saved.w });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: saved.h });
+    });
+
+    it("applies the exact scale and scales the prompt's bottom offset with it", () => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 1920 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 1080 });
+      const { container } = render(<PrologueHud objective={null} prompt="Open" showResume cursorMode={false} />);
+      const scaled = Array.from(container.querySelectorAll<HTMLElement>("[style*='scale(']"));
+      expect(scaled.length).toBeGreaterThan(0);
+      for (const el of scaled) expect(el.style.transform).toBe("scale(1.2)");
+      const prompt = scaled.find((el) => el.style.bottom !== "");
+      expect(parseFloat(prompt?.style.bottom ?? "0")).toBeCloseTo(96 * 1.2);
+    });
   });
 });

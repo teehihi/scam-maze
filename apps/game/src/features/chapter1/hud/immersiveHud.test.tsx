@@ -4,7 +4,7 @@
 // 3. Cinema DistrictArrivalBanner showing cleanly on zone entry and hiding during dialogue
 // 4. CinemaNpcHud two-way Alex echo line, zero-overlap vertical stack, and reply dispatch
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CHAPTER_1_INITIAL_STATE } from "../../../game/narrative/resources";
 import { resolveStoryNpcDialogue } from "../../../game/narrative/chapter1/storyCast";
 import { ChapterStatusCluster } from "./ChapterStatusHud";
@@ -14,6 +14,19 @@ import { ResumePrompt } from "./ResumePrompt";
 import { OutsideHud } from "../room/useOutsideWorld";
 
 describe("AAA Immersive UI/UX Overhaul", () => {
+  const saved = { w: window.innerWidth, h: window.innerHeight };
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: saved.w });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: saved.h });
+  });
+
+  it("scales the resume prompt by the exact viewport scale", () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 2560 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 1440 });
+    render(<ResumePrompt visible />);
+    expect(screen.getByTestId("resume-prompt").style.transform).toBe("scale(1.6)");
+  });
+
   it("scales the resume prompt from the bottom centre", () => {
     render(<ResumePrompt visible />);
     const prompt = screen.getByTestId("resume-prompt");

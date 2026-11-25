@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { HUD_BASE_SCALE, MENU_REFERENCE_SCALE, computeHudScale, hudScaleStyle, useHudScale } from "./hudScale";
+import { HUD_BASE_SCALE, hudOffset, MENU_REFERENCE_SCALE, computeHudScale, hudScaleStyle, useHudScale } from "./hudScale";
 
 describe("computeHudScale", () => {
   it("is 80% at the reference viewport", () => {
@@ -11,14 +11,16 @@ describe("computeHudScale", () => {
     expect(MENU_REFERENCE_SCALE).toBe(0.61);
   });
   it("is proportional, so a viewport shrunk by browser zoom shrinks the HUD by the same factor", () => {
-    expect(computeHudScale(640, 360)).toBe(0.4);
+    expect(computeHudScale(800, 450)).toBe(0.5);
     expect(computeHudScale(1920, 1080)).toBe(1.2);
     expect(computeHudScale(960, 540)).toBe(0.6);
     expect(computeHudScale(1920, 1080) / 2).toBeCloseTo(computeHudScale(960, 540));
   });
-  it("keeps text legible on small windows with a floor of 0.4", () => {
-    expect(computeHudScale(512, 288)).toBe(0.4);
-    expect(computeHudScale(360, 640)).toBe(0.4);
+  it("keeps 12px text at 6px or more on small windows with a floor of 0.5", () => {
+    expect(computeHudScale(640, 360)).toBe(0.5);
+    expect(computeHudScale(512, 288)).toBe(0.5);
+    expect(computeHudScale(360, 640)).toBe(0.5);
+    expect(12 * computeHudScale(360, 640)).toBeGreaterThanOrEqual(6);
   });
   it("caps huge monitors at 2.4", () => {
     expect(computeHudScale(3840, 2160)).toBe(2.4);
@@ -26,7 +28,7 @@ describe("computeHudScale", () => {
   });
   it("follows the limiting side, so tall or wide windows do not oversize the HUD", () => {
     expect(computeHudScale(2560, 720)).toBe(0.8);
-    expect(computeHudScale(1280, 400)).toBe(0.44);
+    expect(computeHudScale(1280, 600)).toBe(0.67);
   });
   it("falls back to the base scale for an unknown viewport", () => {
     expect(computeHudScale(0, 0)).toBe(HUD_BASE_SCALE);
@@ -35,6 +37,15 @@ describe("computeHudScale", () => {
     expect(hudScaleStyle(0.8, "top right")).toEqual({ transform: "scale(0.8)", transformOrigin: "top right" });
     expect(hudScaleStyle(0.5, "top center")).toEqual({ transform: "scale(0.5)", transformOrigin: "top center" });
     expect(hudScaleStyle(0.5, "bottom center")).toEqual({ transform: "scale(0.5)", transformOrigin: "bottom center" });
+  });
+});
+
+describe("hudOffset", () => {
+  it("scales a fixed offset with the HUD so stacked blocks keep their gap", () => {
+    expect(hudOffset(72, 1)).toBe(72);
+    expect(hudOffset(72, 1.2)).toBe(86.4);
+    expect(hudOffset(64, 0.5)).toBe(32);
+    expect(hudOffset(96, 2.4)).toBe(230.4);
   });
 });
 
@@ -60,17 +71,16 @@ describe("useHudScale", () => {
     expect(result.current).toBe(0.6);
   });
 
-  it("follows visualViewport when available, including its resize event", () => {
+  it("ignores visualViewport, so pinch zoom does not shrink the HUD", () => {
     setViewport(1280, 720);
     const vv = Object.assign(new EventTarget(), { width: 1280, height: 720 });
     Object.defineProperty(window, "visualViewport", { configurable: true, value: vv });
     const { result } = renderHook(() => useHudScale());
-    expect(result.current).toBe(0.8);
     act(() => {
       vv.width = 640;
       vv.height = 360;
       vv.dispatchEvent(new Event("resize"));
     });
-    expect(result.current).toBe(0.4);
+    expect(result.current).toBe(0.8);
   });
 });

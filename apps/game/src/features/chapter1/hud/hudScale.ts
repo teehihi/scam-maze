@@ -5,14 +5,19 @@
 //
 // Browser zoom shrinks window.innerWidth / innerHeight by the zoom factor, so a proportional scale keeps the
 // HUD at the same fraction of the screen at any zoom (200% zoom of 1280 x 720 is 640 x 360, which gives half
-// the scale, and the HUD covers the same share of the picture). The floor (0.4, reached at 640 x 360) keeps
-// text legible on phones; the ceiling (2.4, reached at 3840 x 2160) only guards huge monitors. Rounded to
-// 2 decimals so resizing does not re-render on every pixel.
+// the scale, and the HUD covers the same share of the picture). The floor (0.5, reached below 800 x 450) keeps
+// 12px footer text at 6px or more; it is a trade-off, so zoom beyond about 250% no longer shrinks the HUD
+// further. The ceiling (2.4, reached at 3840 x 2160) only guards huge monitors. Rounded to 2 decimals so
+// resizing does not re-render on every pixel.
+//
+// The layout viewport (innerWidth / innerHeight) is used, not visualViewport: browser zoom changes it, while
+// pinch zoom and the on-screen keyboard do not, so the HUD (anchored to the layout viewport) is not shrunk
+// off screen by a pinch.
 import { useEffect, useState, type CSSProperties } from "react";
 
 export const HUD_BASE_SCALE = 0.8;
 export const HUD_REFERENCE = { width: 1280, height: 720 } as const;
-export const HUD_SCALE_RANGE = { min: 0.4, max: 2.4 } as const;
+export const HUD_SCALE_RANGE = { min: 0.5, max: 2.4 } as const;
 
 export function computeHudScale(width: number, height: number): number {
   if (!(width > 0) || !(height > 0)) return HUD_BASE_SCALE;
@@ -21,11 +26,8 @@ export function computeHudScale(width: number, height: number): number {
   return Math.round(scale * 100) / 100;
 }
 
-/** Viewport in CSS pixels. visualViewport follows pinch zoom and mobile browser chrome; innerWidth is the fallback. */
 function read(): number {
   if (typeof window === "undefined") return HUD_BASE_SCALE;
-  const vv = window.visualViewport;
-  if (vv && vv.width > 0 && vv.height > 0) return computeHudScale(vv.width, vv.height);
   return computeHudScale(window.innerWidth, window.innerHeight);
 }
 
@@ -35,12 +37,7 @@ export function useHudScale(): number {
     const update = () => setScale(read());
     update();
     window.addEventListener("resize", update);
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      vv?.removeEventListener("resize", update);
-    };
+    return () => window.removeEventListener("resize", update);
   }, []);
   return scale;
 }
@@ -59,4 +56,9 @@ export type HudScaleOrigin =
 /** Scale a HUD block around the screen edge or corner it is anchored to. */
 export function hudScaleStyle(scale: number, origin: HudScaleOrigin): CSSProperties {
   return { transform: `scale(${scale})`, transformOrigin: origin };
+}
+
+/** A fixed pixel offset that sits next to a scaled block, scaled with it so the two never overlap. */
+export function hudOffset(px: number, scale: number): number {
+  return Math.round(px * scale * 100) / 100;
 }
