@@ -3,6 +3,7 @@
 // the Internet and no iframe is used; an address that is not in this list is an error page. Later
 // missions add their pages by appending to `VIRTUAL_PAGES`.
 //
+// `kind: "parcel"` is Mission 02's redelivery page: one form, one optional fee, no steps.
 // `kind: "static"` pages are plain text pages. `kind: "portal"` pages are the simulated student
 // portal of UEH (the valid site of the story). `kind: "clearance"` pages are the look-alike
 // "graduation clearance" site that the story's email links to: its steps are the game's own device
@@ -10,7 +11,7 @@
 // Every site is a simulation made for the game. None of them is, or claims to be, an official site.
 import { HISTORY_URL, NEW_TAB_URL, parseAddress, isInternalUrl } from "./urls";
 
-export type VirtualPageKind = "static" | "portal" | "clearance";
+export type VirtualPageKind = "static" | "portal" | "clearance" | "parcel";
 export type PortalSection = "dashboard" | "thesis" | "services" | "account";
 export type ClearanceStep = "notice" | "login" | "payment" | "verify" | "complete";
 
@@ -38,6 +39,9 @@ export const VIRTUAL_PAGES: readonly VirtualPage[] = [
   { id: "fee-payment", url: "https://payment-ueh.vn/payment", kind: "clearance", step: "payment" },
   { id: "fee-verify", url: "https://payment-ueh.vn/verify", kind: "clearance", step: "verify" },
   { id: "fee-complete", url: "https://payment-ueh.vn/complete", kind: "clearance", step: "complete" },
+  // Mission 02: the courier's redelivery page. `parcel` kind, because it asks for details and money
+  // in one step (the clearance site's stepper would be a lie: there is nothing to sign in to).
+  { id: "parcel", url: "https://tochhanh24.example/redelivery", kind: "parcel" },
 ];
 
 export type Route =

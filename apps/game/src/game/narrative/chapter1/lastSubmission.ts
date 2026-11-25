@@ -26,6 +26,7 @@ import {
   MISSION_01_OFFERS_LEDGER_LABELS,
   MISSION_01_OFFERS_MISSIONS,
 } from "./mission01Offers";
+import { PARCEL_EVENTS, PARCEL_DEVICE_ITEMS, PARCEL_LEDGER_LABELS, PARCEL_INTERACTABLES } from "./parcel";
 import type { NpcId } from "./ids";
 
 /** English title and subtitle. The Vietnamese text lives in `i18n/narrative/lastSubmission.vi.ts`. */
@@ -86,9 +87,10 @@ export const LAST_SUBMISSION_SCENARIO: ScenarioDefinition = {
   // Faster rates break the balance intent in `clock/balance.test.ts` (at 20 minutes per percent,
   // writing through the night reaches 90% before sleeping does); 30 keeps every assert there.
   gameplay: { ...FOUNDATION_SCENARIO.gameplay, fatigue: { enabled: true }, thesisMinutesPerPercent: 30 },
-  events: [...MISSION_01_EVENTS, MISSION_01_LATE_RECOVERY_EVENT, ...MISSION_01_OFFERS_EVENTS, ...MISSION_02_EVENTS],
+  events: [...MISSION_01_EVENTS, MISSION_01_LATE_RECOVERY_EVENT, ...MISSION_01_OFFERS_EVENTS, ...MISSION_02_EVENTS, ...PARCEL_EVENTS],
   missions: [...MISSION_01_MISSIONS, ...MISSION_01_OFFERS_MISSIONS, ...MISSION_02_MISSIONS],
   thesisTasks: MISSION_01_THESIS_TASKS,
-  deviceItems: [...MISSION_01_DEVICE_ITEMS, ...MISSION_01_OFFERS_DEVICE_ITEMS, ...MISSION_02_DEVICE_ITEMS],
-  ledgerLabels: { ...MISSION_01_LEDGER_LABELS, ...MISSION_01_OFFERS_LEDGER_LABELS, ...MISSION_02_LEDGER_LABELS },
+  deviceItems: [...MISSION_01_DEVICE_ITEMS, ...MISSION_01_OFFERS_DEVICE_ITEMS, ...MISSION_02_DEVICE_ITEMS, ...PARCEL_DEVICE_ITEMS],
+  ledgerLabels: { ...MISSION_01_LEDGER_LABELS, ...MISSION_01_OFFERS_LEDGER_LABELS, ...MISSION_02_LEDGER_LABELS, ...PARCEL_LEDGER_LABELS },
+  interactables: { ...FOUNDATION_SCENARIO.interactables, ...PARCEL_INTERACTABLES },
 };

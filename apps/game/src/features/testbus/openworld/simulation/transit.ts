@@ -13,7 +13,7 @@ export const ROUTE = {
   viaZ: -66,
   destinationZ: -128,
   approachZ: 31,
-  curbX: -1.54,
+  curbX: -2.3,
 } as const;
 
 export type Phase = 'waiting' | 'approaching' | 'boarding' | 'departing' | 'driving' | 'arrived' | 'complete';
@@ -31,6 +31,7 @@ export interface TransitHost {
   clock?: { read: () => number; advance: (seconds: number) => void };
   wallet?: { read: () => number; debit: (amount: number) => boolean };
   onEvent?: (event: TransitEvent) => void;
+  chapterSeconds?: () => number | undefined;
 }
 
 export const formatClock = (seconds: number) => {
@@ -69,6 +70,7 @@ export class BusRouteController {
   private seconds: number = ROUTE.start;
   private nextBus: number;
   private approach = 0;
+  private chapterDepartureAt: number | undefined;
   private driving = 0;
   private driveThrottle = 1;
   private via = false;
@@ -80,7 +82,7 @@ export class BusRouteController {
     this.nextBus = this.clock + ROUTE.waitMinutes * 60;
   }
 
-  get clock() { return this.host.clock?.read() ?? this.seconds; }
+  get clock() { return this.host.clock?.read() ?? this.host.chapterSeconds?.() ?? this.seconds; }
   get balance() { return this.host.wallet?.read() ?? this.cash; }
 
   emit(type: TransitEvent['type'], details: Partial<TransitEvent> = {}) {
@@ -94,7 +96,9 @@ export class BusRouteController {
 
   wait() {
     if (this.phase !== 'waiting') return false;
-    this.advance(Math.max(0, this.nextBus - this.clock));
+    const chapterNow = this.host.chapterSeconds?.();
+    if (chapterNow === undefined) this.advance(Math.max(0, this.nextBus - this.clock));
+    else this.chapterDepartureAt = chapterNow + ROUTE.waitMinutes * 60;
     this.phase = 'approaching';
     this.emit('wait-started', { stop: ROUTE.origin });
     return true;
@@ -140,12 +144,15 @@ export class BusRouteController {
   update(dt: number, occupied: Record<DoorId, boolean>, approachBlocked: boolean, maxSafeSpeed?: number) {
     const oldPosition = this.z;
     const prevSpeed = this.speed;
-    if (this.phase !== 'driving') {
+    if (this.phase !== 'driving' && !this.host.chapterSeconds) {
       this.advance(dt * (this.phase === 'waiting' ? 12 : 5));
     }
-    if (this.phase === 'waiting' && this.clock >= this.nextBus) this.wait();
+    if (!this.host.chapterSeconds && this.phase === 'waiting' && this.clock >= this.nextBus) this.wait();
     if (this.phase === 'approaching') {
-      const canMove = !approachBlocked && (maxSafeSpeed === undefined || maxSafeSpeed > 0.35);
+      const chapterNow = this.host.chapterSeconds?.();
+      const timeToApproach = this.chapterDepartureAt === undefined || (chapterNow ?? 0) >= this.chapterDepartureAt;
+      if (timeToApproach) this.chapterDepartureAt = undefined;
+      const canMove = timeToApproach && !approachBlocked && (maxSafeSpeed === undefined || maxSafeSpeed > 0.35);
       if (canMove) this.approach = clamp(this.approach + dt / 6.8);
       this.z = ROUTE.approachZ * (1 - this.approach ** 1.14 * (2 - this.approach ** 1.14));
       if (this.approach >= 1) {

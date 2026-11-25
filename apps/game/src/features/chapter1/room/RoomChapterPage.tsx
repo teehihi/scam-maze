@@ -68,6 +68,7 @@ export const RoomChapterPage: React.FC<RoomChapterPageProps> = ({
     (event) => bridge.transit(event),
     (npcId, replyId) => bridge.storyReply(npcId, replyId),
     (npcId) => bridge.storyStart(npcId),
+    bridge.transitHost,
   );
 
   // The chapter happens in the apartment, whatever scene a new or old session names.

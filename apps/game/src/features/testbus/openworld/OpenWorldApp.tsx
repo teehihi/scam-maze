@@ -8,6 +8,7 @@ import {
   type LandmarkWaypoint,
   type OpenWorldSnapshot,
 } from "./world/OpenWorldEngine";
+import { loadStreetFurniture } from "../../khupho/world/streetFurniture";
 import type { WeatherPreset } from "./world/AtmosphereSystem";
 
 function formatClock(hours: number): string {
@@ -44,14 +45,31 @@ export default function OpenWorldApp() {
     const el = mountRef.current;
     if (!el) return;
     let engine: OpenWorldEngine | null = null;
-    try {
-      engine = new OpenWorldEngine(el, setSnap);
-      engineRef.current = engine;
-    } catch (err) {
-      console.error("OpenWorldEngine init error:", err);
-      setBootError(err instanceof Error ? err.message : String(err));
-    }
+    let cancelled = false;
+
+    // The real furniture has to exist *before* the world is built. `choLon.ts` decides whether to
+    // place a Honda PCX or a stack of boxes at construction time, so loading the models afterwards
+    // would leave every stall on its procedural fallback for the whole session. This is the same
+    // ordering `features/khupho/world/engine.ts` uses: load, then build, then place the instances.
+    void (async () => {
+      try {
+        await loadStreetFurniture();
+      } catch (err) {
+        // A missing model is not a reason to lose the world: every caller falls back to geometry.
+        console.error("street furniture failed to load:", err);
+      }
+      if (cancelled) return;
+      try {
+        engine = new OpenWorldEngine(el, setSnap);
+        engineRef.current = engine;
+      } catch (err) {
+        console.error("OpenWorldEngine init error:", err);
+        setBootError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+
     return () => {
+      cancelled = true;
       engine?.dispose();
       engineRef.current = null;
     };

@@ -485,6 +485,20 @@ float thin=max(0.,dot(-normal,directionalLights[0].direction));reflectedLight.in
         const z = start + 2.43 + k * 5.15;
         const roadGap = [-76, -96, -147].some((crossing) => Math.abs(z - crossing) < (side === 1 && (crossing === -76 || crossing === -147) ? 13.0 : 2.75));
         if (roadGap) continue;
+        // THE MARKET'S FRONTAGE IS THE STREET, NOT SOMETHING BEHIND IT.
+        //
+        // Chợ Lớn occupies x -25.78..-19.06, z -152..-104. Blocks 2, 3 and 4 have no authored
+        // `strips` entry, so their west side fell through to these generic houses — and those
+        // houses stood between the road and the market as a continuous 12 m wall. From the east
+        // kerb you saw shutters and balconies and nothing else; a probe found 14 028 street
+        // vertices at x -17 and the market's first vertex at -19.06, with only a 2 m gap between.
+        //
+        // A market is not something you walk behind a row of houses to find. Bình Tây fronts
+        // Tháp Mười for 108.6 m. So where the market stands, the houses go: the market becomes the
+        // block face for those 48 m, set back 3 m from its neighbours' line, which is the forecourt
+        // a market actually has. The authored survey strips (blocks 6-10) are untouched — this only
+        // removes generic infill that was never surveyed.
+        if (side === -1 && z > -152 && z < -104) continue;
         house(block, side === 1 ? 5.53 + rng() * 0.46 : -16.04 - rng() * 0.48, z, (j + k * 2 + (side === 1 ? 0 : 3)) % shopNames.length, 4.96 + rng() * 0.12, side, 1 + Math.floor(rng() * 4));
       }
       const z = start + 3.0 + rng() * 5.3;

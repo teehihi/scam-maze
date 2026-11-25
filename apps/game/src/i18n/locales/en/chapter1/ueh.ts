@@ -125,6 +125,15 @@ const ueh = {
         step3: "Wait for the office to confirm that your access works.",
       },
     },
+    parcel: {
+      heading: "Redelivery confirmation",
+      body: "The parcel could not be delivered because the recipient's details are incomplete. Confirm the details before the next attempt. Redelivery fee: {{fee}}.",
+      recipient: "Recipient details",
+      confirmed: "Recipient details confirmed.",
+      feeLabel: "Redelivery fee — {{fee}}",
+      paid: "Fee paid. The parcel will be sent out on the next run.",
+      disclaimer: "Toc Hanh 24 counter network. This page only confirms what the message already says.",
+    },
     clearance: {
       home: "Home",
       graduation: "Graduation clearance",

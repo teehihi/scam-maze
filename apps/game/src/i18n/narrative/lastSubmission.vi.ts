@@ -472,4 +472,43 @@ export const LAST_SUBMISSION_NARRATIVE_VI: NarrativeOverlay = {
   "device/file.fee-record/body": "Biên lai đã tải của khoản thanh toán thẻ trên trang thanh toán: số tiền, thời điểm và người nhận mà ngân hàng hiển thị.",
   "device/file.transfer-record/title": "Sao kê: các giao dịch chuyển tiền trái phép",
   "device/file.transfer-record/body": "Sao kê đã tải của các khoản tiền rời tài khoản mà bạn không đồng ý: số tiền, thời điểm và người nhận mà ngân hàng hiển thị.",
+
+  // --- Mission 02, Slice A: the parcel thread (Wednesday 08:00) -----------------------------------
+  "interactables/obj.note/label": "Phiếu theo dõi của bưu cục",
+  "interactables/obj.note/actionLabel": "đọc",
+  "interactables/obj.note/inspectionText":
+    "Một phiếu giao lại của bưu cục, gấp hai lần rồi để trên bàn. Phiếu ghi một mã theo dõi: TH24 4471 0925, và một quầy: Chợ Lớn, Quận 5. Dưới mã là một dòng in sẵn: \"Nhận lại tại quầy không mất phí. Giữ phiếu này.\" Phiếu không nói rằng mọi tin nhắn về bưu phẩm đều sai. Nó chỉ nói bưu phẩm này là gì và nhận ở đâu.",
+  "device/msg.parcel-fee/title": "Tốc Hành 24",
+  "device/msg.parcel-fee/from": "Tốc Hành 24",
+  "device/msg.parcel-fee/detail": "+000 90 4471 2210",
+  "device/msg.parcel-fee/body":
+    "Bưu phẩm TH24 4471 0925 của bạn chưa giao được sáng nay: địa chỉ nhận chưa đầy đủ. Cần thanh toán phí giao lại 22.000 VNĐ trước lần giao tiếp theo. Mở ứng dụng của bưu cục để xác nhận địa chỉ và thanh toán phí.",
+  "device/msg.parcel-fee/actions/read/label": "Đọc lại tin nhắn",
+  "device/msg.parcel-fee/actions/ignore/label": "Để sau",
+  "device/page.parcel/title": "Xác nhận giao lại",
+  "device/page.parcel/from": "Xác nhận giao lại",
+  "device/page.parcel/detail": "tochhanh24.example",
+  "device/page.parcel/body":
+    "Bưu phẩm TH24 4471 0925 đang chờ được giao lại. Xác nhận người nhận và địa chỉ, sau đó thanh toán phí giao lại 22.000 VNĐ.\n\nTrang này là mô phỏng. Không có thẻ, tài khoản hay mã thật nào được dùng trong trò chơi.",
+  "device/page.parcel/actions/enter-details/label": "Nhập mã sinh viên và số thẻ để xác nhận người nhận",
+  "device/page.parcel/actions/enter-details/transcript/0":
+    "Bưu phẩm TH24 4471 0925. Đây là mã sinh viên của tôi, và thẻ tôi dùng để nhận hàng.",
+  "device/page.parcel/actions/enter-details/transcript/1":
+    "Cảm ơn bạn. Người nhận đã được xác nhận. Hãy thanh toán phí giao lại để hẹn lần giao tiếp theo.",
+  "device/page.parcel/actions/pay-fee/label": "Thanh toán phí giao lại",
+  "device/page.parcel/actions/close/label": "Đóng trang",
+  "device/app.courier/title": "Tốc Hành 24 — tra cứu bưu phẩm",
+  "device/app.courier/body": "Tra cứu bưu phẩm bằng mã theo dõi hoặc bằng số điện thoại người gửi đã dùng.",
+  "device/app.courier/actions/open-redelivery-page/label": "Mở trang giao lại",
+  "device/app.courier/actions/lookup-with-slip/label": "Tra mã TH24 4471 0925",
+  "device/app.courier/actions/lookup-with-slip/transcript/0": "Mã theo dõi TH24 4471 0925.",
+  "device/app.courier/actions/lookup-with-slip/transcript/1":
+    "Bưu phẩm TH24 4471 0925 đang ở quầy Chợ Lớn, Quận 5. Không có khoản phí giao lại nào cho bưu phẩm này. Quầy mở đến 13:30.",
+  "device/app.courier/actions/lookup-by-phone/label": "Tra bằng số điện thoại trên tin nhắn",
+  "device/app.courier/actions/lookup-by-phone/transcript/0": "Tôi muốn tra một bưu phẩm gửi tới số này.",
+  "device/app.courier/actions/lookup-by-phone/transcript/1":
+    "Có một bưu phẩm đăng ký theo số này và đang chờ tại một quầy. Người gửi trả phí, không phải người nhận. Bạn nhờ quầy đối chiếu mã trên phiếu.",
+  "ledger/ledger.parcel-fee": "Phí giao lại bưu phẩm",
+  "events/m02.counter-closes/title": "Quầy đã đóng cửa",
+  "events/m02.counter-closes/body": "Quầy Chợ Lớn đóng lúc 13:30. Bưu phẩm vẫn còn ở đó.",
 };

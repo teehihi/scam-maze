@@ -93,6 +93,9 @@ export const PERSISTENT_FLAG_IDS = [
   "supervisorFeedbackRequested",
   /** Alex checked the District 5 appointment through a previously known channel. */
   "rideVerifiedIndependently",
+  "parcelCredentialsExposed",
+  "parcelFeePaid",
+  "parcelAtCounter",
   /** Alex paid the unofficial driver outside a tracked ride service. */
   "ridePaidOffPlatform",
   /** The unofficial ride consumed enough time to affect the appointment. */
@@ -186,6 +189,9 @@ export const CHAPTER_1_INITIAL_STATE: ChapterInitialState = {
     finalDraftReviewed: false,
     supervisorFeedbackRequested: false,
     rideVerifiedIndependently: false,
+    parcelCredentialsExposed: false,
+    parcelFeePaid: false,
+    parcelAtCounter: false,
     ridePaidOffPlatform: false,
     rideLostTime: false,
     interviewArrived: false,

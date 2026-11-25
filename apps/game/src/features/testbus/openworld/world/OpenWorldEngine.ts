@@ -1,3 +1,5 @@
+import type { TransitHost } from "../simulation/transit";
+import { placeStreetFurniture } from "../../../khupho/world/streetFurniture";
 import * as T from "three";
 import { tr } from "../strings";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -162,6 +164,7 @@ export interface ExternalHost {
    * them into deterministic chapter actions; the world keeps driving the bus itself.
    */
   onTransit?: (event: TransitEvent) => void;
+  transitHost?: Pick<TransitHost, "chapterSeconds" | "wallet">;
   /**
    * The player picked a reply in a street conversation. The host records what the character said
    * in the chapter store, so a street talk can count as asking a question in the phone record.
@@ -881,9 +884,11 @@ export class OpenWorldEngine {
     });
 
     // 6. EXACT ROUTE 06 BUS & 15 EXACT BUS STATION NPCS + DRIVER (UNIFIED WITH SAIGON TRAFFIC!)
-    this.route = new BusRouteController({ onEvent: (event) => this.external?.onTransit?.(event) });
-    this.route.wait();
-    this.route.update(6.5, { front: false, rear: false }, false);
+    this.route = new BusRouteController({ ...external?.transitHost, onEvent: (event) => this.external?.onTransit?.(event) });
+    if (!external?.transitHost) {
+      this.route.wait();
+      this.route.update(6.5, { front: false, rear: false }, false);
+    }
     this.traffic.registerBus06(this.route.x, this.route.z, Math.PI + this.route.yaw);
     // Keep exteriorGroup free of extra dynamic PointLights (bus already has emissive interior strips!) -> constant light count!
     this.bus = buildBus(extScene, this.route, false);
@@ -1044,6 +1049,7 @@ export class OpenWorldEngine {
     });
     this.renderer.initTexture(this.dropTex);
 
+    placeStreetFurniture(extScene);
     this.clock.start();
     if (!external) this.tick();
   }
