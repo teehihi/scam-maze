@@ -3,6 +3,7 @@ import { CURB_HEIGHT, rect, type Solid } from "../simulation/boarding";
 import { SaigonRoadGraph, type SaigonTrafficManager } from "../traffic";
 import { createMastArmSignal, type LampSet } from "./mastArmSignal";
 import { deriveSignalApproaches, signalBasePosition, type SignalApproach } from "./signalPlacement";
+import { createSignalDebugOverlay, isSignalDebugEnabled } from "./signalDebug";
 import type { WorldStreamer } from "./WorldStreamer";
 
 export interface BuildIntersectionSignalsOptions {
@@ -88,6 +89,8 @@ export function buildIntersectionSignals(opts: BuildIntersectionSignalsOptions):
       lodDist: SIGNAL_LOD_DIST,
     });
   }
+
+  if (isSignalDebugEnabled()) parent.add(createSignalDebugOverlay(approaches, graph, graph.intersections.values()));
 
   return { groups, approaches, poles, staticLamps };
 }
