@@ -6,6 +6,7 @@ import { Mouse } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "../../../components/ui/useReducedMotion";
 import { CINE, CINE_KEYCAP_STYLE } from "../theme";
+import { hudScaleStyle, useHudScale } from "./hudScale";
 
 export interface MovementHintsProps {
   /** True in the exploration mode with the HUD shown. */
@@ -34,6 +35,7 @@ export const MovementHints: React.FC<MovementHintsProps> = ({ active }) => {
   const { t } = useTranslation("chapter1");
   const text = t as unknown as (key: string) => string;
   const reducedMotion = useReducedMotion();
+  const hudScale = useHudScale();
   const [seen, setSeen] = useState(readSeen);
   const [fading, setFading] = useState(false);
 
@@ -84,6 +86,7 @@ export const MovementHints: React.FC<MovementHintsProps> = ({ active }) => {
       data-fading={fading ? "true" : "false"}
       className="pointer-events-none absolute left-6 z-10 flex flex-col gap-2"
       style={{
+        ...hudScaleStyle(hudScale, "bottom left"),
         // No box: plain key-caps and labels, clear of the Ctrl / Esc footer strip.
         bottom: CINE.hintsBottomPx,
         textShadow: "0 1px 8px rgba(0,0,0,0.85)",

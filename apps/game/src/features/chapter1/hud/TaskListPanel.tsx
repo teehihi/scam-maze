@@ -1,5 +1,5 @@
 // Task list (the task icon on the map, or T): open missions with their steps, then the missions that
-// ended. Same look as the neighborhood quest list. Presentation only; "Track" picks the mission the
+// ended. Same look as the neighborhood quest list. Presentation only; "Track" (or a click on the mission or a sub-task) picks what the
 // tracker and the marker follow.
 import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,12 +16,16 @@ export interface TaskListPanelProps {
   open: readonly MissionView[];
   closed: readonly ClosedMissionView[];
   trackedId: string | null;
+  /** The sub-task the tracker shows now (the mission's current step unless the player picked another). */
+  trackedStepId?: string | null;
   onTrack: (missionId: string) => void;
+  /** Track one sub-task of a mission (also tracks the mission). */
+  onTrackStep?: (missionId: string, stepId: string) => void;
   onClose: () => void;
   onHoverSound?: () => void;
 }
 
-const StepRow: React.FC<{ step: MissionStepView; current: boolean; text: Tx }> = ({ step, current, text }) => {
+const StepRow: React.FC<{ step: MissionStepView; current: boolean; text: Tx; onPick?: () => void; onHoverSound?: () => void }> = ({ step, current, text, onPick, onHoverSound }) => {
   const place = stepPlace(text, step);
   return (
     <li data-testid={`task-step-${step.id}`} data-state={step.done ? "done" : current ? "current" : "open"} className="flex items-start gap-2.5">
@@ -33,19 +37,33 @@ const StepRow: React.FC<{ step: MissionStepView; current: boolean; text: Tx }> =
         <span aria-hidden="true" className="ml-[5px] mr-[3px] mt-[0.45rem] h-1.5 w-1.5 shrink-0 rotate-45 border border-[#b9a5f5]" />
       )}
       <div className="min-w-0">
+        {onPick && !step.done && !current ? (
+          <button
+            type="button"
+            data-testid={`task-step-track-${step.id}`}
+            onClick={onPick}
+            onPointerEnter={onHoverSound}
+            title={text("taskSystem.list.track")}
+            className="block cursor-pointer text-left text-sm leading-snug text-zinc-300 underline decoration-[#b9a5f5]/40 underline-offset-2 outline-none hover:text-[#f3efe4] hover:decoration-[#f3efe4] focus-visible:decoration-[#f3efe4]"
+          >
+            {step.label}
+            {step.optional && <span className="ml-1.5 text-xs font-normal uppercase tracking-[0.1em] text-zinc-500">({text("taskSystem.optional")})</span>}
+          </button>
+        ) : (
         <p className={`text-sm leading-snug ${step.done ? "text-zinc-500 line-through decoration-zinc-600" : current ? "font-semibold text-[#f3efe4]" : "text-zinc-300"}`}>
           {step.done && <span className="sr-only">{text("taskSystem.list.done")}: </span>}
           {current && <span className="sr-only">{text("taskSystem.list.current")}: </span>}
           {step.label}
           {step.optional && <span className="ml-1.5 text-xs font-normal uppercase tracking-[0.1em] text-zinc-500">({text("taskSystem.optional")})</span>}
         </p>
+        )}
         {place && !step.done && <p className="text-xs tracking-[0.04em] text-[#c9bbf7]">{place}</p>}
       </div>
     </li>
   );
 };
 
-export const TaskListPanel: React.FC<TaskListPanelProps> = ({ open, closed, trackedId, onTrack, onClose, onHoverSound }) => {
+export const TaskListPanel: React.FC<TaskListPanelProps> = ({ open, closed, trackedId, trackedStepId = null, onTrack, onTrackStep, onClose, onHoverSound }) => {
   const { t } = useTranslation("chapter1");
   const text = t as unknown as Tx;
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -96,7 +114,16 @@ export const TaskListPanel: React.FC<TaskListPanelProps> = ({ open, closed, trac
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="font-menu text-lg font-semibold uppercase tracking-[0.03em]">
-                            {mission.title}
+                            <button
+                              type="button"
+                              data-testid={`task-mission-pick-${mission.id}`}
+                              onClick={() => onTrack(mission.id)}
+                              onPointerEnter={onHoverSound}
+                              disabled={tracked && (mission.current?.id ?? null) === trackedStepId}
+                              className="cursor-pointer text-left uppercase outline-none hover:text-white focus-visible:underline disabled:cursor-default"
+                            >
+                              {mission.title}
+                            </button>
                             {mission.optional && <span className="ml-2 align-middle text-xs font-normal tracking-[0.1em] text-zinc-400">{t("taskSystem.optional")}</span>}
                           </p>
                           {mission.minutesLeft !== null && (
@@ -118,7 +145,7 @@ export const TaskListPanel: React.FC<TaskListPanelProps> = ({ open, closed, trac
                       {mission.steps.length > 0 && (
                         <ol className="mt-2.5 space-y-1.5">
                           {mission.steps.map((step) => (
-                            <StepRow key={step.id} step={step} current={mission.current?.id === step.id} text={text} />
+                            <StepRow key={step.id} step={step} current={(tracked ? trackedStepId : mission.current?.id) === step.id} text={text} onPick={onTrackStep ? () => onTrackStep(mission.id, step.id) : undefined} onHoverSound={onHoverSound} />
                           ))}
                         </ol>
                       )}

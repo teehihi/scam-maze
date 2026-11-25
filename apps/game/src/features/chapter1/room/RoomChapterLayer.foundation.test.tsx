@@ -126,6 +126,25 @@ describe("RoomChapterLayer with LAST SUBMISSION routing", () => {
     expect(screen.getByTestId("task-step-done").textContent).toContain("Edit the introduction and literature review");
   });
 
+  it("shows one task only, and tracks another task or a sub-task from the list", () => {
+    const rig = mountLayer();
+    finishIntro();
+    expect(rig.store()).toBeTruthy();
+    const tracker = screen.getByTestId("task-tracker");
+    expect(screen.queryByTestId("task-others")).toBeNull();
+    const firstStep = within(tracker).getByTestId("task-current").textContent;
+    expect(firstStep).toBe("Edit the introduction and literature review");
+    // Track a later sub-task of the same mission.
+    fireEvent.click(screen.getByTestId("hud-task-button"));
+    const list = screen.getByTestId("task-list");
+    fireEvent.click(within(list).getByTestId("task-step-track-findings"));
+    expect(within(screen.getByTestId("task-tracker")).getByTestId("task-current").textContent).toBe("Revise the findings section");
+    expect(within(screen.getByTestId("task-list")).getByTestId("task-step-findings").getAttribute("data-state")).toBe("current");
+    // Clicking the mission title tracks the mission again (its own current step).
+    fireEvent.click(within(screen.getByTestId("task-list")).getByTestId("task-mission-pick-m01.missing-access"));
+    expect(within(screen.getByTestId("task-tracker")).getByTestId("task-current").textContent).toBe(firstStep);
+  });
+
   it("hides the room HUD over the laptop while marking the current task app on its desktop", () => {
     const rig = mountLayer();
     finishIntro();
