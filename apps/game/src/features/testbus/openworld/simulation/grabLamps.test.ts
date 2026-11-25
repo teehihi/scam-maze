@@ -2,8 +2,12 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as T from "three";
 import { describe, expect, it } from "vitest";
+import { NodeIO } from "@gltf-transform/core";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
+import { dequantize, getBounds } from "@gltf-transform/functions";
+import { MeshoptDecoder } from "meshoptimizer";
 import { GRAB_HEADLAMP, GRAB_TAILLAMP } from "./grabDriver";
-import { addHeadlightBeam, attachDynamicLamps, mountRoundLamp, setVehicleLightLevel } from "./vehicleLights";
+import { addHeadlightBeam, attachDynamicLamps, mountGrabLamps, mountRoundLamp, setVehicleLightLevel } from "./vehicleLights";
 
 /** A body-only stand-in for the Grab scooter: a chassis box and a steering bone, no lamp meshes. */
 function grabLikeRig() {
@@ -70,6 +74,12 @@ describe("Grab round lamps", () => {
       depth: GRAB_TAILLAMP.depth,
       facing: new T.Vector3(0, 0, -1),
     });
+    // The mounted original is not in the global night list: only the per-vehicle clone is updated.
+    const original = lens.material as T.MeshStandardMaterial;
+    const before = original.emissiveIntensity;
+    setVehicleLightLevel(1, 0);
+    expect(original.emissiveIntensity).toBe(before);
+    setVehicleLightLevel(0, 0);
     const dyn = attachDynamicLamps(holder, 0.44, 1.04, true);
     expect(holder.getObjectByName("FlushTailLamp")).toBeUndefined();
     // attachDynamicLamps clones the lens material per vehicle; read the one now on the mesh.
@@ -81,26 +91,58 @@ describe("Grab round lamps", () => {
     expect(bound.name).toContain("_lamp_tail");
   });
 
-  it("lamp constants lie on the real GLB cowl and rear tip", () => {
+  it("mountGrabLamps puts the lenses on the real GLB cowl and rear tip", async () => {
+    await MeshoptDecoder.ready;
+    const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ "meshopt.decoder": MeshoptDecoder });
     const file = resolve(__dirname, "../../../../../public/assets/testbus/ow/models/grab-driver.optimized.glb");
-    const buf = readFileSync(file);
-    const jsonLen = buf.readUInt32LE(12);
-    const json = JSON.parse(buf.subarray(20, 20 + jsonLen).toString("utf8"));
-    const byName = new Map<string, { translation?: number[] }>(json.nodes.map((n: { name: string }) => [n.name, n]));
-    expect(byName.has(GRAB_HEADLAMP.bone)).toBe(true);
-    expect(byName.has(GRAB_TAILLAMP.bone)).toBe(true);
-    // Cowl front face z = 0.093 and y range -0.042..0.063 (measured in the steering frame).
-    const [x, y, z] = GRAB_HEADLAMP.position;
-    expect(x).toBe(0);
-    expect(y).toBeGreaterThan(-0.042);
-    expect(y).toBeLessThan(0.063);
-    expect(z + GRAB_HEADLAMP.depth).toBeGreaterThan(0.093);
-    expect(z).toBeLessThan(0.093);
-    // Rear carrier tip z = -0.94, y 0.42..0.56.
-    const [, ty, tz] = GRAB_TAILLAMP.position;
-    expect(ty).toBeGreaterThan(0.42);
-    expect(ty).toBeLessThan(0.56);
-    expect(tz).toBeGreaterThan(-0.94);
-    expect(tz - GRAB_TAILLAMP.depth).toBeLessThan(-0.94);
+    const doc = await io.readBinary(new Uint8Array(readFileSync(file)));
+    await doc.transform(dequantize());
+    const nodes = doc.getRoot().listNodes();
+    const steeringNode = nodes.find((n) => n.getName() === GRAB_HEADLAMP.bone)!;
+    const chassisNode = nodes.find((n) => n.getName() === GRAB_TAILLAMP.bone)!;
+    expect(steeringNode).toBeDefined();
+    expect(chassisNode).toBeDefined();
+
+    // Rebuild the two bones with their real world transforms, then run the production wiring on them.
+    const root = new T.Group();
+    const bone = (name: string, world: number[]) => {
+      const b = new T.Bone();
+      b.name = name;
+      b.matrixAutoUpdate = false;
+      b.matrix.fromArray(world);
+      root.add(b);
+      return b;
+    };
+    bone(GRAB_HEADLAMP.bone, steeringNode.getWorldMatrix());
+    bone(GRAB_TAILLAMP.bone, chassisNode.getWorldMatrix());
+    const { head, tail } = mountGrabLamps(root);
+    expect(head).not.toBeNull();
+    expect(tail).not.toBeNull();
+    expect(head!.parent!.name).toBe(GRAB_HEADLAMP.bone);
+    expect(tail!.parent!.name).toBe(GRAB_TAILLAMP.bone);
+    root.updateMatrixWorld(true);
+    const h = head!.getWorldPosition(new T.Vector3());
+    const t = tail!.getWorldPosition(new T.Vector3());
+
+    // The cowl is the mesh under the steering bone; the lens must sit inside its box and bulge past its front face.
+    const cowl = getBounds(steeringNode);
+    expect(h.y).toBeGreaterThan(cowl.min[1]);
+    expect(h.y).toBeLessThan(cowl.max[1]);
+    expect(h.x).toBeGreaterThan(cowl.min[0]);
+    expect(h.x).toBeLessThan(cowl.max[0]);
+    expect(h.z).toBeLessThan(cowl.max[2]);
+    expect(h.z + GRAB_HEADLAMP.depth).toBeGreaterThan(cowl.max[2]);
+    // The rear tip of the whole scooter: the tail lens sits on it and bulges past it.
+    const body = getBounds(chassisNode);
+    expect(t.z).toBeGreaterThan(body.min[2]);
+    expect(t.z - GRAB_TAILLAMP.depth).toBeLessThan(body.min[2]);
+    expect(t.y).toBeGreaterThan(body.min[1]);
+    expect(t.y).toBeLessThan(body.max[1]);
+  });
+
+  it("loadGrabDrivers mounts its lamps through mountGrabLamps", () => {
+    const src = readFileSync(resolve(__dirname, "../world/saigonDistricts.ts"), "utf8");
+    const loader = src.slice(src.indexOf("const loadGrabDrivers"));
+    expect(loader).toMatch(/mountGrabLamps\(obj\)/);
   });
 });

@@ -83,6 +83,10 @@ export const LONG_Q9_PARK_V = 3.9;
 export const LONG_Q9_WALK_V = 4.45;
 export const LONG_Q9_WORK_V = 4.8;
 export const LONG_Q9_NPC_V = 5.3;
+/** The takeover window ends this far (m) before the parking place; the approach legs need the rest to slow down. */
+export const LONG_Q9_TAKEOVER_LEAD = 18;
+/** Longest he waits (s) with the stand up for the lane behind him to clear before riding off anyway. */
+export const LONG_Q9_RIDE_OFF_MAX_WAIT_SECONDS = 25;
 /** Lane position (v) he rides in on a normal cruise and merges back into. */
 export const LONG_Q9_LANE_V = 1.9;
 
@@ -111,7 +115,7 @@ export interface LongQ9Site {
 /**
  * The rescue sites, visited in this order and then again. All three are on the sidewalk next to a main road, clear of trees,
  * lamp posts and shopfronts (checked in `longQ9.test.ts`).
- *  1. Đường 3/2 south sidewalk, westbound edge D32_W_EB, between the trees at x = 25 and 32 (bike at x 29.6, he parks at x 37.6).
+ *  1. Đường 3/2 south sidewalk, westbound edge D32_W_EB, between the trees at x = 18 and 25 (bike at x 22.6, he parks at x 30.6). He parks early on the edge so that he is handed back to traffic at least 8 m before its end.
  *  2. Đường 3/2 east of Hải Triều, D32_E_EB (bike at x 89.5, he parks at x 97.5).
  *  3. Điện Biên Phủ north sidewalk, DBP_E_WB (heading west; bike at x 101, he parks at x 93).
  */
@@ -122,10 +126,10 @@ export const LONG_Q9_SITES: readonly LongQ9Site[] = [
     edgeLength: 36.2,
     origin: { x: 8.6, z: -73 },
     dir: { x: 1, z: 0 },
-    parkU: 29,
-    strangerBikeU: 21,
-    workU: 21.4,
-    npcU: 19.2,
+    parkU: 22,
+    strangerBikeU: 14,
+    workU: 14.4,
+    npcU: 12.2,
   },
   {
     id: "d32-east",
@@ -169,7 +173,7 @@ export function longQ9CurbHeight(v: number): number {
 
 /** First and last edge position at which he takes over from traffic and starts to signal for a site. */
 export function longQ9TakeoverWindow(site: LongQ9Site): { sLo: number; sHi: number } {
-  return { sLo: Math.max(0, site.parkU - 36), sHi: site.parkU - 20 };
+  return { sLo: Math.max(0, site.parkU - 36), sHi: site.parkU - LONG_Q9_TAKEOVER_LEAD };
 }
 
 /** The pavement route from the parked bike to the work spot, in road frame (u, v) points. */
@@ -493,12 +497,15 @@ function faceTowards(state: LongQ9State, tx: number, tz: number, dt: number) {
  *
  * `traffic` describes the managed bike during cruise: pass the agent's reading (edge, position, speed), `null` while it
  * is on a junction arc, or leave it `undefined` when there is no traffic manager. Then he rides a scripted lane path.
+ * `rideOffClear` is false while a vehicle is closing in on the spot where he merges back; he then waits with the stand up
+ * (at most `LONG_Q9_RIDE_OFF_MAX_WAIT_SECONDS`) instead of pulling out in front of it.
  */
 export function stepLongQ9(
   state: LongQ9State,
   rawDt: number,
   sites: readonly LongQ9Site[] = LONG_Q9_SITES,
   traffic?: LongQ9TrafficReading | null,
+  rideOffClear = true,
 ): LongQ9Frame {
   const dt = clamp(rawDt, 0, 0.1);
   state.t += dt;
@@ -641,7 +648,7 @@ export function stepLongQ9(
     }
     case "kickstand_up": {
       state.kickstand = 1 - smooth01(state.t / LONG_Q9_KICKSTAND_SECONDS);
-      if (state.t >= LONG_Q9_KICKSTAND_UP_SECONDS) {
+      if (state.t >= LONG_Q9_KICKSTAND_UP_SECONDS && (rideOffClear || state.t >= LONG_Q9_KICKSTAND_UP_SECONDS + LONG_Q9_RIDE_OFF_MAX_WAIT_SECONDS)) {
         state.kickstand = 0;
         state.rideD = 0;
         setPhase(state, "ride_off");

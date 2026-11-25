@@ -16,6 +16,7 @@ import {
   LONG_Q9_PARK_V,
   LONG_Q9_PHASES,
   LONG_Q9_REPAIR_SECONDS,
+  LONG_Q9_RIDE_OFF_MAX_WAIT_SECONDS,
   LONG_Q9_SITES,
   LONG_Q9_WALK_SPEED,
   createLongQ9State,
@@ -148,7 +149,10 @@ describe("Long Q9 rescue sites", () => {
     for (const site of LONG_Q9_SITES) {
       const { sLo, sHi } = longQ9TakeoverWindow(site);
       expect(sHi).toBeGreaterThan(sLo);
-      expect(site.parkU + 6).toBeLessThanOrEqual(site.edgeLength);
+      // He is handed back to traffic (parkU + 6) with at least 8 m of edge left before the junction.
+      expect(site.edgeLength - (site.parkU + 6)).toBeGreaterThanOrEqual(8);
+      // The window is wide enough that a rider at lane speed cannot cross it between two frames.
+      expect(sHi - sLo).toBeGreaterThanOrEqual(3);
       expect(site.strangerBikeU).toBeLessThan(site.parkU - 5);
     }
   });
@@ -311,6 +315,43 @@ describe("Long Q9 rescue loop", () => {
       if (!a.standingOnFoot || !b.standingOnFoot) continue;
       expect(Math.hypot(a.person.x - b.person.x, a.person.z - b.person.z)).toBeLessThan(0.12);
     }
+  });
+});
+
+describe("Long Q9 waits for the lane before riding off", () => {
+  /** Runs a managed rescue until the stand is up, then keeps stepping with the given merge flag. */
+  function untilStandUp(clear: boolean, extraSeconds: number) {
+    const state = createLongQ9State(LONG_Q9_SITES, 0);
+    const site = LONG_Q9_SITES[0];
+    const p = longQ9SitePoint(site, 2, 1.5);
+    const reading = { edgeId: site.edgeId, s: 2, latOffset: 1.5, x: p.x, z: p.z, yaw: Math.atan2(site.dir.x, site.dir.z), speed: 6 };
+    let frame = stepLongQ9(state, DT, LONG_Q9_SITES, reading);
+    for (let i = 0; i < 30 * 200 && state.phase !== "kickstand_up"; i++) frame = stepLongQ9(state, DT, LONG_Q9_SITES, null, clear);
+    expect(state.phase).toBe("kickstand_up");
+    const phases = new Set<string>();
+    for (let t = 0; t < extraSeconds; t += DT) phases.add(stepLongQ9(state, DT, LONG_Q9_SITES, null, clear).phase);
+    return { state, phases, frame };
+  }
+  it("stays parked with the stand up while a vehicle closes in, then goes after the wait limit", () => {
+    expect(untilStandUp(false, 10).phases.has("ride_off")).toBe(false);
+    expect(untilStandUp(false, LONG_Q9_RIDE_OFF_MAX_WAIT_SECONDS + 5).phases.has("ride_off")).toBe(true);
+  });
+  it("rides off right after the stand is up when the lane is clear", () => {
+    expect(untilStandUp(true, 3).phases.has("ride_off")).toBe(true);
+  });
+});
+
+describe("Long Q9 renderer wiring", () => {
+  const src = readFileSync(resolve(__dirname, "../world/saigonDistricts.ts"), "utf8");
+  it("places the bike in every phase when there is no traffic manager", () => {
+    expect(src).toMatch(/if \(frame\.external \|\| !agent\) \{/);
+  });
+  it("passes the merge check to the routine and guards the stranger clips", () => {
+    expect(src).toMatch(/stepLongQ9\(state, dt, LONG_Q9_SITES, reading, rideOffClear\)/);
+    expect(src).toMatch(/streetClips\(cfg\.npc, npcGltf\.scene, npcGltf\.animations\)\.catch\(/);
+  });
+  it("only switches the parked bike solid on when the player is not standing in it", () => {
+    expect(src).toMatch(/if \(!solidOn\) \{[\s\S]{0,200}> 1\.6 \* 1\.6/);
   });
 });
 

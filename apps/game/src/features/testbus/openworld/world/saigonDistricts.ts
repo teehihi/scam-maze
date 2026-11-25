@@ -2,7 +2,7 @@ import * as T from "three";
 import { streetClips } from "../simulation/streetClips";
 import { createHumanRealismRig, upgradeHumanMaterials, type HumanActivity, type HumanRealismRig } from "../simulation/humanRealism";
 import type { HumanPresenceSystem } from "../simulation/humanPresence";
-import { addHeadlightBeam, attachDynamicLamps, markLampParts, mountRoundLamp, setVehicleLightLevel } from "../simulation/vehicleLights";
+import { addHeadlightBeam, attachDynamicLamps, markLampParts, mountGrabLamps, mountRoundLamp, setVehicleLightLevel } from "../simulation/vehicleLights";
 import { TrafficSignalController, sampleEdge, type SaigonTrafficManager, type SignalAxis, type VehicleAgent } from "../traffic";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
@@ -26,7 +26,7 @@ import {
 import { equipVehicle, wheelRadius, wheelSpinSigns, type CrewMember } from "../simulation/vehicleCrew";
 import { fixVanWheels, simplifyInPlace } from "../simulation/vehicleLod";
 import { VAN_LENGTH } from "../simulation/vehicles";
-import { GRAB_DRIVER_FILE, GRAB_HEADLAMP, GRAB_TAILLAMP, pickGrabClip, type GrabClipName } from "../simulation/grabDriver";
+import { GRAB_DRIVER_FILE, pickGrabClip, type GrabClipName } from "../simulation/grabDriver";
 import {
   LONG_Q9_CRUISE_MIN_SECONDS,
   LONG_Q9_FILE,
@@ -1816,7 +1816,11 @@ export function buildSaigonDistricts(
     let onFoot = false;
     let currentClip: LongQ9Clip | null = null;
 
-    const state: LongQ9State = createLongQ9State(LONG_Q9_SITES, 0);
+    // With traffic he starts on the road before the second site (D32_W_EB, no rescue window there beyond s 4) and drives into
+    // it, so he is seen cruising before the first rescue. Without traffic the scripted fallback starts at the first site.
+    const startSite = trafficMgr ? 1 : 0;
+    const state: LongQ9State = createLongQ9State(LONG_Q9_SITES, startSite);
+    if (trafficMgr) state.t = 0;
     const ride = actions.get("Ride");
     if (ride) {
       ride.play();
@@ -1826,12 +1830,13 @@ export function buildSaigonDistricts(
     // ---- Traffic: a managed moto agent while cruising.
     let agent: VehicleAgent | null = null;
     if (trafficMgr) {
-      const site0 = LONG_Q9_SITES[0];
       agent = trafficMgr.spawnVehicle({
         id: LONG_Q9_AGENT_ID,
         category: "moto",
-        edgeId: site0.edgeId,
-        s: 1,
+        edgeId: LONG_Q9_SITES[0].edgeId,
+        s: 8,
+        // Strongly prefer the straight turn at the next junction: it leads onto the edge of the second site.
+        preferStraightBias: 1000,
         laneIndex: 1,
         latOffset: 1.5,
         speed: 6.5,
@@ -1887,6 +1892,7 @@ export function buildSaigonDistricts(
     let frontSpin = 0;
     let rearSpin = 0;
     let lastExternal = false;
+    let solidOn = false;
 
     longQ9Actor = {
       update(dt, time, playerX, playerZ, rangeSq) {
@@ -1898,7 +1904,21 @@ export function buildSaigonDistricts(
               ? { edgeId: agent.edgeId, s: agent.s, latOffset: agent.latOffset, x: agent.x, z: agent.z, yaw: agent.yaw, speed: agent.speed }
               : null;
         }
-        const frame: LongQ9Frame = stepLongQ9(state, dt, LONG_Q9_SITES, reading);
+        // Before riding off he waits while a vehicle is closing in from behind on the merge spot.
+        let rideOffClear = true;
+        if (trafficMgr && state.phase === "kickstand_up") {
+          const sIdx = LONG_Q9_SITES[state.site];
+          const mergeS = sIdx.parkU + 6;
+          for (const v of trafficMgr.vehicles) {
+            if (v.id === LONG_Q9_AGENT_ID || v.edgeId !== sIdx.edgeId || v.onTurn) continue;
+            const behind = mergeS - v.s;
+            if (behind > -2 && behind < 8 + v.speed * 2.5 && v.speed > 0.5) {
+              rideOffClear = false;
+              break;
+            }
+          }
+        }
+        const frame: LongQ9Frame = stepLongQ9(state, dt, LONG_Q9_SITES, reading, rideOffClear);
         const site = LONG_Q9_SITES[frame.site];
 
         // 2. The traffic agent: owned by the routine while it is not cruising, given back on the road afterwards.
@@ -1932,8 +1952,9 @@ export function buildSaigonDistricts(
             }
           }
         }
-        if (frame.external) {
-          // Rig pose, lamps and tilt are applied by the traffic step only for managed agents.
+        if (frame.external || !agent) {
+          // Rig pose, lamps and tilt are applied by the traffic step only for managed agents; without traffic the routine
+          // places the bike in every phase, cruise included.
           vehRoot.position.set(frame.bike.x, frame.bike.y, frame.bike.z);
           vehRoot.rotation.y = frame.bike.yaw;
           holder.rotation.x = 0;
@@ -1963,9 +1984,21 @@ export function buildSaigonDistricts(
         }
 
         // 4. Solid of the parked Wave while he works (the player cannot walk through it), none while it rides.
+        // It is not switched on while the player stands where the bike is (he would be inside the rect); once on it stays on.
         const parked = frame.phase !== "cruise" && frame.speed === 0 && frame.kickstand > 0 && frame.bike.y > 0;
-        if (parked) setBikeSolid(longQ9BikeSolid, frame.bike.x, frame.bike.z, Math.abs(site.dir.x) > 0.5);
-        else clearSolid(longQ9BikeSolid);
+        if (parked) {
+          if (!solidOn) {
+            const px = frame.bike.x - playerX;
+            const pz = frame.bike.z - playerZ;
+            if (px * px + pz * pz > 1.6 * 1.6) {
+              setBikeSolid(longQ9BikeSolid, frame.bike.x, frame.bike.z, Math.abs(site.dir.x) > 0.5);
+              solidOn = true;
+            }
+          }
+        } else if (solidOn) {
+          clearSolid(longQ9BikeSolid);
+          solidOn = false;
+        }
 
         // 5. Long: parented to the seat while riding, in the world while on foot.
         if (frame.standingOnFoot !== onFoot) {
@@ -2059,8 +2092,10 @@ export function buildSaigonDistricts(
       }
       const npcGltf = await loader.loadAsync(`${base}${cfg.npc}`).catch(() => null);
       if (!npcGltf || disposed) continue;
-      const clips = await streetClips(cfg.npc, npcGltf.scene, npcGltf.animations);
+      // A failed clip build must not end the loop: the remaining sites still get their bike and rider.
+      const clips = await streetClips(cfg.npc, npcGltf.scene, npcGltf.animations).catch(() => null);
       if (disposed) return;
+      if (!clips) continue;
       const npc = cloneSkinned(npcGltf.scene);
       const nb = new T.Box3().setFromObject(npc, true);
       const ns = cfg.height / Math.max(0.1, nb.max.y - nb.min.y);
@@ -2139,29 +2174,8 @@ export function buildSaigonDistricts(
       vehRoot.add(holder);
       const lamps = markLampParts(holder, obj, new T.Vector3(0, 0, 1));
       // The model has no lamp mesh: mount round lenses on its bones so the head lamp turns with the handlebar.
-      const headBone = obj.getObjectByName(GRAB_HEADLAMP.bone);
-      const tailBone = obj.getObjectByName(GRAB_TAILLAMP.bone);
-      if (headBone) {
-        mountRoundLamp(headBone, {
-          role: "head",
-          name: "GrabHeadlamp",
-          position: new T.Vector3(...GRAB_HEADLAMP.position),
-          radius: GRAB_HEADLAMP.radius,
-          depth: GRAB_HEADLAMP.depth,
-          facing: new T.Vector3(0, 0, 1),
-        });
-      }
-      if (tailBone) {
-        mountRoundLamp(tailBone, {
-          role: "tail",
-          name: "GrabTaillamp",
-          position: new T.Vector3(...GRAB_TAILLAMP.position),
-          radius: GRAB_TAILLAMP.radius,
-          depth: GRAB_TAILLAMP.depth,
-          facing: new T.Vector3(0, 0, -1),
-        });
-      }
-      if (lamps.head || headBone) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), "moto");
+      const grabLamps = mountGrabLamps(obj);
+      if (lamps.head || grabLamps.head) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), "moto");
       contact(holder, 0, 0.01, 0, 1.0, 2.15, shade);
       const dynamicLights = attachDynamicLamps(holder, 0.44, 1.04, true);
       dynamicRoot.add(vehRoot);
