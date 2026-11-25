@@ -26,6 +26,15 @@ import {
 import { equipVehicle, wheelRadius, wheelSpinSigns, type CrewMember } from "../simulation/vehicleCrew";
 import { fixVanWheels, simplifyInPlace } from "../simulation/vehicleLod";
 import { VAN_LENGTH } from "../simulation/vehicles";
+import { GRAB_DRIVER_FILE, pickGrabClip, type GrabClipName } from "../simulation/grabDriver";
+import {
+  LONG_Q9_FILE,
+  LONG_Q9_HEIGHT,
+  createLongQ9State,
+  stepLongQ9,
+  type LongQ9Spot,
+  type LongQ9State,
+} from "../simulation/longQ9";
 import type { WorldStreamer } from "./WorldStreamer";
 import type { PooledLightSpec } from "./boardingHouse";
 import {
@@ -181,6 +190,13 @@ export function buildSaigonDistricts(
   let envWetness = 0.86;
   let envRain = 0.36;
   const animMixers: T.AnimationMixer[] = [];
+  // Long Q9's repair corner on the Đường 3/2 south sidewalk (z in [-70, -65.6]), in front of the last shophouse.
+  // Two customer motorbikes are parked along the curb; he works on one, then walks over to the other.
+  const LONG_Q9_BIKES = [
+    { x: 41.8, z: -68.9 },
+    { x: 35.2, z: -68.9 },
+  ];
+  const LONG_Q9_SPOTS: LongQ9Spot[] = LONG_Q9_BIKES.map((bk) => ({ x: bk.x - 0.4, z: bk.z + 1.25, yaw: Math.PI }));
   const roamingActors: {
     group: T.Group;
     mixer?: T.AnimationMixer;
@@ -1658,6 +1674,142 @@ export function buildSaigonDistricts(
     }
   };
 
+  let longQ9Actor: { group: T.Group; state: LongQ9State } | null = null;
+  let longQ9Spawned = false;
+  const grabAnimators: { id: string; mixer: T.AnimationMixer; actions: Map<GrabClipName, T.AnimationAction>; current: GrabClipName | null; root: T.Object3D }[] = [];
+
+  const loadLongQ9Repair = async () => {
+    // Long Q9 is unique: one body, one spawn per world, never a pool or config entry.
+    if (longQ9Spawned) return;
+    longQ9Spawned = true;
+    const base = `/assets/testbus/ow/models/`;
+    const [qGltf, bikeGltf] = await Promise.all([
+      loader.loadAsync(`${base}${LONG_Q9_FILE}`).catch(() => null),
+      loader.loadAsync(`${base}vehicles/motorbike.glb`).catch(() => null),
+    ]);
+    if (disposed || !qGltf) return;
+
+    if (bikeGltf) {
+      for (const spot of LONG_Q9_BIKES) {
+        const bike = bikeGltf.scene.clone(true);
+        const b0 = new T.Box3().setFromObject(bike, true);
+        const sz0 = b0.getSize(new T.Vector3());
+        if (sz0.x > sz0.z) bike.rotation.y += Math.PI / 2;
+        bike.updateMatrixWorld(true);
+        const b1 = new T.Box3().setFromObject(bike, true);
+        bike.scale.setScalar(2.0 / Math.max(b1.max.z - b1.min.z, 0.5));
+        bike.updateMatrixWorld(true);
+        const b2 = new T.Box3().setFromObject(bike, true);
+        const c2 = b2.getCenter(new T.Vector3());
+        bike.position.set(-c2.x, -b2.min.y, -c2.z);
+        bike.traverse((n) => {
+          if (n instanceof T.Mesh) {
+            n.castShadow = false;
+            n.receiveShadow = true;
+          }
+        });
+        const holder = new T.Group();
+        holder.add(bike);
+        holder.position.set(spot.x, CURB_HEIGHT, spot.z);
+        holder.rotation.y = Math.PI / 2; // parked along the curb
+        contact(holder, 0, 0.01, 0, 1.0, 2.15, shade);
+        dynamicRoot.add(holder);
+        onAssetLoaded?.(holder);
+      }
+    }
+
+    const obj = qGltf.scene.clone(true);
+    const b = new T.Box3().setFromObject(obj, true);
+    const s = LONG_Q9_HEIGHT / Math.max(0.1, b.max.y - b.min.y);
+    obj.scale.setScalar(s);
+    obj.position.set(-((b.max.x + b.min.x) * s) / 2, -b.min.y * s, -((b.max.z + b.min.z) * s) / 2);
+    upgradeHumanMaterials(obj);
+    obj.traverse((n) => {
+      if (n instanceof T.Mesh) {
+        n.castShadow = false;
+        n.receiveShadow = true;
+      }
+    });
+    const holder = new T.Group();
+    holder.add(obj);
+    const state = createLongQ9State(LONG_Q9_SPOTS);
+    holder.rotation.order = "YXZ"; // heading first, then the lean in the body's own frame
+    holder.position.set(state.x, CURB_HEIGHT, state.z);
+    holder.rotation.y = state.yaw;
+    contact(holder, 0, 0.01, 0, 0.65, 0.65, shade);
+    dynamicRoot.add(holder);
+    onAssetLoaded?.(holder);
+    longQ9Actor = { group: holder, state };
+    if (humanPresence) {
+      presenceCleanups.push(
+        humanPresence.register({
+          id: "street_long_q9",
+          label: { en: "Long Q9, bike mechanic", vi: "Chú Long Q9, thợ sửa xe" },
+          object: holder,
+          radius: 0.36,
+          canSidestep: false,
+          onBump: () => {},
+          onPersonalSpace: () => {},
+        }),
+      );
+    }
+  };
+
+  const loadGrabDrivers = async () => {
+    if (!trafficMgr) return;
+    const gltf = await loader.loadAsync(`/assets/testbus/ow/models/${GRAB_DRIVER_FILE}`).catch(() => null);
+    if (disposed || !gltf) return;
+    const spawns: { edgeId: string; s: number; laneIndex: 0 | 1 }[] = [
+      { edgeId: "D32_W_EB", s: 60, laneIndex: 1 },
+      { edgeId: "HT_N_NB", s: 40, laneIndex: 1 },
+      { edgeId: "DBP_E_WB", s: 50, laneIndex: 1 },
+    ];
+    let idx = 0;
+    for (const sp of spawns) {
+      if (disposed) return;
+      const id = `DIST_GRAB_${idx++}`;
+      const obj = cloneSkinned(gltf.scene);
+      const b = new T.Box3().setFromObject(obj, true);
+      const ctr = b.getCenter(new T.Vector3());
+      // Real-world scale (scale 1); the scooter faces +Z like every other vehicle rig.
+      obj.position.set(-ctr.x, -b.min.y, -ctr.z);
+      obj.traverse((n) => {
+        if (n instanceof T.Mesh) {
+          n.castShadow = false;
+          n.receiveShadow = true;
+          n.frustumCulled = false;
+        }
+      });
+      const vehRoot = new T.Group();
+      const holder = new T.Group();
+      holder.add(obj);
+      vehRoot.add(holder);
+      const lamps = markLampParts(holder, obj, new T.Vector3(0, 0, 1));
+      if (lamps.head) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), "moto");
+      contact(holder, 0, 0.01, 0, 1.0, 2.15, shade);
+      const dynamicLights = attachDynamicLamps(holder, 0.44, 1.04, true);
+      dynamicRoot.add(vehRoot);
+      onAssetLoaded?.(vehRoot);
+
+      const mixer = new T.AnimationMixer(obj);
+      const actions = new Map<GrabClipName, T.AnimationAction>();
+      for (const clip of gltf.animations) actions.set(clip.name as GrabClipName, mixer.clipAction(clip));
+      grabAnimators.push({ id, mixer, actions, current: null, root: vehRoot });
+
+      trafficMgr.spawnVehicle({
+        id,
+        category: "moto",
+        edgeId: sp.edgeId,
+        s: sp.s,
+        laneIndex: sp.laneIndex,
+        halfWidth: 0.44,
+        halfLength: 1.04,
+        // The clips turn the wheels, so the traffic rig spins none of its own.
+        rig: { root: vehRoot, chassis: holder, wheels: [], wheelRadius: 0.275, lights: dynamicLights },
+      });
+    }
+  };
+
   const loadExpandedNPCs = async () => {
     const npcConfigs: {
       file: string;
@@ -1673,10 +1825,12 @@ export function buildSaigonDistricts(
       { file: "manvn.optimized.glb", pos: [17.4, CURB_HEIGHT, -9.8], axis: "x", min: 15.2, max: 22.0, speed: 0.72, height: 1.68 },
       { file: "npc-sofia.optimized.glb", pos: [11.2, CURB_HEIGHT, -11.4], axis: "x", min: 6.2, max: 13.0, speed: 0.68, height: 1.64 },
       // Đường 3/2 Commercial Boulevard pedestrians + stationary sidewalk café pair!
-      { file: "npc-alan.optimized.glb", pos: [26.0, CURB_HEIGHT, -67.6], axis: "x", min: 14.0, max: 45.0, speed: 0.88, height: 1.74 },
+      { file: "npc-alan.optimized.glb", pos: [26.0, CURB_HEIGHT, -67.6], axis: "x", min: 14.0, max: 33.0, speed: 0.88, height: 1.74 },
       { file: "npc-linmei.optimized.glb", pos: [34.0, CURB_HEIGHT, -84.0], axis: "x", min: 14.0, max: 45.0, speed: 0.82, height: 1.62 },
       { file: "npc-sofia.optimized.glb", pos: [25.6, CURB_HEIGHT, -66.5], axis: "idle", min: 0, max: 0, speed: 0, height: 1.63, idleYaw: 1.2 },
       { file: "rowan.optimized.glb", pos: [27.3, CURB_HEIGHT, -66.5], axis: "idle", min: 0, max: 0, speed: 0, height: 1.73, idleYaw: -1.4 },
+      // Customer waiting at Long Q9's repair spot (see loadLongQ9Repair)
+      { file: "npc-nguoigia.optimized.glb", pos: [LONG_Q9_SPOTS[0].x + 1.9, CURB_HEIGHT, LONG_Q9_SPOTS[0].z], axis: "idle", min: 0, max: 0, speed: 0, height: 1.62, idleYaw: Math.PI + 0.5 },
       // Bitexco Financial Tower Plaza walkers & conversing business pair!
       { file: "juno3.optimized.glb", pos: [BITEXCO_POS.x - 19, CURB_HEIGHT, BITEXCO_POS.z - 8], axis: "z", min: BITEXCO_POS.z - 18, max: BITEXCO_POS.z + 10, speed: 0.95, height: 1.65 },
       { file: "rowan.optimized.glb", pos: [BITEXCO_POS.x - 14, CURB_HEIGHT, BITEXCO_POS.z + 12], axis: "x", min: BITEXCO_POS.x - 22, max: BITEXCO_POS.x + 12, speed: 0.85, height: 1.72 },
@@ -1840,7 +1994,7 @@ export function buildSaigonDistricts(
     potWind,
   );
 
-  void Promise.all([loadExpandedFleet(), loadExpandedNPCs()]);
+  void Promise.all([loadExpandedFleet(), loadExpandedNPCs(), loadLongQ9Repair(), loadGrabDrivers()]);
 
   let savedVis = { eb: true, ebLod: false, bx: true, lm: true };
 
@@ -2027,7 +2181,41 @@ export function buildSaigonDistricts(
         }
       }
 
+      if (longQ9Actor) {
+        const g = longQ9Actor.group;
+        const dx = g.position.x - playerX;
+        const dz = g.position.z - playerZ;
+        g.visible = dx * dx + dz * dz < npcRangeSq;
+        if (g.visible) {
+          const pose = stepLongQ9(longQ9Actor.state, dt, LONG_Q9_SPOTS);
+          g.position.set(pose.x, CURB_HEIGHT + pose.bob, pose.z);
+          let dy = pose.yaw - g.rotation.y;
+          while (dy > Math.PI) dy -= Math.PI * 2;
+          while (dy < -Math.PI) dy += Math.PI * 2;
+          g.rotation.y += dy * Math.min(1, dt * 5);
+          g.rotation.x = pose.lean;
+          g.rotation.z = pose.sway;
+        }
+      }
+
       if (trafficMgr) {
+        for (const ga of grabAnimators) {
+          const agent = trafficMgr.vehicles.find((v) => v.id === ga.id);
+          if (!agent || !ga.root.visible || agent.lodTier > 1) continue;
+          const choice = pickGrabClip(agent.speed, agent.steerAngle);
+          if (choice.clip !== ga.current) {
+            const next = ga.actions.get(choice.clip);
+            if (next) {
+              next.reset().play();
+              if (ga.current) ga.actions.get(ga.current)?.crossFadeTo(next, 0.35, false);
+              else next.fadeIn(0.1);
+              ga.current = choice.clip;
+            }
+          }
+          const act = ga.current ? ga.actions.get(ga.current) : undefined;
+          if (act) act.timeScale = choice.timeScale;
+          ga.mixer.update(dt);
+        }
         // Distance-cull managed boulevard vehicles & driver crews cleanly, then drive wet-road tire spray!
         const vehRangeSq = 155 * 155;
         const crewRangeSq = 72 * 72;

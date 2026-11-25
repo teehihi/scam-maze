@@ -64,6 +64,10 @@ const rigged = (id, file, rig, triangles = 45_000) => ({ id, file, colorSize: 10
 const CHARACTERS = [
   { id: "banhmi-vendor", file: "banhmi-vendor/banhmi_vendor_animated.glb", colorSize: 2048, dataSize: 1024, ratio: 0.5, error: 0.0015 },
   { id: "manvn", file: "manvn/manVN_rigged_animated.glb", colorSize: 1024, dataSize: 1024, ratio: 1 },
+  // Long Q9: a posed scan with no skeleton or clips; the game moves the whole body (longQ9.ts).
+  { id: "longq9", file: "canh-3d-chu-long-q9-meet_road.glb", colorSize: 1024, dataSize: 1024, ratio: 1, unskinned: true },
+  // Grab driver: a scooter with its rider on one 21-joint skeleton and 4 clips (grabDriver.ts).
+  { id: "grab-driver", file: "grab_lai_xe_custom.glb", colorSize: 1024, dataSize: 1024, ratio: 1 },
   { id: "juno3", file: "juno3/juno3.glb", colorSize: 1024, dataSize: 1024, ratio: 0.6, error: 0.001 },
   { id: "rowan", file: "rowan/rowan.glb", colorSize: 1024, dataSize: 1024, ratio: 0.6, error: 0.001 },
   street("npc-alan", "alan_removerHair.glb", [/^Asset_hair_/]),
@@ -198,7 +202,7 @@ async function optimize(io, c) {
   const bytes = fs.statSync(output).size;
   const clips = root.listAnimations().map((a) => a.getName()).join(", ");
   console.log(`${c.id}: ${mb(fs.statSync(input).size)} -> ${mb(bytes)} | triangles ${before.toLocaleString("en-US")} -> ${triangles(doc).toLocaleString("en-US")} | skins ${root.listSkins().length} | meshes ${root.listMeshes().length} | clips: ${clips || "none"}${note ? ` | ${note}` : ""}`);
-  if (root.listSkins().length === 0) throw new Error(`${c.id}: the skin was lost`);
+  if (root.listSkins().length === 0 && !c.unskinned) throw new Error(`${c.id}: the skin was lost`);
   if (bytes > MAX_OUTPUT_BYTES) throw new Error(`${c.id}: ${bytes} bytes is above the ${MAX_OUTPUT_BYTES} byte limit`);
 }
 

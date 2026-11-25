@@ -11,8 +11,13 @@ does not load these files; it loads the optimized copies in
 | `manvn` | `manvn/manVN_rigged_animated.glb` | 22 bones (auto-rig, see `Asset3D/human/filecuachayxe/README.md`); Idle, Walk, Run, Jump, Wave, Bow, Clap, Dance, Squat, Cheer, Punch | Not provided |
 | `juno3` | `juno3/juno3.glb` (+ `juno3.json`) | Mixamo, 64 bones, 5 face morphs; 18 clips incl. idle, walk, wave | Not provided; the JSON notes the clips are retargeted Mixamo captures (check before commercial use) |
 | `rowan` | `rowan/rowan.glb` (+ `rowan.json`) | same as `juno3` | same as `juno3` |
+| `longq9` | `canh-3d-chu-long-q9-meet_road.glb` | No skeleton, no clips: one static posed mesh (52,500 triangles, 3 textures). The game animates the whole body (`testbus/openworld/simulation/longQ9.ts`). The one and only "Long Q9" mechanic on the Saigon street; never reuse it as a resident | Not provided. Confirm before a public release. |
+| `grab-driver` | `grab_lai_xe_custom.glb` | Honda Wave scooter plus rider on one 21-joint skeleton (`Rider_*`, `Bike_*`); clips Drive_Cruise, Drive_Fast, Drive_Turn, Idle_TrafficLight. Real-world scale, forward +Z | Not provided. Confirm before a public release. |
 
 Confirm every license before a public release.
+
+`longq9` and `grab-driver` are loaded by the Saigon open world from `public/assets/testbus/ow/models/`
+(copy the optimized files there after running the script; no script syncs that folder).
 
 ## Optimized output (2026-11-14)
 
