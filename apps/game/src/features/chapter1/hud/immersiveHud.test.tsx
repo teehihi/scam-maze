@@ -10,9 +10,17 @@ import { resolveStoryNpcDialogue } from "../../../game/narrative/chapter1/storyC
 import { ChapterStatusCluster } from "./ChapterStatusHud";
 import { CinemaNpcHud } from "../../testbus/openworld/CinemaNpcHud";
 import { DistrictArrivalBanner, parseStreetPrompt, StreetActionPrompt } from "../../testbus/openworld/StreetHudElements";
+import { ResumePrompt } from "./ResumePrompt";
 import { OutsideHud } from "../room/useOutsideWorld";
 
 describe("AAA Immersive UI/UX Overhaul", () => {
+  it("scales the resume prompt from the bottom centre", () => {
+    render(<ResumePrompt visible />);
+    const prompt = screen.getByTestId("resume-prompt");
+    expect(prompt.style.transform).toMatch(/^scale\(/);
+    expect(prompt.style.transformOrigin.split(" ").sort()).toEqual(["bottom", "center"]);
+  });
+
   it("switches ChapterStatusCluster seamlessly from indoor standby disc to live Saigon radar when outdoors", () => {
     const resources = CHAPTER_1_INITIAL_STATE.resources;
     const { rerender } = render(<ChapterStatusCluster resources={resources} outsideRadar={null} />);

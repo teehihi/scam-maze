@@ -74,3 +74,12 @@ describe("MainMenuOverlay keyboard navigation", () => {
     expect(current()).toBe("NEW GAME");
   });
 });
+
+describe("MainMenuOverlay scale", () => {
+  it("lays the menu out in a virtual viewport scaled with the window", () => {
+    renderMenu(NO_SAVE);
+    const wrap = screen.getByTestId("main-menu-scale");
+    expect(wrap.style.transform).toMatch(/^scale\(/);
+    expect(wrap.style.transformOrigin.split(" ").sort()).toEqual(["left", "top"]);
+  });
+});

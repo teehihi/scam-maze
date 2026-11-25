@@ -5,6 +5,7 @@ import React from "react";
 import { MousePointerClick } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { UI } from "../theme";
+import { hudScaleStyle, useHudScale } from "./hudScale";
 
 export interface ResumePromptProps {
   visible: boolean;
@@ -12,11 +13,13 @@ export interface ResumePromptProps {
 
 export const ResumePrompt: React.FC<ResumePromptProps> = ({ visible }) => {
   const { t } = useTranslation("chapter1");
+  const hudScale = useHudScale();
   if (!visible) return null;
   return (
     <p
       data-testid="resume-prompt"
       className={`${UI.hudPanel} pointer-events-none flex items-center gap-2 font-semibold`}
+      style={hudScaleStyle(hudScale, "bottom center")}
     >
       <MousePointerClick className="h-4 w-4 text-[#b9a5f5]" aria-hidden="true" />
       {t("resume.prompt")}

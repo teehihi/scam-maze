@@ -34,6 +34,13 @@ describe("MovementHints", () => {
     expect(parseFloat(hints.style.bottom)).toBeGreaterThanOrEqual(56);
   });
 
+  it("is scaled from its bottom-left corner with the shared HUD scale", () => {
+    render(<MovementHints active />);
+    const hints = screen.getByTestId("movement-hints");
+    expect(hints.style.transform).toMatch(/^scale\(/);
+    expect(hints.style.transformOrigin.split(" ").sort()).toEqual(["bottom", "left"]);
+  });
+
   it("renders nothing when not active", () => {
     render(<MovementHints active={false} />);
     expect(screen.queryByTestId("movement-hints")).toBeNull();

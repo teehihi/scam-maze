@@ -1644,7 +1644,8 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
             </div>
 
             {/* Visual only: the live region above announces the same events once. */}
-            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-4 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
+            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-4 z-10 flex -translate-x-1/2 flex-col items-center gap-2"
+              style={hudScaleStyle(hudScale, "top center")}>
               {toast && <ObjectiveToast key={toast.key} kind={toast.kind} text={objectiveText(toast.objectiveId)} onDismiss={dismissToast} />}
             </div>
 
@@ -1788,7 +1789,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
             </div>
 
             {arrival && (
-              <div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2" aria-hidden="true">
+              <div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2" style={hudScaleStyle(hudScale, "top center")} aria-hidden="true">
                 <EventArrivalNotice
                   key={arrival.key}
                   title={arrival.title}
@@ -1807,7 +1808,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
             aria-hidden="true"
             data-testid="evidence-notice-slot"
             className="pointer-events-none absolute right-4"
-            style={{ top: 72, zIndex: CINE.toast.zIndex }}
+            style={{ top: 72, zIndex: CINE.toast.zIndex, ...hudScaleStyle(hudScale, "top right") }}
           >
             <EvidenceNotice
               key={notice.key}
@@ -1859,13 +1860,13 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
         </div>
 
         {saveFailed && (
-          <div className="absolute bottom-20 right-4 z-50" onMouseDown={stopMouseDown}>
+          <div className="absolute bottom-20 right-4 z-50" style={hudScaleStyle(hudScale, "bottom right")} onMouseDown={stopMouseDown}>
             <SaveFailureNotice onDismiss={() => setSaveFailed(false)} />
           </div>
         )}
 
         {saveTrimmedOpen && !introOpen && (
-          <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2" onMouseDown={stopMouseDown}>
+          <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2" style={hudScaleStyle(hudScale, "top center")} onMouseDown={stopMouseDown}>
             <SaveTrimmedNotice onDismiss={() => setSaveTrimmedOpen(false)} />
           </div>
         )}

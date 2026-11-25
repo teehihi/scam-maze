@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { hudScaleStyle, useHudScale } from "../chapter1/hud/hudScale";
 import { CloudRain, DoorOpen, MousePointerClick, Play, Settings, SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
 
 /** Keyboard keys are literal text in every language. */
@@ -25,8 +26,14 @@ export interface PrologueTopBarProps {
 /** Top-right controls, the same on every in-game screen: sound and the settings/pause menu. */
 export const PrologueTopBar: React.FC<PrologueTopBarProps> = ({ soundEnabled, onToggleSound, onOpenSettings, onHoverSound }) => {
   const { t } = useTranslation(["common", "worlds"]);
+  const hudScale = useHudScale();
   return (
-    <header className="absolute right-[clamp(1rem,3vw,2.5rem)] top-4 z-20 flex items-center gap-5" onMouseDown={stop} onClick={stop}>
+    <header
+      className="absolute right-[clamp(1rem,3vw,2.5rem)] top-4 z-20 flex items-center gap-5"
+      style={hudScaleStyle(hudScale, "top right")}
+      onMouseDown={stop}
+      onClick={stop}
+    >
       <button
         type="button"
         onClick={onToggleSound}
@@ -84,9 +91,13 @@ export interface PrologueHudProps {
 /** Story HUD in the game's style: clock, objective, crosshair, prompt, resume hint, key hints. */
 export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, showResume, cursorMode, clock, crosshair = true, minimap, questArea, questKeys }) => {
   const { t } = useTranslation(["chapter1", "worlds"]);
+  const hudScale = useHudScale();
   return (
     <>
-      <div className={`pointer-events-none absolute left-[clamp(1rem,3vw,2.5rem)] top-4 z-10 max-w-sm space-y-4 ${SHADOW}`}>
+      <div
+        className={`pointer-events-none absolute left-[clamp(1rem,3vw,2.5rem)] top-4 z-10 max-w-sm space-y-4 ${SHADOW}`}
+        style={hudScaleStyle(hudScale, "top left")}
+      >
         <div className={minimap ? "flex items-start gap-4 pb-5" : undefined}>
           {minimap}
           {clock && (
@@ -117,7 +128,10 @@ export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, sho
         <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f3efe4]/85 shadow-[0_0_4px_rgba(0,0,0,0.8)]" />
       )}
 
-      <div className={`pointer-events-none absolute inset-x-0 bottom-24 z-10 flex flex-col items-center gap-2 px-4 ${SHADOW}`}>
+      <div
+        className={`pointer-events-none absolute inset-x-0 bottom-24 z-10 flex flex-col items-center gap-2 px-4 ${SHADOW}`}
+        style={hudScaleStyle(hudScale, "bottom center")}
+      >
         {showResume && (
           <p
             data-testid="resume-prompt"
@@ -138,7 +152,7 @@ export const PrologueHud: React.FC<PrologueHudProps> = ({ objective, prompt, sho
       </div>
 
       <div className="absolute bottom-4 left-[clamp(1rem,3vw,2.5rem)] right-[clamp(1rem,3vw,2.5rem)] z-10 flex items-end justify-between gap-4">
-        <div data-testid="hud-key-hints" data-hud-footer-hints="" className={`pointer-events-none flex flex-wrap items-center gap-x-5 max-sm:hidden gap-y-2 font-menu text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300/75 opacity-70 ${SHADOW}`}>
+        <div data-testid="hud-key-hints" data-hud-footer-hints="" style={hudScaleStyle(hudScale, "bottom left")} className={`pointer-events-none flex flex-wrap items-center gap-x-5 max-sm:hidden gap-y-2 font-menu text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300/75 opacity-70 ${SHADOW}`}>
           <span className="flex items-center gap-1.5">
             <kbd className={KEYCAP}>Ctrl</kbd>
             {t("chapter1:room.hud.mouseKeyHint")}
