@@ -2,8 +2,8 @@ import * as T from "three";
 import { streetClips } from "../simulation/streetClips";
 import { createHumanRealismRig, upgradeHumanMaterials, type HumanActivity, type HumanRealismRig } from "../simulation/humanRealism";
 import type { HumanPresenceSystem } from "../simulation/humanPresence";
-import { addHeadlightBeam, attachDynamicLamps, markLampParts, setVehicleLightLevel } from "../simulation/vehicleLights";
-import { TrafficSignalController, type SaigonTrafficManager, type SignalAxis } from "../traffic";
+import { addHeadlightBeam, attachDynamicLamps, markLampParts, mountGrabLamps, mountRoundLamp, setVehicleLightLevel } from "../simulation/vehicleLights";
+import { TrafficSignalController, sampleEdge, type SaigonTrafficManager, type SignalAxis, type VehicleAgent } from "../traffic";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
@@ -28,14 +28,25 @@ import { fixVanWheels, simplifyInPlace } from "../simulation/vehicleLod";
 import { VAN_LENGTH } from "../simulation/vehicles";
 import { GRAB_DRIVER_FILE, pickGrabClip, type GrabClipName } from "../simulation/grabDriver";
 import {
+  LONG_Q9_CRUISE_MIN_SECONDS,
   LONG_Q9_FILE,
   LONG_Q9_HEIGHT,
+  LONG_Q9_KICKSTAND_DEPLOYED_DEG,
+  LONG_Q9_KICKSTAND_FOLDED_DEG,
+  LONG_Q9_NPC_V,
+  LONG_Q9_PARK_V,
   LONG_Q9_RIG_HEIGHT,
-  type LongQ9Clip,
+  LONG_Q9_SEAT_OFFSET,
+  LONG_Q9_SITES,
+  WAVE_LONGQ9_FILE,
   createLongQ9State,
+  longQ9SitePoint,
+  longQ9TakeoverWindow,
   stepLongQ9,
-  type LongQ9Spot,
+  type LongQ9Clip,
+  type LongQ9Frame,
   type LongQ9State,
+  type LongQ9TrafficReading,
 } from "../simulation/longQ9";
 import type { WorldStreamer } from "./WorldStreamer";
 import type { PooledLightSpec } from "./boardingHouse";
@@ -192,17 +203,12 @@ export function buildSaigonDistricts(
   let envWetness = 0.86;
   let envRain = 0.36;
   const animMixers: T.AnimationMixer[] = [];
-  // Long Q9's repair corner on the Đường 3/2 south sidewalk (z in [-70, -65.6]), in front of the last shophouse.
-  // Two customer motorbikes are parked along the curb; he works on one, then walks over to the other.
-  const LONG_Q9_BIKES = [
-    { x: 41.8, z: -68.9 },
-    { x: 35.2, z: -68.9 },
-  ];
-  // He crouches at the first bike's tire and sits with a wrench at the second; the standoff leaves room for his legs.
-  const LONG_Q9_SPOTS: LongQ9Spot[] = [
-    { x: LONG_Q9_BIKES[0].x - 0.4, z: LONG_Q9_BIKES[0].z + 0.9, yaw: Math.PI, task: "Crouch_Tire" },
-    { x: LONG_Q9_BIKES[1].x - 0.4, z: LONG_Q9_BIKES[1].z + 1.1, yaw: Math.PI, task: "Sit_Wrench" },
-  ];
+  // Solids of the bikes of the roadside rescue (see loadLongQ9Repair). They are shared by reference with the engine, which copies
+  // this array once, so they exist from the start and are moved off the map (x = 1e6) while their bike is not standing there.
+  const OFF_MAP: Solid = { x0: 1e6, x1: 1e6, z0: 1e6, z1: 1e6 };
+  const longQ9BikeSolid: Solid = { ...OFF_MAP };
+  const strangerBikeSolids: Solid[] = LONG_Q9_SITES.map(() => ({ ...OFF_MAP }));
+  solids.push(longQ9BikeSolid, ...strangerBikeSolids);
   const roamingActors: {
     group: T.Group;
     mixer?: T.AnimationMixer;
@@ -1680,57 +1686,116 @@ export function buildSaigonDistricts(
     }
   };
 
-  let longQ9Actor: {
-    group: T.Group;
-    state: LongQ9State;
-    mixer: T.AnimationMixer;
-    actions: Map<LongQ9Clip, T.AnimationAction>;
-    current: LongQ9Clip | null;
-  } | null = null;
+  let longQ9Actor: { update(dt: number, time: number, playerX: number, playerZ: number, rangeSq: number): void } | null = null;
   let longQ9Spawned = false;
   const grabAnimators: { id: string; mixer: T.AnimationMixer; actions: Map<GrabClipName, T.AnimationAction>; current: GrabClipName | null; root: T.Object3D }[] = [];
 
+  const LONG_Q9_AGENT_ID = "DIST_LONG_Q9";
+  /**
+   * The stranded riders of the rescue sites: ordinary street NPC models (the same files as the pedestrians of
+   * loadExpandedNPCs) next to the same parked-bike models as the boarding house courtyard. Not Long Q9.
+   */
+  const LONG_Q9_STRANGERS = [
+    { npc: "manvn.optimized.glb", height: 1.68, bike: "bike-supercub.optimized.glb" },
+    { npc: "npc-alan.optimized.glb", height: 1.74, bike: "bike-pcx.optimized.glb" },
+    { npc: "rowan.optimized.glb", height: 1.73, bike: "vehicles/motorbike.glb" },
+  ] as const;
+  /** Half extents (m) of the solid of a parked bike: along its length and across. */
+  const BIKE_SOLID_HALF = { along: 0.95, across: 0.38 };
+  const setBikeSolid = (solid: Solid, x: number, z: number, alongX: boolean) => {
+    const hx = alongX ? BIKE_SOLID_HALF.along : BIKE_SOLID_HALF.across;
+    const hz = alongX ? BIKE_SOLID_HALF.across : BIKE_SOLID_HALF.along;
+    solid.x0 = x - hx;
+    solid.x1 = x + hx;
+    solid.z0 = z - hz;
+    solid.z1 = z + hz;
+  };
+  const clearSolid = (solid: Solid) => {
+    solid.x0 = solid.x1 = solid.z0 = solid.z1 = 1e6;
+  };
+
+  /**
+   * Long Q9's roadside rescue. The pure routine is simulation/longQ9.ts; this function loads the models and applies each frame:
+   * the Wave (a managed traffic agent while he cruises, moved by the routine while he pulls over, parks and rides off),
+   * Long on the seat or on foot, and the stranded rider and bike of each site.
+   */
   const loadLongQ9Repair = async () => {
     // Long Q9 is unique: one body, one spawn per world, never a pool or config entry.
     if (longQ9Spawned) return;
     longQ9Spawned = true;
     const base = `/assets/testbus/ow/models/`;
-    const [qGltf, bikeGltf] = await Promise.all([
+    const [qGltf, waveGltf] = await Promise.all([
       loader.loadAsync(`${base}${LONG_Q9_FILE}`).catch(() => null),
-      loader.loadAsync(`${base}vehicles/motorbike.glb`).catch(() => null),
+      loader.loadAsync(`${base}${WAVE_LONGQ9_FILE}`).catch(() => null),
     ]);
-    if (disposed || !qGltf) return;
+    if (disposed || !qGltf || !waveGltf) return;
 
-    if (bikeGltf) {
-      for (const spot of LONG_Q9_BIKES) {
-        const bike = bikeGltf.scene.clone(true);
-        const b0 = new T.Box3().setFromObject(bike, true);
-        const sz0 = b0.getSize(new T.Vector3());
-        if (sz0.x > sz0.z) bike.rotation.y += Math.PI / 2;
-        bike.updateMatrixWorld(true);
-        const b1 = new T.Box3().setFromObject(bike, true);
-        bike.scale.setScalar(2.0 / Math.max(b1.max.z - b1.min.z, 0.5));
-        bike.updateMatrixWorld(true);
-        const b2 = new T.Box3().setFromObject(bike, true);
-        const c2 = b2.getCenter(new T.Vector3());
-        bike.position.set(-c2.x, -b2.min.y, -c2.z);
-        bike.traverse((n) => {
-          if (n instanceof T.Mesh) {
-            n.castShadow = false;
-            n.receiveShadow = true;
-          }
-        });
-        const holder = new T.Group();
-        holder.add(bike);
-        holder.position.set(spot.x, CURB_HEIGHT, spot.z);
-        holder.rotation.y = Math.PI / 2; // parked along the curb
-        contact(holder, 0, 0.01, 0, 1.0, 2.15, shade);
-        dynamicRoot.add(holder);
-        onAssetLoaded?.(holder);
+    // ---- The yellow Wave: pivots are rotated, the *_Mesh children are left alone.
+    const wave = cloneSkinned(waveGltf.scene);
+    wave.traverse((n) => {
+      if (n instanceof T.Mesh) {
+        n.castShadow = false;
+        n.receiveShadow = true;
+        n.frustumCulled = false;
       }
+    });
+    const node = (name: string) => wave.getObjectByName(name) ?? null;
+    const steering = node("Wave_Steering");
+    const frontWheel = node("Wave_FrontWheel");
+    const rearWheel = node("Wave_RearWheel");
+    const kickstand = node("Wave_Kickstand");
+    const steerRest = steering ? steering.quaternion.clone() : new T.Quaternion();
+    const steerRestInv = steerRest.clone().invert();
+    const frontRadius = (frontWheel?.userData.radius as number | undefined) ?? 0.284;
+    const rearRadius = (rearWheel?.userData.radius as number | undefined) ?? 0.272;
+    const forwardIn = (x: number, z: number, inSteering: boolean) => {
+      const f = new T.Vector3(x, 0, z).normalize();
+      return inSteering ? f.applyQuaternion(steerRestInv) : f;
+    };
+    // Lamps at the anchors of the GLB, like every other vehicle: lenses that follow the node they sit on (the head lamp and the
+    // front signals turn with the handlebar), bound to the shared night level, brake light and blinker code.
+    const headAnchor = node("Wave_HeadLamp");
+    if (headAnchor) {
+      mountRoundLamp(headAnchor, { role: "head", name: "WaveHeadlamp", position: new T.Vector3(), radius: 0.055, depth: 0.02, facing: forwardIn(0, 1, true) });
+    }
+    const tailAnchor = node("Wave_TailLamp");
+    if (tailAnchor) {
+      mountRoundLamp(tailAnchor, { role: "tail", name: "WaveTaillamp", position: new T.Vector3(), radius: 0.04, depth: 0.018, facing: forwardIn(0, -1, false) });
+    }
+    for (const [anchorName, side, front] of [
+      ["Wave_SignalFL", 1, true],
+      ["Wave_SignalFR", -1, true],
+      ["Wave_SignalRL", 1, false],
+      ["Wave_SignalRR", -1, false],
+    ] as const) {
+      const anchor = node(anchorName);
+      if (!anchor) continue;
+      mountRoundLamp(anchor, {
+        role: side > 0 ? "signal_left" : "signal_right",
+        name: anchorName,
+        position: new T.Vector3(),
+        radius: 0.024,
+        depth: 0.012,
+        facing: forwardIn(side * 0.4, front ? 1 : -1, front),
+      });
     }
 
-    // Rigged, with baked clips: the rig stands on y = 0 at x = z = 0, so only a uniform scale is needed.
+    const vehRoot = new T.Group();
+    vehRoot.name = "LongQ9Wave";
+    const holder = new T.Group();
+    holder.add(wave);
+    vehRoot.add(holder);
+    const seat = new T.Group();
+    seat.name = "LongQ9Seat";
+    seat.position.set(LONG_Q9_SEAT_OFFSET.x, 0, LONG_Q9_SEAT_OFFSET.z);
+    holder.add(seat);
+    addHeadlightBeam(holder, wave, new T.Vector3(0, 0, 1), "moto");
+    contact(holder, 0, 0.01, 0, 1.0, 2.15, shade);
+    const dynamicLights = attachDynamicLamps(holder, 0.4, 0.95, true);
+    dynamicRoot.add(vehRoot);
+    onAssetLoaded?.(vehRoot);
+
+    // ---- Long on foot or on the seat.
     const obj = cloneSkinned(qGltf.scene);
     obj.scale.setScalar(LONG_Q9_HEIGHT / LONG_Q9_RIG_HEIGHT);
     upgradeHumanMaterials(obj);
@@ -1744,33 +1809,337 @@ export function buildSaigonDistricts(
     const mixer = new T.AnimationMixer(obj);
     const actions = new Map<LongQ9Clip, T.AnimationAction>();
     for (const clip of qGltf.animations) actions.set(clip.name as LongQ9Clip, mixer.clipAction(clip));
-    const holder = new T.Group();
-    holder.add(obj);
-    const state = createLongQ9State(LONG_Q9_SPOTS);
-    holder.position.set(state.x, CURB_HEIGHT, state.z);
-    holder.rotation.y = state.yaw;
-    contact(holder, 0, 0.01, 0, 0.65, 0.65, shade);
-    dynamicRoot.add(holder);
-    onAssetLoaded?.(holder);
-    longQ9Actor = { group: holder, state, mixer, actions, current: null };
-    const firstClip = LONG_Q9_SPOTS[state.spot].task;
-    const first = actions.get(firstClip);
-    if (first) {
-      first.play();
-      longQ9Actor.current = firstClip;
+    const person = new T.Group();
+    person.name = "LongQ9";
+    person.add(obj);
+    seat.add(person);
+    let onFoot = false;
+    let currentClip: LongQ9Clip | null = null;
+
+    // With traffic he starts on the road before the second site (D32_W_EB, no rescue window there beyond s 4) and drives into
+    // it, so he is seen cruising before the first rescue. Without traffic the scripted fallback starts at the first site.
+    const startSite = trafficMgr ? 1 : 0;
+    const state: LongQ9State = createLongQ9State(LONG_Q9_SITES, startSite);
+    if (trafficMgr) state.t = 0;
+    const ride = actions.get("Ride");
+    if (ride) {
+      ride.play();
+      currentClip = "Ride";
     }
+
+    // ---- Traffic: a managed moto agent while cruising.
+    let agent: VehicleAgent | null = null;
+    if (trafficMgr) {
+      agent = trafficMgr.spawnVehicle({
+        id: LONG_Q9_AGENT_ID,
+        category: "moto",
+        edgeId: LONG_Q9_SITES[0].edgeId,
+        s: 8,
+        // Strongly prefer the straight turn at the next junction: it leads onto the edge of the second site.
+        preferStraightBias: 1000,
+        laneIndex: 1,
+        latOffset: 1.5,
+        speed: 6.5,
+        halfWidth: 0.4,
+        halfLength: 0.95,
+        wheelBase: 1.2,
+        // The wheels turn in the per-frame code below (they are pivots of the GLB), so the traffic rig spins none.
+        rig: { root: vehRoot, chassis: holder, wheels: [], wheelRadius: rearRadius, lights: dynamicLights },
+      });
+    }
+    const placeAgent = (v: VehicleAgent, siteIdx: number, s: number, lat: number, speed: number) => {
+      const edge = trafficMgr?.graph.edges.get(LONG_Q9_SITES[siteIdx].edgeId);
+      if (!edge) return;
+      const p = sampleEdge(edge, s, lat);
+      v.externalControl = false;
+      v.edgeId = edge.id;
+      v.onTurn = false;
+      v.turnId = null;
+      v.nextTurnId = null;
+      v.s = s;
+      v.latOffset = lat;
+      v.targetLatOffset = lat;
+      v.latVel = 0;
+      v.x = p.x;
+      v.z = p.z;
+      v.yaw = p.yaw;
+      v.yawRate = 0;
+      v.speed = speed;
+      v.accel = 0;
+      v.blinker = 0;
+    };
+
+    // ---- Stranded riders, one per site (loaded after Long starts, so the scenario never waits for them).
+    const strangers: ({ group: T.Group; mixer?: T.AnimationMixer; yaw: number } | null)[] = LONG_Q9_SITES.map(() => null);
+
     if (humanPresence) {
       presenceCleanups.push(
         humanPresence.register({
           id: "street_long_q9",
           label: { en: "Long Q9, bike mechanic", vi: "Chú Long Q9, thợ sửa xe" },
-          object: holder,
+          object: person,
           radius: 0.36,
           canSidestep: false,
+          // Bumping him changes nothing: he keeps working (the state machine ignores the player).
           onBump: () => {},
           onPersonalSpace: () => {},
         }),
       );
+    }
+
+    const _tmpQ = new T.Quaternion();
+    const _yAxis = new T.Vector3(0, 1, 0);
+    let frontSpin = 0;
+    let rearSpin = 0;
+    let lastExternal = false;
+    let solidOn = false;
+
+    longQ9Actor = {
+      update(dt, time, playerX, playerZ, rangeSq) {
+        // 1. The routine. During cruise it reads the traffic agent (null on a junction arc; undefined without traffic).
+        let reading: LongQ9TrafficReading | null | undefined;
+        if (agent) {
+          reading =
+            !agent.externalControl && !agent.onTurn
+              ? { edgeId: agent.edgeId, s: agent.s, latOffset: agent.latOffset, x: agent.x, z: agent.z, yaw: agent.yaw, speed: agent.speed }
+              : null;
+        }
+        // Before riding off he waits while a vehicle is closing in from behind on the merge spot.
+        let rideOffClear = true;
+        if (trafficMgr && state.phase === "kickstand_up") {
+          const sIdx = LONG_Q9_SITES[state.site];
+          const mergeS = sIdx.parkU + 6;
+          for (const v of trafficMgr.vehicles) {
+            if (v.id === LONG_Q9_AGENT_ID || v.edgeId !== sIdx.edgeId || v.onTurn) continue;
+            const behind = mergeS - v.s;
+            if (behind > -2 && behind < 8 + v.speed * 2.5 && v.speed > 0.5) {
+              rideOffClear = false;
+              break;
+            }
+          }
+        }
+        const frame: LongQ9Frame = stepLongQ9(state, dt, LONG_Q9_SITES, reading, rideOffClear);
+        const site = LONG_Q9_SITES[frame.site];
+
+        // 2. The traffic agent: owned by the routine while it is not cruising, given back on the road afterwards.
+        if (agent) {
+          if (frame.external) {
+            agent.externalControl = true;
+            agent.edgeId = LONG_Q9_SITES[state.site].edgeId;
+            agent.onTurn = false;
+            agent.s = state.u;
+            agent.latOffset = state.v;
+            agent.targetLatOffset = state.v;
+            agent.x = frame.bike.x;
+            agent.z = frame.bike.z;
+            agent.yaw = frame.bike.yaw;
+            agent.speed = frame.speed;
+            agent.accel = 0;
+            agent.steerAngle = frame.steer;
+            agent.blinker = frame.blinker;
+          } else if (frame.handback) {
+            const h = frame.handback;
+            placeAgent(agent, state.site === 0 ? LONG_Q9_SITES.length - 1 : state.site - 1, h.s, h.latOffset, h.speed);
+          } else if (frame.relocate) {
+            // A cruise that never met the next site: bring him to its approach, but only where nobody can see it.
+            const { sLo } = longQ9TakeoverWindow(site);
+            const target = longQ9SitePoint(site, sLo, 1.5);
+            const far = (x: number, z: number) => (x - playerX) ** 2 + (z - playerZ) ** 2 > 110 * 110;
+            if (far(agent.x, agent.z) && far(target.x, target.z)) {
+              placeAgent(agent, frame.site, sLo, 1.5, 6.5);
+              state.relocate = false;
+              state.t = LONG_Q9_CRUISE_MIN_SECONDS;
+            }
+          }
+        }
+        if (frame.external || !agent) {
+          // Rig pose, lamps and tilt are applied by the traffic step only for managed agents; without traffic the routine
+          // places the bike in every phase, cruise included.
+          vehRoot.position.set(frame.bike.x, frame.bike.y, frame.bike.z);
+          vehRoot.rotation.y = frame.bike.yaw;
+          holder.rotation.x = 0;
+          holder.rotation.z = frame.lean;
+          dynamicLights.setBrake(frame.brake ? 0.9 : 0);
+          dynamicLights.setBlinker(frame.blinker, frame.blinker !== 0 && Math.floor(time * 3.2) % 2 === 0);
+        } else if (lastExternal) {
+          vehRoot.position.y = 0;
+          holder.rotation.z = 0;
+        }
+        lastExternal = frame.external;
+        const bikeDistSq = (frame.bike.x - playerX) ** 2 + (frame.bike.z - playerZ) ** 2;
+        vehRoot.visible = frame.bikeVisible && bikeDistSq < 155 * 155;
+
+        // 3. Wheels, handlebar and kickstand (pivots of the GLB).
+        const speed = frame.external || !agent ? frame.speed : agent.speed;
+        const steer = frame.external || !agent ? frame.steer : agent.steerAngle;
+        frontSpin += (speed * dt) / frontRadius;
+        rearSpin += (speed * dt) / rearRadius;
+        if (frontWheel) frontWheel.rotation.x = frontSpin % (Math.PI * 2);
+        if (rearWheel) rearWheel.rotation.x = rearSpin % (Math.PI * 2);
+        if (steering) steering.quaternion.copy(steerRest).multiply(_tmpQ.setFromAxisAngle(_yAxis, steer));
+        if (kickstand) {
+          kickstand.rotation.x = T.MathUtils.degToRad(
+            LONG_Q9_KICKSTAND_FOLDED_DEG + (LONG_Q9_KICKSTAND_DEPLOYED_DEG - LONG_Q9_KICKSTAND_FOLDED_DEG) * frame.kickstand,
+          );
+        }
+
+        // 4. Solid of the parked Wave while he works (the player cannot walk through it), none while it rides.
+        // It is not switched on while the player stands where the bike is (he would be inside the rect); once on it stays on.
+        const parked = frame.phase !== "cruise" && frame.speed === 0 && frame.kickstand > 0 && frame.bike.y > 0;
+        if (parked) {
+          if (!solidOn) {
+            const px = frame.bike.x - playerX;
+            const pz = frame.bike.z - playerZ;
+            if (px * px + pz * pz > 1.6 * 1.6) {
+              setBikeSolid(longQ9BikeSolid, frame.bike.x, frame.bike.z, Math.abs(site.dir.x) > 0.5);
+              solidOn = true;
+            }
+          }
+        } else if (solidOn) {
+          clearSolid(longQ9BikeSolid);
+          solidOn = false;
+        }
+
+        // 5. Long: parented to the seat while riding, in the world while on foot.
+        if (frame.standingOnFoot !== onFoot) {
+          onFoot = frame.standingOnFoot;
+          if (onFoot) {
+            dynamicRoot.add(person);
+          } else {
+            seat.add(person);
+            person.position.set(0, 0, 0);
+            person.rotation.set(0, 0, 0);
+          }
+        }
+        let inRange = vehRoot.visible && bikeDistSq < rangeSq;
+        if (onFoot) {
+          person.position.set(frame.person.x, frame.person.y, frame.person.z);
+          person.rotation.y = frame.person.yaw;
+          const dx = frame.person.x - playerX;
+          const dz = frame.person.z - playerZ;
+          inRange = dx * dx + dz * dz < rangeSq;
+        }
+        person.visible = onFoot ? inRange : vehRoot.visible;
+        if (inRange) {
+          if (frame.clip !== currentClip) {
+            const next = actions.get(frame.clip);
+            if (next) {
+              const prev = currentClip ? actions.get(currentClip) : undefined;
+              next.reset().play();
+              if (prev) prev.crossFadeTo(next, 0.35, false);
+              currentClip = frame.clip;
+            }
+          }
+          mixer.update(dt);
+        }
+
+        // 6. The stranded riders face Long while he works on foot next to the bike, otherwise their own bike.
+        for (let i = 0; i < strangers.length; i++) {
+          const st = strangers[i];
+          if (!st) continue;
+          const sSite = LONG_Q9_SITES[i];
+          const sp = longQ9SitePoint(sSite, sSite.npcU, LONG_Q9_NPC_V);
+          const dx = sp.x - playerX;
+          const dz = sp.z - playerZ;
+          st.group.visible = dx * dx + dz * dz < rangeSq;
+          if (!st.group.visible) continue;
+          let target = st.yaw;
+          if (frame.strangerFacesLong && frame.site === i) target = Math.atan2(frame.person.x - sp.x, frame.person.z - sp.z);
+          let dy = target - st.group.rotation.y;
+          while (dy > Math.PI) dy -= Math.PI * 2;
+          while (dy < -Math.PI) dy += Math.PI * 2;
+          st.group.rotation.y += dy * Math.min(1, dt * 4);
+          st.mixer?.update(dt);
+        }
+      },
+    };
+
+    // Stranded riders and their bikes.
+    for (let i = 0; i < LONG_Q9_SITES.length; i++) {
+      if (disposed) return;
+      const site = LONG_Q9_SITES[i];
+      const cfg = LONG_Q9_STRANGERS[i % LONG_Q9_STRANGERS.length];
+      const alongYaw = Math.atan2(site.dir.x, site.dir.z);
+      const bikeGltf = await loader.loadAsync(`${base}${cfg.bike}`).catch(() => null);
+      if (disposed) return;
+      if (bikeGltf) {
+        const bike = bikeGltf.scene.clone(true);
+        const b0 = new T.Box3().setFromObject(bike, true);
+        const sz0 = b0.getSize(new T.Vector3());
+        if (sz0.x > sz0.z) bike.rotation.y += Math.PI / 2;
+        bike.updateMatrixWorld(true);
+        const b1 = new T.Box3().setFromObject(bike, true);
+        bike.scale.setScalar(1.9 / Math.max(b1.max.z - b1.min.z, 0.5));
+        bike.updateMatrixWorld(true);
+        const b2 = new T.Box3().setFromObject(bike, true);
+        const c2 = b2.getCenter(new T.Vector3());
+        bike.position.set(-c2.x, -b2.min.y, -c2.z);
+        bike.traverse((n) => {
+          if (n instanceof T.Mesh) {
+            n.castShadow = false;
+            n.receiveShadow = true;
+          }
+        });
+        const bikeHolder = new T.Group();
+        bikeHolder.add(bike);
+        const bp = longQ9SitePoint(site, site.strangerBikeU, LONG_Q9_PARK_V);
+        bikeHolder.position.set(bp.x, CURB_HEIGHT, bp.z);
+        bikeHolder.rotation.y = alongYaw;
+        contact(bikeHolder, 0, 0.01, 0, 1.0, 2.15, shade);
+        dynamicRoot.add(bikeHolder);
+        onAssetLoaded?.(bikeHolder);
+        setBikeSolid(strangerBikeSolids[i], bp.x, bp.z, Math.abs(site.dir.x) > 0.5);
+      }
+      const npcGltf = await loader.loadAsync(`${base}${cfg.npc}`).catch(() => null);
+      if (!npcGltf || disposed) continue;
+      // A failed clip build must not end the loop: the remaining sites still get their bike and rider.
+      const clips = await streetClips(cfg.npc, npcGltf.scene, npcGltf.animations).catch(() => null);
+      if (disposed) return;
+      if (!clips) continue;
+      const npc = cloneSkinned(npcGltf.scene);
+      const nb = new T.Box3().setFromObject(npc, true);
+      const ns = cfg.height / Math.max(0.1, nb.max.y - nb.min.y);
+      npc.scale.setScalar(ns);
+      npc.position.set(-((nb.max.x + nb.min.x) * ns) / 2, -nb.min.y * ns, -((nb.max.z + nb.min.z) * ns) / 2);
+      upgradeHumanMaterials(npc);
+      npc.traverse((n) => {
+        if (n instanceof T.Mesh) {
+          n.castShadow = false;
+          n.receiveShadow = true;
+        }
+      });
+      const group = new T.Group();
+      group.add(npc);
+      const np = longQ9SitePoint(site, site.npcU, LONG_Q9_NPC_V);
+      group.position.set(np.x, CURB_HEIGHT, np.z);
+      // He first looks at his own bike: toward the road side of the curb (the -right direction).
+      const yaw = Math.atan2(site.dir.z, -site.dir.x);
+      group.rotation.y = yaw;
+      contact(group, 0, 0.01, 0, 0.65, 0.65, shade);
+      dynamicRoot.add(group);
+      onAssetLoaded?.(group);
+      let npcMixer: T.AnimationMixer | undefined;
+      if (clips.idle) {
+        npcMixer = new T.AnimationMixer(npc);
+        const action = npcMixer.clipAction(clips.idle);
+        action.timeScale = 0.85;
+        action.time = Math.random() * clips.idle.duration;
+        action.play();
+      }
+      strangers[i] = { group, mixer: npcMixer, yaw };
+      if (humanPresence) {
+        presenceCleanups.push(
+          humanPresence.register({
+            id: `street_long_q9_customer_${i}`,
+            label: { en: "Stranded rider", vi: "Người đi xe bị hỏng" },
+            object: group,
+            radius: 0.34,
+            canSidestep: false,
+            onBump: () => {},
+            onPersonalSpace: () => {},
+          }),
+        );
+      }
     }
   };
 
@@ -1804,7 +2173,9 @@ export function buildSaigonDistricts(
       holder.add(obj);
       vehRoot.add(holder);
       const lamps = markLampParts(holder, obj, new T.Vector3(0, 0, 1));
-      if (lamps.head) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), "moto");
+      // The model has no lamp mesh: mount round lenses on its bones so the head lamp turns with the handlebar.
+      const grabLamps = mountGrabLamps(obj);
+      if (lamps.head || grabLamps.head) addHeadlightBeam(holder, obj, new T.Vector3(0, 0, 1), "moto");
       contact(holder, 0, 0.01, 0, 1.0, 2.15, shade);
       const dynamicLights = attachDynamicLamps(holder, 0.44, 1.04, true);
       dynamicRoot.add(vehRoot);
@@ -1848,8 +2219,6 @@ export function buildSaigonDistricts(
       { file: "npc-linmei.optimized.glb", pos: [34.0, CURB_HEIGHT, -84.0], axis: "x", min: 14.0, max: 45.0, speed: 0.82, height: 1.62 },
       { file: "npc-sofia.optimized.glb", pos: [25.6, CURB_HEIGHT, -66.5], axis: "idle", min: 0, max: 0, speed: 0, height: 1.63, idleYaw: 1.2 },
       { file: "rowan.optimized.glb", pos: [27.3, CURB_HEIGHT, -66.5], axis: "idle", min: 0, max: 0, speed: 0, height: 1.73, idleYaw: -1.4 },
-      // Customer waiting at Long Q9's repair spot (see loadLongQ9Repair)
-      { file: "npc-nguoigia.optimized.glb", pos: [LONG_Q9_SPOTS[0].x + 1.9, CURB_HEIGHT, LONG_Q9_SPOTS[0].z], axis: "idle", min: 0, max: 0, speed: 0, height: 1.62, idleYaw: Math.PI + 0.5 },
       // Bitexco Financial Tower Plaza walkers & conversing business pair!
       { file: "juno3.optimized.glb", pos: [BITEXCO_POS.x - 19, CURB_HEIGHT, BITEXCO_POS.z - 8], axis: "z", min: BITEXCO_POS.z - 18, max: BITEXCO_POS.z + 10, speed: 0.95, height: 1.65 },
       { file: "rowan.optimized.glb", pos: [BITEXCO_POS.x - 14, CURB_HEIGHT, BITEXCO_POS.z + 12], axis: "x", min: BITEXCO_POS.x - 22, max: BITEXCO_POS.x + 12, speed: 0.85, height: 1.72 },
@@ -2200,30 +2569,7 @@ export function buildSaigonDistricts(
         }
       }
 
-      if (longQ9Actor) {
-        const g = longQ9Actor.group;
-        const dx = g.position.x - playerX;
-        const dz = g.position.z - playerZ;
-        g.visible = dx * dx + dz * dz < npcRangeSq;
-        if (g.visible) {
-          const frame = stepLongQ9(longQ9Actor.state, dt, LONG_Q9_SPOTS);
-          g.position.set(frame.x, CURB_HEIGHT, frame.z);
-          let dy = frame.yaw - g.rotation.y;
-          while (dy > Math.PI) dy -= Math.PI * 2;
-          while (dy < -Math.PI) dy += Math.PI * 2;
-          g.rotation.y += dy * Math.min(1, dt * 5);
-          if (frame.clip !== longQ9Actor.current) {
-            const next = longQ9Actor.actions.get(frame.clip);
-            if (next) {
-              const prev = longQ9Actor.current ? longQ9Actor.actions.get(longQ9Actor.current) : undefined;
-              next.reset().play();
-              if (prev) prev.crossFadeTo(next, 0.4, false);
-              longQ9Actor.current = frame.clip;
-            }
-          }
-          longQ9Actor.mixer.update(dt);
-        }
-      }
+      longQ9Actor?.update(dt, time, playerX, playerZ, npcRangeSq);
 
       if (trafficMgr) {
         for (const ga of grabAnimators) {

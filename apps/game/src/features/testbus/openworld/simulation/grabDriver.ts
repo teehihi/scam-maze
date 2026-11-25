@@ -28,3 +28,22 @@ export function pickGrabClip(speed: number, steerAngle = 0): GrabClipChoice {
   }
   return { clip: "Drive_Fast", timeScale: speed / GRAB_FAST_SPEED };
 }
+
+/**
+ * Lamp placement on the Grab scooter, measured from `grab-driver.optimized.glb` (metres, bone local space).
+ * The head lens sits on the front face of the cowl, which is at z = 0.093 and spans y = -0.042..0.063 in the
+ * Bike_Steering frame, so the lens turns with the handlebar. The tail lens sits on the tip of the rear carrier
+ * (Bike_Chassis frame, tip at z = -0.94, y = 0.42..0.56, half width 0.055).
+ */
+export const GRAB_HEADLAMP = {
+  bone: "Bike_Steering",
+  position: [0, 0.012, 0.075] as const,
+  radius: 0.055,
+  depth: 0.03,
+};
+export const GRAB_TAILLAMP = {
+  bone: "Bike_Chassis",
+  position: [0, 0.49, -0.925] as const,
+  radius: 0.034,
+  depth: 0.02,
+};

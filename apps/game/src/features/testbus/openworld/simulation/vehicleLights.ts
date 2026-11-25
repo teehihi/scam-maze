@@ -1,4 +1,5 @@
 import * as T from "three";
+import { GRAB_HEADLAMP, GRAB_TAILLAMP } from "./grabDriver";
 
 /**
  * Vehicle lights bonded directly to every vehicle's own 3D geometry (0 mm gap, zero floating boxes).
@@ -425,6 +426,53 @@ export function addHeadlightBeam(host: T.Object3D, vehicle: T.Object3D, forward:
   host.add(beam);
 }
 
+export interface RoundLampOptions {
+  /** `signal_left` and `signal_right` are amber turn lenses that `attachDynamicLamps` binds to the blinker (left is +X). */
+  role: "head" | "tail" | "signal_left" | "signal_right";
+  /** Centre of the lens base in `parent` local space. */
+  position: T.Vector3;
+  radius: number;
+  /** How far the dome stands out of the body, in metres. */
+  depth: number;
+  /** Lens axis in `parent` local space (the direction the light leaves). */
+  facing: T.Vector3;
+  name: string;
+}
+
+/**
+ * Mounts a rounded, emissive lens (shallow dome) on a node of a vehicle rig, for models whose mesh has no lamp
+ * of its own. The material follows the same night level as native lamps: head lenses are driven by
+ * `setVehicleLightLevel`, tail lenses are cloned and driven by `attachDynamicLamps` (night level and brake light).
+ * Because it is a child of `parent`, it moves with that node (for example a steering bone).
+ */
+export function mountRoundLamp(parent: T.Object3D, opts: RoundLampOptions): T.Mesh {
+  const isHead = opts.role === "head";
+  const isTail = opts.role === "tail";
+  const mat = new T.MeshStandardMaterial({
+    name: `${opts.name}_lamp_${opts.role}`,
+    color: isHead ? 0xf4f1ea : isTail ? 0x7a0d09 : 0x6e3e08,
+    emissive: isHead ? 0xfff0d2 : isTail ? 0xff1e0e : 0xffa40e,
+    emissiveIntensity: isHead || isTail ? 1 : 0.05,
+    roughness: 0.2,
+  });
+  if (isHead) {
+    headMats.push(mat);
+    applyLevel(mat, "head");
+  }
+  // A tail lens is not registered in `tailMats`: `attachDynamicLamps` clones its material per vehicle and drives that
+  // clone (night level and brake), so a registered original would stay in the global list unreferenced by any mesh.
+  // Upper half of a sphere squashed along its axis: a round face with a gentle bulge.
+  const geo = new T.SphereGeometry(opts.radius, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+  geo.scale(1, opts.depth / opts.radius, 1);
+  const lens = new T.Mesh(geo, mat);
+  lens.name = opts.name;
+  lens.position.copy(opts.position);
+  lens.quaternion.setFromUnitVectors(_up, opts.facing.clone().normalize());
+  lens.castShadow = false;
+  parent.add(lens);
+  return lens;
+}
+
 interface SurfaceSample {
   pos: T.Vector3;
   normal: T.Vector3;
@@ -738,4 +786,34 @@ export function setVehicleLightLevel(lit: number, wetness: number) {
   for (const m of tailMats) applyLevel(m, "tail");
   for (const e of perVehicleBrakeMats) applyTailBrake(e.mat, e.brake);
   if (beamMat) beamMat.opacity = lit * (0.18 + wetness * 0.14);
+}
+
+/**
+ * Mounts the Grab scooter's round lenses on its bones (the model has no lamp mesh): the head lens on the steering bone so it
+ * turns with the handlebar, the tail lens on the chassis bone. Returns the lenses that found their bone.
+ */
+export function mountGrabLamps(obj: T.Object3D): { head: T.Mesh | null; tail: T.Mesh | null } {
+  const headBone = obj.getObjectByName(GRAB_HEADLAMP.bone);
+  const tailBone = obj.getObjectByName(GRAB_TAILLAMP.bone);
+  const head = headBone
+    ? mountRoundLamp(headBone, {
+        role: "head",
+        name: "GrabHeadlamp",
+        position: new T.Vector3(...GRAB_HEADLAMP.position),
+        radius: GRAB_HEADLAMP.radius,
+        depth: GRAB_HEADLAMP.depth,
+        facing: new T.Vector3(0, 0, 1),
+      })
+    : null;
+  const tail = tailBone
+    ? mountRoundLamp(tailBone, {
+        role: "tail",
+        name: "GrabTaillamp",
+        position: new T.Vector3(...GRAB_TAILLAMP.position),
+        radius: GRAB_TAILLAMP.radius,
+        depth: GRAB_TAILLAMP.depth,
+        facing: new T.Vector3(0, 0, -1),
+      })
+    : null;
+  return { head, tail };
 }
