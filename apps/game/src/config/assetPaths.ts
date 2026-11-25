@@ -69,6 +69,11 @@ export const CHARACTERS_GLB_BASE = "/assets/3d/optimized/characters";
  * produced by scripts/optimize-street-props.cjs). The files are listed in features/khupho/world/streetFurniture.ts.
  */
 export const STREET_PROPS_MODELS_BASE = "/assets/3d/optimized/props";
+/**
+ * Mast-arm traffic signal model with role-named nodes (pole, arm, head_low, head_a, head_b and their lamps), in the
+ * signal frame of world/mastArmSignal.ts. Produced by scripts/optimize-traffic-signal.cjs from assets-src/dengiaothong.glb.
+ */
+export const TRAFFIC_SIGNAL_GLB = `${STREET_PROPS_MODELS_BASE}/traffic-signal.optimized.glb`;
 /** Base URL of the prologue voice clips: `<base>/<locale>/prologue_home<n>_<locale>.mp3` (locale is `en` or `vi`). */
 export const PROLOGUE_VOICE_BASE = "/audio/prologue";
 /** Base URL of Auntie Mai's street conversation clips: `<base>.<locale>/mai.<nodeId>.mp3` (locale is `en` or `vi`). */
