@@ -15,3 +15,6 @@ apps/game/assets-src/vehicles/*-gltf/
 apps/game/assets-src/vehicles/parked/honda-cg-125.glb
 # Playwright MCP output (screenshots, console logs, page snapshots from QA runs)
 .kiro/qa-output/
+
+# Long Q9 build script: transpiled author rig code (generated)
+apps/game/scripts/longq9/.build/
