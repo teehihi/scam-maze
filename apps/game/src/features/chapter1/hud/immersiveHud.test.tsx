@@ -170,4 +170,73 @@ describe("AAA Immersive UI/UX Overhaul", () => {
     fireEvent.click(secondReplyBtn);
     expect(onSelect).toHaveBeenCalledWith(1);
   });
+
+  describe("CinemaNpcHud Genshin-style reply list", () => {
+    const makeDialogue = (closing = false) => {
+      const turn = resolveStoryNpcDialogue("landlord_q10", {
+        elapsedMinutes: 60,
+        thesisProgress: 40,
+        fatigue: 20,
+        money: 4500000,
+        flags: {},
+      });
+      return {
+        turn,
+        dialogue: {
+          npcId: "landlord_q10" as const,
+          turn,
+          currentText: turn.replies[0].response,
+          lastPlayerReply: null,
+          currentMood: turn.replies[0].nextMood,
+          activeInsight: null,
+          askedReplyIds: [turn.replies[0].id],
+          closing,
+          lineKey: 1,
+        },
+      };
+    };
+
+    it("renders every reply as a pill with chat icon and number key, highlighting the first", () => {
+      const { turn, dialogue } = makeDialogue();
+      render(<CinemaNpcHud language="en" dialogue={dialogue} ambientBark={null} crowdReaction={null} onSelectReply={vi.fn()} />);
+      const pills = screen.getAllByTestId("choice-pill");
+      expect(pills).toHaveLength(turn.replies.length);
+      expect(screen.getAllByTestId("choice-icon")).toHaveLength(turn.replies.length);
+      expect(screen.getByTestId("cinema-reply-list").tagName).toBe("UL");
+      pills.forEach((pill, i) => expect(pill.textContent).toContain(String(i + 1)));
+      expect(pills[0].getAttribute("data-selected")).toBe("true");
+      expect(pills[1].getAttribute("data-selected")).toBe("false");
+    });
+
+    it("moves the highlight on hover and Up/Down, and Enter picks the highlighted reply", () => {
+      const { dialogue } = makeDialogue();
+      const onSelect = vi.fn();
+      render(<CinemaNpcHud language="en" dialogue={dialogue} ambientBark={null} crowdReaction={null} onSelectReply={onSelect} />);
+      const pills = screen.getAllByTestId("choice-pill");
+      fireEvent.pointerEnter(pills[1]);
+      expect(pills[1].getAttribute("data-selected")).toBe("true");
+      fireEvent.keyDown(window, { code: "ArrowDown" });
+      expect(screen.getAllByTestId("choice-pill")[2].getAttribute("data-selected")).toBe("true");
+      fireEvent.keyDown(window, { code: "ArrowUp" });
+      expect(screen.getAllByTestId("choice-pill")[1].getAttribute("data-selected")).toBe("true");
+      fireEvent.keyDown(window, { code: "Enter" });
+      expect(onSelect).toHaveBeenCalledWith(1);
+      // Number keys stay owned by useOutsideWorld, so the HUD itself must not react to them.
+      fireEvent.keyDown(window, { code: "Digit3" });
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the Esc leave control and shows the Step away pill when closing", () => {
+      const onClose = vi.fn();
+      const { dialogue } = makeDialogue();
+      const { rerender } = render(<CinemaNpcHud language="en" dialogue={dialogue} ambientBark={null} crowdReaction={null} onCloseDialogue={onClose} />);
+      fireEvent.click(screen.getByRole("button", { name: /Esc\s*Leave/ }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      rerender(<CinemaNpcHud language="en" dialogue={makeDialogue(true).dialogue} ambientBark={null} crowdReaction={null} onCloseDialogue={onClose} />);
+      const pills = screen.getAllByTestId("choice-pill");
+      expect(pills).toHaveLength(1);
+      fireEvent.click(pills[0]);
+      expect(onClose).toHaveBeenCalledTimes(2);
+    });
+  });
 });
