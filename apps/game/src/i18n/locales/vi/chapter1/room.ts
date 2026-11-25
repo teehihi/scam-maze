@@ -70,6 +70,11 @@ const room: LocaleShape<typeof en> = {
       },
       numbersPlain: "Các số được hiển thị dưới dạng văn bản thường.",
     },
+    incomingCall: {
+      ringing: "{{name}} đang gọi",
+      missed: "Cuộc gọi nhỡ từ {{name}}. Bạn có thể gọi lại trong ứng dụng Cuộc gọi.",
+    },
+    progressSaved: "Đã lưu bản thảo · khóa luận {{percent}}%",
     objectiveToast: {
       new: "Mục tiêu mới: {{objective}}",
       done: "Đã hoàn thành mục tiêu: {{objective}}",

@@ -7,12 +7,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useGameLocale } from "../../../i18n";
-import type { Mission01VoiceCue } from "./mission01Voice";
 import { buildSubtitleCues, cueAt } from "./mission01Subtitles";
 import { MISSION01_SUBTITLE_TIMINGS } from "./mission01SubtitleTimings";
+import type { AlexVoiceCue } from "./useMission01Voice";
 
 export interface Mission01VoiceCaptionProps {
-  cue: Mission01VoiceCue | null;
+  /** An Alex line of Mission 01 or Mission 02; its caption is `voice.alex.<cue>`. */
+  cue: AlexVoiceCue | null;
   subtitlesEnabled: boolean;
   /** Playback position of the line that is playing, in milliseconds from the start of the clip. */
   getPositionMs: () => number;

@@ -12,9 +12,13 @@ export interface EventArrivalNoticeProps {
   durationMs?: number;
   /** The key that brings up the device it arrived on (P for the carried phone), shown as a key cap. */
   keyHint?: { key: string; label: string };
+  /** The whole sentence to show instead of "New: <title>" (for example "Minh is calling"). */
+  text?: string;
+  /** Icon of the notice. Default: a bell. */
+  icon?: React.ReactNode;
 }
 
-export const EventArrivalNotice: React.FC<EventArrivalNoticeProps> = ({ title, onDismiss, durationMs = 6000, keyHint }) => {
+export const EventArrivalNotice: React.FC<EventArrivalNoticeProps> = ({ title, onDismiss, durationMs = 6000, keyHint, text, icon }) => {
   const { t } = useTranslation("chapter1");
   useEffect(() => {
     const id = window.setTimeout(onDismiss, durationMs);
@@ -27,10 +31,10 @@ export const EventArrivalNotice: React.FC<EventArrivalNoticeProps> = ({ title, o
       data-testid="event-arrival-notice"
     >
       <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/15 text-amber-300 ring-1 ring-amber-300/35">
-        <BellRing className="h-3.5 w-3.5" />
+        {icon ?? <BellRing className="h-3.5 w-3.5" />}
       </span>
       <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-[#f3efe4]">
-        {t("planner.arrival", { title })}
+        {text ?? t("planner.arrival", { title })}
       </span>
       {keyHint && (
         <span className="ml-1 flex shrink-0 items-center gap-1.5 rounded-md border border-white/12 bg-white/[0.06] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-200" data-testid="event-arrival-key">
