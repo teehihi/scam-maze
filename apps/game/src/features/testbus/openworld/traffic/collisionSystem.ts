@@ -1,3 +1,4 @@
+import { VN_TRAFFIC_TUNING } from "./driverModels";
 import type { SaigonRoadGraph } from "./roadGraph";
 import { sampleEdge, sampleTurn } from "./roadGraph";
 import type { OBB2D, PedestrianObstacle, PlayerCollisionResult, VehicleAgent } from "./types";
@@ -125,6 +126,11 @@ export function testOBBvsOBB(
   }
 
   return { hit: true, nx: bestNx, nz: bestNz, depth: minOverlap };
+}
+
+/** Which of two vehicles standing in a junction box goes first: the one that has waited longer, then the lower id. */
+function hasBoxPriority(a: VehicleAgent, b: VehicleAgent): boolean {
+  return a.waitTime > b.waitTime || (a.waitTime === b.waitTime && a.id < b.id);
 }
 
 export interface HazardForecast {
@@ -338,7 +344,12 @@ export class TrafficCollisionSystem {
       const headingDot = fx * oObb.fx + fz * oObb.fz;
 
       // Speed-dependent lateral safety pad (tighter for Saigon motorbikes!)
-      const latPad = v.category === "moto" && other.category === "moto" ? 0.24 : 0.32;
+      const latPad =
+        v.category === "moto"
+          ? other.category === "moto"
+            ? 0.24
+            : VN_TRAFFIC_TUNING.moto.hazardLatPad
+          : 0.32;
       if (
         headingDot > 0.6 &&
         along > 0 &&
@@ -380,6 +391,22 @@ export class TrafficCollisionSystem {
           if (otherHeadingToProbe < -0.25 && otherDistToProbe > other.halfLength + 1.5) continue;
 
           const net = Math.max(-0.5, probe.dist - (v.halfLength + other.halfLength));
+          // A vehicle that is beside us (not ahead of our centre) is no leader. Braking for it makes two vehicles
+          // that leave a junction side by side hold each other forever; the hard SAT pass separates real contact.
+          if (net <= 0.3 && along < v.halfLength * 0.5 && (v.onTurn || other.onTurn)) continue;
+          // Two vehicles standing in the junction box that block each other (oncoming left turn against a straight
+          // vehicle, crossing arcs) would wait for each other forever. The one that has waited longer goes first.
+          if (
+            net <= 3 &&
+            headingDot < 0.5 &&
+            v.onTurn &&
+            other.onTurn &&
+            v.speed < 0.3 &&
+            other.speed < 0.3 &&
+            hasBoxPriority(v, other)
+          ) {
+            continue;
+          }
           if (net < bestGap) {
             bestGap = net;
             const proj = Math.max(0, (probe.tx * oObb.fx + probe.tz * oObb.fz) * other.speed);
@@ -426,7 +453,13 @@ export class TrafficCollisionSystem {
         const bProj = -dx * obbB.fx - dz * obbB.fz;
         const push = Math.min(0.85, sat.depth + 0.05);
 
-        if (aProj >= bProj || b.externalControl) {
+        // Crossing vehicles standing in the junction box: the one with priority is never the one pushed back,
+        // otherwise the pair blocks the junction for good.
+        const crossingInBox =
+          a.onTurn && b.onTurn && !b.externalControl && obbA.fx * obbB.fx + obbA.fz * obbB.fz < 0.5;
+        const aYields = crossingInBox ? !hasBoxPriority(a, b) : aProj >= bProj;
+
+        if (aYields || b.externalControl) {
           // `a` is rear/yielding vehicle -> back off along `a`'s arc and update world pos immediately
           a.speed = Math.min(a.speed, Math.max(0, b.speed * 0.55));
           a.s = Math.max(0, a.s - push);

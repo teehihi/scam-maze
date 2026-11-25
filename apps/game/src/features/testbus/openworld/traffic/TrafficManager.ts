@@ -5,7 +5,9 @@ import {
   computeSaigonMotoSublaneTarget,
   createDriverPersonality,
   evaluateMobilLaneChange,
+  mulberry32,
   roadFrictionFactor,
+  VN_TRAFFIC_TUNING,
   type LateralNeighbor,
 } from "./driverModels";
 import { IntersectionManager } from "./intersectionMgr";
@@ -23,6 +25,11 @@ import type {
   VehicleVisualRig,
 } from "./types";
 import { updateVehicleDynamicsAndRig } from "./vehicleDynamics";
+
+function busDwellSeconds(r: number): number {
+  const { dwellMin, dwellMax } = VN_TRAFFIC_TUNING.bus;
+  return dwellMin + r * (dwellMax - dwellMin);
+}
 
 export interface SpawnVehicleSpec {
   id: string;
@@ -92,6 +99,8 @@ export class SaigonTrafficManager {
   private simTime = 0;
   private tickCount = 0;
   private rngState = 133791;
+  /** Separate seeded stream for overtake and dwell decisions, so behaviour tuning never shifts route picks. */
+  private behaviourRng = { s: 0x5eed1234 };
 
   constructor() {
     this.graph = new SaigonRoadGraph();
@@ -108,6 +117,136 @@ export class SaigonTrafficManager {
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  private behaviourRand(): number {
+    return mulberry32(this.behaviourRng);
+  }
+
+  /** True when `o` is a bus standing at (or pulling into / out of) a stop, so it will not move on soon. */
+  private isHaltedBus(o: VehicleAgent): boolean {
+    if (o.category !== "bus") return false;
+    if (o.busStop) return o.busStop.phase !== "cruise" && o.speed < 1.5;
+    return !!o.externalControl && o.speed < 1.0;
+  }
+
+  /** The nearest halted bus ahead in the lane `v` is driving in, if any. */
+  private haltedBusAhead(v: VehicleAgent, sameEdge: readonly VehicleAgent[]): VehicleAgent | null {
+    let best: VehicleAgent | null = null;
+    let bestDs = 30;
+    for (const o of sameEdge) {
+      if (o.id === v.id || !this.isHaltedBus(o)) continue;
+      const ds = o.s - v.s - (v.halfLength + o.halfLength);
+      if (ds < -0.5 || ds >= bestDs) continue;
+      if (Math.abs(o.latOffset - v.latOffset) > v.halfWidth + o.halfWidth + 0.4) continue;
+      best = o;
+      bestDs = ds;
+    }
+    return best;
+  }
+
+  /** True when no vehicle occupies the strip around `lat` from `behind` m behind to `ahead` m ahead of `v`. */
+  private laneClear(
+    v: VehicleAgent,
+    sameEdge: readonly VehicleAgent[],
+    lat: number,
+    behind: number,
+    ahead: number,
+    followerTime: number,
+  ): boolean {
+    for (const o of sameEdge) {
+      if (o.id === v.id) continue;
+      if (Math.abs(o.latOffset - lat) > v.halfWidth + o.halfWidth + 0.2) continue;
+      const ds = o.s - v.s;
+      if (ds < 0 && -ds < behind + o.halfLength + o.speed * followerTime) return false;
+      if (ds >= 0 && ds < ahead + v.halfLength + o.halfLength) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Ambient bus stop routine on edges with `busStopS`: signal right and pull in to the curb, stop, dwell,
+   * signal left, then cut out to the middle lane once it is clear. Moves `latOffset` itself while in a stop
+   * phase and returns the gap (m) to the point where the bus must stand (Infinity = no stop barrier).
+   */
+  private updateBusStop(v: VehicleAgent, edge: RoadEdge, sameEdge: readonly VehicleAgent[], dt: number): number {
+    const T = VN_TRAFFIC_TUNING.bus;
+    const st = (v.busStop ??= { phase: "cruise", timer: 0, servedEdgeId: null, indicator: 0 });
+    const stopS = edge.busStopS;
+    const lanes = edge.carLaneOffsets;
+    const curbLat = Math.min(lanes[lanes.length - 1] + T.curbInset, edge.width / 2 - v.halfWidth - 0.15);
+    const laneLat = lanes[T.pullOutLane];
+    const moveTo = (target: number, guarded: boolean) => {
+      v.targetLatOffset = target;
+      const err = target - v.latOffset;
+      let step = Math.max(-T.lateralRate * dt, Math.min(T.lateralRate * dt, err));
+      if (guarded && Math.abs(err) > 0.05 && !this.laneClear(v, sameEdge, target, v.halfLength + 1, 1, 0)) step = 0;
+      v.latOffset += step;
+      v.latVel = step / Math.max(dt, 0.001);
+    };
+
+    if (st.phase === "cruise") {
+      if (stopS !== undefined && st.servedEdgeId !== edge.id && v.s < stopS && stopS - v.s < T.approachDist) {
+        st.phase = "pullIn";
+        st.indicator = 1;
+      }
+      st.indicator = st.phase === "cruise" ? 0 : st.indicator;
+      return Infinity;
+    }
+    if (stopS === undefined) {
+      st.phase = "cruise";
+      st.indicator = 0;
+      return Infinity;
+    }
+
+    const standGap = Math.max(0, stopS - v.s) + v.personality.minGap * 0.8;
+    switch (st.phase) {
+      case "pullIn": {
+        st.indicator = 1;
+        moveTo(curbLat, true);
+        v.laneIndex = lanes.length > 1 ? 1 : 0;
+        if (v.s > stopS + T.overshootGiveUp) {
+          st.phase = "cruise";
+          st.indicator = 0;
+          st.servedEdgeId = edge.id;
+          return Infinity;
+        }
+        if (v.speed < 0.3 && stopS - v.s < 4 && Math.abs(v.latOffset - curbLat) < 0.3) {
+          st.phase = "dwell";
+          st.indicator = 0;
+          st.timer = busDwellSeconds(this.behaviourRand());
+        }
+        return standGap;
+      }
+      case "dwell": {
+        st.timer -= dt;
+        if (st.timer <= 0) {
+          st.phase = "signalOut";
+          st.indicator = -1;
+          st.timer = T.indicatorLead;
+        }
+        return 0;
+      }
+      case "signalOut": {
+        st.indicator = -1;
+        st.timer -= dt;
+        if (st.timer <= 0 && this.laneClear(v, sameEdge, laneLat, T.clearBehind, T.clearAhead, 1.5)) {
+          st.phase = "pullOut";
+          v.laneIndex = T.pullOutLane;
+        }
+        return 0;
+      }
+      default: {
+        st.indicator = -1;
+        moveTo(laneLat, false);
+        if (Math.abs(v.latOffset - laneLat) < 0.25) {
+          st.phase = "cruise";
+          st.indicator = 0;
+          st.servedEdgeId = edge.id;
+        }
+        return Infinity;
+      }
+    }
   }
 
   bindSignalVisual(binding: SignalVisualBinding) {
@@ -416,6 +555,7 @@ export class SaigonTrafficManager {
     let upcomingTurn: TurnArc | null = null;
     let signalIsRedOrAmber = false;
     let curvature = 0;
+    let busStopGap = Infinity;
 
     if (v.onTurn && v.turnId) {
       const turn = this.graph.turns.get(v.turnId);
@@ -475,6 +615,12 @@ export class SaigonTrafficManager {
         }
       }
 
+      // Ambient bus stop routine (pull in, dwell, indicate, pull out)
+      if (v.category === "bus" && !v.externalControl) {
+        busStopGap = this.updateBusStop(v, edge, byEdge.get(edge.id) ?? [], dt);
+        if (v.busStop && v.busStop.indicator !== 0) v.blinker = v.busStop.indicator;
+      }
+
       // Lateral Behavior: Saigon Motorbike SL2015 Sublane Filtering OR 4-Wheeler MOBIL Lane Change
       if (v.lodTier <= 1) {
         this.updateLateralPlanner(v, edge, byEdge, distToStop, signalIsRedOrAmber, upcomingTurn, muRoad, dt);
@@ -519,6 +665,28 @@ export class SaigonTrafficManager {
         0,
       );
       acc = Math.min(acc, accStop);
+    }
+
+    // Bus stop barrier: stand at the stop point, hold while dwelling or waiting to pull out
+    if (busStopGap < Infinity) {
+      acc = Math.min(
+        acc,
+        computeAccIdmPlus(busStopGap, v.speed, 0, 0, desiredSpeedLimit, v.personality, muRoad, 0),
+      );
+    }
+
+    // Motorbikes keep creeping into free space instead of idling (never at a red light, never into a hazard)
+    if (
+      v.category === "moto" &&
+      !stopRequired &&
+      !signalIsRedOrAmber &&
+      !v.onTurn &&
+      v.collisionPause <= 0 &&
+      v.speed < VN_TRAFFIC_TUNING.moto.creepSpeed &&
+      (hazard.kind === "none" || hazard.kind === "vehicle") &&
+      hazard.gap > v.personality.minGap + VN_TRAFFIC_TUNING.moto.creepMinGap
+    ) {
+      acc = Math.max(acc, VN_TRAFFIC_TUNING.moto.creepAccel);
     }
 
     // Respect brief collision-recovery brake hold
@@ -690,6 +858,10 @@ export class SaigonTrafficManager {
     dt: number,
   ) {
     const sameEdge = byEdge.get(edge.id) ?? [];
+    const tune = VN_TRAFFIC_TUNING;
+
+    // A bus in its stop routine steers itself (updateBusStop)
+    if (v.category === "bus" && v.busStop && v.busStop.phase !== "cruise") return;
 
     if (v.category === "moto") {
       // SUMO SL2015 + Saigon Motorbike Sublane & Red-Light Swarm!
@@ -708,6 +880,20 @@ export class SaigonTrafficManager {
         });
       }
 
+      // Blocked by a slow or standing vehicle ahead in the rider's own strip: fill any gap beside it
+      const mt = tune.moto;
+      const blocked = neighbors.some(
+        (n) =>
+          n.ds > 0 &&
+          n.ds - (v.halfLength + n.halfLength) < mt.blockedLeaderGap &&
+          n.speed < mt.blockedLeaderSpeed &&
+          Math.abs(n.lat - v.latOffset) < v.halfWidth + n.halfWidth + 0.3,
+      );
+      const busAhead = this.haltedBusAhead(v, sameEdge);
+      const squeeze =
+        blocked &&
+        (tune.overtakeWillingness.moto >= 1 || this.behaviourRand() < tune.overtakeWillingness.moto);
+
       if (v.laneChangeCooldown <= 0) {
         v.targetLatOffset = computeSaigonMotoSublaneTarget({
           v,
@@ -716,13 +902,17 @@ export class SaigonTrafficManager {
           distToStop,
           signalIsRedOrAmber,
           upcomingTurnKind: upcomingTurn?.kind ?? null,
+          squeeze: squeeze || !!busAhead,
         });
-        v.laneChangeCooldown = 0.45;
+        v.laneChangeCooldown = squeeze || busAhead ? mt.blockedReplan : 0.45;
       }
 
       const latErr = v.targetLatOffset - v.latOffset;
       // Can filter laterally even at low speed (creep ~0.4 m/s), capped cleanly when fully stationary
-      const maxLatSpd = v.speed > 0.25 ? Math.min(1.65, 0.45 + v.speed * 0.16) : 0;
+      const maxLatSpd = Math.max(
+        v.speed > 0.25 ? Math.min(1.65, 0.45 + v.speed * 0.16) : 0,
+        blocked || busAhead ? mt.blockedLatSpeed : 0,
+      );
       const desiredLatVel = Math.max(-maxLatSpd, Math.min(maxLatSpd, latErr * 2.2));
       v.latVel += (desiredLatVel - v.latVel) * Math.min(1, dt * 6.5);
       v.latOffset = Math.max(
@@ -740,7 +930,10 @@ export class SaigonTrafficManager {
               : v.laneIndex
           : v.laneIndex;
 
-      if (v.laneChangeCooldown <= 0 && distToStop > 14 && v.speed > 1.8) {
+      const busAhead = this.haltedBusAhead(v, sameEdge);
+      // Standing behind a halted bus or held up mid-block for a while: the driver may nose out from standstill
+      const stuck = v.speed <= 1.8 && (!!busAhead || v.waitTime > tune.car.stuckWait);
+      if (v.laneChangeCooldown <= 0 && distToStop > 14 && (v.speed > 1.8 || stuck)) {
         const altLane: 0 | 1 = v.laneIndex === 0 ? 1 : 0;
         const curLat = edge.carLaneOffsets[v.laneIndex];
         const altLat = edge.carLaneOffsets[altLane];
@@ -833,7 +1026,8 @@ export class SaigonTrafficManager {
                 )
               : 0;
 
-            const bias = altLane === desiredLane && desiredLane !== v.laneIndex ? 1.15 : 0;
+            const turnBias = altLane === desiredLane && desiredLane !== v.laneIndex ? 1.15 : 0;
+            const bias = turnBias + (busAhead ? tune.busStopOvertakeBias : 0);
             const shouldChange = evaluateMobilLaneChange({
               vRel: Math.min(1, v.speed / Math.max(edge.speedLimit, 1)),
               accOwnOld,
@@ -844,7 +1038,18 @@ export class SaigonTrafficManager {
               bias,
               muRoad,
             });
-            if (shouldChange) {
+            // Vietnamese car drivers rarely weave out around a slow leader, unless a bus is standing at a stop
+            const blockedAhead =
+              turnBias === 0 &&
+              !!curLL.lead &&
+              gapCur < tune.blockedLeaderGap &&
+              curLL.lead.speed < v.speed * 0.8 + 0.5;
+            const willing = busAhead
+              ? tune.busStopOvertakeWillingness[v.category]
+              : tune.overtakeWillingness[v.category];
+            if (shouldChange && blockedAhead && this.behaviourRand() >= willing) {
+              v.laneChangeCooldown = tune.declineCooldown;
+            } else if (shouldChange) {
               v.laneIndex = altLane;
               v.laneChangeCooldown = 3.2;
             }
@@ -854,7 +1059,10 @@ export class SaigonTrafficManager {
 
       v.targetLatOffset = edge.carLaneOffsets[v.laneIndex];
       const latErr = v.targetLatOffset - v.latOffset;
-      const maxLatSpd = v.speed > 0.5 ? Math.min(1.15, v.speed * 0.14) : 0;
+      const maxLatSpd = Math.max(
+        v.speed > 0.5 ? Math.min(1.15, v.speed * 0.14) : 0,
+        stuck && Math.abs(latErr) > 0.05 ? tune.car.stuckLatSpeed : 0,
+      );
       const desiredLatVel = Math.max(-maxLatSpd, Math.min(maxLatSpd, latErr * 1.8));
       v.latVel += (desiredLatVel - v.latVel) * Math.min(1, dt * 5.0);
       v.latOffset += v.latVel * dt;

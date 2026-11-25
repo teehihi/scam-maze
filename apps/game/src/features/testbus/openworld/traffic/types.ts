@@ -191,6 +191,19 @@ export interface VehicleVisualRig {
   lights?: VehicleLightingHandle | null;
 }
 
+export type BusStopPhase = "cruise" | "pullIn" | "dwell" | "signalOut" | "pullOut";
+
+/** Ambient bus stop routine: pull in to the curb, dwell, indicate, cut out to the middle lane. */
+export interface BusStopState {
+  phase: BusStopPhase;
+  /** Seconds left in the current dwell or indicator lead phase */
+  timer: number;
+  /** Edge whose stop was already served, so the bus does not stop there twice */
+  servedEdgeId: string | null;
+  /** Indicator state commanded by the stop routine: -1 = left (pulling out), 0 = off, +1 = right (pulling in) */
+  indicator: -1 | 0 | 1;
+}
+
 export interface VehicleAgent {
   id: string;
   category: VehicleCategory;
@@ -252,6 +265,8 @@ export interface VehicleAgent {
   /** Stunt in progress (reckless riders only), seconds into it, and seconds until the next one. */
   stunt?: { kind: "wheelie" | "weave"; t: number } | null;
   stuntCooldown?: number;
+  /** Stop routine state for ambient buses (undefined until the bus first reaches an edge with a stop) */
+  busStop?: BusStopState;
   /** True for externally driven hero/bus vehicles (e.g. Bus 06) registered into the shared collision & yield grid */
   externalControl?: boolean;
   /** Visual rig (optional so pure headless Node unit/stress tests can run without Three.js meshes!) */
