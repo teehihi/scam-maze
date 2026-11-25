@@ -1,10 +1,11 @@
 // Cinema-grade GTA-6 / RDR2 / Cyberpunk diegetic street dialogue & crowd whisper layer.
 // Zero crude floating chat boxes AND mathematically zero text overlap at any viewport size:
-// pure film subtitles stacked cleanly ABOVE a Genshin-style vertical reply list,
+// a Genshin-style vertical reply list stacked cleanly ABOVE pure film subtitles,
 // with live speaking cadence bars, two-way player-line echo, and instant-reveal support.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { ActiveStoryNpcDialogue, AmbientStreetBark } from "./simulation/storyNpcs";
 import { ChoicePill } from "../../../components/ui/ChoicePill";
+import { playUiHoverSound } from "../../../components/ui/hoverSound";
 import type { CrowdReactionBark } from "./simulation/humanPresence";
 
 export interface CinemaNpcHudProps {
@@ -111,9 +112,11 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
       if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.code === "ArrowDown") {
         e.preventDefault();
+        playUiHoverSound();
         setActiveIndex((i) => (i + 1) % replyCount);
       } else if (e.code === "ArrowUp") {
         e.preventDefault();
+        playUiHoverSound();
         setActiveIndex((i) => (i - 1 + replyCount) % replyCount);
       } else if (e.code === "Enter" || e.code === "NumpadEnter") {
         if (e.target instanceof HTMLElement && e.target.closest("button")) return; // a focused button handles its own Enter
@@ -196,12 +199,64 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
             className="pointer-events-none fixed inset-x-0 bottom-0 z-30 h-[38vh] bg-gradient-to-t from-black/90 via-black/58 to-transparent"
           />
 
-          {/* Single Unified Lower-Third Stack: Player Echo -> Speaker + Subtitle -> Insight -> Horizontal Reply Strip */}
+          {/* Single Unified Lower-Third Stack: Reply List -> Player Echo -> Speaker + Subtitle -> Insight */}
           <div
             data-testid="cinema-npc-dialogue"
             className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex flex-col items-center gap-3 px-6"
           >
-            {/* Speaker + Subtitle Block (click to instant-reveal while speaking) */}
+            {/* Genshin-style vertical reply list above the subtitle: chat icon pills, highlight follows hover, focus and Up/Down */}
+            <div
+              className={`pointer-events-auto flex w-full max-w-md flex-col items-stretch gap-2 transition-opacity duration-300 sm:self-end sm:mr-[clamp(0rem,6vw,6rem)] ${
+                lineDone ? "opacity-100" : "opacity-80 hover:opacity-100"
+              }`}
+            >
+              <ul
+                aria-label={isVi ? "Câu trả lời" : "Replies"}
+                data-testid="cinema-reply-list"
+                className="flex max-h-[34vh] flex-col gap-2 overflow-y-auto overscroll-contain p-0.5"
+              >
+                {!dialogue.closing ? (
+                  dialogue.turn.replies.map((reply, idx) => {
+                    const asked = dialogue.askedReplyIds.includes(reply.id);
+                    const on = idx === activeIndex;
+                    return (
+                      <li key={reply.id}>
+                        <ChoicePill
+                          selected={on}
+                          dimmed={asked}
+                          onClick={() => onSelectReply?.(idx)}
+                          onPointerEnter={() => setActiveIndex(idx)}
+                          onFocus={() => setActiveIndex(idx)}
+                        >
+                          {isVi ? reply.label.vi : reply.label.en}
+                        </ChoicePill>
+                      </li>
+                    );
+                  })
+                ) : (
+                  <li>
+                    <ChoicePill selected keyHint="E" onClick={() => onCloseDialogue?.()}>
+                      {isVi ? "Rời đi" : "Step away"}
+                    </ChoicePill>
+                  </li>
+                )}
+              </ul>
+
+              {!dialogue.closing && (
+                <button
+                  type="button"
+                  onClick={() => onCloseDialogue?.()}
+                  style={FILM_SHADOW}
+                  className="flex cursor-pointer items-center gap-1.5 self-end pb-0.5 text-[11px] tracking-wider text-white/55 uppercase transition hover:text-white/95"
+                >
+                  <kbd className="inline-flex h-[17px] items-center justify-center rounded-[3px] border border-white/20 bg-black/40 px-1 font-mono text-[9.5px] font-semibold text-white/70">
+                    Esc
+                  </kbd>
+                  <span>{isVi ? "Rời đi" : "Leave"}</span>
+                </button>
+              )}
+            </div>
+            {/* Speaker + Subtitle Block at the bottom (click to instant-reveal while speaking) */}
             <div
               className="pointer-events-auto max-w-3xl cursor-default text-center"
               onClick={() => {
@@ -271,69 +326,6 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
               )}
             </div>
 
-            {/* Genshin-style vertical reply list: chat icon pills, highlight follows hover, focus and Up/Down */}
-            <div
-              className={`pointer-events-auto flex w-full max-w-md flex-col items-stretch gap-2 transition-opacity duration-300 sm:self-end sm:mr-[clamp(0rem,6vw,6rem)] ${
-                lineDone ? "opacity-100" : "opacity-80 hover:opacity-100"
-              }`}
-            >
-              <ul
-                aria-label={isVi ? "Câu trả lời" : "Replies"}
-                data-testid="cinema-reply-list"
-                className="flex max-h-[34vh] flex-col gap-2 overflow-y-auto overscroll-contain p-0.5"
-              >
-                {!dialogue.closing ? (
-                  dialogue.turn.replies.map((reply, idx) => {
-                    const asked = dialogue.askedReplyIds.includes(reply.id);
-                    const isChallenge = reply.tone === "challenge";
-                    const on = idx === activeIndex;
-                    return (
-                      <li key={reply.id}>
-                        <ChoicePill
-                          selected={on}
-                          dimmed={asked}
-                          keyHint={String(idx + 1)}
-                          cue={
-                            !asked && isChallenge ? (
-                              <span
-                                aria-hidden="true"
-                                data-testid="reply-tone-challenge"
-                                className="relative h-2 w-2 shrink-0 rounded-full bg-amber-500 ring-1 ring-amber-200/70"
-                              />
-                            ) : null
-                          }
-                          onClick={() => onSelectReply?.(idx)}
-                          onPointerEnter={() => setActiveIndex(idx)}
-                          onFocus={() => setActiveIndex(idx)}
-                        >
-                          {isVi ? reply.label.vi : reply.label.en}
-                        </ChoicePill>
-                      </li>
-                    );
-                  })
-                ) : (
-                  <li>
-                    <ChoicePill selected keyHint="E" onClick={() => onCloseDialogue?.()}>
-                      {isVi ? "Rời đi" : "Step away"}
-                    </ChoicePill>
-                  </li>
-                )}
-              </ul>
-
-              {!dialogue.closing && (
-                <button
-                  type="button"
-                  onClick={() => onCloseDialogue?.()}
-                  style={FILM_SHADOW}
-                  className="flex cursor-pointer items-center gap-1.5 self-end pb-0.5 text-[11px] tracking-wider text-white/55 uppercase transition hover:text-white/95"
-                >
-                  <kbd className="inline-flex h-[17px] items-center justify-center rounded-[3px] border border-white/20 bg-black/40 px-1 font-mono text-[9.5px] font-semibold text-white/70">
-                    Esc
-                  </kbd>
-                  <span>{isVi ? "Rời đi" : "Leave"}</span>
-                </button>
-              )}
-            </div>
           </div>
         </>
       )}

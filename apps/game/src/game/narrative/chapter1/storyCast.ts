@@ -858,10 +858,6 @@ export function resolveStoryNpcDialogue(
             nextMood: "calm",
           },
         ],
-        hookNote: {
-          en: "Mission 02 preview: Compare 60k off-app cash ride vs Bus 06 & verified apps.",
-          vi: "Gợi mở Nhiệm vụ 02: Cân nhắc giữa xe ngoài 60k, Tuyến Buýt 06 và app có định vị.",
-        },
       };
 
     case "landlord_q10":
