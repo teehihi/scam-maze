@@ -108,4 +108,33 @@ describe("traffic behind a stopped Bus 06", () => {
     expect(passedAt.get("moto1")).toBeLessThan(9);
     expect(passedAt.get("car1")).toBeLessThan(11);
   });
+
+  it("keeps clear of a vehicle driving past in the other lane while the queue swerves out", () => {
+    for (let seed = 1; seed <= 4; seed++) {
+      const { mgr, bus, agents } = setup(seed, [
+        { id: "van1", category: "van", s: 37, lat: 0.45 },
+        { id: "taxi", category: "car", s: 31, lat: 0.45 },
+      ]);
+      const other = mgr.spawnVehicle({
+        id: "passer",
+        category: "car",
+        edgeId: EDGE,
+        s: 20,
+        laneIndex: 0,
+        latOffset: -1.45,
+        ...SIZE.car,
+        speed: 6,
+      });
+      let worst = Infinity;
+      const all = [...agents, other];
+      for (let i = 1; i <= 25 / DT; i++) {
+        mgr.syncBus06(BUS_X, BUS_Z, Math.PI, 0, 0);
+        mgr.step(input);
+        const onEdge = all.filter((a) => !a.onTurn && a.edgeId === EDGE);
+        for (const a of onEdge) for (const b of onEdge) if (a.id < b.id) worst = Math.min(worst, overlapDepth(a, b));
+      }
+      expect(worst, `seed ${seed}`).toBeGreaterThan(0);
+      for (const a of agents) expect(isPast(a, bus), `seed ${seed} ${a.id}`).toBe(true);
+    }
+  });
 });

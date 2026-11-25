@@ -1110,7 +1110,17 @@ export class SaigonTrafficManager {
         const need = v.halfWidth + o.halfWidth + tune.busPassClearance;
         if (Math.abs(v.targetLatOffset - o.latOffset) >= need) continue;
         const shifted = this.passLatBeside(v, o, edge);
-        if (shifted !== null && Math.abs(shifted - v.targetLatOffset) < 1.0) v.targetLatOffset = shifted;
+        if (shifted === null || Math.abs(shifted - v.targetLatOffset) >= 1.0) continue;
+        // Hold in lane if another vehicle already occupies the strip we would shift into
+        const strip = sameEdge.some(
+          (n) =>
+            n.id !== v.id &&
+            n.id !== o.id &&
+            Math.abs(n.s - v.s) < n.halfLength + v.halfLength + 1.5 &&
+            Math.abs(n.latOffset - shifted) < n.halfWidth + v.halfWidth + 0.1 &&
+            Math.abs(n.latOffset - shifted) < Math.abs(n.latOffset - v.targetLatOffset),
+        );
+        if (!strip) v.targetLatOffset = shifted;
       }
       const latErr = v.targetLatOffset - v.latOffset;
       const maxLatSpd = Math.max(
