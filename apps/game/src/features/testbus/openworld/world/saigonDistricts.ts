@@ -30,6 +30,8 @@ import { GRAB_DRIVER_FILE, pickGrabClip, type GrabClipName } from "../simulation
 import {
   LONG_Q9_FILE,
   LONG_Q9_HEIGHT,
+  LONG_Q9_RIG_HEIGHT,
+  type LongQ9Clip,
   createLongQ9State,
   stepLongQ9,
   type LongQ9Spot,
@@ -196,7 +198,11 @@ export function buildSaigonDistricts(
     { x: 41.8, z: -68.9 },
     { x: 35.2, z: -68.9 },
   ];
-  const LONG_Q9_SPOTS: LongQ9Spot[] = LONG_Q9_BIKES.map((bk) => ({ x: bk.x - 0.4, z: bk.z + 1.25, yaw: Math.PI }));
+  // He crouches at the first bike's tire and sits with a wrench at the second; the standoff leaves room for his legs.
+  const LONG_Q9_SPOTS: LongQ9Spot[] = [
+    { x: LONG_Q9_BIKES[0].x - 0.4, z: LONG_Q9_BIKES[0].z + 0.9, yaw: Math.PI, task: "Crouch_Tire" },
+    { x: LONG_Q9_BIKES[1].x - 0.4, z: LONG_Q9_BIKES[1].z + 1.1, yaw: Math.PI, task: "Sit_Wrench" },
+  ];
   const roamingActors: {
     group: T.Group;
     mixer?: T.AnimationMixer;
@@ -1674,7 +1680,13 @@ export function buildSaigonDistricts(
     }
   };
 
-  let longQ9Actor: { group: T.Group; state: LongQ9State } | null = null;
+  let longQ9Actor: {
+    group: T.Group;
+    state: LongQ9State;
+    mixer: T.AnimationMixer;
+    actions: Map<LongQ9Clip, T.AnimationAction>;
+    current: LongQ9Clip | null;
+  } | null = null;
   let longQ9Spawned = false;
   const grabAnimators: { id: string; mixer: T.AnimationMixer; actions: Map<GrabClipName, T.AnimationAction>; current: GrabClipName | null; root: T.Object3D }[] = [];
 
@@ -1718,28 +1730,35 @@ export function buildSaigonDistricts(
       }
     }
 
-    const obj = qGltf.scene.clone(true);
-    const b = new T.Box3().setFromObject(obj, true);
-    const s = LONG_Q9_HEIGHT / Math.max(0.1, b.max.y - b.min.y);
-    obj.scale.setScalar(s);
-    obj.position.set(-((b.max.x + b.min.x) * s) / 2, -b.min.y * s, -((b.max.z + b.min.z) * s) / 2);
+    // Rigged, with baked clips: the rig stands on y = 0 at x = z = 0, so only a uniform scale is needed.
+    const obj = cloneSkinned(qGltf.scene);
+    obj.scale.setScalar(LONG_Q9_HEIGHT / LONG_Q9_RIG_HEIGHT);
     upgradeHumanMaterials(obj);
     obj.traverse((n) => {
       if (n instanceof T.Mesh) {
         n.castShadow = false;
         n.receiveShadow = true;
+        n.frustumCulled = false; // the crouch and sit poses leave the bind-pose bounds
       }
     });
+    const mixer = new T.AnimationMixer(obj);
+    const actions = new Map<LongQ9Clip, T.AnimationAction>();
+    for (const clip of qGltf.animations) actions.set(clip.name as LongQ9Clip, mixer.clipAction(clip));
     const holder = new T.Group();
     holder.add(obj);
     const state = createLongQ9State(LONG_Q9_SPOTS);
-    holder.rotation.order = "YXZ"; // heading first, then the lean in the body's own frame
     holder.position.set(state.x, CURB_HEIGHT, state.z);
     holder.rotation.y = state.yaw;
     contact(holder, 0, 0.01, 0, 0.65, 0.65, shade);
     dynamicRoot.add(holder);
     onAssetLoaded?.(holder);
-    longQ9Actor = { group: holder, state };
+    longQ9Actor = { group: holder, state, mixer, actions, current: null };
+    const firstClip = LONG_Q9_SPOTS[state.spot].task;
+    const first = actions.get(firstClip);
+    if (first) {
+      first.play();
+      longQ9Actor.current = firstClip;
+    }
     if (humanPresence) {
       presenceCleanups.push(
         humanPresence.register({
@@ -2187,14 +2206,22 @@ export function buildSaigonDistricts(
         const dz = g.position.z - playerZ;
         g.visible = dx * dx + dz * dz < npcRangeSq;
         if (g.visible) {
-          const pose = stepLongQ9(longQ9Actor.state, dt, LONG_Q9_SPOTS);
-          g.position.set(pose.x, CURB_HEIGHT + pose.bob, pose.z);
-          let dy = pose.yaw - g.rotation.y;
+          const frame = stepLongQ9(longQ9Actor.state, dt, LONG_Q9_SPOTS);
+          g.position.set(frame.x, CURB_HEIGHT, frame.z);
+          let dy = frame.yaw - g.rotation.y;
           while (dy > Math.PI) dy -= Math.PI * 2;
           while (dy < -Math.PI) dy += Math.PI * 2;
           g.rotation.y += dy * Math.min(1, dt * 5);
-          g.rotation.x = pose.lean;
-          g.rotation.z = pose.sway;
+          if (frame.clip !== longQ9Actor.current) {
+            const next = longQ9Actor.actions.get(frame.clip);
+            if (next) {
+              const prev = longQ9Actor.current ? longQ9Actor.actions.get(longQ9Actor.current) : undefined;
+              next.reset().play();
+              if (prev) prev.crossFadeTo(next, 0.4, false);
+              longQ9Actor.current = frame.clip;
+            }
+          }
+          longQ9Actor.mixer.update(dt);
         }
       }
 
