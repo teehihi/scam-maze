@@ -387,7 +387,7 @@ export class TrafficCollisionSystem {
           const net = Math.max(-0.5, probe.dist - (v.halfLength + other.halfLength));
           // A vehicle that is beside us (not ahead of our centre) is no leader. Braking for it makes two vehicles
           // that leave a junction side by side hold each other forever; the hard SAT pass separates real contact.
-          if (net <= 0.3 && along < v.halfLength * 0.5) continue;
+          if (net <= 0.3 && along < v.halfLength * 0.5 && (v.onTurn || other.onTurn)) continue;
           // Two vehicles standing in the junction box that block each other (oncoming left turn against a straight
           // vehicle, crossing arcs) would wait for each other forever. The one that has waited longer goes first.
           if (

@@ -75,12 +75,12 @@ function runQueue(edge: RoadEdge, count: number, withPeds: boolean): string[] {
 
 describe("queued vehicles move on green", () => {
   const list = approaches();
-  it("every queued vehicle that is first or second in line crosses during the green", () => {
+  it("every queued vehicle in a mixed queue of two crosses during the green", () => {
     const failures: string[] = [];
-    for (const edge of list) failures.push(...runQueue(edge, 2, false).filter((f) => f.includes(" q0") || f.includes(" q1")));
+    for (const edge of list) failures.push(...runQueue(edge, 2, false));
     expect(failures).toEqual([]);
   });
-  it("a queue of four crosses with pedestrians around", () => {
+  it("the head of a queue crosses with pedestrians around", () => {
     const failures: string[] = [];
     for (const edge of list) failures.push(...runQueue(edge, 1, true));
     expect(failures).toEqual([]);
@@ -121,6 +121,6 @@ describe("junction box never locks up", () => {
     }
     // Two vehicles blocking each other inside the box stayed there for the whole run (about 570 s).
     // A queue spilling back from a red light downstream may hold a vehicle for part of a signal cycle only.
-    expect(worst.sec, worst.id).toBeLessThan(120);
+    expect(worst.sec, worst.id).toBeLessThan(100);
   });
 });
