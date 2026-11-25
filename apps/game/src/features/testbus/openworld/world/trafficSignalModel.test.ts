@@ -9,7 +9,7 @@ import { lamp } from "../simulation/scene-kit";
 import { TrafficSignalController } from "../traffic/signalController";
 import type { LampSet } from "./mastArmSignal";
 import { NORTHBOUND, signalYaw } from "./signalPlacement";
-import { createGlbMastArmSignal, HEAD_PARTS, prepareTemplate, SIGNAL_NODES, type TrafficSignalTemplate } from "./trafficSignalModel";
+import { createGlbMastArmSignal, HEAD_PARTS, LENS_PUSH, prepareTemplate, SIGNAL_NODES, type TrafficSignalTemplate } from "./trafficSignalModel";
 
 const NATIVE_ARM = 8.5553;
 const bodyMaterial = new T.MeshStandardMaterial({ color: 0x333333 });
@@ -86,6 +86,18 @@ describe("createGlbMastArmSignal", () => {
       expect((head.getObjectByName(`${name}_amber`) as T.Mesh).material).toBe(lamps.y);
       expect((head.getObjectByName(`${name}_green`) as T.Mesh).material).toBe(lamps.g);
     }
+  });
+
+  it("moves every lens toward -Z so it stands proud of the housing, without touching the template", () => {
+    const template = syntheticTemplate();
+    const { signal } = build(template, [2, 5]);
+    for (const head of signal.heads) {
+      for (const part of ["red", "amber", "green"]) {
+        const lens = head.getObjectByName(`${head.name}_${part}`)!;
+        expect(lens.position.z).toBeCloseTo(-0.15 - LENS_PUSH, 6);
+      }
+    }
+    expect(template.root.getObjectByName("head_a_red")!.position.z).toBeCloseTo(-0.15, 6);
   });
 
   it("shares geometry and body material between signals but not lens materials", () => {

@@ -4,6 +4,7 @@ import { NodeIO, type Document, type Node } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { dequantize } from "@gltf-transform/functions";
 import { MeshoptDecoder } from "meshoptimizer";
+import { LENS_PUSH } from "./trafficSignalModel";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const FILE = resolve(__dirname, "../../../../../public/assets/3d/optimized/props/traffic-signal.optimized.glb");
@@ -92,6 +93,37 @@ describe("traffic-signal.optimized.glb", () => {
       expect(extras.faceSize[1]).toBeGreaterThan(0.3);
       const parent = find(head).getTranslation();
       expect(extras.faceCenter[2] + parent[2]).toBeCloseTo(countdown.min[2], 2);
+    }
+  });
+
+  it("leaves no housing face in front of any lens once the runtime pushes the lenses forward", () => {
+    for (const head of HEADS) {
+      const bodyNode = find(`${head}_body`);
+      const m = bodyNode.getWorldMatrix();
+      const pos = bodyNode.getMesh()!.listPrimitives()[0].getAttribute("POSITION")!;
+      const idx = bodyNode.getMesh()!.listPrimitives()[0].getIndices()!;
+      const world = (i: number) => {
+        const v = [0, 0, 0];
+        pos.getElement(i, v);
+        return [m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12], m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13], m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14]];
+      };
+      const tris: number[][][] = [];
+      for (let t = 0; t < idx.getCount(); t += 3) tris.push([world(idx.getScalar(t)), world(idx.getScalar(t + 1)), world(idx.getScalar(t + 2))]);
+      for (const colour of COLOURS) {
+        const lens = box(find(`${head}_${colour}`));
+        const [cx, cy] = lens.centre;
+        // Frontmost (most negative z) housing surface over the lens centre.
+        let face = Infinity;
+        for (const [A, B, C] of tris) {
+          const d = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]);
+          if (Math.abs(d) < 1e-12) continue;
+          const l1 = ((B[1] - C[1]) * (cx - C[0]) + (C[0] - B[0]) * (cy - C[1])) / d;
+          const l2 = ((C[1] - A[1]) * (cx - C[0]) + (A[0] - C[0]) * (cy - C[1])) / d;
+          if (l1 < 0 || l2 < 0 || 1 - l1 - l2 < 0) continue;
+          face = Math.min(face, l1 * A[2] + l2 * B[2] + (1 - l1 - l2) * C[2]);
+        }
+        expect(lens.min[2] - LENS_PUSH, `${head}_${colour} lens front vs housing face`).toBeLessThan(face - 0.01);
+      }
     }
   });
 });

@@ -30,6 +30,13 @@ export interface GlbMastArmSignalOptions {
   laneCentres: number[];
 }
 
+/**
+ * The lens discs of the model are cut flush into the housing front (head_a, head_b: the body face is at the
+ * same depth as the lens), so the body hides or z-fights them. Every lens is moved this far toward -Z
+ * (the lens-facing side) so it always stands proud of the housing face.
+ */
+export const LENS_PUSH = 0.05;
+
 const PANEL_SIZE = { w: 0.32, h: 0.34 };
 /** Share of the countdown face the digit panel fills. */
 const PANEL_FILL = 0.92;
@@ -84,7 +91,9 @@ function nativeArmLength(arm: T.Object3D): number {
 function assignLamps(head: T.Object3D, name: string, lamps: LampSet): void {
   const set = (part: string, mat: T.MeshStandardMaterial) => {
     const lens = head.getObjectByName(`${name}_${part}`) as T.Mesh | undefined;
-    if (lens) lens.material = mat;
+    if (!lens) return;
+    lens.material = mat;
+    lens.position.z -= LENS_PUSH;
   };
   set(HEAD_PARTS.red, lamps.r);
   set(HEAD_PARTS.amber, lamps.y);
