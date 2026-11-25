@@ -200,8 +200,8 @@ export function buildSaigonDistricts(
   ];
   // He crouches at the first bike's tire and sits with a wrench at the second; the standoff leaves room for his legs.
   const LONG_Q9_SPOTS: LongQ9Spot[] = [
-    { x: LONG_Q9_BIKES[0].x - 0.4, z: LONG_Q9_BIKES[0].z + 0.9, yaw: Math.PI, task: "Crouch_Tire" },
-    { x: LONG_Q9_BIKES[1].x - 0.4, z: LONG_Q9_BIKES[1].z + 1.1, yaw: Math.PI, task: "Sit_Wrench" },
+    { x: LONG_Q9_BIKES[0].x - 0.4, z: LONG_Q9_BIKES[0].z + 0.9, yaw: Math.PI, task: "Crouch_Repair" },
+    { x: LONG_Q9_BIKES[1].x - 0.4, z: LONG_Q9_BIKES[1].z + 1.1, yaw: Math.PI, task: "Kneel_Pump" },
   ];
   const roamingActors: {
     group: T.Group;

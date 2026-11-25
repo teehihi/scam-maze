@@ -1,21 +1,25 @@
 /**
  * Long Q9, the one-of-a-kind street mechanic of the Saigon open world.
  *
- * The model (`longq9.optimized.glb`) is rigged with the author's 17-bone skeleton and carries four baked clips, built
- * by `apps/game/scripts/longq9/build-longq9.cjs` from the author's own pose code. This module is the routine that
- * picks the clip: he works at one bike (crouching at its tire, or sitting with a wrench), gives a thumbs-up when the
+ * The model (`longq9.optimized.glb`) is rigged with the author's 17-bone skeleton and carries the clips of LONG_Q9_CLIPS, built
+ * by `apps/game/scripts/longq9/build-longq9.cjs` from the author's animated export. This module is the routine that
+ * picks the clip: he works at one bike (crouching at its tire, or kneeling at a pump), waves when the
  * job is done, walks to the next bike and repeats. The caller moves the root and plays the clip; the clips carry no
  * root motion. He is spawned exactly once per world (a guard in `saigonDistricts.ts`) and his file is in no shared
  * model list.
  */
 
 export const LONG_Q9_FILE = "longq9.optimized.glb";
+/** The yellow Honda Wave he rides (`apps/game/scripts/longq9/build-wave.cjs`), in the same model folder. */
+export const WAVE_LONGQ9_FILE = "wave-longq9.optimized.glb";
 /** Height of the rigged model at rest in metres (the T-pose is 1.704 m tall). */
 export const LONG_Q9_RIG_HEIGHT = 1.704;
 /** Height he is shown at in the street. */
 export const LONG_Q9_HEIGHT = 1.66;
 
-export type LongQ9Clip = "Walk" | "Crouch_Tire" | "Sit_Wrench" | "Thumbs_Up";
+/** Every clip baked into the file, in the order the build writes them. */
+export const LONG_Q9_CLIPS = ["Walk", "Ride", "Greet_Seated", "Crouch_Repair", "Wave_Hand", "Kneel_Pump"] as const;
+export type LongQ9Clip = (typeof LONG_Q9_CLIPS)[number];
 
 export interface LongQ9Spot {
   /** Where he stands next to the bike. */
@@ -24,7 +28,7 @@ export interface LongQ9Spot {
   /** Heading (rotation.y, +Z forward) while working: faces the bike. */
   yaw: number;
   /** The work clip played at this bike. */
-  task: "Crouch_Tire" | "Sit_Wrench";
+  task: "Crouch_Repair" | "Kneel_Pump";
 }
 
 export type LongQ9Phase = "work" | "cheer" | "walk";
@@ -49,8 +53,7 @@ export interface LongQ9Frame {
 export const LONG_Q9_WORK_SECONDS = 14;
 export const LONG_Q9_CHEER_SECONDS = 3.5;
 /**
- * Ground speed (m/s) of his stroll. The Walk clip lasts 1.1 s per two steps and its stride is about 1.1 m, so the clip
- * plays at its own rate and the feet keep up with the ground.
+ * Ground speed (m/s) of his stroll. The clip plays at its own rate; the pace is tuned by eye.
  */
 export const LONG_Q9_WALK_SPEED = 1.0;
 
@@ -84,7 +87,7 @@ export function stepLongQ9(state: LongQ9State, dt: number, spots: readonly LongQ
       }
       state.t = 0;
     } else {
-      return { x: state.x, z: state.z, yaw: state.yaw, clip: "Thumbs_Up" };
+      return { x: state.x, z: state.z, yaw: state.yaw, clip: "Wave_Hand" };
     }
   }
   // Walk toward the next spot.
