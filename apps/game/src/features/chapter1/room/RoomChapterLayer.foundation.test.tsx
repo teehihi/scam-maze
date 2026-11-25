@@ -105,7 +105,7 @@ describe("RoomChapterLayer with LAST SUBMISSION routing", () => {
     fireEvent.click(task);
     const list = screen.getByTestId("task-list");
     expect(within(list).getByTestId("task-mission-m01.missing-access").textContent).toContain("THE MISSING ACCESS");
-    expect(within(list).getByTestId("task-step-intro").getAttribute("data-state")).toBe("current");
+    expect(within(list).getByTestId("task-step-write").getAttribute("data-state")).toBe("current");
     expect(screen.queryByTestId("hud-task-new-mark")).toBeNull();
     // T closes it again, and opens it.
     fireEvent.keyDown(window, { key: "t", code: "KeyT" });
@@ -119,27 +119,28 @@ describe("RoomChapterLayer with LAST SUBMISSION routing", () => {
     finishIntro();
     const tracker = screen.getByTestId("task-tracker");
     expect(tracker.getAttribute("data-fresh")).toBe("true");
-    expect(within(tracker).getByTestId("task-current").textContent).toBe("Edit the introduction and literature review");
-    act(() => void rig.store().dispatch({ type: "COMPLETE_THESIS_TASK", taskId: "draft.intro-review" }));
-    // The task took 90 minutes, so the email of 17:10 has arrived: reading it is the next step.
-    expect(within(screen.getByTestId("task-tracker")).getByTestId("task-current").textContent).toBe("Read the new email about your submission account");
-    expect(screen.getByTestId("task-step-done").textContent).toContain("Edit the introduction and literature review");
+    expect(within(tracker).getByTestId("task-current").textContent).toBe("Type two sentences of your thesis");
+    act(() => void rig.store().dispatch({ type: "COMPLETE_THESIS_TASK", taskId: "draft.final" }));
+    // The draft was the last step of THE MISSING ACCESS: the tracker moves on to the final submission.
+    expect(within(screen.getByTestId("task-tracker")).getByTestId("task-current").textContent).toBe("Finish the draft, verify submission access and resolve any account lock before Friday, 17:00.");
+    expect(rig.store().getState().world.missions["m01.missing-access"].status).toBe("completed");
   });
 
   it("shows one task only, and tracks another task or a sub-task from the list", () => {
     const rig = mountLayer();
     finishIntro();
-    expect(rig.store()).toBeTruthy();
+    // The email of 17:10 gives Mission 01 a second step, so there is a later sub-task to track.
+    act(() => void rig.store().dispatch({ type: "ADVANCE_TIME", minutes: 10 }));
     const tracker = screen.getByTestId("task-tracker");
     expect(screen.queryByTestId("task-others")).toBeNull();
     const firstStep = within(tracker).getByTestId("task-current").textContent;
-    expect(firstStep).toBe("Edit the introduction and literature review");
+    expect(firstStep).toBe("Read the new email about your submission account");
     // Track a later sub-task of the same mission.
     fireEvent.click(screen.getByTestId("hud-task-button"));
     const list = screen.getByTestId("task-list");
-    fireEvent.click(within(list).getByTestId("task-step-track-findings"));
-    expect(within(screen.getByTestId("task-tracker")).getByTestId("task-current").textContent).toBe("Revise the findings section");
-    expect(within(screen.getByTestId("task-list")).getByTestId("task-step-findings").getAttribute("data-state")).toBe("current");
+    fireEvent.click(within(list).getByTestId("task-step-track-write"));
+    expect(within(screen.getByTestId("task-tracker")).getByTestId("task-current").textContent).toBe("Type two sentences of your thesis");
+    expect(within(screen.getByTestId("task-list")).getByTestId("task-step-write").getAttribute("data-state")).toBe("current");
     // Clicking the mission title tracks the mission again (its own current step).
     fireEvent.click(within(screen.getByTestId("task-list")).getByTestId("task-mission-pick-m01.missing-access"));
     expect(within(screen.getByTestId("task-tracker")).getByTestId("task-current").textContent).toBe(firstStep);
@@ -198,7 +199,7 @@ describe("RoomChapterLayer with LAST SUBMISSION routing", () => {
     applyLocale("vi");
     mountLayer();
     finishIntro();
-    expect(screen.getByTestId("task-current").textContent).toBe("Chỉnh sửa phần mở đầu và tổng quan tài liệu");
+    expect(screen.getByTestId("task-current").textContent).toBe("Gõ 2 câu khóa luận");
     expect(screen.getByTestId("task-where").textContent).toContain("Laptop · Khóa luận");
   });
 

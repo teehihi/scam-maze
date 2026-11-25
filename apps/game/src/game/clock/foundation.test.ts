@@ -309,6 +309,18 @@ describe("determinism, save and load", () => {
       progress: { checkpointId: "start", actions: [], playerPose: null },
     });
     expect(parsed).toMatchObject({ status: "invalid", code: "incompatible" });
-    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-3");
+    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-4");
+  });
+
+  it("reports a save from before the draft became one task (-3) as incompatible", () => {
+    const parsed = parseSaveEnvelopeV3({
+      formatVersion: SAVE_FORMAT_VERSION_V3,
+      contentVersion: "ch1-last-submission-3",
+      chapterId: "chapter-1",
+      sceneId: "apartment",
+      savedAt: "2026-11-24T08:00:00.000Z",
+      progress: { checkpointId: "start", actions: [], playerPose: null },
+    });
+    expect(parsed).toMatchObject({ status: "invalid", code: "incompatible" });
   });
 });

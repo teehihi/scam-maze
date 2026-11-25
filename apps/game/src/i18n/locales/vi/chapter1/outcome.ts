@@ -54,7 +54,6 @@ const outcome: LocaleShape<typeof en> = {
     noPausedThesisSession: "Không có phiên khóa luận tạm dừng để tiếp tục.",
     noThesisSessionToEnd: "Không có phiên khóa luận tạm dừng để kết thúc.",
     draftAlreadySaved: "Phiên bản bản thảo này đã được lưu.",
-    thesisEvidenceMissing: "Hãy dẫn một số liệu phỏng vấn và nêu giới hạn mẫu trước khi xử lý góp ý phần kết quả.",
     notEnoughTimeForAction: "Không còn đủ thời gian để hoàn tất thao tác này.",
     restUnavailable: "Kịch bản này không có phần nghỉ ngơi.",
     unknownThesisTask: "Nhiệm vụ khóa luận này không tồn tại.",

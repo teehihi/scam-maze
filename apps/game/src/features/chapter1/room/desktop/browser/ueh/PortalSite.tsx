@@ -22,7 +22,7 @@ export interface PortalFacts {
   accountLocked: boolean;
   /** The thesis draft is finished. */
   draftFinished: boolean;
-  /** Ids of the thesis tasks done (`draft.intro-review`, `draft.findings`, `draft.final`). */
+  /** Ids of the thesis tasks done (`draft.final`: the two typed sentences). */
   tasksDone: readonly string[];
   accessVerified?: boolean;
   submissionDeadlineMissed?: boolean;
@@ -52,11 +52,8 @@ const NAV_ICONS = {
 } as const;
 
 const SECTIONS: readonly PortalSection[] = ["dashboard", "thesis", "services", "account"];
-const TASKS = [
-  { id: "draft.intro-review", key: "intro" },
-  { id: "draft.findings", key: "findings" },
-  { id: "draft.final", key: "final" },
-] as const;
+const TASKS = [{ id: "draft.final", key: "final" }] as const;
+
 
 const Row: React.FC<{ label: string; value: React.ReactNode; testId?: string }> = ({ label, value, testId }) => (
   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b py-1.5 last:border-b-0" style={{ borderColor: C.line }}>

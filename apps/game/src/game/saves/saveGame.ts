@@ -24,9 +24,10 @@ export const SAVE_FORMAT_VERSION_V3 = 3;
 
 /**
  * Identifies the scenario content a v3 action log was recorded against. `-3`: free thesis work
- * changed from 60 to 30 minutes per percent, so older logs replay to other results.
+ * changed from 60 to 30 minutes per percent, so older logs replay to other results. `-4`: the
+ * three draft reviews became one task (type two sentences), so older logs name removed tasks.
  */
-export const SAVE_CONTENT_VERSION = "ch1-last-submission-3";
+export const SAVE_CONTENT_VERSION = "ch1-last-submission-4";
 
 /** Upper bound on saved Core_Actions, so a save stays small (design: < 50 KB). */
 export const SAVE_MAX_ACTIONS = 1000;

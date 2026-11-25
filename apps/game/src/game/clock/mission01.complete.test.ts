@@ -20,21 +20,12 @@ const task = (taskId: string): CoreAction => ({ type: "COMPLETE_THESIS_TASK", ta
 const toMinute = (state: ChapterState, minute: number): CoreAction => advance(Math.max(1, minute - (CHAPTER_DURATION_MINUTES - state.resources.timeMinutes)));
 
 function step(state: ChapterState, action: CoreAction): ChapterState {
-  if (action.type === "COMPLETE_THESIS_TASK" && action.taskId === "draft.findings" && state.world.thesisDraft.findings === undefined) {
-    const drafted = chapterReducer(state, {
-      type: "SAVE_THESIS_DRAFT",
-      sectionId: "findings",
-      content: "In this interview sample, 6 of 24 participants asked a classmate when they could not identify the right office. This count describes these interviews, not all students.",
-    }, S);
-    expect(drafted.accepted, drafted.reason).toBe(true);
-    state = drafted.state;
-  }
   const result = chapterReducer(state, action, S);
   expect(result.accepted, `${action.type} ${JSON.stringify(action)}: ${result.reason ?? ""}`).toBe(true);
   return result.state;
 }
 const run = (actions: CoreAction[], from: ChapterState = createInitialState(S)) => actions.reduce(step, from);
-const DRAFT = [task("draft.intro-review"), task("draft.findings"), task("draft.final")];
+const DRAFT = [task("draft.final")];
 
 const FEE_PAGE: CoreAction[] = [advance(10), use("mail.clearance", "open-link"), use("page.fee", "sign-in"), use("page.fee", "pay-card"), use("page.fee", "enter-code")];
 const JOB: CoreAction[] = [use("msg.easy-money", "open-link"), use(P(), "do-task-1"), use(P(), "try-withdraw-1"), use(P(), "deposit-1")];
@@ -195,11 +186,11 @@ describe("the submission consequences", () => {
       },
     };
     let state = chapterReducer(createInitialState(limited), START, limited).state;
-    const taskResult = chapterReducer(state, task("draft.intro-review"), limited);
+    const taskResult = chapterReducer(state, task("draft.final"), limited);
     expect(taskResult.accepted).toBe(false);
     expect(taskResult.reason).toBe("There is not enough time left to complete this action.");
     expect(taskResult.state.resources.timeMinutes).toBe(4);
-    expect(taskResult.state.world.thesisTasksDone).not.toContain("draft.intro-review");
+    expect(taskResult.state.world.thesisTasksDone).not.toContain("draft.final");
 
     const itemResult = chapterReducer(state, use("portal.saved", "check-account"), limited);
     expect(itemResult.accepted).toBe(false);
@@ -278,8 +269,8 @@ describe("save and continue", () => {
     expect(after.device.ledger).toEqual(state.device.ledger);
   });
 
-  it("still restores an action log recorded for the previous content version, without changing it", () => {
-    // A log as the game saved it before the finance summary and the extra flags (content version -2).
+  it("restores an action log without the draft task, and new flags keep their defaults", () => {
+    // A log of the current content (-4) that never reached the draft: no thesis task, a nap, time passing.
     const log: CoreAction[] = [
       START,
       advance(10),
@@ -287,13 +278,12 @@ describe("save and continue", () => {
       use("page.fee", "sign-in"),
       use("contact.training-office", "call"),
       use("contact.training-office", "confirm-fee"),
-      task("draft.intro-review"),
       { type: "REST", mode: "nap" },
       advance(30),
     ];
     const state = run(log);
     const progress = JSON.parse(JSON.stringify(encodeProgress(state, null, "start")));
-    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-3");
+    expect(SAVE_CONTENT_VERSION).toBe("ch1-last-submission-4");
     const restored = restoreProgress(progress, S);
     expect(restored.ok && restored.state).toEqual(state);
     // The new flags have their default (false) in a restored old run, because the state is rebuilt from the log.

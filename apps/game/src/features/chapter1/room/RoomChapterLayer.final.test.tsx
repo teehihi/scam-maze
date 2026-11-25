@@ -234,13 +234,9 @@ describe("the final submission", () => {
   it("requires the saved draft and verified access, submits from the portal, and displays the receipt", async () => {
     const rig = mountLayer();
     let laptop = app(rig, "thesis");
-    // The three reviews of the Thesis desk, recorded through the core (the desk UI has its own tests).
-    play(rig, [
-      { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro-review", approachId: "qualify" },
-      { type: "COMPLETE_THESIS_TASK", taskId: "draft.findings", approachId: "fix-chart" },
-      { type: "COMPLETE_THESIS_TASK", taskId: "draft.final", approachId: "full-review" },
-    ]);
-    expect(rig.store().getState().world.thesisTasksDone).toEqual(expect.arrayContaining(["draft.intro-review", "draft.findings", "draft.final"]));
+    // The draft task (two typed sentences), recorded through the core (the desk UI has its own tests).
+    play(rig, [{ type: "COMPLETE_THESIS_TASK", taskId: "draft.final" }]);
+    expect(rig.store().getState().world.thesisTasksDone).toEqual(["draft.final"]);
     expect(rig.store().getState().device.submission).toBe("not-submitted");
 
     laptop = await goToBookmark(rig, PORTAL);

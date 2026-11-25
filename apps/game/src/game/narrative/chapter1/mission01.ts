@@ -103,50 +103,22 @@ const flag = (name: PersistentFlagId, value = true): Condition => ({ kind: "pers
 const CODE_GIVEN = flag("verificationCodeExposed");
 const CREDENTIALS_GIVEN = flag("loginCredentialsExposed");
 
+/**
+ * The draft is one task: Alex types two sentences of the thesis in Writing Mode (owner decision,
+ * 2026-11-25). The desk dispatches it once the second sentence is typed. Its gain is the sum of the
+ * three reviews it replaced, so the thesis still reaches the same percent.
+ */
 export const MISSION_01_THESIS_TASKS: ThesisTaskDef[] = [
   {
-    id: "draft.intro-review",
-    label: "Edit the introduction and literature review",
-    description: "Tighten the argument and check whether each citation supports it.",
-    timeCostMinutes: 90,
-    progressGain: 2,
-    effects: [{ kind: "setPersistent", flag: "draftSourcesChecked", value: true }],
-    approaches: [
-      { id: "qualify", label: "Keep the claim, but qualify the wording", description: "Preserve the idea while making the evidence boundary clear.", timeCostMinutes: 90, progressGain: 2 },
-      { id: "swap-source", label: "Swap in the stronger source", description: "Add a better comparison, but leave less time for the final pass.", timeCostMinutes: 120, progressGain: 3 },
-      { id: "rewrite", label: "Rewrite the claim around the evidence", description: "Use the safest wording, with a smaller conclusion.", timeCostMinutes: 60, progressGain: 1 },
-    ],
-  },
-  {
-    id: "draft.findings",
-    label: "Revise the findings section",
-    description: "Reconcile the interview notes with every figure before you keep the claim.",
-    timeCostMinutes: 90,
-    progressGain: 2,
-    effects: [{ kind: "setPersistent", flag: "findingsReconciled", value: true }],
-    approaches: [
-      { id: "fix-chart", label: "Fix the chart to six", description: "Preserve the source record and correct the visible figure.", timeCostMinutes: 60, progressGain: 2 },
-      { id: "fix-conclusion", label: "Fix the conclusion to six", description: "Keep the chart for a later source check.", timeCostMinutes: 45, progressGain: 1 },
-      { id: "mark-check", label: "Keep both and mark for checking", description: "The fastest path, but the warning remains visible.", timeCostMinutes: 30, progressGain: 1 },
-      { id: "delete-claim", label: "Remove the over-strong claim", description: "Reduce risk, but weaken the section.", timeCostMinutes: 75, progressGain: 2 },
-    ],
-  },
-  {
     id: "draft.final",
-    label: "Finish the full draft",
-    description: "Run the final review and mark the draft ready for your supervisor.",
-    requires: [{ kind: "thesisTaskDone", taskId: "draft.intro-review" }, { kind: "thesisTaskDone", taskId: "draft.findings" }],
+    label: "Type two sentences of your thesis",
+    description: "Open Writing Mode and type two sentences of the draft.",
     timeCostMinutes: 60,
-    progressGain: 3,
+    progressGain: 7,
     effects: [
       { kind: "setPersistent", flag: "finalDraftReviewed", value: true },
       { kind: "setPersistent", flag: "supervisorFeedbackRequested", value: true },
       { kind: "setPersistent", flag: "draftFinished", value: true },
-    ],
-    approaches: [
-      { id: "quick-scan", label: "Quick scan", description: "Catch the obvious warnings.", timeCostMinutes: 30, progressGain: 1 },
-      { id: "full-review", label: "Full review", description: "Check every item and mark the draft reviewed.", timeCostMinutes: 90, progressGain: 3 },
-      { id: "ask-supervisor", label: "Ask the supervisor for feedback", description: "Create a feedback request before submission.", timeCostMinutes: 45, progressGain: 2 },
     ],
   },
 ];
@@ -189,21 +161,6 @@ export const MISSION_01_DEVICE_ITEMS: DeviceItemDef[] = [
         timeCostMinutes: M.saveRecord,
         once: true,
         effects: [{ kind: "adjustResource", resource: "evidence", delta: 1 }],
-      },
-      {
-        // Revising the findings turns Alex's research into an action in the live situation: compare
-        // the claim through the portal he already saved. It reveals a result, never a verdict label.
-        id: "compare-fee-with-saved-portal",
-        label: "Compare this fee with the services page in the saved student portal",
-        visibleWhen: [flag("researchSavedChannelIncluded"), flag("schoolFeeClaimContradicted", false)],
-        timeCostMinutes: 5,
-        once: true,
-        effects: [
-          { kind: "setPersistent", flag: "schoolFeeClaimContradicted", value: true },
-          { kind: "adjustResource", resource: "evidence", delta: 1 },
-          { kind: "deliverItem", itemId: "file.fee-comparison" },
-        ],
-
       },
     ],
   },
@@ -285,8 +242,6 @@ export const MISSION_01_DEVICE_ITEMS: DeviceItemDef[] = [
         id: "submit-thesis",
         label: "Submit the final thesis and save the receipt",
         requires: [
-          { kind: "thesisTaskDone", taskId: "draft.intro-review" },
-          { kind: "thesisTaskDone", taskId: "draft.findings" },
           { kind: "thesisTaskDone", taskId: "draft.final" },
           flag("schoolAccessVerified"),
           flag("accountCompromised", false),
@@ -304,13 +259,6 @@ export const MISSION_01_DEVICE_ITEMS: DeviceItemDef[] = [
     title: "Portal status (saved)",
     body: "Thesis submission account: active.\nOutstanding fees: none.",
     arrives: { when: [done("portal.saved", "check-account")] },
-  },
-  {
-    id: "file.fee-comparison",
-    app: "files",
-    folder: "portal",
-    title: "Fee address comparison",
-    body: "The saved student portal lists payment at payment.ueh.edu.vn. The email asks for payment at payment-ueh.vn. The domains do not match; this comparison does not confirm the account status.",
   },
   {
     id: "contact.training-office",
@@ -744,11 +692,7 @@ const draftStep = (id: string, taskId: string, label: string): MissionStepDef =>
   app: "thesis",
   doneWhen: [{ kind: "thesisTaskDone", taskId }],
 });
-const DRAFT_STEPS: MissionStepDef[] = [
-  draftStep("intro", "draft.intro-review", "Edit the introduction and literature review"),
-  draftStep("findings", "draft.findings", "Revise the findings section"),
-  draftStep("final", "draft.final", "Finish the full draft"),
-];
+const DRAFT_STEPS: MissionStepDef[] = [draftStep("write", "draft.final", "Type two sentences of your thesis")];
 const READ_MAIL_STEP: MissionStepDef = {
   id: "read-mail",
   label: "Read the new email about your submission account",
@@ -785,8 +729,6 @@ const SUBMIT_THESIS_STEP: MissionStepDef = {
   target: "laptop",
   app: "files",
   visibleWhen: [
-    { kind: "thesisTaskDone", taskId: "draft.intro-review" },
-    { kind: "thesisTaskDone", taskId: "draft.findings" },
     { kind: "thesisTaskDone", taskId: "draft.final" },
     flag("schoolAccessVerified"),
     flag("accountCompromised", false),

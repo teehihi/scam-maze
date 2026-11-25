@@ -20,15 +20,6 @@ const use = (itemId: string, actionId: string): CoreAction => ({ type: "USE_DEVI
 const task = (taskId: string): CoreAction => ({ type: "COMPLETE_THESIS_TASK", taskId });
 
 function step(state: ChapterState, action: CoreAction): ChapterState {
-  if (action.type === "COMPLETE_THESIS_TASK" && action.taskId === "draft.findings" && state.world.thesisDraft.findings === undefined) {
-    const drafted = chapterReducer(state, {
-      type: "SAVE_THESIS_DRAFT",
-      sectionId: "findings",
-      content: "In this interview sample, 6 of 24 participants asked a classmate when they could not identify the right office. This count describes these interviews, not all students.",
-    }, S);
-    expect(drafted.accepted, drafted.reason).toBe(true);
-    state = drafted.state;
-  }
   const result = chapterReducer(state, action, S);
   expect(result.accepted, `${action.type} ${JSON.stringify(action)}: ${result.reason ?? ""}`).toBe(true);
   return result.state;
@@ -89,57 +80,23 @@ describe("the scenario", () => {
 });
 
 describe("the draft on the laptop", () => {
-  it("is edited through thesis tasks that cost time and add progress", () => {
+  it("is one task, typing two sentences, that costs time and adds progress", () => {
     let state = run([START]);
-    expect(selectThesisView(state, S).tasks.map((item) => [item.id, item.blocked])).toEqual([
-      ["draft.intro-review", null],
-      ["draft.findings", null],
-      ["draft.final", "locked"],
-    ]);
-    expect(rejection(state, task("draft.final"))).toBe("This thesis task is not available now.");
-    state = run([task("draft.intro-review"), task("draft.findings"), task("draft.final")], state);
+    expect(selectThesisView(state, S).tasks.map((item) => [item.id, item.blocked])).toEqual([["draft.final", null]]);
+    state = run([task("draft.final")], state);
     expect(state.resources.thesisProgress).toBe(67);
-    expect(state.resources.timeMinutes).toBe(CHAPTER_DURATION_MINUTES - 240);
+    expect(state.resources.timeMinutes).toBe(CHAPTER_DURATION_MINUTES - 60);
+    expect(state.persistent.draftFinished).toBe(true);
     expect(status(state, "m01.missing-access")).toBe("completed");
   });
 
-  it("rejects a new-editor findings completion when the saved section has no evidence", () => {
-    const state = run([START, task("draft.intro-review")]);
-    const attempt = chapterReducer(state, {
-      type: "COMPLETE_THESIS_TASK",
-      taskId: "draft.findings",
-      researchNotes: [],
-    }, S);
-    expect(attempt.accepted).toBe(false);
-    expect(attempt.reason).toBe("Cite an interview count and state the sample limitation before resolving the findings revision.");
-    expect(attempt.state.world.thesisTasksDone).not.toContain("draft.findings");
-    expect(attempt.state.resources.timeMinutes).toBe(state.resources.timeMinutes);
-  });
-
-  it("makes the findings usable in the email only when Alex actually includes the saved-channel interview note", () => {
-    const withoutSource = run([START, advance(10), task("draft.intro-review"), task("draft.findings")]);
-    expect(withoutSource.persistent.researchSavedChannelIncluded).toBe(false);
-    const plainEmail = selectDeviceView(withoutSource, S, "phone").apps.mail.find((item) => item.id === "mail.clearance")!;
-    expect(plainEmail.actions.some((action) => action.id === "compare-fee-with-saved-portal")).toBe(false);
-
-    const withSource = run([
-      START,
-      advance(10),
-      task("draft.intro-review"),
-      {
-        type: "SAVE_THESIS_DRAFT",
-        sectionId: "findings",
-        content: "Across the interviews, students described checking an unexpected request against a channel they already knew. In this interview sample, 9 of 24 participants described checking a saved portal or a contact they had used before. This count describes these interviews, not all students.",
-      },
-      { type: "COMPLETE_THESIS_TASK", taskId: "draft.findings", researchNotes: ["saved-channel"] },
-    ]);
-    expect(withSource.persistent.researchSavedChannelIncluded).toBe(true);
-    const informedEmail = selectDeviceView(withSource, S, "phone").apps.mail.find((item) => item.id === "mail.clearance")!;
-    expect(informedEmail.actions.some((action) => action.id === "compare-fee-with-saved-portal")).toBe(true);
-    const compared = run([use("mail.clearance", "compare-fee-with-saved-portal")], withSource);
-    expect(compared.persistent.schoolFeeClaimContradicted).toBe(true);
-    expect(compared.persistent.schoolAccessVerified).toBe(false);
-    expect(compared.device.items["file.fee-comparison"]).toBeDefined();
+  it("no longer knows the three reviews it replaced", () => {
+    const state = run([START]);
+    for (const removed of ["draft.intro-review", "draft.findings"]) {
+      const attempt = chapterReducer(state, task(removed), S);
+      expect(attempt.accepted).toBe(false);
+      expect(attempt.state).toBe(state);
+    }
   });
 
   it("goes on after the internal deadline, with the cost of working through the night", () => {
@@ -148,13 +105,13 @@ describe("the draft on the laptop", () => {
     expect(late.persistent.overnightWork).toBe(true);
     expect(late.resources.timeMinutes).toBe(CHAPTER_DURATION_MINUTES - MISSION_01_CONFIG.draftDeadlineMinute - MISSION_01_CONFIG.overnightWorkMinutes);
     // The draft can still be finished, and the overnight work is not reset.
-    const after = run([task("draft.intro-review"), task("draft.findings"), task("draft.final")], late);
+    const after = run([task("draft.final")], late);
     expect(after.resources.thesisProgress).toBe(67);
     expect(after.persistent.overnightWork).toBe(true);
   });
 
   it("does not fail when the draft is done in time", () => {
-    const state = run([START, task("draft.intro-review"), task("draft.findings"), task("draft.final"), advance(MISSION_01_CONFIG.draftDeadlineMinute)]);
+    const state = run([START, task("draft.final"), advance(MISSION_01_CONFIG.draftDeadlineMinute)]);
     expect(status(state, "m01.missing-access")).toBe("completed");
     expect(state.persistent.overnightWork).toBe(false);
   });
@@ -372,7 +329,7 @@ describe("way B: verify independently", () => {
   });
 
   it("still lets the player finish the draft and complete the mission", () => {
-    const state = run([...VERIFIED, task("draft.intro-review"), task("draft.findings"), task("draft.final")]);
+    const state = run([...VERIFIED, task("draft.final")]);
     expect(status(state, "m01.missing-access")).toBe("completed");
     expect(state.persistent.schoolAccessVerified).toBe(true);
     // Access was verified, so the question never comes back on Friday.
@@ -424,7 +381,7 @@ describe("way B: verify independently", () => {
 });
 
 describe("way C: ignore the email", () => {
-  const WRITING: CoreAction[] = [START, advance(10), task("draft.intro-review"), task("draft.findings"), task("draft.final")];
+  const WRITING: CoreAction[] = [START, advance(10), task("draft.final")];
 
   it("loses no money and no security, and the mission completes with the access unverified", () => {
     const state = run(WRITING);
@@ -456,7 +413,7 @@ describe("way C: ignore the email", () => {
 
 describe("consequences that last and sync", () => {
   it("restores everything from a save: time, money, security, evidence, flags, missions and the ledger", () => {
-    const actions = [...CODE_GIVEN, advance(T1.afterMinutes + 1), ...REPORT, task("draft.intro-review"), use("contact.bank", "ask-next"), { type: "REST", mode: "nap" } as CoreAction];
+    const actions = [...CODE_GIVEN, advance(T1.afterMinutes + 1), ...REPORT, task("draft.final"), use("contact.bank", "ask-next"), { type: "REST", mode: "nap" } as CoreAction];
     const state = run(actions);
     expect(state.device.ledger).toHaveLength(2);
     const progress = encodeProgress(state, null, "start");

@@ -33,7 +33,6 @@ import type { ChapterInitialState, ChapterResources, PersistentFlagId, Persisten
 // ---------------------------------------------------------------------------
 
 export type RingReason = "first-interaction" | "exploration-timer" | "re-ring" | "callback" | "follow-up";
-export type ThesisResearchNoteId = "saved-channel" | "classmate" | "sample-limit";
 
 export type CoreAction =
   | { type: "START_CHAPTER" }
@@ -72,7 +71,7 @@ export type CoreAction =
   /** Answers a pending event with one of its responses: act on it, postpone it or ignore it. */
   | { type: "RESPOND_EVENT"; eventId: string; response: string }
   /** Completes one thesis task (optionally using a deliberate review approach). Costs its time and adds its progress. */
-  | { type: "COMPLETE_THESIS_TASK"; taskId: string; approachId?: string; researchNotes?: ThesisResearchNoteId[] }
+  | { type: "COMPLETE_THESIS_TASK"; taskId: string; approachId?: string }
   /** Opens a message, email, listing, file or appointment on the phone or laptop. The first time it marks it read. Reading costs no time. */
   | { type: "OPEN_DEVICE_ITEM"; itemId: string }
   /** Uses one action of a device item: reply, pay, travel, apply, submit, call. Costs time and cash as the item says. */
@@ -810,6 +809,12 @@ export interface DeviceItemDef {
   arrives?: WorldTrigger;
   /** Explicit work-session interruption policy; absence means the item does not interrupt writing. */
   thesisInterruption?: ThesisInterruptionMetadata;
+  /**
+   * A contact who calls Alex (`app: "contacts"`). When it arrives the phone rings until its `call`
+   * action (answered, or called back) or its `decline` action is done. Ringing is presentation only:
+   * the state changes only through those two actions, which the player chooses.
+   */
+  incomingCall?: boolean;
   /** Appointments: start and end, minutes since the chapter started. */
   startsAtMinute?: number;
   endsAtMinute?: number;

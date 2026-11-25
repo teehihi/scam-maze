@@ -64,7 +64,7 @@ describe("Mission 01 in the phone", () => {
   it("shows the current step and the email at 17:10 with a notice", () => {
     const rig = mountLayer();
     // The tracker names the concrete step and where it happens, not only the mission's goal.
-    expect(screen.getByTestId("task-current").textContent).toBe("Edit the introduction and literature review");
+    expect(screen.getByTestId("task-current").textContent).toBe("Type two sentences of your thesis");
     expect(screen.getByTestId("task-where").textContent).toContain("Laptop · Thesis");
     expect(screen.getByTestId("task-objective").textContent).toBe("Finish the draft by Wednesday, 06:00, and confirm you can sign in to submit by Friday, 17:00.");
     act(() => void rig.store().dispatch({ type: "ADVANCE_TIME", minutes: 10 }));
@@ -161,8 +161,6 @@ describe("Mission 01 in the phone", () => {
     const rig = mountLayer();
     fireEvent.click(screen.getByTestId("hud-planner-chip"));
     const planner = screen.getByTestId("planner-overlay");
-    fireEvent.click(within(planner).getByTestId("thesis-task-draft.intro-review"));
-    fireEvent.click(within(planner).getByTestId("thesis-task-draft.findings"));
     fireEvent.click(within(planner).getByTestId("thesis-task-draft.final"));
     const state = rig.store().getState();
     expect(state.resources.thesisProgress).toBe(67);

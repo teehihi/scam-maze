@@ -15,7 +15,7 @@ const S = LAST_SUBMISSION_SCENARIO;
 const CFG = gameplayConfig(S);
 const use = (itemId: string, actionId: string): CoreAction => ({ type: "USE_DEVICE_ITEM", itemId, actionId });
 const task = (taskId: string): CoreAction => ({ type: "COMPLETE_THESIS_TASK", taskId });
-const TASKS = ["draft.intro-review", "draft.findings", "draft.final"];
+const TASKS = ["draft.final"];
 
 type Policy = (state: ChapterState) => CoreAction | null;
 
@@ -51,7 +51,7 @@ const worker =
   (state) => {
     if (sleepRule(state)) return { type: "REST", mode: "sleep" };
     const next = TASKS.find((id) => !state.world.thesisTasksDone.includes(id));
-    if (next !== undefined && state.world.thesisTasksDone.length < 3) return task(next);
+    if (next !== undefined) return task(next);
     const per = effectiveWorkMinutes(CFG.thesisMinutesPerPercent, state.resources.fatigue, CFG.fatigue);
     return { type: "WORK_ON_THESIS", minutes: per };
   };

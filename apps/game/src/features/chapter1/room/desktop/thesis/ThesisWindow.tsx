@@ -1,28 +1,20 @@
-// The laptop's Thesis desk: an interactive research workspace. Thesis Map on the left, the review
-// canvas on the right, and one slim status strip (progress, time, quality) above. Each section is an inspection task (Citation Detective, Data Forensics, Final Draft
-// Assembly); the authored approach the player picks is the only thing that reaches the reducer, so
-// progress, time, fatigue and quality stay in the deterministic core. Free writing stays underneath.
-import React, { useEffect, useRef, useState } from "react";
-import { BellRing, Check, CheckCircle2, Database, FileCheck2, FileText, PenLine, Save } from "lucide-react";
+// The laptop's Thesis desk. One slim status strip (progress, time, draft state) above, then the draft
+// task: Alex types two sentences of the thesis in Writing Mode, and the second sentence completes the
+// draft through the core (`COMPLETE_THESIS_TASK`). Progress, time, fatigue and quality stay in the
+// deterministic core. Free writing (one sentence per work session) stays underneath.
+import React, { useEffect, useState } from "react";
+import { BellRing, CheckCircle2, PenLine, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { ThesisQuality, ThesisTaskView } from "../../../../../game/narrative/world";
+import type { ThesisQuality } from "../../../../../game/narrative/world";
 import type { ThesisPanelProps } from "../../../world/ThesisPanel";
 import { formatDuration, type DurationText } from "../../../world/formatDuration";
 import { useDesktopNav } from "../desktopNav";
-import { CitationDetective } from "./CitationDetective";
-import { DataForensics } from "./DataForensics";
-import { DraftAssembly } from "./DraftAssembly";
 import { WritingMode, type ThesisWritingHost } from "./writing/WritingMode";
-import { SPRINT_IDS, SPRINT_SECTION, sprintFor } from "./writing/writingSprints";
-import {
-  ChoiceList,
-  FOCUS_RING,
-  QUIET,
-  QUIET_BORDERED,
-  type ReviewProps,
-  type ThesisInvestigationState,
-  type Translate,
-} from "./thesisDeskChrome";
+import { DRAFT_SPRINT_IDS, SPRINT_IDS, SPRINT_SECTION, sprintFor } from "./writing/writingSprints";
+import { QUIET, QUIET_BORDERED } from "./thesisDeskChrome";
+
+/** The thesis task the two typed sentences complete (`MISSION_01_THESIS_TASKS`). */
+export const DRAFT_TASK_ID = "draft.final";
 
 export interface ThesisWindowProps extends Omit<ThesisPanelProps, "tone" | "onTask" | "onWork"> {
   /** One free work session; returns whether the core accepted it (the Writing Mode commits through it). */
@@ -31,7 +23,7 @@ export interface ThesisWindowProps extends Omit<ThesisPanelProps, "tone" | "onTa
   writing?: ThesisWritingHost;
   /** The deterministic draft state from `selectThesisView`; never computed here. */
   quality: ThesisQuality;
-  /** Returns whether the core accepted the action, so the desk never confirms a rejected review. */
+  /** Returns whether the core accepted the task, so the desk never confirms a rejected draft. */
   onTask: (taskId: string, approachId?: string) => boolean | void;
   /** Simulated minutes left until the draft deadline, or absent when the scenario has none. */
   draftDeadlineMinutesLeft?: number;
@@ -39,70 +31,20 @@ export interface ThesisWindowProps extends Omit<ThesisPanelProps, "tone" | "onTa
   distractions?: readonly { key: string; appId: string; label: string; count: number }[];
 }
 
-/** Investigation work of the three reviews. Session-local: it is not saved and not scored. */
-const INITIAL_INVESTIGATION: ThesisInvestigationState = {
-  citation: { claimInspected: false, selectedTerm: null, openSources: new Set() },
-  findings: { inspectedExcerpt: false, inspectedChart: false, selectedParticipant: null, counts: { business: 4, economics: 4 }, compared: false, duplicatesScanned: false },
-  final: { pages: new Set(), checks: new Set() },
-};
-
-/** Every authored approach whose draft change the desk can describe, plus the generic line. */
-const DRAFT_DIFF_KEYS = [
-  "qualify",
-  "swap-source",
-  "rewrite",
-  "fix-chart",
-  "fix-conclusion",
-  "mark-check",
-  "delete-claim",
-  "quick-scan",
-  "full-review",
-  "ask-supervisor",
-  "generic",
-] as const;
-type DraftDiffKey = (typeof DRAFT_DIFF_KEYS)[number];
-
-/** The diff line of an approach; an approach without authored wording falls back to `generic`. */
-function draftDiffKey(approachId: string | undefined): DraftDiffKey {
-  return approachId !== undefined && (DRAFT_DIFF_KEYS as readonly string[]).includes(approachId) ? (approachId as DraftDiffKey) : "generic";
+/** The draft sentence a kept Writing Mode draft belongs to (0 or 1), so a reopened desk resumes it. */
+function draftSentenceOf(key: string | undefined): number {
+  return key !== undefined && key.startsWith("draft:1:") ? 1 : 0;
 }
-
-function iconForTask(id: string): React.ReactNode {
-  if (id === "draft.findings") return <Database className="h-3.5 w-3.5" aria-hidden="true" />;
-  if (id === "draft.final") return <FileCheck2 className="h-3.5 w-3.5" aria-hidden="true" />;
-  return <FileText className="h-3.5 w-3.5" aria-hidden="true" />;
-}
-
-/** `1`, `2`, `3`: the position of the section in the draft. */
-function taskNumber(id: string, index: number): string {
-  if (id === "draft.findings") return "2";
-  if (id === "draft.final") return "3";
-  if (id === "draft.intro-review") return "1";
-  return String(index + 1);
-}
-
-const GenericReview: React.FC<ReviewProps> = (props) => (
-  <div className="rounded-lg border border-[#c9d3e6] bg-[#fbfcff] p-4">
-    <p className="text-sm leading-relaxed text-[#4b5563]">{props.task.description ?? props.t("laptop.thesisDesk.continueHint")}</p>
-    <div className="mt-4">
-      <ChoiceList {...props} />
-    </div>
-  </div>
-);
 
 export const ThesisWindow: React.FC<ThesisWindowProps> = (props) => {
   const { t } = useTranslation("chapter1");
   const nav = useDesktopNav();
-  const text = t as unknown as Translate;
   const duration = t as unknown as DurationText;
   const { tasks, progress, timeLeftMinutes, fatigue, rest, sessionMinutes, onTask, onWork, quality, draftDeadlineMinutesLeft, distractions = [] } = props;
-  const firstOpenId = tasks.find((task) => task.blocked === null)?.id ?? tasks[0]?.id ?? null;
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(firstOpenId);
+  const writing = props.writing;
   const [versionSaved, setVersionSaved] = useState(false);
   const [rejected, setRejected] = useState(false);
-  const [investigation, setInvestigation] = useState<ThesisInvestigationState>(INITIAL_INVESTIGATION);
-  const [draftDiff, setDraftDiff] = useState<{ taskId: string; approachId?: string } | null>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [draftSentence, setDraftSentence] = useState(() => draftSentenceOf(writing?.draft?.key));
 
   // Ctrl/Cmd+S saves a local draft version. It never touches the game state.
   useEffect(() => {
@@ -115,71 +57,54 @@ export const ThesisWindow: React.FC<ThesisWindowProps> = (props) => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const activeIndex = Math.max(0, tasks.findIndex((task) => task.id === activeTaskId));
-  const activeTask = tasks[activeIndex] ?? null;
+  const draftTask = tasks.find((task) => task.id === DRAFT_TASK_ID) ?? null;
+  const draftOpen = draftTask !== null && !draftTask.done && draftTask.blocked === null;
   const timeUp = timeLeftMinutes <= 0;
   const atLimit = progress >= props.freeWorkMaxPercent;
   const tired = fatigue !== undefined && fatigue.level !== "rested" ? fatigue : null;
   // A tired Alex sees a lower focus, which is the same rule that makes work minutes cost more.
   const focus = tired ? Math.max(35, 100 - tired.slowdownPercent) : 100;
-
-  // Records the review, then hands over to the next section that is still open. A finished section
-  // can still be opened from the map: only a recorded review moves the desk on.
-  const choose = (task: ThesisTaskView, approachId?: string) => {
-    if (onTask(task.id, approachId) === false) {
-      setRejected(true);
-      return;
-    }
-    setRejected(false);
-    // The diff names the section it belongs to, so it stays readable after the desk moves on to the
-    // next one: it is the latest accepted review, not a property of the open canvas.
-    setDraftDiff({ taskId: task.id, ...(approachId === undefined ? {} : { approachId }) });
-    const from = tasks.indexOf(task);
-    const others = [...tasks.slice(from + 1), ...tasks.slice(0, from)].filter((candidate) => candidate.id !== task.id);
-    const next = others.find((candidate) => candidate.blocked === null) ?? others.find((candidate) => candidate.blocked === "locked" && !candidate.done);
-    if (next) setActiveTaskId(next.id);
-  };
-
-  const onInvestigationChange = (next: Partial<ThesisInvestigationState>) => setInvestigation((current) => ({ ...current, ...next }));
-
-  // Writing Mode: the same free work session as the work button, earned by typing a short passage.
-  const writing = props.writing;
   const workBlocked = timeUp || atLimit || progress >= 100 || props.sessionPercent < 1;
-  const sprint = sprintFor(writing?.completedSessions ?? 0);
-  const sprintText = t(`laptop.thesisDesk.writing.sprints.${sprint.id}`);
-  const openReview = tasks.find((task) => task.blocked === null && !task.done) ?? null;
+
+  // Writing Mode runs the two draft sentences while the draft is open, then free sprints.
+  const freeSprint = sprintFor(writing?.completedSessions ?? 0);
+  const sprintId = draftOpen ? DRAFT_SPRINT_IDS[draftSentence] : freeSprint.id;
+  const sprintText = t(`laptop.thesisDesk.writing.sprints.${sprintId}`);
+  const commitDraft = (): boolean | "continue" => {
+    if (draftSentence < DRAFT_SPRINT_IDS.length - 1) {
+      setDraftSentence(draftSentence + 1);
+      return "continue";
+    }
+    const accepted = onTask(DRAFT_TASK_ID) !== false;
+    setRejected(!accepted);
+    if (accepted) setDraftSentence(0);
+    return accepted;
+  };
   const writingView =
     writing?.active === true ? (
       <WritingMode
-        sprintKey={`${sprint.id}:${sprintText}`}
+        sprintKey={draftOpen ? `draft:${draftSentence}:${sprintText}` : `${freeSprint.id}:${sprintText}`}
         sprintText={sprintText}
-        sprintNumber={sprint.index + 1}
-        sprintTotal={SPRINT_IDS.length}
-        sectionLabel={t(`laptop.thesisDesk.writing.sections.${SPRINT_SECTION[sprint.id]}`)}
+        sprintNumber={draftOpen ? draftSentence + 1 : freeSprint.index + 1}
+        sprintTotal={draftOpen ? DRAFT_SPRINT_IDS.length : SPRINT_IDS.length}
+        sectionLabel={draftOpen ? t("laptop.thesisDesk.draft.section") : t(`laptop.thesisDesk.writing.sections.${SPRINT_SECTION[freeSprint.id]}`)}
         draft={writing.draft}
         onDraft={writing.onDraft}
         relaxed={writing.relaxed}
         onRelaxed={writing.onRelaxed}
-        commitTime={formatDuration(duration, sessionMinutes)}
-        gainPercent={props.sessionPercent}
+        commitTime={
+          draftOpen && draftSentence < DRAFT_SPRINT_IDS.length - 1
+            ? t("laptop.thesisDesk.draft.nextSentence")
+            : formatDuration(duration, draftOpen ? (draftTask?.timeCostMinutes ?? 0) : sessionMinutes)
+        }
+        {...(draftOpen && draftSentence < DRAFT_SPRINT_IDS.length - 1 ? {} : { gainPercent: draftOpen ? draftTask?.progressGain : props.sessionPercent })}
         progress={progress}
         timeLeftMinutes={timeLeftMinutes}
         formatTime={(minutes) => formatDuration(duration, minutes)}
-        onCommit={() => !workBlocked && onWork(sessionMinutes) === true}
+        onCommit={draftOpen ? commitDraft : () => !workBlocked && onWork(sessionMinutes) === true}
         onKey={writing.onKey}
         onExit={() => writing.setActive(false)}
-        issue={
-          openReview === null
-            ? null
-            : {
-                label: openReview.label,
-                onOpen: () => {
-                  writing.setActive(false);
-                  setActiveTaskId(openReview.id);
-                  setRejected(false);
-                },
-              }
-        }
+        issue={null}
         incoming={
           distractions.length === 0
             ? null
@@ -194,26 +119,6 @@ export const ThesisWindow: React.FC<ThesisWindowProps> = (props) => {
         }
       />
     ) : null;
-  const review: ReviewProps | null =
-    activeTask === null
-      ? null
-      : {
-          task: activeTask,
-          index: activeIndex,
-          t: text,
-          duration,
-          onChoose: choose,
-          investigation,
-          onInvestigationChange,
-          ...(draftDeadlineMinutesLeft === undefined ? {} : { deadlineMinutesLeft: draftDeadlineMinutesLeft }),
-        };
-  const renderReview = () => {
-    if (review === null) return <p className="text-sm text-[#6b7280]">{t("planner.thesis.noTasks")}</p>;
-    if (activeTask?.id === "draft.findings") return <DataForensics {...review} />;
-    if (activeTask?.id === "draft.final") return <DraftAssembly {...review} />;
-    if (activeTask?.id === "draft.intro-review") return <CitationDetective {...review} />;
-    return <GenericReview {...review} />;
-  };
 
   return (
     <div
@@ -221,7 +126,7 @@ export const ThesisWindow: React.FC<ThesisWindowProps> = (props) => {
       data-testid="thesis-window"
       onWheel={(event) => event.stopPropagation()}
     >
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-xl border border-[#c3cde0] bg-white shadow-[0_1px_3px_rgba(31,41,55,0.18),0_12px_24px_-14px_rgba(31,41,55,0.28)]">
+      <div className="mx-auto max-w-4xl overflow-hidden rounded-xl border border-[#c3cde0] bg-white shadow-[0_1px_3px_rgba(31,41,55,0.18),0_12px_24px_-14px_rgba(31,41,55,0.28)]">
         <header className="border-b border-[#c9d3e6] bg-[#fbfcff] px-4 py-3 sm:px-6">
           {distractions.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-[#e7d8a6] bg-[#fff7df] px-3 py-2 text-xs text-[#6b4c13]" data-testid="thesis-distraction-chip" role="status">
@@ -273,7 +178,7 @@ export const ThesisWindow: React.FC<ThesisWindowProps> = (props) => {
           {/* Focus only matters when it is lowered; at 100% it is noise. */}
           {tired ? (
             <p className="mt-2 text-[11px] leading-relaxed text-[#a16207]">
-              {t("laptop.thesisDesk.interactive.focusLabel")}{" "}
+              {t("laptop.thesisDesk.focusLabel")}{" "}
               <strong className="tabular-nums" data-testid="thesis-focus">
                 {focus}%
               </strong>
@@ -287,137 +192,107 @@ export const ThesisWindow: React.FC<ThesisWindowProps> = (props) => {
           )}
         </header>
 
-        <div className="grid gap-0 lg:grid-cols-[11rem_minmax(0,1fr)]">
-          <aside className="border-b border-[#c9d3e6] bg-[#f8faff] p-3 lg:border-b-0 lg:border-r lg:p-4">
-            <div className="flex items-center justify-between gap-2 px-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">{t("laptop.thesisDesk.thesisMap")}</p>
-            </div>
-            <nav className="mt-3 space-y-1" aria-label={t("laptop.thesisDesk.thesisMap")}>
-              {tasks.map((task) => {
-                const selected = task.id === activeTaskId;
-                return (
-                  <button
-                    key={task.id}
-                    type="button"
-                    data-testid={`thesis-task-${task.id}`}
-                    className={`flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${FOCUS_RING} ${
-                      selected ? "bg-[#e4edfd] text-[#1f2937]" : "text-[#4b5563] hover:bg-white"
-                    }`}
-                    aria-current={selected ? "page" : undefined}
-                    onClick={() => {
-                      setActiveTaskId(task.id);
-                      setRejected(false);
-                      headingRef.current?.focus();
-                    }}
-                  >
-                    <span className={`mt-0.5 shrink-0 ${task.done ? "text-[#17624a]" : selected ? "text-[#3a63c2]" : "text-[#6b7280]"}`}>
-                      {task.done ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : iconForTask(task.id)}
-                    </span>
-                    <span className="min-w-0 leading-snug">{task.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </aside>
+        <main className="min-w-0 p-4 sm:p-6">
+          {draftTask === null ? (
+            <p className="text-sm text-[#6b7280]">{t("planner.thesis.noTasks")}</p>
+          ) : (
+            <section className="rounded-lg border border-[#c9d3e6] bg-[#fbfcff] p-4" data-testid="thesis-draft" aria-labelledby="thesis-draft-title">
+              <h4 id="thesis-draft-title" className="text-lg font-semibold text-[#1f2937] sm:text-xl">
+                {draftTask.label}
+              </h4>
+              {draftTask.done ? (
+                <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#17624a]" data-testid="thesis-draft-done">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                  {t("laptop.thesisDesk.draft.done")}
+                </p>
+              ) : (
+                <>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#4b5563]">{t("laptop.thesisDesk.draft.summary")}</p>
+                  <p className="mt-2 text-xs text-[#6b7280]" data-testid="thesis-draft-progress">
+                    {t("laptop.thesisDesk.draft.progress", { done: draftSentence, total: DRAFT_SPRINT_IDS.length })}
+                    {" · "}
+                    {t("laptop.thesisDesk.writing.reward", { percent: draftTask.progressGain, time: formatDuration(duration, draftTask.timeCostMinutes) })}
+                  </p>
+                  {writing ? (
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#3a63c2] px-3 py-2 text-sm font-semibold text-white hover:bg-[#3155a8] disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!draftOpen}
+                      data-testid="thesis-draft-start"
+                      onClick={() => {
+                        setRejected(false);
+                        writing.setActive(true);
+                      }}
+                    >
+                      <PenLine className="h-4 w-4" aria-hidden="true" />
+                      {t("laptop.thesisDesk.draft.start")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`mt-3 ${QUIET_BORDERED}`}
+                      disabled={!draftOpen}
+                      data-testid="thesis-draft-complete"
+                      onClick={() => setRejected(onTask(DRAFT_TASK_ID) === false)}
+                    >
+                      {draftTask.label}
+                    </button>
+                  )}
+                  {draftTask.blocked !== null && (
+                    <p className="mt-2 text-xs text-[#6b7280]" data-testid="thesis-draft-blocked">
+                      {t(`planner.thesis.blocked.${draftTask.blocked}`)}
+                    </p>
+                  )}
+                </>
+              )}
+              {rejected && (
+                <p className="mt-3 rounded-lg border border-[#e7d8a6] bg-[#fff7df] p-3 text-sm text-[#6b4c13]" role="alert">
+                  {t("laptop.thesisDesk.reviewRejected")}
+                </p>
+              )}
+            </section>
+          )}
 
-          <main className="min-w-0 p-4 sm:p-6">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
-              <span>{activeTask ? t("laptop.thesisDesk.sectionLabel", { number: taskNumber(activeTask.id, activeIndex) }) : t("laptop.thesisDesk.eyebrow")}</span>
-              {activeTask?.done && (
-                <span className="inline-flex items-center gap-1 text-[#17624a]">
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  {t("laptop.thesisDesk.completed")}
+          <section className="mt-6 border-t border-[#e4e9f2] pt-4" aria-label={t("planner.thesis.heading")}>
+            <p className="text-sm text-[#4b5563]" data-testid="thesis-limit">
+              {t("planner.thesis.limit", { percent: props.freeWorkMaxPercent })}
+            </p>
+            {writing && !draftOpen && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-[#e3dccd] bg-[#fbf8f1] p-3" data-testid="thesis-writing">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-md bg-[#3a63c2] px-3 py-2 text-sm font-semibold text-white hover:bg-[#3155a8] disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={workBlocked}
+                  data-testid="thesis-writing-start"
+                  onClick={() => writing.setActive(true)}
+                >
+                  <PenLine className="h-4 w-4" aria-hidden="true" />
+                  {t("laptop.thesisDesk.writing.start")}
+                </button>
+                <p className="min-w-0 flex-1 text-xs leading-relaxed text-[#5c5547]">
+                  {workBlocked ? t("laptop.thesisDesk.writing.blocked") : t("laptop.thesisDesk.writing.startHint", { percent: props.sessionPercent, time: formatDuration(duration, sessionMinutes) })}
+                </p>
+              </div>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button type="button" className={QUIET_BORDERED} disabled={workBlocked} data-testid="thesis-work" onClick={() => onWork(sessionMinutes)}>
+                {t("planner.thesis.work", { time: formatDuration(duration, sessionMinutes) })}
+              </button>
+              {rest !== undefined && (
+                <span className="flex flex-wrap gap-2" data-testid="rest-panel">
+                  <button type="button" className={QUIET_BORDERED} disabled={timeUp} data-testid="rest-nap" onClick={() => rest.onRest("nap")}>
+                    {t("planner.thesis.nap", { time: formatDuration(duration, rest.napMinutes) })}
+                  </button>
+                  <button type="button" className={QUIET_BORDERED} disabled={timeUp} data-testid="rest-sleep" onClick={() => rest.onRest("sleep")}>
+                    {t("planner.thesis.sleep", { time: formatDuration(duration, rest.sleepMinutes) })}
+                  </button>
                 </span>
               )}
             </div>
-            <h4 ref={headingRef} tabIndex={-1} className="mt-2 text-lg font-semibold text-[#1f2937] outline-none sm:text-xl">
-              {activeTask?.id === "draft.findings"
-                ? t("laptop.thesisDesk.findingsReview.title")
-                : activeTask?.id === "draft.final"
-                  ? t("laptop.thesisDesk.finalReview.title")
-                  : activeTask?.id === "draft.intro-review"
-                    ? t("laptop.thesisDesk.introReview.title")
-                    : (activeTask?.label ?? t("laptop.thesisDesk.heading"))}
-            </h4>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#4b5563]">
-              {activeTask?.id === "draft.findings"
-                ? t("laptop.thesisDesk.findingsReview.summary")
-                : activeTask?.id === "draft.final"
-                  ? t("laptop.thesisDesk.finalReview.summary")
-                  : activeTask?.id === "draft.intro-review"
-                    ? t("laptop.thesisDesk.introReview.summary")
-                    : (activeTask?.description ?? t("laptop.thesisDesk.intro"))}
-            </p>
-
-            <div className="mt-5">{renderReview()}</div>
-
-            {draftDiff && (
-              <section className="mt-4 rounded-lg border border-[#b9dec9] bg-[#e8f5ef] p-3" data-testid="thesis-draft-diff" aria-live="polite">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#17624a]">{t("laptop.thesisDesk.draftDiffLabel")}</p>
-                <p className="mt-1 text-[11px] font-semibold text-[#17624a]">
-                  {tasks.find((candidate) => candidate.id === draftDiff.taskId)?.label ?? draftDiff.taskId}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-[#17624a]">
-                  {t(`laptop.thesisDesk.draftDiff.${draftDiffKey(draftDiff.approachId)}`)}
-                </p>
-              </section>
-            )}
-
-            {rejected && (
-              <p className="mt-3 rounded-lg border border-[#e7d8a6] bg-[#fff7df] p-3 text-sm text-[#6b4c13]" role="alert">
-                {t("laptop.thesisDesk.reviewRejected")}
-              </p>
-            )}
-
-
-            <section className="mt-6 border-t border-[#e4e9f2] pt-4" aria-label={t("planner.thesis.heading")}>
-              <p className="text-sm text-[#4b5563]" data-testid="thesis-limit">
-                {t("planner.thesis.limit", { percent: props.freeWorkMaxPercent })}
-              </p>
-              {writing && (
-                <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-[#e3dccd] bg-[#fbf8f1] p-3" data-testid="thesis-writing">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-md bg-[#3a63c2] px-3 py-2 text-sm font-semibold text-white hover:bg-[#3155a8] disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={workBlocked}
-                    data-testid="thesis-writing-start"
-                    onClick={() => writing.setActive(true)}
-                  >
-                    <PenLine className="h-4 w-4" aria-hidden="true" />
-                    {t("laptop.thesisDesk.writing.start")}
-                  </button>
-                  <p className="min-w-0 flex-1 text-xs leading-relaxed text-[#5c5547]">
-                    {workBlocked ? t("laptop.thesisDesk.writing.blocked") : t("laptop.thesisDesk.writing.startHint", { percent: props.sessionPercent, time: formatDuration(duration, sessionMinutes) })}
-                  </p>
-                </div>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className={QUIET_BORDERED}
-                  disabled={workBlocked}
-                  data-testid="thesis-work"
-                  onClick={() => onWork(sessionMinutes)}
-                >
-                  {t("planner.thesis.work", { time: formatDuration(duration, sessionMinutes) })}
-                </button>
-                {rest !== undefined && (
-                  <span className="flex flex-wrap gap-2" data-testid="rest-panel">
-                    <button type="button" className={QUIET_BORDERED} disabled={timeUp} data-testid="rest-nap" onClick={() => rest.onRest("nap")}>
-                      {t("planner.thesis.nap", { time: formatDuration(duration, rest.napMinutes) })}
-                    </button>
-                    <button type="button" className={QUIET_BORDERED} disabled={timeUp} data-testid="rest-sleep" onClick={() => rest.onRest("sleep")}>
-                      {t("planner.thesis.sleep", { time: formatDuration(duration, rest.sleepMinutes) })}
-                    </button>
-                  </span>
-                )}
-              </div>
-              {progress >= 100 && <p className="mt-2 text-xs text-[#17624a]">{t("planner.thesis.complete")}</p>}
-              {progress < 100 && timeUp && <p className="mt-2 text-xs text-[#6b7280]">{t("planner.thesis.timeUp")}</p>}
-            </section>
-          </main>
-
-        </div>
+            {progress >= 100 && <p className="mt-2 text-xs text-[#17624a]">{t("planner.thesis.complete")}</p>}
+            {progress < 100 && timeUp && <p className="mt-2 text-xs text-[#6b7280]">{t("planner.thesis.timeUp")}</p>}
+          </section>
+        </main>
       </div>
       {writingView}
     </div>
