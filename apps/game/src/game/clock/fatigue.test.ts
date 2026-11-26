@@ -49,8 +49,8 @@ describe("fatigue rules", () => {
   });
 
   it("rise with thesis tasks by their time", () => {
-    const state = run([START, task("draft.intro-review")]);
-    expect(state.resources.fatigue).toBe(20 + Math.round((90 * CFG.perThesisHour) / 60));
+    const state = run([START, task("draft.final")]);
+    expect(state.resources.fatigue).toBe(20 + Math.round((60 * CFG.perThesisHour) / 60));
   });
 
   it("slow thesis work down once Alex is tired, up to the configured limit", () => {
@@ -59,12 +59,12 @@ describe("fatigue rules", () => {
     expect(effectiveWorkMinutes(60, 100, CFG)).toBe(Math.ceil(60 * (1 + CFG.maxSlowdown)));
     const tired = withFatigue(run([START]), 100);
     // A task shows and costs the longer time, but gives the same progress.
-    const view = selectThesisView(tired, S).tasks.find((item) => item.id === "draft.intro-review")!;
-    expect(view.timeCostMinutes).toBe(Math.ceil(90 * (1 + CFG.maxSlowdown)));
-    expect(view.progressGain).toBe(2);
-    const after = step(tired, task("draft.intro-review"));
+    const view = selectThesisView(tired, S).tasks.find((item) => item.id === "draft.final")!;
+    expect(view.timeCostMinutes).toBe(Math.ceil(60 * (1 + CFG.maxSlowdown)));
+    expect(view.progressGain).toBe(7);
+    const after = step(tired, task("draft.final"));
     expect(tired.resources.timeMinutes - after.resources.timeMinutes).toBe(view.timeCostMinutes);
-    expect(after.resources.thesisProgress).toBe(tired.resources.thesisProgress + 2);
+    expect(after.resources.thesisProgress).toBe(tired.resources.thesisProgress + 7);
   });
 
   it("make a free work session shorter in percent when the time given is the rested one", () => {

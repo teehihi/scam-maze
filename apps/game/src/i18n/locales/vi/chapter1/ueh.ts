@@ -60,9 +60,7 @@ const ueh: LocaleShape<typeof en> = {
         supervisorWaiting: "Chờ bản thảo hoàn chỉnh",
         remaining: "Công việc của bản thảo",
         task: {
-          intro: "Phần mở đầu và tổng quan tài liệu",
-          findings: "Phần kết quả",
-          final: "Đọc lại toàn bộ bản thảo",
+          final: "Gõ 2 câu khóa luận",
         },
         taskDone: "Xong",
         taskTodo: "Cần làm",

@@ -7,6 +7,8 @@ export const SPRINT_IDS = ["intro", "question", "literature", "gap", "method", "
 export type SprintId = (typeof SPRINT_IDS)[number];
 export const SECTION_IDS = ["intro", "literature", "method", "findings", "limits", "next"] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
+/** The two sentences Alex types to finish the draft task (`draft.final`), in order. */
+export const DRAFT_SPRINT_IDS = ["intro", "question"] as const satisfies readonly SprintId[];
 /** The thesis section each sprint belongs to (`laptop.thesisDesk.writing.sections.<id>`). */
 export const SPRINT_SECTION: Readonly<Record<SprintId, SectionId>> = {
   intro: "intro",

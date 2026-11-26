@@ -36,6 +36,53 @@ export const MISSION02_VOICE_STEMS: Readonly<Record<string, string>> = {
   "m02.coba.confirm.1": "coba.confirm.1",
 };
 
+/**
+ * Alex's spoken lines in the Mission 02 conversations (the reply he picks on the street, and the same
+ * question in the phone transcript of the interview), with the file each recording will use. These are
+ * placeholders: authored and subtitled, not recorded yet, so they resolve to no clip and stay silent.
+ * When both language files of a line exist in `public/audio/mission02/<locale>/lines/`, move the
+ * entry into `MISSION02_VOICE_STEMS` (a test fails while a delivered file is still listed here).
+ * Alex's own phone line `m02.coba.confirm.0` is already recorded and lives in the map above.
+ */
+export const MISSION02_VOICE_PLACEHOLDERS: Readonly<Record<string, string>> = {
+  // --- Minh, the evening before (Alex's three replies) --------------------------------------
+  "m02.minh.minh_m02_route.alex": "alex.minh.m02_route.0",
+  "m02.minh.minh_m02_coba.alex": "alex.minh.m02_coba.0",
+  "m02.minh.minh_leave.alex": "alex.minh.leave.0",
+  // --- The street driver at the Bus 06 stop ---------------------------------------------------
+  "m02.driver.driver_ask_app.alex": "alex.driver.ask_app.0",
+  "m02.driver.driver_ask_plate.alex": "alex.driver.ask_plate.0",
+  "m02.driver.driver_wait_bus.alex": "alex.driver.wait_bus.0",
+  // --- Cô Ba at the market office, before the interview ----------------------------------------
+  "m02.coba.waiting.where.alex": "alex.coba.waiting.where.0",
+  "m02.coba.waiting.slot.alex": "alex.coba.waiting.slot.0",
+  "m02.coba.waiting.ledger.alex": "alex.coba.waiting.ledger.0",
+  // --- The interview (street reply and phone transcript share the recording) ----------------
+  "m02.coba.interview.transfer_check.alex": "alex.coba.interview.transfer_check.0",
+  "m02.coba.interview.process.alex": "alex.coba.interview.process.0",
+  "m02.coba.interview.exception.alex": "alex.coba.interview.exception.0",
+  "m02.coba.interview.invite_reschedule.alex": "alex.coba.interview.invite_reschedule.0",
+  // --- Late arrival ----------------------------------------------------------------------------
+  "m02.coba.late.reschedule.alex": "alex.coba.late.reschedule.0",
+  "m02.coba.late.thanks.alex": "alex.coba.late.thanks.0",
+  "m02.coba.late.leave.alex": "alex.coba.late.leave.0",
+  // --- The rescheduled interview -------------------------------------------------------------
+  "m02.coba.rescheduled.start.alex": "alex.coba.rescheduled.start.0",
+  "m02.coba.rescheduled.confirm.alex": "alex.coba.rescheduled.confirm.0",
+  "m02.coba.rescheduled.leave.alex": "alex.coba.rescheduled.leave.0",
+  // --- After the interview -------------------------------------------------------------------
+  "m02.coba.after.thanks.alex": "alex.coba.after.thanks.0",
+  "m02.coba.after.recap.alex": "alex.coba.after.recap.0",
+  "m02.coba.after.leave.alex": "alex.coba.after.leave.0",
+};
+
+/** The file a line's recording uses (recorded or placeholder), or null for an unknown voice ID. */
+export function mission02VoiceStem(voiceId: string): string | null {
+  if (Object.hasOwn(MISSION02_VOICE_STEMS, voiceId)) return MISSION02_VOICE_STEMS[voiceId];
+  if (Object.hasOwn(MISSION02_VOICE_PLACEHOLDERS, voiceId)) return MISSION02_VOICE_PLACEHOLDERS[voiceId];
+  return null;
+}
+
 /** Locales that have their own recording. Only `en` may stand in for another locale, and only on request. */
 const RECORDED_LOCALES: readonly GameLocale[] = ["en", "vi"];
 

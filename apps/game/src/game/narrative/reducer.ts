@@ -117,7 +117,6 @@ export const REASONS = {
   noPausedThesisSession: "There is no paused thesis session to continue.",
   noThesisSessionToEnd: "There is no paused thesis session to end.",
   draftAlreadySaved: "This manuscript version is already saved.",
-  thesisEvidenceMissing: "Cite an interview count and state the sample limitation before resolving the findings revision.",
   notEnoughTimeForAction: "There is not enough time left to complete this action.",
   restUnavailable: "Resting is not part of this scenario.",
   unknownThesisTask: "This thesis task does not exist.",
@@ -789,14 +788,6 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       const task = scenario.thesisTasks?.find((candidate) => candidate.id === action.taskId);
       if (task === undefined) return reject(REASONS.unknownThesisTask);
       if (state.world.thesisTasksDone.includes(task.id)) return reject(REASONS.thesisTaskDone);
-      if (task.id === "draft.findings" && action.researchNotes !== undefined) {
-        // `researchNotes` marks the new editor workflow. Older replay logs have no field and retain
-        // their historical task semantics; new UI actions must prove the saved text is grounded.
-        const findings = state.world.thesisDraft.findings ?? "";
-        const hasCount = /(?:9|6)\s*(?:of|out of)\s*24|(?:9|6)\s*trong số\s*24/i.test(findings);
-        const hasSampleLimit = /not an? (?:estimate|generalization)|not all students|không (?:phải|đại diện)|không suy rộng/i.test(findings);
-        if (!hasCount || !hasSampleLimit) return reject(REASONS.thesisEvidenceMissing);
-      }
       if (state.resources.thesisProgress >= 100) return reject(REASONS.thesisComplete);
       if (!evaluateConditions(task.requires, state, scenario)) return reject(REASONS.thesisTaskUnavailable);
       const approach = action.approachId === undefined ? undefined : task.approaches?.find((candidate) => candidate.id === action.approachId);
@@ -815,13 +806,6 @@ function applyAction(state: ChapterState, action: CoreAction, scenario: Scenario
       if (timeCost > 0) next = applyEffect(next, { kind: "adjustResource", resource: "timeMinutes", delta: -timeCost }, scenario);
       next = applyEffects(next, task.effects, scenario);
       next = applyEffects(next, approach?.effects, scenario);
-      // The persistent consequence is derived from the saved manuscript, never a UI-supplied note ID.
-      // Only the known-channel finding can inform this later choice; the classmate finding does not.
-      const savedFindings = state.world.thesisDraft.findings ?? "";
-      const citesSavedChannel = /9\s*(?:of|trong số)\s*24.{0,180}(?:saved portal|cổng thông tin đã lưu)/i.test(savedFindings);
-      if (task.id === "draft.findings" && citesSavedChannel) {
-        next = { ...next, persistent: { ...next.persistent, researchSavedChannelIncluded: true } };
-      }
       return accept(next, [`${WORLD_TAG_PREFIX}thesis:${task.id}${approach ? `:${approach.id}` : ""}`]);
     }
     case "RESPOND_EVENT": {

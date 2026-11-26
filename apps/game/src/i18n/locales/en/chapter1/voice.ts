@@ -1,7 +1,7 @@
 /**
  * English source text for the `chapter1` namespace, `voice` area: the captions of Alex's Mission 01
- * voice lines. Each text is the transcript of the clip with the same cue (`alex_<cue>_en.mp3`), line
- * for line. Owns the `voice` key group.
+ * and Mission 02 voice lines. Each text is the transcript of the clip with the same cue
+ * (`alex_<cue>_en.mp3`, Mission 02: `alex_m02_<stem>_en.mp3`), line for line. Owns the `voice` key group.
  */
 const voice = {
   voice: {
@@ -27,6 +27,21 @@ const voice = {
       investment: "If those returns are real, that could solve a lot of my problems.\nBut... how does this actually work?",
       exhausted: "I keep reading the same paragraph over and over.\nI really need some rest.",
       overnight: "I missed the deadline for the draft.\nGuess I'm not getting much sleep tonight.",
+      // --- Mission 02 "THE RIDE" (cues in `features/chapter1/voice/mission02AlexVoice.ts`) ---
+      m02Briefed: "Chapter 3 is done, but Section 3.3 still has a gap.\nI need Cô Ba's answer: how shopkeepers spot a fake transfer receipt.",
+      m02Open: "Eleven o'clock. Cô Ba is at half past eleven, in Chợ Lớn.\nMy last interview. I can't be late for this one.",
+      m02Prepare: "Main entrance of the market office, not the alley.\nI should decide how I'm getting there before I go.",
+      m02DriverOffer: "Sixty thousand, cash, and he'll stop wherever I say.\nNo app, no trip record... Nobody would know where I went.",
+      m02RouteChecked: "Seven thousand, three stops, and the route is on record.\nSlower, maybe. But I know exactly where it ends.",
+      m02Confirmed: "Main entrance, market side. And she's expecting me.\nGood thing I called the number I already had.",
+      m02OnBus: "Fare paid, and it's on the record.\nThirty-four minutes to Chợ Lớn. Time to go over my questions.",
+      m02WrongStop: "This isn't the market office.\nThree blocks short, and now he wants thirty thousand more?",
+      m02Arrived: "Made it. Chợ Lớn.\nMain entrance, not the alley. Let's find Cô Ba.",
+      m02ArrivedLate: "It's after twelve thirty. I missed the slot.\nShe waited for me. The least I can do is go and apologize.",
+      m02Rescheduled: "She's still willing to do it.\nI'm not wasting this second chance.",
+      m02LeftWithout: "I came all the way to Chợ Lớn, and I'm leaving with nothing.\nChapter three is going to have a gap.",
+      m02InterviewDone: "Check it yourself, in your own account. That's the quote my chapter needed.\nBack to the draft. Friday isn't moving.",
+      m02Failed: "Two o'clock. No interview.\nNow I have to explain to my supervisor why chapter three is missing a source.",
     },
   },
 };

@@ -38,6 +38,11 @@ export interface CallsAppProps {
   onContact: (id: string | null) => void;
   /** Ringing time of a call, in milliseconds. */
   ringMs?: number;
+  /**
+   * A call the player just answered (an incoming call): its screen opens at once and connects without
+   * ringing again. Read when the app opens.
+   */
+  answeredCallId?: string | null;
 }
 
 export const CallsApp: React.FC<CallsAppProps> = ({
@@ -52,18 +57,20 @@ export const CallsApp: React.FC<CallsAppProps> = ({
   contactId,
   onContact,
   ringMs,
+  answeredCallId = null,
 }) => {
   const { t: translate } = useTranslation("chapter1");
   const t = translate as unknown as Tx;
   const theme = phoneThemeFor("calls");
-  const [calling, setCalling] = useState<string | null>(null);
+  const [calling, setCalling] = useState<string | null>(answeredCallId);
   const [dialed, setDialed] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const contacts = view === undefined ? [] : contactsOf(view);
   const callee = calling === null ? null : (contacts.find((item) => item.id === calling) ?? null);
 
   if (callee !== null && onUseItem !== undefined) {
-    return <CallScreen key={callee.id} contact={callee} onUseItem={onUseItem} onLeave={() => setCalling(null)} ringMs={ringMs} />;
+    const answered = callee.id === answeredCallId;
+    return <CallScreen key={callee.id} contact={callee} onUseItem={onUseItem} onLeave={() => setCalling(null)} ringMs={answered ? 0 : ringMs} />;
   }
 
   const startCall = (item: DeviceItemView) => {

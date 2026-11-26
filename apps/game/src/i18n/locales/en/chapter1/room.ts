@@ -69,6 +69,11 @@ const room = {
       },
       numbersPlain: "Numbers are shown as plain text.",
     },
+    incomingCall: {
+      ringing: "{{name}} is calling",
+      missed: "Missed call from {{name}}. You can call back from Calls.",
+    },
+    progressSaved: "Draft saved · thesis {{percent}}%",
     objectiveToast: {
       new: "New objective: {{objective}}",
       done: "Objective complete: {{objective}}",

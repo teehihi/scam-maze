@@ -57,7 +57,80 @@ export const MISSION_02_LEDGER_LABELS: Record<string, string> = {
   "ledger.unofficial-extra": "Extra cash asked for at a stop that was not the meeting point",
 };
 
+/** The thesis task whose completion makes Minh call (the draft of Mission 01). */
+const DRAFT_DONE: Condition = { kind: "thesisTaskDone", taskId: "draft.final" };
+const MINH_CALLED = done("contact.minh", "call");
+const MINH_DECLINED = done("contact.minh", "decline");
+
 export const MISSION_02_DEVICE_ITEMS: DeviceItemDef[] = [
+  // --- The bridge from Mission 01: Minh calls once the draft is done ---------------------------
+  // No "mission complete" screen: the draft is saved, the phone rings, and Minh reminds Alex of the
+  // last interview. Answering, calling back or declining all leave the same reminder (the call, or
+  // his message), so nothing is lost by not picking up.
+  {
+    id: "contact.minh",
+    app: "contacts",
+    title: "Minh",
+    detail: "+000 200 0101",
+    body: "Minh, from the thesis group.",
+    arrives: { when: [DRAFT_DONE] },
+    incomingCall: true,
+    actions: [
+      {
+        id: "call",
+        label: "Talk to Minh",
+        timeCostMinutes: 2,
+        once: true,
+        transcript: [
+          {
+            speaker: "other",
+            voiceId: "m02.minh.setup",
+            text: "Chapter 3 finally looks solid! Don't forget our final District 5 interview at 11:30 tomorrow — Cô Ba hates waiting.",
+          },
+        ],
+      },
+      {
+        id: "ask-section",
+        label: "What should I ask Cô Ba?",
+        visibleWhen: [MINH_CALLED],
+        timeCostMinutes: 1,
+        once: true,
+        // The same lines as the street conversation, so they share their recordings.
+        transcript: [
+          { speaker: "alex", voiceId: "m02.minh.minh_m02_coba.alex", text: "What should I ask Cô Ba?" },
+          {
+            speaker: "other",
+            voiceId: "m02.minh.minh_m02_coba",
+            text: "Just verify how small shopkeepers spot fake transfer receipts. One clean quote wraps up Section 3.3 completely.",
+          },
+        ],
+      },
+      {
+        id: "decline",
+        label: "Decline the call",
+        visibleWhen: [{ kind: "not", condition: MINH_CALLED }],
+        once: true,
+      },
+    ],
+  },
+  {
+    id: "msg.m02-minh-reminder",
+    app: "messages",
+    title: "Minh",
+    from: "Minh (thesis group)",
+    body: "Chapter 3 finally looks solid! Don't forget our final District 5 interview at 11:30 tomorrow — Cô Ba hates waiting. Ask her how small shopkeepers spot fake transfer receipts: that is what Section 3.3 still needs.",
+    arrives: { when: [MINH_DECLINED] },
+  },
+  {
+    id: "file.m02-section-3-3",
+    app: "files",
+    folder: "thesis",
+    title: "Section 3.3 — data still missing",
+    body:
+      "Section 3.3 needs first-hand data: how small shopkeepers recognise a fake transfer receipt before they hand over goods. Source: the interview with Cô Ba, Wednesday 11:30, at the Chợ Lớn market (District 5).",
+    arrives: { when: [{ kind: "anyOf", conditions: [MINH_CALLED, MINH_DECLINED] }] },
+  },
+
   // --- The appointment and the two ways to reach it ----------------------------------------------
   {
     id: "cal.m02-interview",

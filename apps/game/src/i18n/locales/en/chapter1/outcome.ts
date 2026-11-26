@@ -54,7 +54,6 @@ const outcome = {
     noPausedThesisSession: "There is no paused thesis session to continue.",
     noThesisSessionToEnd: "There is no paused thesis session to end.",
     draftAlreadySaved: "This manuscript version is already saved.",
-    thesisEvidenceMissing: "Cite an interview count and state the sample limitation before resolving the findings revision.",
     notEnoughTimeForAction: "There is not enough time left to complete this action.",
     restUnavailable: "Resting is not part of this scenario.",
     unknownThesisTask: "This thesis task does not exist.",

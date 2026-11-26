@@ -71,6 +71,11 @@ export class BusRouteController {
   private nextBus: number;
   private approach = 0;
   private chapterDepartureAt: number | undefined;
+  /** Where the current approach starts (z) and how long it takes at full speed (seconds). */
+  private approachFrom: number = ROUTE.approachZ;
+  private approachSeconds = 6.8;
+  /** Staged away (`stageAway`): the bus waits up the road until it is called, it does not come on its own timer. */
+  staged = false;
   private driving = 0;
   private driveThrottle = 1;
   private via = false;
@@ -96,12 +101,53 @@ export class BusRouteController {
 
   wait() {
     if (this.phase !== 'waiting') return false;
+    this.staged = false;
     const chapterNow = this.host.chapterSeconds?.();
     if (chapterNow === undefined) this.advance(Math.max(0, this.nextBus - this.clock));
     else this.chapterDepartureAt = chapterNow + ROUTE.waitMinutes * 60;
     this.phase = 'approaching';
     this.emit('wait-started', { stop: ROUTE.origin });
     return true;
+  }
+
+  /**
+   * Holds the next bus out of sight up the road (`fromZ`), not at the stop. The Chapter 1 street starts this way so the
+   * bus arrives in front of the player instead of standing at the stop from the first frame.
+   */
+  stageAway(fromZ = 44) {
+    if (this.phase !== 'waiting' && this.phase !== 'boarding') return false;
+    this.phase = 'waiting';
+    this.staged = true;
+    this.approach = 0;
+    this.approachFrom = fromZ;
+    this.z = fromZ;
+    this.x = ROUTE.curbX;
+    this.yaw = 0;
+    this.speed = 0;
+    this.doors.front.target = this.doors.rear.target = 0;
+    this.doors.front.amount = this.doors.rear.amount = 0;
+    return true;
+  }
+
+  /**
+   * Brings the staged bus in from where it waits: it drives `fromZ` → the stop in about `seconds`, slowing down to a halt
+   * (the same curve as `wait`). Unlike `wait` it does not skip time: the bus is simply the next one coming. Returns false
+   * when a bus is already coming, at the stop or on its way.
+   */
+  callBus(seconds = 6.8) {
+    if (this.phase !== 'waiting') return false;
+    this.staged = false;
+    this.chapterDepartureAt = undefined;
+    this.approachSeconds = Math.max(1, seconds);
+    this.approach = 0;
+    this.phase = 'approaching';
+    this.emit('wait-started', { stop: ROUTE.origin });
+    return true;
+  }
+
+  /** How far the bus still is from the stop (metres), 0 once it stands there. */
+  get distanceToStop() {
+    return this.phase === 'waiting' || this.phase === 'approaching' ? Math.max(0, this.z) : 0;
   }
 
   toggleDoor(id: DoorId, blocked: boolean) {
@@ -147,14 +193,16 @@ export class BusRouteController {
     if (this.phase !== 'driving' && !this.host.chapterSeconds) {
       this.advance(dt * (this.phase === 'waiting' ? 12 : 5));
     }
-    if (!this.host.chapterSeconds && this.phase === 'waiting' && this.clock >= this.nextBus) this.wait();
+    if (!this.host.chapterSeconds && this.phase === 'waiting' && !this.staged && this.clock >= this.nextBus) this.wait();
     if (this.phase === 'approaching') {
+      // Chapter time: a bus asked for with `wait` leaves the previous stop after the scheduled wait of story time.
       const chapterNow = this.host.chapterSeconds?.();
       const timeToApproach = this.chapterDepartureAt === undefined || (chapterNow ?? 0) >= this.chapterDepartureAt;
       if (timeToApproach) this.chapterDepartureAt = undefined;
       const canMove = timeToApproach && !approachBlocked && (maxSafeSpeed === undefined || maxSafeSpeed > 0.35);
-      if (canMove) this.approach = clamp(this.approach + dt / 6.8);
-      this.z = ROUTE.approachZ * (1 - this.approach ** 1.14 * (2 - this.approach ** 1.14));
+      if (canMove) this.approach = clamp(this.approach + dt / this.approachSeconds);
+      // Ease-out: full speed at the start, slowing down progressively to a halt at the stop.
+      this.z = this.approachFrom * (1 - this.approach ** 1.14 * (2 - this.approach ** 1.14));
       if (this.approach >= 1) {
         this.phase = 'boarding';
         this.emit('bus-at-stop', { stop: ROUTE.origin });

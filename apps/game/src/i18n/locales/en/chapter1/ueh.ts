@@ -62,9 +62,7 @@ const ueh = {
         supervisorWaiting: "Waiting for the finished draft",
         remaining: "Work on the draft",
         task: {
-          intro: "Introduction and literature review",
-          findings: "Findings section",
-          final: "Full draft read-through",
+          final: "Two sentences of the thesis",
         },
         taskDone: "Done",
         taskTodo: "To do",

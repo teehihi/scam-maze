@@ -72,6 +72,12 @@ bones (hands are rigid). Idle, walk, wave and sit then work through the same ret
 |---|---|---|---|---|
 | `npc-linh` | `linh-model/new_VnWomen.glb` | Linh (story cast, M01) | 68.82 -> 0.80 MB | 1,493,784 -> 45,000 |
 | `npc-minh` | `minhModel/lqk_new.glb` | Minh (story cast, M01-M05) | 54.21 -> 0.76 MB | 1,000,004 -> 45,000 |
+| `npc-coba` | `coba/COBA.glb` | Cô Ba, the market-office interviewer (story cast `interviewee_q5`, M02), added 2026-11-25 | 72.81 -> 0.84 MB | -> 45,000 |
+| `npc-driver` | `driver/ongxeom.glb` | The unverified ride driver at the Bus 06 stop (story cast `unverified_driver`, M02), added 2026-11-25 | 73.24 -> 0.85 MB | -> 45,000 |
+
+`npc-coba` and `npc-driver` are loaded by the Saigon open world, so their optimized files are also copied to
+`public/assets/testbus/ow/models/`. Their landmarks were measured by hand from the scans (about 1.18 m and 1.16 m
+tall before scaling); the game scales them to the heights set in `storyCast.ts`.
 
 - Landmarks (joint positions) are measured per scan in `MODELS` in `rig-tpose.cjs`; a new scan needs its own entry.
 - Linh's shoulders are narrowed 1.2 cm per side and her arms slimmed 14% before rigging (`shoulders` in `MODELS`), because the scan's square, thick shoulders read as bulky once the arms hang down.

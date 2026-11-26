@@ -63,7 +63,7 @@ describe("the cues", () => {
   it("start the thesis line with the first real writing, not with opening the laptop", () => {
     expect(reachedVoiceCues(started(), S)).toEqual([]);
     expect(reachedVoiceCues(started([{ type: "WORK_ON_THESIS", minutes: 60 }]), S)).toContain("thesisStart");
-    expect(reachedVoiceCues(started([{ type: "COMPLETE_THESIS_TASK", taskId: "draft.intro-review" }]), S)).toContain("thesisStart");
+    expect(reachedVoiceCues(started([{ type: "COMPLETE_THESIS_TASK", taskId: "draft.final" }]), S)).toContain("thesisStart");
     // Resting and waiting are not writing.
     expect(reachedVoiceCues(started([{ type: "REST", mode: "nap" }, advance(60)]), S)).not.toContain("thesisStart");
   });
@@ -223,7 +223,7 @@ describe("what the player sees and does", () => {
     await dispatch(store, { type: "START_CHAPTER" });
     await dispatch(store, advance(5));
     expect(fake.starts).toEqual([]);
-    await dispatch(store, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro-review" });
+    await dispatch(store, { type: "COMPLETE_THESIS_TASK", taskId: "draft.final" });
     expect(fake.starts.map((start) => start.id)).toEqual([file("thesisStart")]);
     act(() => fake.handles[0].end());
     await dispatch(store, { type: "WORK_ON_THESIS", minutes: 60 });
@@ -296,7 +296,7 @@ describe("what the player sees and does", () => {
       await flush();
       expect(fake.starts.map((start) => start.id)).toEqual([file("intro")]);
       await dispatch(store, { type: "START_CHAPTER" });
-      await dispatch(store, { type: "COMPLETE_THESIS_TASK", taskId: "draft.intro-review" });
+      await dispatch(store, { type: "COMPLETE_THESIS_TASK", taskId: "draft.final" });
       await act(async () => void vi.advanceTimersByTime(QUEUE_TTL_MS + 1000));
       act(() => fake.handles[0].end());
       await flush();

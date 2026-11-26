@@ -55,8 +55,12 @@ export interface WritingModeProps {
   progress?: number;
   timeLeftMinutes?: number;
   formatTime?: (minutes: number) => string;
-  /** Commits a complete sprint; returns whether the core accepted it. */
-  onCommit: () => boolean;
+  /**
+   * Commits a complete sprint; returns whether the core accepted it. `"continue"` means the sentence
+   * is one of several in the same commit: the host moves on to the next sentence (new `sprintKey`)
+   * and the panel shows no result yet.
+   */
+  onCommit: () => boolean | "continue";
   onKey: (kind: KeyKind) => void;
   onExit: () => void;
   /** An open research review the player can go to after a sprint, or null. */
@@ -205,6 +209,10 @@ export const WritingMode: React.FC<WritingModeProps> = (props) => {
     const before = props.progress !== undefined && props.timeLeftMinutes !== undefined ? { progress: props.progress, timeLeft: props.timeLeftMinutes } : null;
     const accepted = onCommit();
     committing.current = false;
+    if (accepted === "continue") {
+      setNotice(null);
+      return;
+    }
     if (!accepted) {
       setNotice("rejected");
       return;

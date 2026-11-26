@@ -11,11 +11,12 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { ClaimId, DeviceActionId, EvidenceId } from "../../../game/narrative/chapter1/ids";
-import { clockAtMinute, type DeviceView } from "../../../game/narrative/device";
+import { clockAtMinute, type DeviceItemView, type DeviceView } from "../../../game/narrative/device";
 import type { PhoneMessageView, PhoneRecordsView } from "../../../game/narrative/selectors";
 import type { BlockedTransfer } from "../../../game/narrative/blocked";
 import { ScreenSurface } from "../room/ScreenSurface";
 import { PhoneScreenHost } from "../call/PhoneScreenHost";
+import { PhoneCallScreen } from "../call/PhoneCallScreen";
 import { heldPhoneLayout } from "../call/callLayout";
 import type { PhoneScreenSink } from "../call/phoneScreenSink";
 import { useViewport } from "../call/useViewport";
@@ -103,6 +104,11 @@ export interface PhoneOverlayProps {
    * the room stays visible around it.
    */
   held?: { screenSink: PhoneScreenSink; mode: "model" | "fallback" };
+  /**
+   * A contact who is calling Alex now (`DeviceItemDef.incomingCall`). The phone shows the incoming call
+   * over everything else. Accept opens the call in Calls, connected; Decline is reported to the layer.
+   */
+  incomingCall?: { caller: DeviceItemView; onAccept: () => void; onDecline: () => void };
 }
 
 const WEEKDAY_KEYS = [
@@ -137,6 +143,7 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
   onBrowserState,
   onDecide,
   held,
+  incomingCall,
 }) => {
   const { t } = useTranslation("chapter1");
   const viewport = useViewport();
@@ -153,6 +160,11 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
   }, [browser]);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const time = usePhoneClock();
+  // The incoming call that was answered: Calls opens on it, connected. Cleared when Calls is left.
+  const [answeredCallId, setAnsweredCallId] = useState<string | null>(null);
+  useEffect(() => {
+    if (route !== "calls") setAnsweredCallId(null);
+  }, [route]);
   // Putting the phone down ends any line that is being read or played.
   useEffect(() => () => stopLineVoice(), []);
   // On the projected phone display when the 3D screen is visible; otherwise the flat phone frame.
@@ -280,6 +292,7 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
         contactId={openItems[CALLS_CONTACT_KEY] ?? null}
         onContact={(id) => remember(CALLS_CONTACT_KEY, id)}
         ringMs={callRingMs}
+        answeredCallId={answeredCallId}
       />
     );
   } else if (route === "voicemail") {
@@ -298,7 +311,28 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
   // The phone's Mail, Bank, Files and Browser draw their own surface edge to edge and scroll inside.
   const fullBleed = device !== undefined && mobile !== undefined && (route === "browser" || deviceApp === "mail" || deviceApp === "bank" || deviceApp === "files");
   let screen: ReactNode;
-  if (locked) {
+  if (incomingCall) {
+    const { caller } = incomingCall;
+    screen = (
+      <div className="flex min-h-0 flex-1 flex-col" data-testid="phone-incoming-call">
+        <PhoneCallScreen
+          view={{ status: "ringing", callerName: caller.title, number: caller.detail ?? "" }}
+          disabled={false}
+          vibrateIcon={held?.mode !== "model"}
+          onAccept={() => {
+            setLocked(false);
+            remember(CALLS_TAB_KEY, "contacts");
+            remember(CALLS_CONTACT_KEY, caller.id);
+            setAnsweredCallId(caller.id);
+            setRoute("calls");
+            incomingCall.onAccept();
+          }}
+          onDecline={incomingCall.onDecline}
+          onHangUp={incomingCall.onDecline}
+        />
+      </div>
+    );
+  } else if (locked) {
     screen = (
       <PhoneLockScreen
         time={time}
@@ -381,7 +415,8 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
             data-phone-frame
             data-phone-locked={locked ? "true" : "false"}
           >
-            <PhoneTopBar time={time} island />
+            {/* The incoming call screen draws its own status bar and island. */}
+            {!incomingCall && <PhoneTopBar time={time} island />}
             <PhoneCloseHiddenContext.Provider value={true}>{screen}</PhoneCloseHiddenContext.Provider>
           </div>
         </PhoneScreenHost>
@@ -403,7 +438,7 @@ export const PhoneOverlay: React.FC<PhoneOverlayProps> = ({
         data-phone-frame
         data-phone-locked={locked ? "true" : "false"}
       >
-        <PhoneTopBar time={time} island={!onScreen} />
+        {!incomingCall && <PhoneTopBar time={time} island={!onScreen} />}
         {screen}
       </div>
     </ScreenSurface>

@@ -84,6 +84,9 @@ const CHARACTERS = [
   // T-pose scans without a skeleton (one 1M+ triangle mesh): simplified and auto-rigged onto the street NPC skeleton (rig-tpose.cjs).
   rigged("npc-linh", "linh-model/new_VnWomen.glb", "linh"),
   rigged("npc-minh", "minhModel/lqk_new.glb", "minh"),
+  // Mission 02: Cô Ba at the Chợ Lớn market office and the street driver at the Bus 06 stop (owner-supplied scans).
+  rigged("npc-coba", "coba/COBA.glb", "coba"),
+  rigged("npc-driver", "driver/ongxeom.glb", "driver"),
 ];
 
 /**

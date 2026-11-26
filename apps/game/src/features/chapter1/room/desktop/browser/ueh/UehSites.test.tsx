@@ -76,7 +76,7 @@ describe("UEH Student Portal", () => {
       accountLocked: false,
       accessVerified: true,
       draftFinished: true,
-      tasksDone: ["draft.intro-review", "draft.findings", "draft.final"],
+      tasksDone: ["draft.final"],
     };
     const { onUseItem, unmount } = portal("thesis", {
       view: viewOf([], [savedPortal(act1("submit-thesis", { timeCostMinutes: 5 }))]),
@@ -110,11 +110,11 @@ describe("UEH Student Portal", () => {
   });
 
   it("shows the thesis progress, the tasks and the Friday 17:00 deadline from the game", () => {
-    portal("thesis", { view: viewOf([], [savedPortal()], 62), facts: { accountLocked: false, draftFinished: false, tasksDone: ["draft.findings"] } });
+    portal("thesis", { view: viewOf([], [savedPortal()], 62), facts: { accountLocked: false, draftFinished: false, tasksDone: [] } });
     expect(screen.getByTestId("portal-thesis-progress").textContent).toBe("62% complete");
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("62");
-    expect(screen.getByTestId("portal-task-findings").getAttribute("data-done")).toBe("true");
-    expect(screen.getByTestId("portal-task-intro").getAttribute("data-done")).toBe("false");
+    expect(screen.getByTestId("portal-task-final").getAttribute("data-done")).toBe("false");
+    expect(screen.queryByTestId("portal-task-intro")).toBeNull();
     expect(screen.getByTestId("portal-draft-status").textContent).toBe("In progress");
     expect(screen.getByText("Friday, 17:00")).toBeTruthy();
     expect(screen.getByTestId("portal-access-thesis").textContent).toBe("Not yet checked");

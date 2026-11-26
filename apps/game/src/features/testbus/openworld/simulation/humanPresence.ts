@@ -98,6 +98,11 @@ export interface HumanPresenceSystem {
   ): HumanCollisionResult;
   /** Get current active crowd bark (if any) for the borderless cinema subtitle strip. */
   getActiveReaction(nowSec: number): CrowdReactionBark | null;
+  /**
+   * A walking NPC's next position, pushed out of every other registered body (the same solid cylinders the player
+   * collides with), so two people never stand inside each other. `selfId` is the walker's own registration.
+   */
+  separate(selfId: string, x: number, z: number, y: number, radius: number): { x: number; z: number };
   clear(): void;
 }
 
@@ -130,6 +135,28 @@ export function createHumanPresenceSystem(): HumanPresenceSystem {
         const idx = bodies.indexOf(tracked);
         if (idx >= 0) bodies.splice(idx, 1);
       };
+    },
+
+    separate(selfId, nx, nz, y, radius) {
+      let x = nx;
+      let z = nz;
+      for (const body of bodies) {
+        if (body.id === selfId || !body.object.visible) continue;
+        body.object.getWorldPosition(_tmpPos);
+        if (Math.abs(_tmpPos.y - y) > 1.35) continue;
+        const dx = x - _tmpPos.x;
+        const dz = z - _tmpPos.z;
+        const minDist = radius + body.radius;
+        const distSq = dx * dx + dz * dz;
+        if (distSq >= minDist * minDist) continue;
+        const dist = Math.sqrt(distSq);
+        // Exactly on top: step aside along +x (toward the shops, away from the road).
+        const ux = dist > 1e-4 ? dx / dist : 1;
+        const uz = dist > 1e-4 ? dz / dist : 0;
+        x += ux * (minDist - dist + 0.004);
+        z += uz * (minDist - dist + 0.004);
+      }
+      return { x, z };
     },
 
     resolvePlayerCollision(nx, nz, playerY, playerRadius, playerSpeed, nowSec, dt) {

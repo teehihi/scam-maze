@@ -12,7 +12,7 @@ import type { StoryNpcRuntimeContext } from "../../../game/narrative/chapter1/st
 import type { GameLocale } from "@scammaze/shared-types";
 import { useGameLocale } from "../../../i18n";
 import { mission02VoiceUrl } from "../voice/mission02Voice";
-import { lineVoiceKey, playLineVoice, stopLineVoice } from "../device/lineVoice";
+import { lineVoiceKey, playLineVoice, stopLineVoice, subscribeLineVoice } from "../device/lineVoice";
 
 export interface OutsideWorldState {
   /** The street is live around the room (the door can open onto it). */
@@ -227,8 +227,12 @@ export interface StreetVoiceSettings {
  * Plays the recorded clip of the street line on screen, when the line has one. The subtitles are
  * always shown by `CinemaNpcHud`; a line without a recording simply stays silent, and a new line
  * replaces the one playing (one voice at a time).
+ *
+ * After a reply, Alex says the reply he picked first (when it is recorded) and the NPC answers when
+ * he has finished: the two clips run one after the other on the one line channel, never together.
+ * An unrecorded reply is the written echo only, and the NPC answers at once as before.
  */
-function useStreetVoice(
+export function useStreetVoice(
   dialogue: ActiveStoryNpcDialogue | null,
   ambientBark: AmbientStreetBark | null,
   locale: GameLocale,
@@ -238,6 +242,7 @@ function useStreetVoice(
   const englishFallback = voice?.englishFallback ?? false;
   const lineKey = dialogue?.lineKey ?? null;
   const dialogueVoiceId = dialogue?.currentVoiceId ?? null;
+  const replyVoiceId = dialogue?.lastPlayerReplyVoiceId ?? null;
   const barkVoiceId = dialogue === null ? (ambientBark?.voiceId ?? null) : null;
 
   useEffect(() => {
@@ -245,13 +250,43 @@ function useStreetVoice(
     if (lineKey === null && barkVoiceId === null) return undefined;
     const voiceId = lineKey === null ? barkVoiceId : dialogueVoiceId;
     const clipUrl = mission02VoiceUrl(voiceId, locale, englishFallback);
-    if (clipUrl === null) return undefined;
+    // Alex's reply belongs to a conversation line only, never to a passing bark.
+    const replyUrl = lineKey === null ? null : mission02VoiceUrl(replyVoiceId, locale, englishFallback);
+    if (clipUrl === null && replyUrl === null) return undefined;
     const key = lineKey === null ? `street-bark:${voiceId}` : `street-line:${lineKey}`;
-    void playLineVoice(key, "", locale, clipUrl, { synthetic: false });
-    return () => {
-      if (lineVoiceKey() === key) stopLineVoice();
+    const replyKey = `${key}:alex`;
+    let cancelled = false;
+    let unsubscribe: (() => void) | null = null;
+    const answer = () => {
+      if (cancelled || clipUrl === null) return;
+      void playLineVoice(key, "", locale, clipUrl, { synthetic: false });
     };
-  }, [soundOn, englishFallback, locale, lineKey, dialogueVoiceId, barkVoiceId]);
+    if (replyUrl === null) answer();
+    else {
+      void playLineVoice(replyKey, "", locale, replyUrl, { synthetic: false }).then((result) => {
+        if (cancelled) return;
+        // The reply clip could not play: the NPC answers straight away.
+        if (result === "none" || lineVoiceKey() !== replyKey) {
+          if (lineVoiceKey() === null) answer();
+          return;
+        }
+        unsubscribe = subscribeLineVoice(() => {
+          const now = lineVoiceKey();
+          if (now === replyKey) return;
+          unsubscribe?.();
+          unsubscribe = null;
+          // Alex finished; another line that took the channel meanwhile keeps it.
+          if (now === null) answer();
+        });
+      });
+    }
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+      const now = lineVoiceKey();
+      if (now === key || now === replyKey) stopLineVoice();
+    };
+  }, [soundOn, englishFallback, locale, lineKey, dialogueVoiceId, replyVoiceId, barkVoiceId]);
 }
 
 /** Street prompt, cinematic district arrival banner, ambient/bump whispers, and cinema Story NPC dialogue while outside. */

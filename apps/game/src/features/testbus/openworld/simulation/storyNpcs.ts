@@ -23,6 +23,10 @@ import {
   type HumanRealismRig,
 } from "./humanRealism";
 import type { HumanPresenceSystem } from "./humanPresence";
+import { initialApproachState, stepApproach, type ApproachConfig, type ApproachState } from "./approachBehavior";
+
+/** Seconds into the driver's goodbye line when he glances at the arriving bus, and when he looks back at Alex. */
+export const BUS_GLANCE_WINDOW: readonly [number, number] = [0.6, 2.1];
 
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 
@@ -39,6 +43,8 @@ export interface ActiveStoryNpcDialogue {
   currentVoiceId?: string | null;
   /** Brief echo of the reply Alex just chose (makes dialogue feel naturally two-way). */
   lastPlayerReply?: LocalizedPair | null;
+  /** Stable recording key of Alex saying that reply (spoken before the NPC answers), or null. */
+  lastPlayerReplyVoiceId?: string | null;
   currentMood: StoryNpcMood;
   /** Optional scam-awareness / mission insight revealed by a reply. */
   activeInsight: LocalizedPair | null;
@@ -88,6 +94,15 @@ export interface StoryNpcDirector {
   getAmbientBark(): AmbientStreetBark | null;
   /** World-space eye position of the NPC currently speaking with Alex (drives smooth camera framing). */
   getConversationEyePos(out: T.Vector3): boolean;
+  /** Alex is on foot on the street (not on the bus, not indoors): NPCs that walk up to him may do so. */
+  setPlayerOnFoot(onFoot: boolean): void;
+  /** True while an NPC who walks up to Alex is noticing him, walking over or standing with him (the driver's pitch). */
+  isSoliciting(): boolean;
+  /**
+   * Where an arriving Bus 06 is (world, at head height), or null. During his goodbye line the street driver glances at
+   * it, then looks back at Alex.
+   */
+  setBusFocus(position: T.Vector3 | null): void;
   /** Lightweight world-space coordinates of currently visible Story NPCs for the live Saigon radar. */
   getRadarBlips(): readonly StoryNpcRadarBlip[];
   dispose(): void;
@@ -100,6 +115,14 @@ interface SpawnedStoryNpc {
   eyeHeight: number;
   realism: HumanRealismRig;
   mixer?: T.AnimationMixer;
+  /** Walks up to Alex and back (`worldAnchor.approach`): the pure behavior and its live state. */
+  approach?: { config: ApproachConfig; state: ApproachState };
+  idleAction?: T.AnimationAction;
+  walkAction?: T.AnimationAction;
+  /** 0 standing .. 1 walking: the idle / walk blend, eased over a few frames. */
+  walkBlend: number;
+  /** 0..1, eased: how far his shoulders turn toward the arriving bus during the goodbye glance. */
+  glance: number;
   handBone: T.Object3D | null;
   handProp: T.Group | null;
   lastBarkTime: number;
@@ -244,6 +267,8 @@ export function createStoryNpcDirector(
   let lineKeySeq = 1;
   let lineStartedAt = 0;
   let lineDurationSec = 4.0;
+  let playerOnFoot = true;
+  let busFocus: T.Vector3 | null = null;
   const spawned: SpawnedStoryNpc[] = [];
   const presenceCleanups: (() => void)[] = [];
   const shadowMat = contactMaterial(0.54);
@@ -293,12 +318,39 @@ export function createStoryNpcDirector(
         null;
 
       let mixer: T.AnimationMixer | undefined;
+      let idleAction: T.AnimationAction | undefined;
+      let walkAction: T.AnimationAction | undefined;
       if (clips.idle) {
         mixer = new T.AnimationMixer(obj);
         const action = mixer.clipAction(clips.idle);
         action.timeScale = 0.85;
         action.time = ((seed * 0.37) % 1) * clips.idle.duration;
         action.play();
+        idleAction = action;
+      }
+      // An NPC who walks up to Alex needs a walk clip; without one he stays at his spot (never slides).
+      let approach: SpawnedStoryNpc["approach"];
+      if (anchor.approach && clips.walk) {
+        mixer ??= new T.AnimationMixer(obj);
+        walkAction = mixer.clipAction(clips.walk);
+        walkAction.setEffectiveWeight(0);
+        walkAction.play();
+        const config: ApproachConfig = {
+          homeX: anchor.x,
+          homeZ: anchor.z,
+          homeYaw: anchor.yaw,
+          noticeRadius: anchor.approach.noticeRadius,
+          stopDistance: anchor.approach.stopDistance,
+          leash: anchor.approach.leash,
+          walkSpeed: clips.walkSpeedAt(anchor.height),
+          turnSeconds: 0.9,
+          giveUpRadius: anchor.approach.noticeRadius + 7,
+          cooldownSeconds: 35,
+          farewellSeconds: 1.4,
+          minX: anchor.approach.minX,
+          maxX: anchor.approach.maxX,
+        };
+        approach = { config, state: initialApproachState(config) };
       }
 
       const realism = createHumanRealismRig(root, obj, seed++);
@@ -326,6 +378,11 @@ export function createStoryNpcDirector(
         eyeHeight: anchor.height * 0.89,
         realism,
         mixer,
+        approach,
+        idleAction,
+        walkAction,
+        walkBlend: 0,
+        glance: 0,
         handBone,
         handProp,
         lastBarkTime: -999,
@@ -364,8 +421,65 @@ export function createStoryNpcDirector(
           activeDialogue = null;
         }
 
+        // An NPC who walks up to Alex: the behavior moves and turns him; his callout is the moment he notices Alex.
+        let approachSpeed = 0;
+        if (npc.approach) {
+          const before = npc.approach.state.phase;
+          const out = stepApproach(npc.approach.state, npc.approach.config, {
+            dt,
+            time,
+            playerX: playerPos.x,
+            playerZ: playerPos.z,
+            playerAvailable: playerOnFoot,
+            conversing: isTalkingToPlayer,
+          });
+          // Never inside another person (waiting passengers): he is pushed aside, then kept on the sidewalk.
+          if (humanPresence && out.speed > 0) {
+            const free = humanPresence.separate(`story_${npc.profile.id}`, out.state.x, out.state.z, npc.root.position.y, 0.36);
+            out.state.x = Math.min(npc.approach.config.maxX, Math.max(npc.approach.config.minX, free.x));
+            out.state.z = free.z;
+          }
+          npc.approach.state = out.state;
+          approachSpeed = out.speed;
+          npc.root.position.x = out.state.x;
+          npc.root.position.z = out.state.z;
+          // The goodbye glance: the bus comes up behind him, so the head alone cannot see it. His shoulders turn part of
+          // the way toward it (eased in and out), then back to Alex; the head follows the bus (focus point below).
+          const glanceElapsed = time - lineStartedAt;
+          const wantsGlance =
+            busFocus !== null &&
+            isTalkingToPlayer &&
+            activeDialogue?.closing === true &&
+            glanceElapsed >= BUS_GLANCE_WINDOW[0] &&
+            glanceElapsed < BUS_GLANCE_WINDOW[1];
+          npc.glance += ((wantsGlance ? 1 : 0) - npc.glance) * (1 - Math.exp(-dt * 5));
+          let yaw = out.state.yaw;
+          if (busFocus && npc.glance > 0.001) {
+            let toBus = Math.atan2(busFocus.x - out.state.x, busFocus.z - out.state.z) - yaw;
+            while (toBus > Math.PI) toBus -= Math.PI * 2;
+            while (toBus < -Math.PI) toBus += Math.PI * 2;
+            yaw += toBus * 0.55 * npc.glance;
+          }
+          npc.root.rotation.y = yaw;
+          if (before === "home" && out.state.phase === "noticed" && !activeDialogue && !activeBark) {
+            npc.lastBarkTime = time;
+            const turn = resolveStoryNpcDialogue(npc.profile.id, context);
+            activeBark = { npcId: npc.profile.id, speaker: turn.speaker, text: turn.ambientBark, voiceId: turn.ambientVoiceId ?? null };
+            barkExpiresAt = time + 4.8;
+          }
+          // Idle and walk blend with the speed; the walk plays at the speed he really moves (no foot sliding).
+          const target = approachSpeed > 0.05 ? 1 : 0;
+          npc.walkBlend += (target - npc.walkBlend) * (1 - Math.exp(-dt * 7));
+          npc.walkAction?.setEffectiveWeight(npc.walkBlend);
+          npc.idleAction?.setEffectiveWeight(1 - npc.walkBlend);
+          if (npc.walkAction && approachSpeed > 0.05) {
+            npc.walkAction.timeScale = Math.min(1.25, Math.max(0.6, approachSpeed / npc.approach.config.walkSpeed));
+          }
+        }
+
         // Trigger organic RDR2/GTA-6 ambient street callout when Alex passes within 7.2m (28s cooldown per NPC).
         if (
+          !npc.approach &&
           !activeDialogue &&
           !activeBark &&
           dist < 7.2 &&
@@ -384,12 +498,14 @@ export function createStoryNpcDirector(
         }
 
         // Turn body smoothly toward Alex during conversation or close proximity (< 3.8m).
-        const desiredYaw =
-          isTalkingToPlayer || dist < 3.6 ? Math.atan2(dx, dz) : npc.baseYaw;
-        let diff = desiredYaw - npc.root.rotation.y;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        npc.root.rotation.y += diff * Math.min(1, dt * (isTalkingToPlayer ? 6.8 : 3.2));
+        if (!npc.approach) {
+          const desiredYaw =
+            isTalkingToPlayer || dist < 3.6 ? Math.atan2(dx, dz) : npc.baseYaw;
+          let diff = desiredYaw - npc.root.rotation.y;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          npc.root.rotation.y += diff * Math.min(1, dt * (isTalkingToPlayer ? 6.8 : 3.2));
+        }
 
         npc.mixer?.update(dt);
 
@@ -407,12 +523,20 @@ export function createStoryNpcDirector(
             ? "listening"
             : (slot?.activity ?? "idle");
 
+        // The driver's goodbye while Bus 06 pulls in: a glance at the bus, then back to Alex to finish the line.
+        const glancingAtBus =
+          busFocus !== null &&
+          isTalkingToPlayer &&
+          activeDialogue?.closing === true &&
+          speechElapsed >= BUS_GLANCE_WINDOW[0] &&
+          speechElapsed < BUS_GLANCE_WINDOW[1];
+        const facing = npc.approach ? npc.approach.state.phase !== "home" && npc.approach.state.phase !== "returning" : false;
         npc.realism.update({
           dt,
           time,
           playerPos,
-          focusPoint: isTalkingToPlayer || isBarkingNow || dist < 7.2 ? playerPos : null,
-          moveSpeed: 0,
+          focusPoint: glancingAtBus ? busFocus : isTalkingToPlayer || isBarkingNow || facing || dist < 7.2 ? playerPos : null,
+          moveSpeed: approachSpeed,
           activity,
           rain,
           hasActiveMixer: Boolean(npc.mixer),
@@ -454,6 +578,7 @@ export function createStoryNpcDirector(
         currentText: firstLine,
         currentVoiceId: turn.openingVoiceId ?? null,
         lastPlayerReply: null,
+        lastPlayerReplyVoiceId: null,
         currentMood: turn.mood,
         activeInsight: turn.hookNote ?? null,
         askedReplyIds: [],
@@ -476,6 +601,7 @@ export function createStoryNpcDirector(
         currentText: reply.response,
         currentVoiceId: reply.voiceId ?? null,
         lastPlayerReply: reply.label,
+        lastPlayerReplyVoiceId: reply.labelVoiceId ?? null,
         currentMood: reply.nextMood,
         activeInsight: reply.insight ?? activeDialogue.activeInsight,
         askedReplyIds: asked,
@@ -508,6 +634,16 @@ export function createStoryNpcDirector(
     },
     closeDialogue() {
       activeDialogue = null;
+    },
+    setPlayerOnFoot(onFoot) {
+      playerOnFoot = onFoot;
+    },
+    isSoliciting() {
+      return spawned.some((npc) => npc.approach !== undefined && ["noticed", "approaching", "engaged"].includes(npc.approach.state.phase));
+    },
+    setBusFocus(position) {
+      if (position === null) busFocus = null;
+      else (busFocus ??= new T.Vector3()).copy(position);
     },
     getActiveDialogue() {
       return activeDialogue;

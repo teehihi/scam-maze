@@ -22,7 +22,7 @@ import { chapterTransit } from "./chapterTransit";
  * stops being free, and 0 disables it.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, NotebookText, Smartphone } from "lucide-react";
+import { CalendarClock, NotebookText, PhoneIncoming, PhoneMissed, Save, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { GameSettings } from "@scammaze/shared-types";
 import { useReducedMotion } from "../../../components/ui/useReducedMotion";
@@ -106,7 +106,9 @@ import { MailClient } from "./desktop/apps/MailClient";
 import { BankingApp } from "./desktop/banking/BankingApp";
 import { FilesApp } from "./desktop/files/FilesApp";
 import { CalendarApp } from "./desktop/calendar/CalendarApp";
-import { ThesisWindow } from "./desktop/thesis/ThesisWindow";
+import { DRAFT_TASK_ID, ThesisWindow } from "./desktop/thesis/ThesisWindow";
+import { DECLINE_ACTION } from "./incomingCall";
+import { INCOMING_RING_TIMEOUT_MS, useIncomingCall } from "./useIncomingCall";
 import type { ThesisWritingHost } from "./desktop/thesis/writing/WritingMode";
 import type { WritingDraft } from "./desktop/thesis/writing/writingSprints";
 import { usePrefersReducedMotion } from "../../../components/ui/usePrefersReducedMotion";
@@ -147,6 +149,10 @@ const INTRO_CONTROLS = ["move", "look", "interact", "journal", "schedule"] as co
 
 /** Brings up the carried phone. */
 const PHONE_KEY = "P";
+/** A notice that stays until its state changes (the ringing call). */
+const NOOP = () => undefined;
+/** Top of the call notices while the Writing Mode panel is open (it spans about 72 to 200 px). */
+const WRITING_NOTICE_TOP_PX = 214;
 /** Unified cinema keybind rail item matching PrologueHud & ChapterStatusHud (no clashing web-app pill chrome). */
 const HUD_CHIP_CLASS =
   `group relative flex items-center gap-2 rounded-md border border-transparent px-2 py-1 font-menu text-xs font-semibold uppercase tracking-[0.14em] text-[#f3efe4]/90 ${SHADOW} transition-all duration-150 hover:border-white/15 hover:bg-black/40 hover:text-white cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5]`;
@@ -549,7 +555,9 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
     settings: { soundEnabled: settings.soundEnabled, voiceVolume: settings.voiceVolume },
     held: clockPaused,
     introVisible: introOpen && introMode === "begin" && engineReady,
-    callOpen: callOpen || lineVoiceActive,
+    // A street conversation (Mission 02: the driver, Cô Ba) is the scene: Alex's inner voice waits
+    // until it closes, so a line reached by a reply follows the conversation instead of cutting in.
+    callOpen: callOpen || lineVoiceActive || hideHud,
     viewing: deviceView,
   });
   // --- Port cache (the bridge reads it on every hover frame) --------------------------------
@@ -964,6 +972,33 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
     setArrival({ key: arrivalCounterRef.current, title: latest.title, onPhone: latest.app === "messages" });
   }, [arrivedItems, scenario]);
   const dismissArrival = useCallback(() => setArrival(null), []);
+
+  // --- From Mission 01 to Mission 02: the draft is saved, then Minh calls ----------------------
+  // No "mission complete" screen: a small notice that the draft is saved, then the phone rings.
+  const draftDone = useChapterState(store, (state) => state.world.thesisTasksDone.includes(DRAFT_TASK_ID));
+  const draftDoneSeenRef = useRef(draftDone);
+  const [progressNoticeKey, setProgressNoticeKey] = useState<number | null>(null);
+  useEffect(() => {
+    if (draftDone && !draftDoneSeenRef.current) setProgressNoticeKey((key) => (key ?? 0) + 1);
+    draftDoneSeenRef.current = draftDone;
+  }, [draftDone]);
+  const dismissProgressNotice = useCallback(() => setProgressNoticeKey(null), []);
+  const thesisPercent = useChapterState(store, (state) => state.resources.thesisProgress);
+  const incoming = useIncomingCall({ store, scenario, enabled: taskMode && !introOpen && !callOpen });
+  const incomingCaller = incoming.callerId === null ? null : (phoneDevice.apps.contacts.find((item) => item.id === incoming.callerId) ?? null);
+  const incomingRinging = incoming.phase === "ringing" && incomingCaller !== null;
+  // The phone vibrates and rings while the call is waiting to be picked up.
+  useEffect(() => {
+    if (!engineReady || !incomingRinging) return undefined;
+    const commands = bridge.commands;
+    commands?.ring(true);
+    return () => commands?.ring(false);
+  }, [bridge, engineReady, incomingRinging]);
+  const declineIncoming = useCallback(() => {
+    if (incoming.callerId !== null) store.dispatch({ type: "USE_DEVICE_ITEM", itemId: incoming.callerId, actionId: DECLINE_ACTION });
+  }, [incoming.callerId, store]);
+  const [missedNoticeSeen, setMissedNoticeSeen] = useState<string | null>(null);
+  const dismissMissedNotice = useCallback(() => setMissedNoticeSeen(incoming.callerId), [incoming.callerId]);
   const gameplay = gameplayConfig(scenario);
   // The parked story ("The Urgent Call") has laptop device actions and its own fixed room clock.
   const legacyLaptop = Object.keys(scenario.deviceActions).length > 0;
@@ -1399,6 +1434,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
             onBrowserState={handlePhoneBrowser}
             onClose={closePhone}
             held={phoneCarried ? { screenSink: callSink, mode: modelAllowed ? "model" : "fallback" } : undefined}
+            incomingCall={incomingRinging && incomingCaller ? { caller: incomingCaller, onAccept: incoming.answer, onDecline: declineIncoming } : undefined}
           />
         );
       case "planner":
@@ -1791,6 +1827,54 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
             )}
             <MovementHints active={uiMode === "exploration" && overlays.length === 0 && !introOpen} />
           </>
+        )}
+
+        {/* The draft is saved, and then a call: small notices above the laptop too, never a full-screen panel. */}
+        {taskMode && (progressNoticeKey !== null || incomingRinging || (incoming.phase === "missed" && missedNoticeSeen !== incoming.callerId)) && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            // Below the Writing Mode panel while Alex types (the panel holds the top of the screen).
+            style={{ top: writingActive ? WRITING_NOTICE_TOP_PX : hudOffset(96, hudScale), zIndex: CINE.toast.zIndex, ...hudScaleStyle(hudScale, "top center") }}
+            data-testid="room-call-notice-slot"
+            data-below-writing={writingActive ? "true" : undefined}
+            role="status"
+            aria-live="polite"
+          >
+            {incomingRinging && incomingCaller ? (
+              !phoneUp && (
+                <button type="button" className="pointer-events-auto block rounded-2xl text-left" onClick={togglePhone} data-testid="incoming-call-notice">
+                  <EventArrivalNotice
+                    title={incomingCaller.title}
+                    text={text("room.incomingCall.ringing", { name: incomingCaller.title })}
+                    icon={<PhoneIncoming className="h-3.5 w-3.5" />}
+                    onDismiss={NOOP}
+                    durationMs={INCOMING_RING_TIMEOUT_MS + 1000}
+                    keyHint={{ key: PHONE_KEY, label: text("hud.phone") }}
+                  />
+                </button>
+              )
+            ) : incoming.phase === "missed" && incomingCaller && missedNoticeSeen !== incoming.callerId ? (
+              <div data-testid="missed-call-notice">
+                <EventArrivalNotice
+                  title={incomingCaller.title}
+                  text={text("room.incomingCall.missed", { name: incomingCaller.title })}
+                  icon={<PhoneMissed className="h-3.5 w-3.5" />}
+                  onDismiss={dismissMissedNotice}
+                />
+              </div>
+            ) : progressNoticeKey !== null ? (
+              <div data-testid="progress-saved-notice">
+                <EventArrivalNotice
+                  key={progressNoticeKey}
+                  title={text("room.progressSaved", { percent: thesisPercent })}
+                  text={text("room.progressSaved", { percent: thesisPercent })}
+                  icon={<Save className="h-3.5 w-3.5" />}
+                  onDismiss={dismissProgressNotice}
+                  durationMs={4500}
+                />
+              </div>
+            ) : null}
+          </div>
         )}
 
         {/* Keep diegetic event feedback above the device even while the room HUD steps away. */}
