@@ -11,6 +11,7 @@ import { type SaigonTrafficManager } from '../traffic';
 import * as T from 'three';
 import { CURB_HEIGHT, rect, ROUTE_BOARD, STOP_SIGN, type Point, type Solid } from './boarding';
 import { ROUTE } from './transit';
+import { BENCH_LOCAL_Z, BENCH_X } from './benchSeats';
 import { asset, batch, box, contact, contactMaterial, granular, label, lamp, material, mesh, orb, plane, polygon, random, rod, rounded, textLabel, tube, write } from './scene-kit';
 
 const WIDTH = SURVEY.width;
@@ -126,13 +127,13 @@ function stopEnvironment(parent: T.Group, solids: Solid[], stopZ: number, destin
     box(g, [3.964, 1.46, z], [0.12, 1.90, 1.47], seam);
     plane(g, [3.895, 1.46, z], [1.36, 1.78], display, X_ANGLE);
   }
-  for (const z of [0.27, 2.00]) {
+  for (const z of BENCH_LOCAL_Z) {
     for (const a of [3.27, 3.43, 3.59]) box(g, [a, 0.64, z], [0.143, 0.051, 1.48], bench);
     for (const delta of [-0.50, 0.50]) {
-      box(g, [3.45, 0.405, z + delta], [0.43, 0.045, 0.054], steel);
-      box(g, [3.45, 0.397, z + delta + 0.024], [0.07, 0.48, 0.083], steel);
+      box(g, [BENCH_X, 0.405, z + delta], [0.43, 0.045, 0.054], steel);
+      box(g, [BENCH_X, 0.397, z + delta + 0.024], [0.07, 0.48, 0.083], steel);
     }
-    solids.push(rect(3.45, z + stopZ, 0.54, 1.48));
+    solids.push(rect(BENCH_X, z + stopZ, 0.54, 1.48));
   }
   for (const z of [-1.81, 0.42, 2.56, 4.19]) {
     box(g, [2.50, 2.654, z], [0.14, 0.060, 0.70], steel);

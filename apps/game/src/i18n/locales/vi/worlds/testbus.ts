@@ -19,9 +19,13 @@ const testbus: LocaleShape<typeof en> = {
         departing: "Chuẩn bị khởi hành đi Chợ Lớn",
         driving: "Đang chạy trên Lý Thái Tổ → Chợ Lớn",
         arrived: "Đã đến Trạm Chợ Lớn · Quận 5",
+        circulating: "Xe buýt 06 đang chạy vòng quanh bản đồ",
+        nextIn: "Chuyến sau còn {{minutes}} phút",
         complete: "Hoàn tất tuyến 06",
       },
       prompt: {
+        sitBench: "[E] Ngồi xuống ghế",
+        standUpBench: "[E] Đứng dậy khỏi ghế",
         confirmRide: "[F] Xác nhận cho xe chạy · [E] Đứng dậy",
         standUpRear: "[E] Đứng dậy · Xuống xe ở cửa sau",
         noMidway: "{{status}} · Chưa đến trạm, không xuống giữa chừng",

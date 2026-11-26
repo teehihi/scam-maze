@@ -15,7 +15,7 @@ export interface StoryContextPatch {
 
 /** Structural copy keeps this room-only bridge's import boundary independent of the street module. */
 export interface TransitEvent {
-  type: "wait-started" | "bus-at-stop" | "boarded" | "left-bus" | "fare-paid" | "departed" | "passed-stop" | "arrived" | "transfer-complete";
+  type: "wait-started" | "bus-at-stop" | "boarded" | "left-bus" | "fare-paid" | "departed" | "passed-stop" | "arrived" | "transfer-complete" | "left-empty";
   at: number;
   route: string;
   stop?: string;

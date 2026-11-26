@@ -1,5 +1,6 @@
 // Bus 06 staged arrival (Chapter 1): the bus waits up the road, comes only when called, physically drives in while
-// slowing down, opens for boarding, and the stand-alone street keeps its old behaviour.
+// slowing down, opens for boarding, and the stand-alone street keeps its old behaviour. A bus nobody boards leaves after
+// its dwell (see busSchedule.test.ts).
 import { describe, expect, it } from "vitest";
 import { BUS_CALL_SECONDS } from "./busCall";
 import { BusRouteController, ROUTE } from "./transit";
@@ -66,11 +67,11 @@ describe("staged Bus 06", () => {
     expect(route.callBus(7)).toBe(false);
   });
 
-  it("does not leave without the passenger: it waits at the stop until boarding", () => {
+  it("holds its doors while the passenger is at them, and only a paid, boarded passenger makes it depart", () => {
     const route = new BusRouteController();
     route.stageAway();
     route.callBus(7);
-    drive(route, 200);
+    for (let t = 0; t < 200; t += 1 / 60) route.update(1 / 60, NONE, false, undefined, { hold: true });
     expect(route.phase).toBe("boarding");
     // Only a paid, boarded passenger makes it depart.
     expect(route.depart(false, false)).toBe(false);
