@@ -413,7 +413,7 @@ export function buildBus(scene: T.Scene, route: BusRouteController, interiorFill
     marker.emissiveIntensity=route.phase==='approaching'?blink:.18;leftMarker.emissiveIntensity=route.phase==='departing'||route.phase==='driving'&&route.progress<.03?blink:.18;
     const acceleration=T.MathUtils.clamp((route.speed-lastSpeed)/Math.max(.005,dt),-4,4);lastSpeed=route.speed;plume.update(dt,root,route.speed,acceleration);
     tiltV+=(-32*tilt-9*tiltV+acceleration*.085)*dt;tilt+=tiltV*dt;root.rotation.x=tilt;
-    steering.rotation.z=route.yaw*5+.024*Math.sin(elapsed*.7);
+    steering.rotation.z=route.steer*2.4+.024*Math.sin(elapsed*.7);
     brake.emissiveIntensity = route.phase === 'approaching' && route.speed < 2 || route.phase === 'departing' || route.phase === 'arrived' ? 2.3 : 0.25;
   } };
 }

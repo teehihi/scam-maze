@@ -1,5 +1,5 @@
 import { pickStunt, stuntSeconds, weaveOffset, wheeliePitch } from "../../../khupho/world/baothuMotion";
-import { TrafficCollisionSystem } from "./collisionSystem";
+import { testOBBvsOBB, TrafficCollisionSystem, vehicleToOBB } from "./collisionSystem";
 import {
   computeAccIdmPlus,
   computeSaigonMotoSublaneTarget,
@@ -10,6 +10,7 @@ import {
   VN_TRAFFIC_TUNING,
   type LateralNeighbor,
 } from "./driverModels";
+import { BUS06_CURB_LAT, BusCircuit } from "./busCircuit";
 import { IntersectionManager } from "./intersectionMgr";
 import { PedestrianBrain } from "./pedestrianBrain";
 import { SaigonRoadGraph, sampleEdge, sampleTurn } from "./roadGraph";
@@ -86,7 +87,6 @@ function wrapAngleDiff(target: number, current: number): number {
  */
 export class SaigonTrafficManager {
   readonly graph: SaigonRoadGraph;
-  private bus06StopLinesCache: { z: number; interId: string }[] | null = null;
   readonly signals: TrafficSignalController;
   readonly intersections: IntersectionManager;
   readonly collisions: TrafficCollisionSystem;
@@ -96,7 +96,22 @@ export class SaigonTrafficManager {
   readonly vehicles: VehicleAgent[] = [];
   private readonly vehicleById = new Map<string, VehicleAgent>();
   private readonly busAgentId = "BUS_06";
+  /** Bus 06's loop, derived from the road graph. */
+  readonly busCircuit: BusCircuit;
+  private busTurnId: string | null = null;
+  private busHintD: number | undefined;
+  /** Lane the bus has grabbed (lateral offset) and how long it keeps it. */
+  private busLane = { target: BUS06_CURB_LAT, hold: 0 };
+  /** What the bus decided last frame: the rider it honks at. */
+  private busHonkAt: string | null = null;
+  private lastPedestrians: readonly PedestrianObstacle[] = [];
+  private lastPlayer = { x: 0, y: 99, z: 0 };
+  /** Number of horn blasts Bus 06 has given (telemetry and tests). */
+  bus06Honks = 0;
+  /** Seconds Bus 06 has been held at a standstill by other vehicles (the gridlock breaker's timer). */
+  private busJam = 0;
   private simTime = 0;
+  private lastDt = 0.05;
   private tickCount = 0;
   private rngState = 133791;
   /** Separate seeded stream for overtake and dwell decisions, so behaviour tuning never shifts route picks. */
@@ -104,6 +119,7 @@ export class SaigonTrafficManager {
 
   constructor() {
     this.graph = new SaigonRoadGraph();
+    this.busCircuit = new BusCircuit(this.graph);
     this.signals = new TrafficSignalController(this.graph.intersections.values());
     this.intersections = new IntersectionManager(this.graph, this.signals);
     this.collisions = new TrafficCollisionSystem();
@@ -127,7 +143,8 @@ export class SaigonTrafficManager {
   private isHaltedBus(o: VehicleAgent): boolean {
     if (o.category !== "bus") return false;
     if (o.busStop) return o.busStop.phase !== "cruise" && o.speed < 1.5;
-    return !!o.externalControl && o.speed < 1.0;
+    // Bus 06 only counts as halted while it stands at one of its stops; at a red light everyone queues behind it.
+    return !!o.externalControl && !!o.atBusStop && o.speed < 1.0;
   }
 
   /** The nearest halted bus ahead in the lane `v` is driving in, if any. */
@@ -359,7 +376,7 @@ export class SaigonTrafficManager {
    * Every AI vehicle automatically yields to, queues behind, or filters around Bus 06.
    */
   registerBus06(x: number, z: number, yaw = Math.PI) {
-    if (this.vehicleById.has(this.busAgentId)) return;
+    if (this.vehicleById.has(this.busAgentId) || this.busGhost) return;
     const agent: VehicleAgent = {
       id: this.busAgentId,
       category: "bus",
@@ -368,9 +385,9 @@ export class SaigonTrafficManager {
       onTurn: false,
       turnId: null,
       nextTurnId: null,
-      s: 46 - z,
-      latOffset: x - -3.2,
-      targetLatOffset: x - -3.2,
+      s: 0,
+      latOffset: 0,
+      targetLatOffset: 0,
       latVel: 0,
       laneIndex: 1,
       x,
@@ -400,6 +417,10 @@ export class SaigonTrafficManager {
     };
     this.vehicles.push(agent);
     this.vehicleById.set(agent.id, agent);
+    this.busHintD = undefined;
+    this.busTurnId = null;
+    this.busLane = { target: BUS06_CURB_LAT, hold: 0 };
+    this.applyBusFix(agent);
   }
 
   /**
@@ -407,97 +428,444 @@ export class SaigonTrafficManager {
    * behind a bus nobody sees. `registerBus06` puts it back.
    */
   unregisterBus06() {
+    this.busGhost = null;
+    this.busJam = 0;
     const agent = this.vehicleById.get(this.busAgentId);
     if (!agent) return;
+    this.releaseBusTurn();
     this.vehicleById.delete(this.busAgentId);
     const index = this.vehicles.indexOf(agent);
     if (index >= 0) this.vehicles.splice(index, 1);
+    this.busHonkAt = null;
   }
 
   /** True while Bus 06 is part of the traffic. */
   get bus06Registered(): boolean {
-    return this.vehicleById.has(this.busAgentId);
+    return this.vehicleById.has(this.busAgentId) || this.busGhost !== null;
+  }
+
+  /** True while Bus 06 passes a jammed junction out of the player's sight, detached from the traffic (see planBus06). */
+  get bus06Ghosted(): boolean {
+    return this.busGhost !== null;
+  }
+
+  /** Bus 06's agent, whether it is in the traffic or passing a jam detached from it. */
+  private get busAgent(): VehicleAgent | undefined {
+    return this.vehicleById.get(this.busAgentId) ?? this.busGhost ?? undefined;
+  }
+
+  private releaseBusTurn() {
+    if (!this.busTurnId) return;
+    const turn = this.graph.turns.get(this.busTurnId);
+    if (turn) this.intersections.exitTurn(this.busAgentId, turn.intersectionId);
+    this.busTurnId = null;
+  }
+
+  /** Places the bus on its circuit (edge or junction arc, s, lateral offset) from its world pose. */
+  private applyBusFix(bus: VehicleAgent) {
+    const circuit = this.busCircuit;
+    const fix = circuit.project(bus.x, bus.z, bus.yaw, this.busHintD);
+    this.busHintD = fix.d;
+    const seg = fix.segment;
+    if (seg.edge) {
+      this.releaseBusTurn();
+      bus.onTurn = false;
+      bus.turnId = null;
+      bus.edgeId = seg.edge.id;
+    } else {
+      const turn = seg.turn!;
+      if (this.busTurnId !== turn.id) {
+        this.releaseBusTurn();
+        if (!this.busGhost) {
+          this.intersections.enterTurn(bus.id, turn, this.simTime);
+          this.busTurnId = turn.id;
+        }
+      }
+      bus.onTurn = true;
+      bus.turnId = turn.id;
+      bus.edgeId = turn.fromEdgeId;
+      bus.committedJunctionId = null;
+    }
+    bus.s = fix.s;
+    bus.latOffset = fix.lat;
+    bus.targetLatOffset = fix.lat;
+    bus.atBusStop = circuit.busStops.some((st) => Math.abs(circuit.delta(fix.d, st.d)) < 8);
   }
 
   /** Sync Bus 06's live world pose & speed every frame from `BusRouteController`. */
   syncBus06(x: number, z: number, yaw: number, speed: number, accel: number, listenerX?: number, listenerZ?: number) {
-    const bus = this.vehicleById.get(this.busAgentId);
+    const bus = this.busAgent;
     if (!bus) return;
     const wasMoving = bus.speed > 1.2;
+    bus.yawRate = Math.abs(speed) > 0.1 ? wrapAngleDiff(yaw, bus.yaw) / Math.max(this.lastDt, 0.004) : 0;
     bus.x = x;
     bus.z = z;
     bus.yaw = yaw;
     bus.speed = speed;
     bus.accel = accel;
-    // Map Bus 06 onto the closest Lý Thái Tổ northbound segment for neighbor awareness
-    if (z > -76) {
-      bus.edgeId = "LTT_S_NB";
-      bus.s = Math.max(0, 46 - z);
-    } else if (z > -96) {
-      bus.edgeId = "LTT_M1_NB";
-      bus.s = Math.max(0, -84.8 - z);
-    } else if (z > -147) {
-      bus.edgeId = "LTT_M2_NB";
-      bus.s = Math.max(0, -100.6 - z);
-    } else {
-      bus.edgeId = "LTT_N_NB";
-      bus.s = Math.max(0, -155.8 - z);
-    }
-    bus.latOffset = x - -3.2;
+    this.applyBusFix(bus);
 
     if (wasMoving && speed < 0.25 && listenerX !== undefined && listenerZ !== undefined) {
       this.audio.playBusAirBrake(x, z, listenerX, listenerZ);
     }
   }
 
-  /** Northbound Ly Thai To stop lines (RoadEdge.end.z of the incoming ns edge) for the three signalized junctions. */
-  private bus06StopLines(): { z: number; interId: string }[] {
-    if (this.bus06StopLinesCache) return this.bus06StopLinesCache;
-    const lines: { z: number; interId: string }[] = [];
-    for (const interId of ["J_LTT_32", "J_LTT_PED", "J_LTT_DBP"]) {
-      for (const e of this.graph.edges.values()) {
-        if (e.toNode === interId && e.axis === "ns" && e.tz < 0) lines.push({ z: e.end.z, interId });
-      }
-    }
-    this.bus06StopLinesCache = lines;
-    return lines;
-  }
-
   /**
-   * Query safe target speed cap for Bus 06 along Lý Thái Tổ (-Z northbound) so Bus 06:
-   *  - Obeys QCVN 41:2024 red lights at J_LTT_32 (-76), J_LTT_PED (-96), and J_LTT_DBP (-147)
+   * Query safe target speed cap for Bus 06 around its circuit so Bus 06:
+   *  - Obeys QCVN 41:2024 red lights at every signalized junction on its loop
    *  - Never drives through vehicles or pedestrians ahead of its front bumper!
    */
   computeBus06SafeSpeed(busX: number, busZ: number, desiredSpeed: number): number {
-    let cap = desiredSpeed;
+    return this.planBus06(busX, busZ, desiredSpeed, { aggressive: false }).speed;
+  }
 
-    // 1. Check upcoming N-S traffic lights ahead of Bus 06's front bumper (busZ - 5.55)
-    const frontZ = busZ - 5.55;
-    const stopLines = this.bus06StopLines();
-    for (const sl of stopLines) {
-      const dist = frontZ - sl.z;
-      if (dist > -0.6 && dist < 24) {
-        const sig = this.signals.getAxisState(sl.interId, "ns");
+  /**
+   * Bus 06's driving plan for this frame: the speed it may drive (junction rules, vehicles, pedestrians and the player
+   * ahead of it) and the lateral position it wants. A Saigon city bus does not stay in its lane: it grabs the lane
+   * that is free, weaves, hugs motorbikes that do not give way and honks at them (`VN_TRAFFIC_TUNING.busAggression`).
+   */
+  planBus06(
+    busX: number,
+    busZ: number,
+    desiredSpeed: number,
+    options: { yaw?: number; aggressive?: boolean } = {},
+  ): { speed: number; lat: number; reason: "free" | "signal" | "traffic" | "pedestrian" } {
+    const bus = this.busAgent;
+    const circuit = this.busCircuit;
+    const A = VN_TRAFFIC_TUNING.busAggression;
+    const halfLength = bus?.halfLength ?? 5.55;
+    const halfWidth = bus?.halfWidth ?? 1.32;
+    const fix = circuit.project(busX, busZ, options.yaw ?? bus?.yaw, this.busHintD);
+    const frontD = fix.d + halfLength;
+    let cap = desiredSpeed;
+    let reason: "free" | "signal" | "traffic" | "pedestrian" = "free";
+    const limit = (value: number, why: typeof reason) => {
+      if (value < cap) {
+        cap = Math.max(0, value);
+        reason = why;
+      }
+    };
+    // Vehicles hold the bus up separately from signals and pedestrians, so a jammed junction can be broken through
+    let trafficCap = Infinity;
+    const limitTraffic = (value: number) => {
+      trafficCap = Math.min(trafficCap, Math.max(0, value));
+    };
+    const brakeTo = (gap: number, leaderSpeed = 0) =>
+      gap <= 0 ? 0 : Math.min(leaderSpeed + 0.5, Math.sqrt(2 * 2.2 * gap));
+
+    // 1. Junctions ahead of the front bumper: signals, crosswalks, conflicting arcs and a full exit
+    for (const sl of circuit.stopLines) {
+      const dist = circuit.delta(frontD, sl.d);
+      if (dist <= -0.6 || dist >= 32) continue;
+      const turn = this.graph.turns.get(sl.turnId);
+      if (!turn) continue;
+      if (bus) {
+        const decision = this.intersections.evaluateEntry(bus, turn, Math.max(0, dist), 1, this.vehicles, this.lastPedestrians);
+        if (decision.committed) bus.committedJunctionId = turn.intersectionId;
+        if (!decision.allowed) {
+          limit(dist <= 0.6 ? 0 : Math.sqrt(2 * 2.1 * (dist - 0.6)), decision.reason === "pedestrian" ? "pedestrian" : "signal");
+        } else if (turn.kind !== "straight") {
+          limit(decision.speedCap, "free");
+        }
+      } else if (sl.signalized && dist < 24) {
+        const sig = this.signals.getAxisState(sl.intersectionId, sl.axis);
         if (sig.lamp === "red" || (sig.lamp === "amber" && dist > 6.0)) {
-          const brakeSpeed = dist <= 0.6 ? 0 : Math.sqrt(Math.max(0, 2 * 2.1 * (dist - 0.6)));
-          cap = Math.min(cap, brakeSpeed);
+          limit(dist <= 0.6 ? 0 : Math.sqrt(2 * 2.1 * (dist - 0.6)), "signal");
         }
       }
     }
 
-    // 2. Check any vehicle directly ahead of Bus 06 in its northbound corridor
+    // 2. Vehicles on the circuit around the bus
+    const neighbors: { v: VehicleAgent; gap: number; lat: number; dAhead: number }[] = [];
     for (const v of this.vehicles) {
       if (v.id === this.busAgentId) continue;
-      const dx = Math.abs(v.x - busX);
-      if (dx > v.halfWidth + 1.42) continue;
-      const distAhead = frontZ - (v.z + v.halfLength);
-      if (distAhead > -0.5 && distAhead < 22) {
-        const safe = distAhead <= 1.4 ? 0 : Math.min(v.speed + 0.5, Math.sqrt(Math.max(0, 2 * 2.2 * (distAhead - 1.4))));
-        cap = Math.min(cap, Math.max(0, safe));
+      const vf = circuit.agentFix(v);
+      if (!vf) continue;
+      const dAhead = circuit.delta(fix.d, vf.d);
+      if (dAhead < -16 || dAhead > A.lookAhead + halfLength + 8) continue;
+      neighbors.push({ v, dAhead, gap: dAhead - halfLength - v.halfLength, lat: vf.lat });
+    }
+    const aggressive = options.aggressive !== false && !!bus && (bus.speed > A.minSpeed || desiredSpeed > A.minSpeed);
+    const seg = fix.segment;
+    const room = seg.edge ? seg.edge.width / 2 - halfWidth - 0.05 : 0;
+    const kerb = Math.min(BUS06_CURB_LAT, room || BUS06_CURB_LAT);
+    const inner = Math.max(-room, Math.min(kerb, -1.3));
+    const lanes = [inner, (inner + kerb) / 2, kerb];
+    const clampLat = (lat: number) => (seg.edge ? Math.max(-room, Math.min(Math.max(room, kerb), lat)) : lat);
+
+    // Lane grabbing: leave a lane held up by a slower car or van for the free one, as far as it is clear beside the bus
+    const slowIn = (lat: number) =>
+      neighbors.some(
+        (n) =>
+          n.v.category !== "moto" &&
+          n.gap > -1 &&
+          n.gap < A.lookAhead &&
+          n.v.speed < desiredSpeed * 0.8 &&
+          Math.abs(n.lat - lat) < halfWidth + n.v.halfWidth + A.squeezeGap + 0.15,
+      );
+    const besideIn = (lat: number) =>
+      neighbors.some(
+        (n) =>
+          n.v.category !== "moto" &&
+          Math.abs(n.dAhead) < halfLength + n.v.halfLength + 3 &&
+          Math.abs(n.lat - lat) < halfWidth + n.v.halfWidth + 0.15,
+      );
+    const nearStop = circuit.busStops.some((st) => {
+      const x = circuit.delta(fix.d, st.d);
+      return x > -6 && x < A.keepKerbBeforeStop;
+    });
+    const nearJunction = circuit.stopLines.some((sl) => {
+      const x = circuit.delta(frontD, sl.d);
+      return x > -2 && x < A.keepKerbBeforeJunction;
+    });
+    const free = aggressive && !!seg.edge && !nearStop && !nearJunction;
+    let wish = kerb;
+    let honkAt: string | null = null;
+    if (!free) {
+      this.busLane.target = kerb;
+      this.busLane.hold = 0;
+    } else {
+      this.busLane.hold = Math.max(0, this.busLane.hold - this.lastDt);
+      const current = clampLat(this.busLane.target);
+      if (this.busLane.hold <= 0) {
+        if (slowIn(current)) {
+          const pick = lanes.find((l) => Math.abs(l - current) > 0.3 && !slowIn(l) && !besideIn(l));
+          if (pick !== undefined) {
+            this.busLane.target = pick;
+            this.busLane.hold = A.laneHold;
+          }
+        } else if (Math.abs(current - kerb) > 0.05 && !slowIn(kerb) && !besideIn(kerb)) {
+          this.busLane.target = kerb;
+          this.busLane.hold = A.laneHold;
+        }
+      }
+      wish = clampLat(this.busLane.target);
+      // Weave side to side along the open road (not into a vehicle beside the bus)
+      const weave = A.weaveAmplitude * Math.sin((this.simTime * Math.PI * 2) / A.weavePeriod);
+      if (!besideIn(clampLat(wish + weave))) wish = clampLat(wish + weave);
+
+      // Motorbikes in the way: honk, and lean on the nearest one that does not give way (side gap never below squeezeGap)
+      let nearest: (typeof neighbors)[number] | null = null;
+      for (const n of neighbors) {
+        if (n.v.category !== "moto" || n.gap < -halfLength * 1.2 || n.gap > A.hornRange) continue;
+        if (Math.abs(n.lat - wish) > halfWidth + n.v.halfWidth + A.pressureLatMargin) continue;
+        if (!nearest || n.gap < nearest.gap) nearest = n;
+      }
+      if (nearest) {
+        honkAt = nearest.v.id;
+        const side = Math.sign(nearest.lat - fix.lat) || 1;
+        const lean = nearest.lat - side * (halfWidth + nearest.v.halfWidth + A.squeezeGap);
+        if (Math.abs(lean - wish) < 0.9 && !besideIn(clampLat(lean))) wish = clampLat(lean);
+      }
+    }
+    this.busHonkAt = honkAt;
+
+    // Whatever runs beside the bus fences its sideways moves: it squeezes up to `squeezeGap` from a rider or car, never
+    // into one (the body's slip when it moves sideways is allowed for)
+    let minLat = -Infinity;
+    let maxLat = Infinity;
+    for (const n of neighbors) {
+      if (Math.abs(n.dAhead) > halfLength + n.v.halfLength + 1) continue;
+      const keep = halfWidth + n.v.halfWidth + A.squeezeGap + A.slipAllowance;
+      if (n.lat <= fix.lat) minLat = Math.max(minLat, n.lat + keep);
+      else maxLat = Math.min(maxLat, n.lat - keep);
+    }
+    if (minLat <= maxLat) wish = Math.max(minLat, Math.min(maxLat, wish));
+    else wish = fix.lat;
+    wish = clampLat(wish);
+
+    // Hard safety: never drive into whatever is ahead in the corridor the bus occupies now or is moving into
+    for (const n of neighbors) {
+      const overlapNow = Math.abs(n.lat - fix.lat) < halfWidth + n.v.halfWidth + 0.14;
+      const overlapWish = Math.abs(n.lat - wish) < halfWidth + n.v.halfWidth + 0.14;
+      if (!overlapNow && !overlapWish) continue;
+      if (n.gap > -0.5 && n.gap < 22) limitTraffic(brakeTo(n.gap - 1.4, n.v.speed));
+    }
+
+    // Sweep the bus' whole body along the next metres (on a corner its rear swings out across the next strip) and stop
+    // short of the first pose that would touch a vehicle: one crossing or merging in a junction, a rider beside it in
+    // the turn. Vehicles it already touches now (beside or behind it) are left to the contact solver, so a rider
+    // squeezed against its flank cannot pin it in place.
+    const near = this.vehicles.filter(
+      (v) => v.id !== this.busAgentId && Math.abs(v.x - busX) < 32 && Math.abs(v.z - busZ) < 32,
+    );
+    if (near.length > 0) {
+      const obbs = near.map((v) => vehicleToOBB(v, 0.12, 0.12));
+      const bodyAt = (ahead: number) => {
+        const p = circuit.poseAt(fix.d + ahead, fix.lat);
+        return {
+          x: p.x,
+          z: p.z,
+          halfWidth,
+          halfLength,
+          fx: Math.sin(p.yaw),
+          fz: Math.cos(p.yaw),
+          rx: -Math.cos(p.yaw),
+          rz: Math.sin(p.yaw),
+        };
+      };
+      const now = bodyAt(0);
+      const live = obbs.filter((o) => !testOBBvsOBB(now, o).hit);
+      sweep: for (let ahead = 1; ahead <= 18; ahead += 1) {
+        const body = bodyAt(ahead);
+        for (const o of live) {
+          if (testOBBvsOBB(body, o).hit) {
+            limitTraffic(brakeTo(ahead - 1));
+            break sweep;
+          }
+        }
       }
     }
 
-    return Math.max(0, cap);
+    // 3. Pedestrians and the player on the road ahead
+    const walkers: { x: number; z: number; r: number }[] = this.lastPedestrians.map((p) => ({ x: p.x, z: p.z, r: p.radius }));
+    if (this.lastPlayer.y < 1.15) walkers.push({ x: this.lastPlayer.x, z: this.lastPlayer.z, r: 0.4 });
+    for (const w of walkers) {
+      if (Math.abs(w.x - busX) > 40 || Math.abs(w.z - busZ) > 40) continue;
+      const wf = circuit.project(w.x, w.z, undefined, fix.d);
+      if (wf.dist > 4) continue;
+      const ahead = circuit.delta(fix.d, wf.d) - halfLength - w.r;
+      if (ahead > -0.5 && ahead < 22 && Math.abs(wf.lat - fix.lat) < halfWidth + w.r + 0.35) {
+        limit(brakeTo(ahead - 1.6), "pedestrian");
+      }
+    }
+
+    // Gridlock breaker: a junction jammed by the traffic itself (vehicles stuck in the box for good) must not keep the
+    // bus, and the timetable, off the road. Held at a standstill by vehicles for gridlockSeconds while the player is far
+    // away, the bus is detached from the traffic and drives past the jam unseen; it rejoins as soon as its body is clear.
+    if (options.aggressive !== false && bus) {
+      const jammed = trafficCap < 0.3 && cap > 1;
+      this.busJam = jammed ? this.busJam + this.lastDt : Math.max(0, this.busJam - this.lastDt * 2);
+      const playerDist = this.lastPlayer.y < 50 ? Math.hypot(this.lastPlayer.x - busX, this.lastPlayer.z - busZ) : Infinity;
+      if (!this.busGhost && this.busJam >= A.gridlockSeconds && playerDist > A.ghostMinPlayerDistance) {
+        this.detachBus(bus);
+        this.busGhostFrom = fix.d;
+      }
+      else if (this.busGhost) {
+        // Back into the traffic once past the jam (or the player comes close), as soon as nothing touches its body
+        const past = circuit.delta(this.busGhostFrom, fix.d) > A.ghostDistance;
+        if ((past || playerDist <= A.ghostMinPlayerDistance) && this.busBodyClear(bus)) this.attachBus(bus);
+      }
+    }
+    if (trafficCap < cap && !this.busGhost) {
+      cap = trafficCap;
+      reason = "traffic";
+    }
+    return { speed: Math.max(0, cap), lat: wish, reason };
+  }
+
+  private busGhost: VehicleAgent | null = null;
+  private busGhostFrom = 0;
+
+  private detachBus(bus: VehicleAgent) {
+    this.releaseBusTurn();
+    this.vehicleById.delete(bus.id);
+    const index = this.vehicles.indexOf(bus);
+    if (index >= 0) this.vehicles.splice(index, 1);
+    this.busGhost = bus;
+    this.busGhostCount++;
+  }
+
+  private attachBus(bus: VehicleAgent) {
+    this.busGhost = null;
+    this.busJam = 0;
+    this.vehicles.push(bus);
+    this.vehicleById.set(bus.id, bus);
+    this.applyBusFix(bus);
+  }
+
+  /** No vehicle within 0.4 m of the bus' body. */
+  private busBodyClear(bus: VehicleAgent): boolean {
+    const body = vehicleToOBB(bus, 0.4, 0.6);
+    return !this.vehicles.some(
+      (v) => v.id !== bus.id && Math.abs(v.x - bus.x) < 16 && Math.abs(v.z - bus.z) < 16 && testOBBvsOBB(body, vehicleToOBB(v)).hit,
+    );
+  }
+
+  /** Times Bus 06 was detached to pass a jammed junction (telemetry and tests). */
+  busGhostCount = 0;
+
+  /** Bus 06's own upkeep: waiting time (for the junction rules) and the horn. */
+  private updateBusAgent(dt: number, input: TrafficStepInput) {
+    const bus = this.busAgent;
+    if (!bus) return;
+    if (bus.speed < 0.35) bus.waitTime += dt;
+    else bus.waitTime = Math.max(0, bus.waitTime - dt * 2.5);
+    bus.hornCooldown = Math.max(0, bus.hornCooldown - dt);
+    const A = VN_TRAFFIC_TUNING.busAggression;
+    if (this.busHonkAt && bus.hornCooldown <= 0 && bus.speed > 1) {
+      bus.hornCooldown = A.hornCooldownMin + this.nextRand() * A.hornCooldownSpan;
+      this.bus06Honks++;
+      this.audio.playHorn(bus.x, bus.z, input.playerX, input.playerZ, input.playerYaw, "bus", true);
+    }
+  }
+
+  /**
+   * Bus 06 pushes its way through: a vehicle in the bus' path that it is about to reach swerves out of the way (riders
+   * sideways at speed) and brakes when it cannot get clear in time; cars and vans give way by braking. Nothing yields for
+   * longer than `maxYield` seconds, so a pair can never lock each other up. Returns the braking (m/s^2) to apply.
+   */
+  private applyBusPressure(v: VehicleAgent, dt: number): number {
+    const bus = this.vehicleById.get(this.busAgentId);
+    const A = VN_TRAFFIC_TUNING.busAggression;
+    if (!bus || v.id === bus.id || v.category === "bus") return 0;
+    const y = (v.busYield ??= { t: 0, cool: 0 });
+    const relax = () => {
+      y.t = Math.max(0, y.t - dt * 2);
+      return 0;
+    };
+    if (y.cool > 0) {
+      y.cool -= dt;
+      return 0;
+    }
+    if (bus.speed < A.pressureMinBusSpeed) return relax();
+    const dx = v.x - bus.x;
+    const dz = v.z - bus.z;
+    if (Math.abs(dx) > 40 || Math.abs(dz) > 40) return relax();
+    const fx = Math.sin(bus.yaw);
+    const fz = Math.cos(bus.yaw);
+    if (Math.sin(v.yaw) * fx + Math.cos(v.yaw) * fz < 0.5) return relax();
+    const along = dx * fx + dz * fz;
+    const lateral = dx * -fz + dz * fx;
+    const reach = A.pressureReach + bus.speed * A.pressureReachTime;
+    if (along < -(bus.halfLength + v.halfLength) || along > bus.halfLength + v.halfLength + reach) return relax();
+    const needed = bus.halfWidth + v.halfWidth;
+    if (Math.abs(lateral) > needed + A.pressureLatMargin) return relax();
+
+    y.t += dt;
+    if (y.t > A.maxYield) {
+      y.t = 0;
+      y.cool = A.yieldCooldown;
+      return 0;
+    }
+    const clear = needed + A.squeezeGap;
+    const nose = bus.halfLength + v.halfLength;
+    if (v.category === "moto") {
+      const edge = v.onTurn ? undefined : this.graph.edges.get(v.edgeId);
+      // Sideways shift needed to clear the bus on each side, and the room the rider has there
+      const shiftRight = clear - lateral;
+      const shiftLeft = clear + lateral;
+      if (!edge || Math.min(shiftRight, shiftLeft) <= 0) return 0;
+      const roomRight = Math.max(0, edge.motoLatRange[1] - v.latOffset);
+      const roomLeft = Math.max(0, v.latOffset - edge.motoLatRange[0]);
+      const rightOk = roomRight >= shiftRight;
+      const leftOk = roomLeft >= shiftLeft;
+      const side =
+        rightOk && leftOk ? (shiftRight <= shiftLeft ? 1 : -1) : rightOk ? 1 : leftOk ? -1 : roomRight - shiftRight >= roomLeft - shiftLeft ? 1 : -1;
+      const need = side > 0 ? shiftRight : shiftLeft;
+      const room = side > 0 ? roomRight : roomLeft;
+      const shift = Math.min(need + 0.08, A.motoYieldLatSpeed * dt, room);
+      v.latOffset += side * shift;
+      v.targetLatOffset = v.latOffset;
+      v.latVel = (side * shift) / Math.max(dt, 0.001);
+      v.laneChangeCooldown = Math.max(v.laneChangeCooldown, 0.4);
+      // Still in the bus' way after this swerve (no room, or the bus is on top of him): stop and let it by
+      const left = need - shift;
+      return left > 0.4 && (room < need || along < nose + 4) ? A.motoYieldBrake : 0;
+    }
+    const shortfall = clear - Math.abs(lateral);
+    // A car or van beside the bus as it cuts in brakes and lets it in (one ahead of it just drives on)
+    return shortfall > 0 && along < nose + 1.5 ? A.carYieldBrake : 0;
   }
 
   /**
@@ -522,6 +890,11 @@ export class SaigonTrafficManager {
     const allPeds: PedestrianObstacle[] = input.extraPedestrians
       ? [...brainPeds, ...input.extraPedestrians]
       : brainPeds;
+
+    this.lastPedestrians = allPeds;
+    this.lastPlayer = { x: input.playerX, y: input.playerY, z: input.playerZ };
+    this.lastDt = dt;
+    this.updateBusAgent(dt, input);
 
     // STAGE 2: Rebuild Spatial Hash Grid & assign 3-tier distance LOD around Player
     this.collisions.rebuild(this.vehicles);
@@ -664,6 +1037,9 @@ export class SaigonTrafficManager {
       }
     }
 
+    // Bus 06 pushes through: riders swerve, riders and cars brake when they cannot get clear of it
+    const busPressure = this.applyBusPressure(v, dt);
+
     // CARLA Stage 2: Geodesic Hazard Forecast (leader, merging vehicle, Bus 06, Player, pedestrians)
     const hazard = this.collisions.forecastHazards(
       v,
@@ -725,6 +1101,8 @@ export class SaigonTrafficManager {
     ) {
       acc = Math.max(acc, VN_TRAFFIC_TUNING.moto.creepAccel);
     }
+
+    if (busPressure > 0) acc = Math.min(acc, -busPressure);
 
     // Respect brief collision-recovery brake hold
     if (v.collisionPause > 0) {

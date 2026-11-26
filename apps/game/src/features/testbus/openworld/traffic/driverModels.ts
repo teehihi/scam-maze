@@ -47,6 +47,55 @@ export const VN_TRAFFIC_TUNING = {
     /** Lateral pad (m) of the collision look-ahead against cars, vans and buses. */
     hazardLatPad: 0.14,
   },
+  /**
+   * Bus 06 drives like a Saigon city bus: it weaves, grabs lanes, honks at motorbikes that do not give way and
+   * squeezes them; riders and cars have to stop or swerve. Every number here tunes that behaviour.
+   */
+  busAggression: {
+    /** How far ahead (m) the bus looks for slower vehicles in its lane. */
+    lookAhead: 28,
+    /** Motorbikes in the bus' path closer than this (m) get honked at. */
+    hornRange: 24,
+    /** Seconds between the bus' horn blasts (min + random span). */
+    hornCooldownMin: 2.2,
+    hornCooldownSpan: 2.0,
+    /** Open-road weave: sideways amplitude (m) and period (s). */
+    weaveAmplitude: 0.45,
+    weavePeriod: 6.5,
+    /** The weave and lane grabs only happen above this speed (m/s). */
+    minSpeed: 3,
+    /** No weaving this close (m) before a bus stop or junction: the bus holds the kerb lane. */
+    keepKerbBeforeStop: 38,
+    keepKerbBeforeJunction: 20,
+    /** Seconds the bus stays in a lane it grabbed before it may change again. */
+    laneHold: 3,
+    /** Smallest side gap (m) the bus leaves to a vehicle beside it when it squeezes past or cuts in. */
+    squeezeGap: 0.3,
+    /** Extra side room (m) for the corners of the long body when it slips sideways during a weave or lane change. */
+    slipAllowance: 0.25,
+    /** A motorbike this close to the bus' sides (beyond body widths) counts as in the bus' way. */
+    pressureLatMargin: 1.05,
+    /** How far ahead of its front a bus pushes vehicles aside: constant plus this many seconds of its speed. */
+    pressureReach: 9,
+    pressureReachTime: 0.9,
+    /** The bus only pressures vehicles while moving faster than this (m/s). */
+    pressureMinBusSpeed: 1.5,
+    /** Sideways speed (m/s) a rider gives way at, and the braking (m/s^2) of a rider or car that cannot get clear. */
+    motoYieldLatSpeed: 2.6,
+    motoYieldBrake: 4.2,
+    carYieldBrake: 2.6,
+    /** A vehicle gives way at most this long (s), then ignores the pressure for the cool-down so nothing deadlocks. */
+    maxYield: 4.5,
+    yieldCooldown: 4,
+    /**
+     * Seconds held at a standstill by vehicles (a junction jammed by the traffic itself) before the bus is detached from
+     * the traffic to drive past the jam, which only happens with the player at least this far away (m).
+     */
+    gridlockSeconds: 20,
+    ghostMinPlayerDistance: 70,
+    /** Distance (m) the detached bus drives on before it rejoins the traffic (past the jammed junction). */
+    ghostDistance: 35,
+  },
   bus: {
     /** Distance before the stop where the bus signals right and starts moving to the curb. */
     approachDist: 40,

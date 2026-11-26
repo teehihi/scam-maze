@@ -18,9 +18,13 @@ const testbus = {
         departing: "About to leave for Cho Lon",
         driving: "On the way from Ly Thai To to Cho Lon",
         arrived: "Arrived at Cho Lon stop · District 5",
+        circulating: "Bus 06 is on its loop around the map",
+        nextIn: "Next bus in {{minutes}} min",
         complete: "Route 06 complete",
       },
       prompt: {
+        sitBench: "[E] Sit on the bench",
+        standUpBench: "[E] Get up from the bench",
         confirmRide: "[F] Confirm the ride · [E] Stand up",
         standUpRear: "[E] Stand up · Get off at the rear door",
         noMidway: "{{status}} · Not at a stop yet, you can't get off mid-route",

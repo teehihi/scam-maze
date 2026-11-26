@@ -267,6 +267,10 @@ export interface VehicleAgent {
   stuntCooldown?: number;
   /** Stop routine state for ambient buses (undefined until the bus first reaches an edge with a stop) */
   busStop?: BusStopState;
+  /** Bus 06 only: standing at one of its bus stops (as opposed to waiting at a red light or in a queue). */
+  atBusStop?: boolean;
+  /** Seconds this vehicle has been giving way to the aggressive Bus 06, and the pause before it yields again. */
+  busYield?: { t: number; cool: number };
   /** True for externally driven hero/bus vehicles (e.g. Bus 06) registered into the shared collision & yield grid */
   externalControl?: boolean;
   /** Visual rig (optional so pure headless Node unit/stress tests can run without Three.js meshes!) */

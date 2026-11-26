@@ -7,8 +7,10 @@
 //                    long enough to still be on its way while he speaks and short enough to stop soon after.
 //   asked            Alex presses E at the stop ("wait for the bus").
 //   waited           Alex simply stands at the stop for BUS_WAIT_SECONDS, ignoring the driver.
-// Once at the stop the bus keeps its doors open until Alex boards (the existing boarding phase): it never leaves
-// without him, so missing the bus is not a dead end.
+// The first bus is only called once Alex has met the street driver (the xe om), or after BUS_DRIVER_GRACE_SECONDS at
+// the stop if the driver never comes up. At the stop the bus holds its doors while Alex is at them or aboard; if he is
+// elsewhere it leaves after ROUTE.dwellSeconds and the next one follows the 15 minute timetable (missing it means
+// waiting, never a dead end).
 
 export type BusCallReason = "driver-declined" | "asked" | "waited";
 
@@ -28,3 +30,9 @@ export const BUS_STOP_WAIT_RADIUS = 9;
 
 /** Standing at the stop this long (on foot, not talking) brings the next bus in by itself. */
 export const BUS_WAIT_SECONDS = 20;
+
+/**
+ * The first Bus 06 waits until Alex has met the street driver (the xe om). If the driver never comes up, the bus is let in
+ * after this many seconds at the stop, so the story cannot stall.
+ */
+export const BUS_DRIVER_GRACE_SECONDS = 60;

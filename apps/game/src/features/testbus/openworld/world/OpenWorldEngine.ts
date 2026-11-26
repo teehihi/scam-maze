@@ -35,9 +35,18 @@ import {
   BUS_DECLINE_REPLY_ID,
   BUS_STOP_CENTER,
   BUS_STOP_WAIT_RADIUS,
+  BUS_DRIVER_GRACE_SECONDS,
   BUS_WAIT_SECONDS,
   type BusCallReason,
 } from "../simulation/busCall";
+import {
+  benchStandPosition,
+  buildBenchSeats,
+  nearestBenchSeat,
+  seatedFeetY,
+  BENCH_SEATED_YAW,
+  type BenchSeat,
+} from "../simulation/benchSeats";
 import { castStreet } from "../simulation/residents";
 import {
   createStoryNpcDirector,
@@ -317,6 +326,9 @@ export class OpenWorldEngine {
    */
   private busLocal = { x: 1.0, z: -4.4 };
   private busSeat: PassengerSeat | null = null;
+  /** The bench seat at a bus shelter the player sits on (null while standing). */
+  private benchSeat: BenchSeat | null = null;
+  private readonly benchSeats: readonly BenchSeat[] = buildBenchSeats();
   /** Metres the player walked inside the bus this frame (not the bus's own motion). */
   private busWalked = 0;
   private readonly _busEye = new T.Vector3();
@@ -893,7 +905,11 @@ export class OpenWorldEngine {
 
     // 6. EXACT ROUTE 06 BUS & 15 EXACT BUS STATION NPCS + DRIVER (UNIFIED WITH SAIGON TRAFFIC!)
     // Chapter 1 passes its story clock and wallet (`transitHost`), so fares and ride time go through the chapter store.
-    this.route = new BusRouteController({ ...external?.transitHost, onEvent: (event) => this.onRouteEvent(event) });
+    this.route = new BusRouteController({
+      ...external?.transitHost,
+      circuit: this.traffic.busCircuit,
+      onEvent: (event) => this.onRouteEvent(event),
+    });
     if (this.external) {
       // Chapter 1: the next Bus 06 waits up the road, out of the traffic, until it is called (see `updateBusCall`).
       this.route.stageAway();
@@ -1317,14 +1333,42 @@ export class OpenWorldEngine {
    */
   public callBus(reason: BusCallReason): boolean {
     if (this.route.phase !== "waiting") return false;
-    if (!this.traffic.bus06Registered) this.traffic.registerBus06(this.route.x, this.route.z, Math.PI + this.route.yaw);
+    if (reason !== "driver-declined" && !this.busCallAllowed()) return false;
+    const called = this.route.callBus(BUS_CALL_SECONDS[reason]);
+    if (called && !this.traffic.bus06Registered) this.traffic.registerBus06(this.route.x, this.route.z, Math.PI + this.route.yaw);
     this.busLinger = 0;
-    return this.route.callBus(BUS_CALL_SECONDS[reason]);
+    return called;
+  }
+
+  /** Alex has met the street driver (the xe om) at the stop. */
+  private driverMet = false;
+  /** Seconds spent at the stop since the staged bus has been waiting, ignoring who came up to talk. */
+  private stopTime = 0;
+
+  /**
+   * The first Bus 06 of Chapter 1 does not come before Alex has met the street driver (the xe om offers him a ride
+   * first); if the driver never shows up, the bus is let in after BUS_DRIVER_GRACE_SECONDS at the stop. Later buses
+   * follow the timetable, whoever has talked to whom.
+   */
+  private busCallAllowed(): boolean {
+    if (!this.external || this.route.scheduleActive) return true;
+    return this.driverMet || this.stopTime >= BUS_DRIVER_GRACE_SECONDS;
   }
 
   /** The current Bus 06 phase and whether it is still staged up the road (tests and the chapter host read it). */
   public get busState(): { phase: string; staged: boolean; distanceToStop: number } {
     return { phase: this.route.phase, staged: this.route.staged, distanceToStop: this.route.distanceToStop };
+  }
+
+  /** HUD line for Bus 06: its phase, and for the buses on the 15 minute timetable when the next one is due. */
+  private busStatusLabel(): string {
+    const route = this.route;
+    const empty = route.phase === "driving" && !route.rideActive;
+    const base = empty ? tr("bus.circulating") : phaseLabel(route.phase);
+    if (route.scheduleActive && (route.phase === "waiting" || empty)) {
+      return `${base} · ${tr("bus.nextIn", { minutes: Math.max(1, Math.ceil(route.nextArrivalIn / 60)) })}`;
+    }
+    return base;
   }
 
   private onRouteEvent(event: TransitEvent) {
@@ -1340,20 +1384,28 @@ export class OpenWorldEngine {
   private updateBusCall(dt: number, indoors: boolean) {
     const staged = this.route.phase === "waiting" && this.route.staged;
     this.bus.root.visible = !staged;
+    // A bus that waits out of sight is out of the traffic; one that is on the road is part of it.
     if (staged && this.traffic.bus06Registered) this.traffic.unregisterBus06();
-    if (staged) {
-      const atStop = Math.hypot(this.feet.x - BUS_STOP_CENTER.x, this.feet.z - BUS_STOP_CENTER.z) < BUS_STOP_WAIT_RADIUS;
+    else if (!staged && !this.traffic.bus06Registered) {
+      this.traffic.registerBus06(this.route.x, this.route.z, Math.PI + this.route.yaw);
+    }
+    const atStop = Math.hypot(this.feet.x - BUS_STOP_CENTER.x, this.feet.z - BUS_STOP_CENTER.z) < BUS_STOP_WAIT_RADIUS;
+    if (this.storyNpcs.getActiveDialogue()?.npcId === "unverified_driver") this.driverMet = true;
+    if (staged && this.external) {
+      this.stopTime = atStop ? this.stopTime + dt : this.stopTime;
       // Waiting means nobody has Alex's attention: not a conversation, not the driver walking up with his offer.
       const free =
         !this.onBus && !indoors && this.feet.y < 1.2 && !this.storyNpcs.getActiveDialogue() && !this.storyNpcs.isSoliciting();
       this.busLinger = atStop && free ? this.busLinger + dt : 0;
-      if (this.busLinger >= BUS_WAIT_SECONDS) this.callBus("waited");
+      // Once the timetable runs it brings the next bus; standing about does not.
+      if (this.busLinger >= BUS_WAIT_SECONDS && !this.route.scheduleActive) this.callBus("waited");
     }
     const doorTarget = this.route.doors.front.target;
     if (doorTarget !== this.lastFrontDoorTarget && !staged && this.audio.started) {
       this.traffic.audio.playBusDoor(doorTarget === 1, this.route.x + 1.3, this.route.z - 4.4, this.feet.x, this.feet.z);
     }
     this.lastFrontDoorTarget = doorTarget;
+    if (!this.external) return;
     this.storyNpcs.setPlayerOnFoot(!this.onBus && !indoors && this.feet.y < 1.2);
     // The driver's glance target: the front of the arriving bus, at head height.
     this.storyNpcs.setBusFocus(
@@ -1382,7 +1434,11 @@ export class OpenWorldEngine {
         return;
       }
       const seat = this.nearestBusSeat();
-      if (seat) this.busSeat = seat;
+      if (seat) {
+        this.busSeat = seat;
+        // Sitting down is the passenger's "ready": the fare is paid, the doors close and the bus pulls away at once.
+        if (this.route.phase === "boarding") this.route.seated(true);
+      }
       return;
     }
 
@@ -1395,8 +1451,19 @@ export class OpenWorldEngine {
         const patch = this.external?.onStoryStart?.(targetNpc.npc.id);
         if (patch) this.storyNpcs.setContext(patch);
         this.storyNpcs.beginDialogue(targetNpc.npc.id);
+        if (targetNpc.npc.id === "unverified_driver") this.driverMet = true;
         return;
       }
+    }
+    // Benches under the shelter: E sits down, E again stands up.
+    if (this.benchSeat) {
+      this.standFromBench();
+      return;
+    }
+    const nearBench = this.onBus || this.isInsideRoom(this.feet.x, this.feet.y, this.feet.z) ? null : nearestBenchSeat(this.feet.x, this.feet.z, this.feet.y, this.benchSeats);
+    if (nearBench) {
+      this.sitOnBench(nearBench);
+      return;
     }
     const doorPos = this.busDoorWorldPos();
     const nearStop = this.route.staged
@@ -1491,11 +1558,20 @@ export class OpenWorldEngine {
       }
     }
 
+    if (this.benchSeat) {
+      this.currentPrompt = tr("prompt.standUpBench");
+      return;
+    }
+    if (this.feet.y < 1.2 && nearestBenchSeat(this.feet.x, this.feet.z, this.feet.y, this.benchSeats)) {
+      this.currentPrompt = tr("prompt.sitBench");
+      return;
+    }
+
     const busDoor = this.busDoorWorldPos();
     const promptAtStop = this.route.staged
       ? Math.hypot(this.feet.x - BUS_STOP_CENTER.x, this.feet.z - BUS_STOP_CENTER.z) < BUS_STOP_WAIT_RADIUS
       : Math.hypot(this.feet.x - busDoor.x, this.feet.z - busDoor.z) < 4.8;
-    if (this.feet.y < 1.2 && promptAtStop) {
+    if (this.feet.y < 1.2 && promptAtStop && !(this.route.phase === "waiting" && this.route.staged && !this.busCallAllowed())) {
       this.currentPrompt =
         this.route.phase === "boarding"
           ? tr("prompt.walkOn")
@@ -1549,6 +1625,7 @@ export class OpenWorldEngine {
 
   public moveToWaypoint(wp: LandmarkWaypoint) {
     this.onBus = false;
+    this.benchSeat = null;
     this.activeModal = null;
     if (wp === "room") {
       this.feet.set(ROOM_ANCHOR.x + 1.3, ROOM_ANCHOR.y, ROOM_ANCHOR.z + 1.55);
@@ -1621,6 +1698,30 @@ export class OpenWorldEngine {
     }
     return best;
   }
+  /** Sits on a bench of the bus shelter, looking out at the road. */
+  private sitOnBench(seat: BenchSeat) {
+    this.benchSeat = seat;
+    this.feet.set(seat.x, seatedFeetY(seat, this.eyeHeight), seat.z);
+    this.yaw = BENCH_SEATED_YAW;
+    this.pitch = -0.05;
+    this.bumpVx = 0;
+    this.bumpVz = 0;
+  }
+
+  /** Gets up from the bench and stands in front of it. */
+  private standFromBench() {
+    const seat = this.benchSeat;
+    if (!seat) return;
+    this.benchSeat = null;
+    const out = benchStandPosition(seat);
+    this.feet.set(out.x, CURB_HEIGHT, out.z);
+  }
+
+  /** True while the player sits on a bus shelter bench. */
+  public get benchSeated(): boolean {
+    return this.benchSeat !== null;
+  }
+
   /** World x/z of a move by `forward` / `strafe` this frame at `speed`. */
   private walkDelta(forward: number, strafe: number, speed: number, dt: number) {
     const sinY = Math.sin(this.yaw);
@@ -2003,6 +2104,10 @@ export class OpenWorldEngine {
       // window view only: the player stays in the room
     } else if (this.onBus) {
       this.stepOnBus(dt, forward, strafe);
+    } else if (this.benchSeat) {
+      // Seated on a bench: any walking key gets the player up (the same press does not also walk); looking around stays free.
+      if (forward !== 0 || strafe !== 0) this.standFromBench();
+      else this.feet.set(this.benchSeat.x, seatedFeetY(this.benchSeat, this.eyeHeight), this.benchSeat.z);
     } else if (!this.onBus && !this.activeModal && (forward !== 0 || strafe !== 0)) {
       const sprinting = this.keys.has("ShiftLeft") || this.keys.has("ShiftRight");
       const indoorsNow = this.isInsideRoom(this.feet.x, this.feet.y, this.feet.z);
@@ -2224,12 +2329,22 @@ export class OpenWorldEngine {
         wetness: atm.wetness,
       });
       this.street.update(dt, { x: this.feet.x, z: this.feet.z }, this.elapsed, true);
-      if (this.external) this.updateBusCall(dt, indoors);
+      this.updateBusCall(dt, indoors);
       if (this.route.phase === "boarding" && this.route.doors.front.target === 0 && !this.onBus) {
         this.route.doors.front.target = 1;
       }
-      const busSafeSpeed = this.traffic.computeBus06SafeSpeed(this.route.x, this.route.z, 12.0);
-      this.route.update(dt, { front: false, rear: false }, false, busSafeSpeed);
+      // The traffic plans the bus' drive (junction rules, vehicles, pedestrians, its pushy lane play); the route follows it.
+      const plan = this.traffic.planBus06(this.route.x, this.route.z, 12.0, {
+        yaw: Math.PI + this.route.yaw,
+        aggressive: this.route.phase === "driving",
+      });
+      // The bus holds its doors for Alex while he is on it, at its front door, or talking to someone at the stop. Anywhere
+      // else (across the street, on the bench, still in the room) he misses it and waits for the next one.
+      const atStop = Math.hypot(this.feet.x - BUS_STOP_CENTER.x, this.feet.z - BUS_STOP_CENTER.z) < BUS_STOP_WAIT_RADIUS;
+      const door = this.busDoorWorldPos();
+      const atDoor = !this.benchSeat && this.feet.y < 1.2 && Math.hypot(this.feet.x - door.x, this.feet.z - door.z) < 4.8;
+      const hold = this.onBus || atDoor || (atStop && !!this.storyNpcs.getActiveDialogue());
+      this.route.update(dt, { front: false, rear: false }, false, plan.speed, { lat: plan.lat, hold });
       this.traffic.syncBus06(
         this.route.x,
         this.route.z,
@@ -2561,7 +2676,7 @@ export class OpenWorldEngine {
         doorOpen: this.doorOpen,
         gateOpen: this.gateOpen,
         onBus: this.onBus,
-        busStatus: phaseLabel(this.route.phase),
+        busStatus: this.busStatusLabel(),
         prompt: this.currentPrompt,
         activeModal: this.activeModal,
         storyDialogue: this.storyNpcs.getActiveDialogue(),
