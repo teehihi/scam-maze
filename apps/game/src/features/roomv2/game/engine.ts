@@ -118,7 +118,7 @@ const STORY_POSES: Record<string, Pose> = {
  * behind the keyboard looking down at it, so the screen is at the top of the view (under the small
  * writing panel) and the keyboard with Alex's hands fills the middle.
  */
-const WRITING_CAMERA: Pose = { pos: V(0, 0.38, 0.4), look: V(0, 0.03, -0.03), fov: 44 };
+const WRITING_CAMERA: Pose = { pos: V(0, 0.24, 0.27), look: V(0, 0.07, -0.08), fov: 44 };
 /**
  * Where the hands rest in Writing Mode, also in laptop space (see `KeyboardAnchor`). Measured in the
  * browser against the keyboard plane (keys at y 0.0142, home row near z -0.03): wrists 4 cm above the
@@ -127,11 +127,11 @@ const WRITING_CAMERA: Pose = { pos: V(0, 0.38, 0.4), look: V(0, 0.03, -0.03), fo
  * left wrist of the retargeted clip bends far inward, so it turns out more. The rig itself is unchanged.
  */
 const WRITING_HANDS: Omit<KeyboardAnchor, 'object'> = {
-  wrists: V(0, 0.058, 0.05),
+  wrists: V(0, 0.058, 0.03),
   pitch: -0.3,
   yaw: 0.2,
   roll: -0.16,
-  scale: 0.9,
+  scale: 0.8,
   wristL: { out: 0.35, down: 0.6 },
   wristR: { out: 0.45, down: 0.6 },
   pressDepth: 0.003,
