@@ -6,7 +6,7 @@
 // - Root: fixed at `region` (`layout.subtitle`, bottom-left in the wide layout), `pointer-events:
 //   none`, not a tab stop, anchored to the bottom of the region. It holds one bar.
 // - Same look as the street conversation (`prologue/DialogueOverlay`): no panel, a dark gradient band
-//   at the bottom of the screen, the speaker's name in gold capitals over a hairline, then the line
+//   at the bottom of the screen, the speaker's name in lavender capitals over a hairline, then the line
 //   (it grows to the region height, then scrolls; it is never cut) and a small chevron-down at the
 //   right while more text is below.
 // - Two persistent polite live regions (the line with the speaker, and the notice) that are never
@@ -129,10 +129,10 @@ export const CallSubtitleOverlay: React.FC<CallSubtitleOverlayProps> = ({
         <div aria-live="polite" aria-atomic="true" data-testid="call-subtitle-region">
           {showLine && content.kind === "line" ? (
             <React.Fragment key={content.nodeKey}>
-              <p data-testid="call-subtitle-speaker" className="font-menu font-bold uppercase" style={{ fontSize: 24, lineHeight: "30px", letterSpacing: "0.08em", color: "#f3c969" }}>
+              <p data-testid="call-subtitle-speaker" className="font-menu font-bold uppercase" style={{ fontSize: 24, lineHeight: "30px", letterSpacing: "0.08em", color: "#b9a5f5" }}>
                 {content.speakerName}
               </p>
-              <div aria-hidden="true" className="mb-1 mt-0.5 h-px w-full" style={{ background: "linear-gradient(to right, rgba(243,201,105,0.8), rgba(243,201,105,0.3), transparent)" }} />
+              <div aria-hidden="true" className="mb-1 mt-0.5 h-px w-full" style={{ background: "linear-gradient(to right, rgba(185,165,245,0.8), rgba(185,165,245,0.3), transparent)" }} />
               <div
                 ref={scrollerRef}
                 data-testid="call-subtitle-scroller"
@@ -164,7 +164,7 @@ export const CallSubtitleOverlay: React.FC<CallSubtitleOverlayProps> = ({
                   data-testid="call-subtitle-more"
                   aria-hidden="true"
                   className="absolute h-4 w-4"
-                  style={{ right: 0, bottom: 2, color: "#f3c969" }}
+                  style={{ right: 0, bottom: 2, color: "#b9a5f5" }}
                 />
               ) : null}
             </React.Fragment>          ) : showConnecting ? (

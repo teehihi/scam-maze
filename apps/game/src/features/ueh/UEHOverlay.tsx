@@ -79,7 +79,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             onClick={onToggleLock}
             className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0d1f2d]/85 hover:bg-[#172f3e] border border-[#1e4659] text-xs font-mono text-zinc-300 transition-all shadow-lg cursor-pointer"
           >
-            <div className={`w-2 h-2 rounded-full ${isLocked ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+            <div className={`w-2 h-2 rounded-full ${isLocked ? "bg-emerald-400 animate-pulse" : "bg-lavender"}`} />
             <span>{isLocked ? t("ueh.pointer.locked") : t("ueh.pointer.unlocked")}</span>
           </button>
         </div>
@@ -88,7 +88,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
       {/* Floating Strum / Track Toast Notification */}
       {activeToast && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-none flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#071620]/95 border border-[#00a896] shadow-2xl text-xs font-medium text-emerald-200 animate-fade-in backdrop-blur-md z-40">
-          <Music className="w-4 h-4 text-amber-400 animate-pulse" />
+          <Music className="w-4 h-4 text-lavender animate-pulse" />
           <span>{activeToast}</span>
         </div>
       )}
@@ -106,7 +106,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
       {/* Interactive Prompt: [E] Strum Guitar on Bench */}
       {isNearGuitar && isLocked && !isDriving && !stats.isNearCar && !stats.isSitting && !stats.isNearSeat && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-12 pointer-events-none flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#071a26]/95 border border-[#00a896] text-white shadow-2xl backdrop-blur-md animate-bounce-subtle z-40">
-          <kbd className="px-2.5 py-1 rounded-lg bg-[#005f69] text-amber-300 font-extrabold font-mono text-sm border border-[#00a896] shadow-md">
+          <kbd className="px-2.5 py-1 rounded-lg bg-[#005f69] text-lavender font-extrabold font-mono text-sm border border-[#00a896] shadow-md">
             E
           </kbd>
           <div className="flex flex-col">
@@ -116,7 +116,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
                 t={t}
                 i18nKey="ueh.guitar.switchTo"
                 values={{ track: nextTrack }}
-                components={{ strong: <strong className="text-amber-300" /> }}
+                components={{ strong: <strong className="text-lavender" /> }}
               />
             </span>
           </div>
@@ -131,7 +131,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
             stats.isSitting ? "bottom-24" : "top-1/2 translate-y-12"
           }`}
         >
-          <kbd className="px-2.5 py-1 rounded-lg bg-[#005f69] text-amber-300 font-extrabold font-mono text-sm border border-[#00a896] shadow-md">
+          <kbd className="px-2.5 py-1 rounded-lg bg-[#005f69] text-lavender font-extrabold font-mono text-sm border border-[#00a896] shadow-md">
             E
           </kbd>
           <span className="text-xs font-bold text-emerald-200">
@@ -154,7 +154,7 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
                 i18nKey="ueh.lockPrompt.body"
                 components={{
                   kbd: (
-                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-amber-300 font-mono text-[11px] border border-zinc-700" />
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-lavender font-mono text-[11px] border border-zinc-700" />
                   ),
                 }}
               />
@@ -179,45 +179,45 @@ export const UEHOverlay: React.FC<UEHOverlayProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[11px]">
             <div>
-              <span className="text-amber-300 font-semibold">W A S D</span>
+              <span className="text-lavender font-semibold">W A S D</span>
               <span className="text-zinc-400"> : {t("ueh.controls.move")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">Shift</span>
+              <span className="text-lavender font-semibold">Shift</span>
               <span className="text-zinc-400"> : {t("ueh.controls.sprint")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">Space</span>
+              <span className="text-lavender font-semibold">Space</span>
               <span className="text-zinc-400"> : {t("ueh.controls.jump")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">{t("ueh.controls.leftMouse")}</span>
+              <span className="text-lavender font-semibold">{t("ueh.controls.leftMouse")}</span>
               <span className="text-zinc-400"> : {t("ueh.controls.punch")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">{t("ueh.controls.rightMouse")}</span>
+              <span className="text-lavender font-semibold">{t("ueh.controls.rightMouse")}</span>
               <span className="text-zinc-400"> : {t("ueh.controls.block")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">E</span>
+              <span className="text-lavender font-semibold">E</span>
               <span className="text-zinc-400"> : {t("ueh.controls.interact")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">T / I</span>
+              <span className="text-lavender font-semibold">T / I</span>
               <span className="text-zinc-400"> : {t("ueh.controls.viewHands")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">Ctrl</span>
+              <span className="text-lavender font-semibold">Ctrl</span>
               <span className="text-zinc-400"> : {t("ueh.controls.toggleCursor")}</span>
             </div>
             <div>
-              <span className="text-amber-300 font-semibold">H</span>
+              <span className="text-lavender font-semibold">H</span>
               <span className="text-zinc-400"> : {t("ueh.controls.togglePanels")}</span>
             </div>
           </div>
           <div className="mt-2 pt-2 border-t border-zinc-800 text-[10px] text-zinc-400">
-            <Lightbulb className="inline-block w-3 h-3 mr-1 align-[-2px] text-amber-300" aria-hidden="true" />
-            <Trans t={t} i18nKey="ueh.controls.tip" components={{ strong: <strong className="text-amber-300" /> }} />
+            <Lightbulb className="inline-block w-3 h-3 mr-1 align-[-2px] text-lavender" aria-hidden="true" />
+            <Trans t={t} i18nKey="ueh.controls.tip" components={{ strong: <strong className="text-lavender" /> }} />
           </div>
         </div>
 

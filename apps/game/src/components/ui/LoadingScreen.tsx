@@ -144,9 +144,9 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
             <LoadingProgress progress={progress} status={loadingStage} detail={progressDetail} />
 
             {notice && (
-              <div className="flex flex-col gap-2 rounded-lg border border-[#f2b24b]/30 bg-[#1d1b2b]/85 p-3 text-xs text-[#f7f5ff]/90 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 rounded-lg border border-[#b9a5f5]/30 bg-[#1d1b2b]/85 p-3 text-xs text-[#f7f5ff]/90 sm:flex-row sm:items-center sm:justify-between">
                 <span className="flex items-start gap-2">
-                  <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#f2b24b]" aria-hidden="true" />
+                  <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#b9a5f5]" aria-hidden="true" />
                   {notice.message}
                 </span>
                 {notice.actionLabel && notice.onAction && (

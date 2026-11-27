@@ -69,7 +69,7 @@ export const QuestTracker: React.FC<QuestTrackerProps> = ({ questId, distance, f
     <section aria-labelledby="quest-tracker-heading" data-fresh={fresh ? "true" : undefined} className={`pointer-events-auto max-w-sm ${fresh ? "quest-fresh" : ""}`}>
       <h2 id="quest-tracker-heading" className={`flex items-center gap-2.5 font-menu text-xs font-semibold uppercase tracking-[0.3em] text-[#c9bbf7] ${SHADOW}`}>
         <Accent />
-        {fresh ? <span className="text-[#f3c969]">{q("quests.newQuest")}</span> : q("khupho.game.story.objective")}
+        {fresh ? <span className="text-[#b9a5f5]">{q("quests.newQuest")}</span> : q("khupho.game.story.objective")}
       </h2>
       <button
         type="button"

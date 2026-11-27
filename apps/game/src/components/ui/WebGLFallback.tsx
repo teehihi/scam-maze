@@ -19,7 +19,7 @@ export const WebGLFallback: React.FC<WebGLFallbackProps> = ({ error }) => {
       <div className="max-w-md p-8 rounded-2xl bg-[#171524] border border-[#3b3552] shadow-2xl space-y-6">
         <BrandLogo className="justify-center" size="lg" />
 
-        <div className="w-14 h-14 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+        <div className="w-14 h-14 mx-auto rounded-full bg-purple/10 border border-purple/30 flex items-center justify-center text-lavender">
           <AlertTriangle className="w-7 h-7" aria-hidden="true" />
         </div>
 

@@ -191,7 +191,7 @@ describe("CallSubtitleOverlay placement (cinematic)", () => {
     expect(screen.getByTestId("call-subtitle-band").getAttribute("aria-hidden")).toBe("true");
     const speaker = screen.getByText("Caller A");
     expect(speaker.className).toContain("uppercase");
-    expect(speaker.style.color).toBe("rgb(243, 201, 105)");
+    expect(speaker.style.color).toBe("rgb(185, 165, 245)");
     // Never below the minimum effective text size.
     expect(parseFloat(speaker.style.fontSize)).toBeGreaterThanOrEqual(13);
   });

@@ -53,7 +53,7 @@ const SAIGON_ROADS: readonly RoadSegment[] = [
 ];
 
 const LANDMARKS = [
-  { id: "room", x: 22, z: -16.8, color: "#fbbf24", label: "6.07" },
+  { id: "room", x: 22, z: -16.8, color: "#b9a5f5", label: "6.07" },
   { id: "bitexco", x: 94, z: -186, color: "#b9a5f5", label: "Q.1" },
   { id: "landmark81", x: 26, z: -356, color: "#38bdf8", label: "L81" },
 ] as const;
@@ -233,7 +233,7 @@ export const SaigonMinimap: React.FC<SaigonMinimapProps> = ({
         ctx.stroke();
       }
 
-      // Live Story NPC diamonds (subtle warm amber pulse when close)
+      // Live Story NPC diamonds (subtle lavender pulse when close)
       const pulse = 0.5 + 0.5 * Math.sin(now * 0.004);
       if (cur.npcBlips) {
         for (const npc of cur.npcBlips) {
@@ -241,13 +241,13 @@ export const SaigonMinimap: React.FC<SaigonMinimapProps> = ({
           const dist = Math.hypot(nx - r, ny - r);
           if (dist > r - 7) continue;
           if (dist < r * 0.48) {
-            ctx.strokeStyle = `rgba(251, 191, 36, ${(0.22 + 0.22 * pulse).toFixed(2)})`;
+            ctx.strokeStyle = `rgba(185, 165, 245, ${(0.22 + 0.22 * pulse).toFixed(2)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.arc(nx, ny, 4.8 + pulse * 1.4, 0, Math.PI * 2);
             ctx.stroke();
           }
-          ctx.fillStyle = "#fbbf24";
+          ctx.fillStyle = "#b9a5f5";
           ctx.strokeStyle = "#171521";
           ctx.lineWidth = 1;
           ctx.beginPath();

@@ -32,7 +32,7 @@ export const AnchoredPrompt: React.FC<AnchoredPromptProps> = ({ label, anchor, k
     >
       <kbd
         aria-hidden="true"
-        className="inline-flex h-5 min-w-5 items-center justify-center rounded-[4px] border border-amber-300/55 bg-amber-300/15 px-1 font-mono text-[11px] font-bold leading-none text-amber-200"
+        className="inline-flex h-5 min-w-5 items-center justify-center rounded-[4px] border border-lavender/55 bg-lavender/15 px-1 font-mono text-[11px] font-bold leading-none text-lilac"
       >
         {keyLabel}
       </kbd>

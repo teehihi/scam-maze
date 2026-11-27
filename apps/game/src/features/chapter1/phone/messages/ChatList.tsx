@@ -66,7 +66,7 @@ export const ChatList: React.FC<ChatListProps> = ({ chats, onOpen, onView }) => 
                 </span>
                 {unread && (
                   <>
-                    <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHONE_COLORS.amber }} />
+                    <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHONE_COLORS.notice }} />
                     <span className="sr-only">{t("device.unreadMark")}</span>
                   </>
                 )}

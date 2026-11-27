@@ -56,7 +56,7 @@ export const HueHUD: React.FC<HueHUDProps> = ({
             onClick={onToggleLock}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0d1f2d]/85 hover:bg-[#172f3e] border border-[#1e4659] text-xs font-mono text-zinc-300 transition-all shadow-lg cursor-pointer"
           >
-            <div className={`w-2 h-2 rounded-full ${isLocked ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+            <div className={`w-2 h-2 rounded-full ${isLocked ? 'bg-emerald-400 animate-pulse' : 'bg-lavender'}`} />
             <span>{isLocked ? t('hue.pointer.locked') : t('hue.pointer.unlocked')}</span>
           </button>
         </div>
@@ -76,14 +76,14 @@ export const HueHUD: React.FC<HueHUDProps> = ({
           className="pointer-events-auto mx-auto mb-2 flex items-center gap-2 px-4 py-2 rounded-full bg-[#071620]/90 border border-[#1e4659]/80 shadow-lg text-xs text-zinc-300 animate-fade-in backdrop-blur-md cursor-pointer hover:border-[#4dd8ff] transition-all"
           onClick={onToggleLock}
         >
-          <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+          <div className="w-2 h-2 rounded-full bg-lavender animate-ping" />
           <span>
             <Trans
               t={t}
               i18nKey="hue.lockHint"
               components={{
                 kbd: (
-                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-amber-300 font-mono text-[10px] border border-zinc-700" />
+                  <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-lavender font-mono text-[10px] border border-zinc-700" />
                 ),
               }}
             />
@@ -108,9 +108,9 @@ export const HueHUD: React.FC<HueHUDProps> = ({
             onClick={() => setShowHelp((prev) => !prev)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#091b26]/80 hover:bg-[#0f2838] border border-[#1e4659]/80 text-[11px] font-mono text-zinc-300 transition-all shadow-md cursor-pointer"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+            <HelpCircle className="w-3.5 h-3.5 text-lavender" />
             <span>{t('hue.controls.toggle')}</span>
-            <span className="text-amber-400 font-bold ml-1">{showHelp ? '✕' : '?'}</span>
+            <span className="text-lavender font-bold ml-1">{showHelp ? '✕' : '?'}</span>
           </button>
         </div>
 
@@ -120,39 +120,39 @@ export const HueHUD: React.FC<HueHUDProps> = ({
             <div className="p-3.5 rounded-2xl bg-[#091b26]/92 backdrop-blur-md border border-[#1e4659] text-[11px] text-zinc-300 shadow-2xl max-w-sm animate-fade-in">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[11px]">
                 <div>
-                  <span className="text-amber-300 font-semibold">W A S D</span>
+                  <span className="text-lavender font-semibold">W A S D</span>
                   <span className="text-zinc-400"> : {t('hue.controls.move')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">Shift</span>
+                  <span className="text-lavender font-semibold">Shift</span>
                   <span className="text-zinc-400"> : {t('hue.controls.sprint')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">Space</span>
+                  <span className="text-lavender font-semibold">Space</span>
                   <span className="text-zinc-400"> : {t('hue.controls.jump')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">{t('hue.controls.leftMouse')}</span>
+                  <span className="text-lavender font-semibold">{t('hue.controls.leftMouse')}</span>
                   <span className="text-zinc-400"> : {t('hue.controls.punch')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">{t('hue.controls.rightMouse')}</span>
+                  <span className="text-lavender font-semibold">{t('hue.controls.rightMouse')}</span>
                   <span className="text-zinc-400"> : {t('hue.controls.block')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">E</span>
+                  <span className="text-lavender font-semibold">E</span>
                   <span className="text-zinc-400"> : {t('hue.controls.interact')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">T / I</span>
+                  <span className="text-lavender font-semibold">T / I</span>
                   <span className="text-zinc-400"> : {t('hue.controls.viewHands')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">G</span>
+                  <span className="text-lavender font-semibold">G</span>
                   <span className="text-zinc-400"> : {t('hue.controls.ringBell')}</span>
                 </div>
                 <div>
-                  <span className="text-amber-300 font-semibold">Ctrl</span>
+                  <span className="text-lavender font-semibold">Ctrl</span>
                   <span className="text-zinc-400"> : {t('hue.controls.mouse')}</span>
                 </div>
                 <div>

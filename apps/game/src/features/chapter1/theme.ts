@@ -12,7 +12,6 @@ export const BRAND = {
   lavender: "#B9A5F5",
   ivory: "#F7F5FF",
   mist: "#A9A4C4",
-  amber: "#F2B24B",
   teal: "#4FD1B5",
 } as const;
 
@@ -36,7 +35,7 @@ export const UI = {
   body: "text-sm leading-relaxed text-[#a9a4c4]",
   label: "text-xs font-semibold uppercase tracking-wider text-[#b9a5f5]",
   /** Text colors for status labels. Always pair with text; never rely on color alone. */
-  textWarning: "text-[#f2b24b]",
+  textWarning: "text-[#b9a5f5]",
   textPositive: "text-[#4fd1b5]",
   textMuted: "text-[#a9a4c4]",
   buttonPrimary:
@@ -50,11 +49,11 @@ export const UI = {
   buttonAccept:
     "flex items-center justify-center gap-2 rounded-xl bg-[#4fd1b5] px-5 py-2.5 text-sm font-bold text-[#171521] motion-safe:transition-colors hover:bg-[#6ee0c7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:bg-[#38344f] disabled:text-[#a9a4c4] cursor-pointer",
   /**
-   * Decline or hang-up style action (Amber). Disabled styles as for `buttonAccept`: solid colors,
+   * Decline or hang-up style action (lavender). Disabled styles as for `buttonAccept`: solid colors,
    * no opacity change. Requirement 7.7.
    */
   buttonWarning:
-    "flex items-center justify-center gap-2 rounded-xl bg-[#f2b24b] px-5 py-2.5 text-sm font-bold text-[#171521] motion-safe:transition-colors hover:bg-[#f5c36f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:bg-[#38344f] disabled:text-[#a9a4c4] cursor-pointer",
+    "flex items-center justify-center gap-2 rounded-xl bg-[#b9a5f5] px-5 py-2.5 text-sm font-bold text-[#171521] motion-safe:transition-colors hover:bg-[#e9e2ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b9a5f5] disabled:cursor-not-allowed disabled:bg-[#38344f] disabled:text-[#a9a4c4] cursor-pointer",
   /**
    * End call and Decline action (red, white text). Disabled styles as for `buttonAccept`: solid
    * colors, no opacity change. Requirement 4.3.
@@ -122,7 +121,7 @@ export const CINE = {
     /** Sidebar of the laptop window. */
     sidebarBg: "#13111b",
     sidebarSelectedBg: "rgba(118,84,214,0.28)",
-    unreadDot: "#f2b24b",
+    unreadDot: "#b9a5f5",
     success: BRAND.teal,
     checkboxBorder: "rgba(255,255,255,0.5)",
     keycapBg: "rgba(255,255,255,0.08)",
@@ -133,7 +132,7 @@ export const CINE = {
     laptopBar: "#14121d",
     laptopBody: "#1a1826",
     laptopDock: "#100f18",
-    laptopDots: ["#ff6b6b", "#f2b24b", "#4fd1b5"],
+    laptopDots: ["#ff6b6b", "#b9a5f5", "#4fd1b5"],
   },
   blurPx: 14,
   radiusPx: { panel: 14, card: 12, keycap: 6, chip: 999 },

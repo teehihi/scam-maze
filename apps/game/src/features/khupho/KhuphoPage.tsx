@@ -143,7 +143,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
       <div ref={mountRef} className="absolute inset-0" />
 
       {loading && (
-        <div className="absolute inset-0 z-40 grid place-items-center bg-[#0d1117] text-amber-100" aria-busy="true">
+        <div className="absolute inset-0 z-40 grid place-items-center bg-[#0d1117] text-lilac" aria-busy="true">
           <div className="text-center">
             <div className="mb-3 text-2xl font-light tracking-widest">{t("khupho.loading.title")}</div>
             <div className="text-sm opacity-60">{t("khupho.loading.hint")}</div>
@@ -169,7 +169,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
       {!loading && !error && !started && (
         <div className="absolute inset-0 grid place-items-center bg-gradient-to-b from-black/45 via-black/25 to-black/70">
           <div className="max-w-2xl px-6 text-center text-white">
-            <div className="mb-3 text-[11px] tracking-[0.45em] text-amber-200/80">{t("khupho.intro.kicker")}</div>
+            <div className="mb-3 text-[11px] tracking-[0.45em] text-lilac/80">{t("khupho.intro.kicker")}</div>
             <h1 className="mb-4 text-4xl font-semibold leading-tight md:text-6xl" style={{ textShadow: "0 2px 24px rgba(0,0,0,.6)" }}>
               {KHUPHO_PLACE_NAMES.street}
             </h1>
@@ -177,7 +177,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
             <div className="mb-6 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
-                className="cursor-pointer rounded-full bg-amber-400 px-7 py-3 font-semibold text-black shadow-lg transition hover:bg-amber-300"
+                className="cursor-pointer rounded-full bg-lavender px-7 py-3 font-semibold text-black shadow-lg transition hover:bg-lavender"
                 onClick={() => engine()?.begin(true)}
               >
                 {t("khupho.intro.enter")}
@@ -233,7 +233,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
       {started && hud && !inRoom && (
         <>
           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className={`rounded-full transition-all ${hud.prompt ? "h-3 w-3 bg-amber-300/90 ring-2 ring-white/60" : "h-1.5 w-1.5 bg-white/70"}`} />
+            <div className={`rounded-full transition-all ${hud.prompt ? "h-3 w-3 bg-lavender/90 ring-2 ring-white/60" : "h-1.5 w-1.5 bg-white/70"}`} />
           </div>
           {hud.prompt && (
             <div className="pointer-events-none absolute left-1/2 top-[56%] -translate-x-1/2 rounded-full border border-white/20 bg-black/60 px-4 py-1.5 text-sm text-white backdrop-blur">
@@ -244,7 +244,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
           <div className="pointer-events-none absolute left-3 top-14 text-white">
             <div className="text-xl font-semibold tabular-nums" style={{ textShadow: "0 1px 8px #000" }}>{hud.time}</div>
             <div className="text-xs opacity-80" style={{ textShadow: "0 1px 6px #000" }}>{hud.weather} · {hud.loc}</div>
-            {hud.tour && <div className="mt-1 text-[11px] text-amber-200">{t("khupho.hud.tour")}</div>}
+            {hud.tour && <div className="mt-1 text-[11px] text-lilac">{t("khupho.hud.tour")}</div>}
           </div>
           <div className="pointer-events-none absolute right-3 top-3 text-[11px] text-white/60">{t("khupho.hud.fps", { fps: hud.fps })}</div>
           <div className="absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 px-2">
@@ -284,7 +284,7 @@ export const KhuphoPage: React.FC<KhuphoPageProps> = ({ settings, onBackToMenu }
             </div>
             <div className="flex flex-wrap justify-center gap-1.5">
               {PLACES.map((key) => (
-                <button key={key} type="button" className={`${BUTTON} !bg-amber-900/50`} onClick={() => engine()?.teleport(key)}>
+                <button key={key} type="button" className={`${BUTTON} !bg-purple/50`} onClick={() => engine()?.teleport(key)}>
                   {t(`khupho.places.${key}`)}
                 </button>
               ))}

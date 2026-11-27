@@ -57,8 +57,8 @@ export const ENDING_FADE_MS = 600;
  */
 const ACCENTS: Record<OutcomeId, { icon: LucideIcon; text: string; border: string }> = {
   "break-the-chain": { icon: CircleCheck, text: UI.textPositive, border: "border-[#4fd1b5]/50" },
-  "perfect-chain": { icon: AlertTriangle, text: UI.textWarning, border: "border-[#f2b24b]/50" },
-  "false-victory": { icon: AlertTriangle, text: UI.textWarning, border: "border-[#f2b24b]/50" },
+  "perfect-chain": { icon: AlertTriangle, text: UI.textWarning, border: "border-[#b9a5f5]/50" },
+  "false-victory": { icon: AlertTriangle, text: UI.textWarning, border: "border-[#b9a5f5]/50" },
   "unfinished-case": { icon: CircleHelp, text: "text-[#b9a5f5]", border: "border-[#b9a5f5]/50" },
 };
 

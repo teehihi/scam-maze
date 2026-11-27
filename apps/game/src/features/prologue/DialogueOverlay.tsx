@@ -146,10 +146,10 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({ graph, state, 
       )}
       <div role="dialog" aria-labelledby="dialogue-speaker" aria-describedby="dialogue-line" className="absolute inset-x-0 bottom-0 px-[clamp(1rem,8vw,9rem)] pb-[clamp(1.5rem,6vh,4rem)]">
         <div className={`mx-auto max-w-4xl ${SHADOW}`}>
-          <p id="dialogue-speaker" className="font-menu text-2xl font-bold uppercase tracking-[0.08em] text-[#f3c969]">
+          <p id="dialogue-speaker" className="font-menu text-2xl font-bold uppercase tracking-[0.08em] text-[#b9a5f5]">
             {speaker}
           </p>
-          <div aria-hidden="true" className="mt-1 h-px w-full bg-gradient-to-r from-[#f3c969]/80 via-[#f3c969]/30 to-transparent" />
+          <div aria-hidden="true" className="mt-1 h-px w-full bg-gradient-to-r from-[#b9a5f5]/80 via-[#b9a5f5]/30 to-transparent" />
           <p id="dialogue-line" aria-live="polite" className="mt-2 text-xl leading-relaxed text-[#f3efe4]">
             {line}
           </p>

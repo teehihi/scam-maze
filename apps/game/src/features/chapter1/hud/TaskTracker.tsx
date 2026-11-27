@@ -104,7 +104,7 @@ export const TaskTracker: React.FC<TaskTrackerProps> = ({ mission, distance = nu
     <section aria-labelledby="task-tracker-heading" data-testid="task-tracker" data-fresh={fresh ? "true" : undefined} className={`pointer-events-auto max-w-sm ${SHADOW}`}>
       <h2 id="task-tracker-heading" className="flex items-center gap-2.5 font-menu text-xs font-semibold uppercase tracking-[0.3em] text-[#c9bbf7]">
         <Accent />
-        {fresh ? <span className="text-[#f3c969]">{t("taskSystem.newTask")}</span> : <span>{mission.title}</span>}
+        {fresh ? <span className="text-[#b9a5f5]">{t("taskSystem.newTask")}</span> : <span>{mission.title}</span>}
       </h2>
       {finished !== null && (
         <p data-testid="task-step-done" className="mt-1.5 flex items-start gap-2">
