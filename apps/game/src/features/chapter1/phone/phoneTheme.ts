@@ -33,7 +33,7 @@ export const PHONE_COLORS = {
   glassHover: "rgba(24,46,72,0.78)",
   badge: "#ff5a4f",
   badgeText: "#ffffff",
-  amber: "#f2b24b",
+  notice: "#b9a5f5",
   focus: "#8fe0e8",
   tileShadow: "0 5px 12px rgba(0,0,0,0.38)",
   /** Home indicator pill. */

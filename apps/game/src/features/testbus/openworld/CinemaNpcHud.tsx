@@ -146,13 +146,13 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
       ? {
           speaker: isVi ? crowdReaction.speaker.vi : crowdReaction.speaker.en,
           text: isVi ? crowdReaction.text.vi : crowdReaction.text.en,
-          accent: crowdReaction.kind === "bump" ? "text-amber-300" : "text-sky-200",
+          accent: crowdReaction.kind === "bump" ? "text-lavender" : "text-sky-200",
         }
       : ambientBark
         ? {
             speaker: isVi ? ambientBark.speaker.vi : ambientBark.speaker.en,
             text: isVi ? ambientBark.text.vi : ambientBark.text.en,
-            accent: "text-amber-300",
+            accent: "text-lavender",
           }
         : null
     : null;
@@ -286,7 +286,7 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
                   {[0, 140, 70].map((delayMs, i) => (
                     <span
                       key={i}
-                      className={`w-[2px] rounded-full bg-amber-300 transition-all duration-300 ${
+                      className={`w-[2px] rounded-full bg-lavender transition-all duration-300 ${
                         lineDone ? "h-1 opacity-35" : "h-2.5"
                       }`}
                       style={
@@ -300,7 +300,7 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
                     />
                   ))}
                 </span>
-                <span className="font-bold text-amber-300">
+                <span className="font-bold text-lavender">
                   {isVi ? dialogue.turn.speaker.vi : dialogue.turn.speaker.en}
                 </span>
                 <span className="text-white/45">·</span>
@@ -318,7 +318,7 @@ export const CinemaNpcHud: React.FC<CinemaNpcHudProps> = ({
 
               {dialogue.activeInsight && (
                 <p
-                  className="mt-1.5 text-[12px] italic tracking-wide text-amber-200/95"
+                  className="mt-1.5 text-[12px] italic tracking-wide text-lilac/95"
                   style={FILM_SHADOW}
                 >
                   {isVi ? dialogue.activeInsight.vi : dialogue.activeInsight.en}

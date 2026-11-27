@@ -837,10 +837,6 @@ export function resolveStoryNpcDialogue(
               vi: "App nó cắt tới 28% chiết khấu rồi theo dõi từng con hẻm tắt! Đóng phí cho tụi nó làm gì, cứ đi ngoài rồi tới nơi trả tiền mặt — không đủ thì anh ghé cây ATM cho rút.",
             },
             nextMood: "defensive",
-            insight: {
-              en: "Mission 02 warning: Off-app cash drivers have no GPS log, verified ID, or fare cap.",
-              vi: "Cảnh báo Nhiệm vụ 02: Xe ngoài không có định vị GPS, không xác minh danh tính và dễ phát sinh đòi tiền dọc đường.",
-            },
           },
           {
             id: "driver_ask_plate",

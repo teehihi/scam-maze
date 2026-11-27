@@ -30,7 +30,7 @@ export const EventArrivalNotice: React.FC<EventArrivalNoticeProps> = ({ title, o
       style={{ fontSize: CINE.fontPx.body, maxWidth: CINE.widthPx.toast + 48 }}
       data-testid="event-arrival-notice"
     >
-      <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/15 text-amber-300 ring-1 ring-amber-300/35">
+      <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lavender/15 text-lavender ring-1 ring-lavender/35">
         {icon ?? <BellRing className="h-3.5 w-3.5" />}
       </span>
       <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug text-[#f3efe4]">

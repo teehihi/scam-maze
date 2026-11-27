@@ -224,7 +224,7 @@ export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, 
       {!embedded && !hasStory && !ui.started && (
         <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_center,rgba(10,12,20,0.55),rgba(0,0,0,0.92))]">
           <div className="max-w-xl px-8 text-center">
-            <p className="mb-6 text-[11px] uppercase tracking-[0.45em] text-amber-200/60">{t("roomv2.intro.kicker")}</p>
+            <p className="mb-6 text-[11px] uppercase tracking-[0.45em] text-lilac/60">{t("roomv2.intro.kicker")}</p>
             <h1 className="text-5xl font-extralight tracking-tight text-stone-100 md:text-6xl">{t("roomv2.intro.title")}</h1>
             <p className="mt-6 text-[15px] leading-relaxed text-stone-300/75">{t("roomv2.intro.description")}</p>
             <button
@@ -257,7 +257,7 @@ export const RoomV2Page: React.FC<RoomV2PageProps> = ({ settings, onBackToMenu, 
       {ui.ended && !hasStory && (
         <div className="absolute inset-0 flex animate-[cap_2.5s_ease-out] items-center justify-center">
           <div className="max-w-lg px-8 text-center">
-            <p className="mb-5 text-[11px] uppercase tracking-[0.45em] text-amber-200/55">
+            <p className="mb-5 text-[11px] uppercase tracking-[0.45em] text-lilac/55">
               {ui.ended === "answered" ? t("roomv2.ending.answeredTime") : t("roomv2.ending.declinedTime")}
             </p>
             <h2 className="text-3xl font-extralight leading-snug text-stone-100 md:text-4xl">{t("roomv2.ending.title")}</h2>

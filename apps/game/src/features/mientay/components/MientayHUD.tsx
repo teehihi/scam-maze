@@ -127,7 +127,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
         title={t('mientay.hud.show')}
         className="fixed right-4 top-4 z-30 pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-stone-950/60 px-3.5 py-2 text-xs font-medium text-stone-100 transition hover:bg-stone-900/80 cursor-pointer"
       >
-        <Eye className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
+        <Eye className="h-3.5 w-3.5 text-lavender" aria-hidden="true" />
         <span>{t('mientay.hud.show')}</span>
       </button>
     );
@@ -153,12 +153,12 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
               <span>{t('mientay.backToMenu')}</span>
             </button>
           )}
-          <div className="hidden items-center gap-3 rounded-xl border border-amber-200/20 bg-stone-950/65 px-3.5 py-1.5 text-xs text-amber-50 sm:flex">
-            <span className="font-medium text-amber-100">
+          <div className="hidden items-center gap-3 rounded-xl border border-lilac/20 bg-stone-950/65 px-3.5 py-1.5 text-xs text-lilac sm:flex">
+            <span className="font-medium text-lilac">
               {t('mientay.header', { region: MIENTAY_PLACE_NAMES.regionUpper })}
             </span>
-            <span className="flex items-center gap-1.5 text-amber-200/90">
-              <MapPin className="h-3 w-3 shrink-0 text-amber-400" aria-hidden="true" />
+            <span className="flex items-center gap-1.5 text-lilac/90">
+              <MapPin className="h-3 w-3 shrink-0 text-lavender" aria-hidden="true" />
               <span aria-label={t('mientay.zones.label')}>{MIENTAY_ZONE_NAMES[telemetry.zone]}</span>
             </span>
             <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300 ring-1 ring-emerald-400/25">
@@ -180,7 +180,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
                 aria-pressed={telemetry.mode === id}
                 onClick={() => onModeChange(id)}
                 className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  telemetry.mode === id ? 'bg-amber-500/90 text-stone-950 shadow' : 'text-stone-200 hover:bg-white/10'
+                  telemetry.mode === id ? 'bg-purple/90 text-stone-950 shadow' : 'text-stone-200 hover:bg-white/10'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -209,7 +209,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
             aria-pressed={telemetry.performanceMode}
             className={PILL}
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
+            <Sparkles className="h-3.5 w-3.5 text-lavender" aria-hidden="true" />
             <span>{telemetry.performanceMode ? t('mientay.performance.on') : t('mientay.performance.off')}</span>
           </button>
           <button
@@ -217,7 +217,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
             onClick={onToggleLock}
             className="pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full border border-[#1e4659] bg-[#0d1f2d]/85 px-3.5 py-1.5 font-mono text-xs text-zinc-300 shadow-lg transition-all hover:bg-[#172f3e]"
           >
-            <div className={`h-2 w-2 rounded-full ${isLocked ? 'animate-pulse bg-emerald-400' : 'bg-amber-400'}`} />
+            <div className={`h-2 w-2 rounded-full ${isLocked ? 'animate-pulse bg-emerald-400' : 'bg-lavender'}`} />
             <span>{isLocked ? t('mientay.pointer.locked') : t('mientay.pointer.unlocked')}</span>
           </button>
           <button
@@ -243,12 +243,12 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
       {/* Hints in the middle of the lower screen */}
       <div className="flex flex-col items-center gap-2">
         {telemetry.mode === 'walk' && telemetry.nearBoat && (
-          <div className="pointer-events-none flex items-center gap-2 rounded-full border border-amber-300/40 bg-amber-950/80 px-4 py-2 text-xs font-medium text-amber-100 shadow-lg">
-            <Anchor className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
+          <div className="pointer-events-none flex items-center gap-2 rounded-full border border-lavender/40 bg-graphite/80 px-4 py-2 text-xs font-medium text-lilac shadow-lg">
+            <Anchor className="h-3.5 w-3.5 text-lavender" aria-hidden="true" />
             <Trans
               t={t}
               i18nKey="mientay.boardPrompt"
-              components={{ kbd: <kbd className="rounded border border-amber-200/30 bg-black/30 px-1 font-mono text-[10px]" /> }}
+              components={{ kbd: <kbd className="rounded border border-lilac/30 bg-black/30 px-1 font-mono text-[10px]" /> }}
             />
           </div>
         )}
@@ -257,13 +257,13 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
             className="pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full border border-[#1e4659]/80 bg-[#071620]/90 px-4 py-2 text-xs text-zinc-300 shadow-lg transition-all hover:border-[#4dd8ff]"
             onClick={onToggleLock}
           >
-            <div className="h-2 w-2 animate-ping rounded-full bg-amber-400" />
+            <div className="h-2 w-2 animate-ping rounded-full bg-lavender" />
             <span>
               <Trans
                 t={t}
                 i18nKey="mientay.lockHint"
                 components={{
-                  kbd: <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-amber-300" />,
+                  kbd: <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-lavender" />,
                 }}
               />
             </span>
@@ -288,7 +288,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
                     onBookmark(bookmark);
                   }}
                   className={`shrink-0 cursor-pointer rounded-xl px-3 py-1.5 text-left text-xs font-semibold leading-tight transition ${
-                    active ? 'bg-amber-500/90 text-stone-950 shadow-sm' : 'bg-white/5 text-stone-200 hover:bg-white/10'
+                    active ? 'bg-purple/90 text-stone-950 shadow-sm' : 'bg-white/5 text-stone-200 hover:bg-white/10'
                   }`}
                 >
                   {bookmark.name}
@@ -310,7 +310,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
                       onTimeChange(hours, true);
                     }}
                     className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
-                      active ? 'bg-amber-400/20 text-amber-200 ring-1 ring-amber-400/40' : 'text-stone-300 hover:bg-white/10'
+                      active ? 'bg-lavender/20 text-lilac ring-1 ring-lavender/40' : 'text-stone-300 hover:bg-white/10'
                     }`}
                   >
                     <Icon className="h-3 w-3" aria-hidden="true" />
@@ -320,7 +320,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
               })}
             </div>
             <div className="flex min-w-[200px] flex-1 items-center gap-2.5">
-              <span className="w-11 text-right font-mono text-xs font-medium text-amber-200">{formatHour(sliderHours)}</span>
+              <span className="w-11 text-right font-mono text-xs font-medium text-lilac">{formatHour(sliderHours)}</span>
               <input
                 type="range"
                 min={MIENTAY_TIME_RANGE.min}
@@ -337,7 +337,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
                 onPointerUp={commitTime}
                 onKeyUp={commitTime}
                 onBlur={() => dragging && commitTime()}
-                className="w-full accent-amber-400"
+                className="w-full accent-lavender"
               />
             </div>
           </div>
@@ -351,9 +351,9 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
               aria-expanded={showHelp}
               className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-[#1e4659]/80 bg-[#091b26]/80 px-3 py-1.5 font-mono text-[11px] text-zinc-300 shadow-md transition-all hover:bg-[#0f2838]"
             >
-              <HelpCircle className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+              <HelpCircle className="h-3.5 w-3.5 text-lavender" aria-hidden="true" />
               <span>{t('mientay.controls.toggle')}</span>
-              <span className="ml-1 font-bold text-amber-400">{showHelp ? '✕' : '?'}</span>
+              <span className="ml-1 font-bold text-lavender">{showHelp ? '✕' : '?'}</span>
             </button>
           </div>
           <div className="pointer-events-auto flex flex-col items-end gap-2">
@@ -374,7 +374,7 @@ export const MientayHUD: React.FC<MientayHUDProps> = ({
                     ] as const
                   ).map(([keyLabel, action]) => (
                     <div key={`${keyLabel}-${action}`}>
-                      <span className="font-semibold text-amber-300">
+                      <span className="font-semibold text-lavender">
                         {keyLabel === 'mouse' || keyLabel === 'leftMouse' || keyLabel === 'rightMouse'
                           ? t(`mientay.controls.${keyLabel}`)
                           : keyLabel}

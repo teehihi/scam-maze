@@ -312,7 +312,7 @@ export const WritingMode: React.FC<WritingModeProps> = (props) => {
             {done?.heading ?? heading}
           </h3>
           {props.incoming && (
-            <button type="button" className="inline-flex max-w-[11rem] items-center gap-1 truncate rounded-full bg-[#fff1c9] px-2 py-0.5 text-[11px] text-[#6b4c13] hover:bg-[#ffe9a8]" onClick={props.incoming.onOpen} title={props.incoming.text} data-testid="writing-incoming">
+            <button type="button" className="inline-flex max-w-[11rem] items-center gap-1 truncate rounded-full bg-[#efeaff] px-2 py-0.5 text-[11px] text-[#4a3490] hover:bg-[#e0d6ff]" onClick={props.incoming.onOpen} title={props.incoming.text} data-testid="writing-incoming">
               <BellRing className="h-3 w-3 shrink-0" aria-hidden="true" />
               <span className="truncate">{t("laptop.thesisDesk.openDistraction", { app: props.incoming.appLabel })}</span>
             </button>
@@ -376,7 +376,7 @@ export const WritingMode: React.FC<WritingModeProps> = (props) => {
           </p>
           {paused && <p className="mt-1 text-[11px] text-[#7a7264]">{t("laptop.thesisDesk.writing.paused")}</p>}
           {notice && (
-            <p className="mt-1.5 rounded-md bg-[#fff1c9] px-2 py-1 text-[11px] text-[#6b4c13]" role="alert" data-testid="writing-notice">
+            <p className="mt-1.5 rounded-md bg-[#efeaff] px-2 py-1 text-[11px] text-[#4a3490]" role="alert" data-testid="writing-notice">
               {notice === "paste" ? t("laptop.thesisDesk.writing.noPaste") : t("laptop.thesisDesk.writing.rejected")}
             </p>
           )}

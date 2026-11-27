@@ -41,7 +41,7 @@ export const ChoicePill: React.FC<ChoicePillProps> = ({ selected, keyHint, dimme
         onPointerEnter?.();
       }}
       onFocus={onFocus}
-      className={`relative flex w-full min-w-0 cursor-pointer items-center gap-3 overflow-hidden rounded-full border px-4 py-2 text-left text-[15px] font-medium leading-snug whitespace-normal break-words outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-not-allowed disabled:opacity-60 ${tone}`}
+      className={`relative flex w-full min-w-0 cursor-pointer items-center gap-3 overflow-hidden rounded-full border px-4 py-2 text-left text-[15px] font-medium leading-snug whitespace-normal break-words outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-lavender disabled:cursor-not-allowed disabled:opacity-60 ${tone}`}
     >
       <span
         aria-hidden="true"
@@ -56,7 +56,7 @@ export const ChoicePill: React.FC<ChoicePillProps> = ({ selected, keyHint, dimme
       {cue}
       <span className="relative min-w-0 flex-1">{children}</span>
       {keyHint && (
-        <kbd className={`relative inline-flex h-[20px] min-w-[20px] shrink-0 items-center justify-center rounded-[4px] border px-1 font-mono text-[11px] font-bold ${selected ? "border-[#171521]/40 bg-[#171521]/10 text-[#171521]" : "border-white/30 bg-black/50 text-amber-300"}`}>
+        <kbd className={`relative inline-flex h-[20px] min-w-[20px] shrink-0 items-center justify-center rounded-[4px] border px-1 font-mono text-[11px] font-bold ${selected ? "border-[#171521]/40 bg-[#171521]/10 text-[#171521]" : "border-white/30 bg-black/50 text-lavender"}`}>
           {keyHint}
         </kbd>
       )}

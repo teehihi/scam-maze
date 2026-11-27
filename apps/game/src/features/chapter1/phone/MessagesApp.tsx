@@ -81,7 +81,7 @@ export const MessagesApp: React.FC<MessagesAppProps> = ({ messages, onInspectEvi
                     {message.from}
                   </span>
                   {message.unread && (
-                    <span className="rounded-full bg-[#f2b24b] px-2 py-0.5 text-xs font-bold text-[#171521]">
+                    <span className="rounded-full bg-[#b9a5f5] px-2 py-0.5 text-xs font-bold text-[#171521]">
                       {t("phone.messages.unread")}
                     </span>
                   )}

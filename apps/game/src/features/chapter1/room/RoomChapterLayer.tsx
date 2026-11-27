@@ -1705,7 +1705,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
                       <>
                         <span
                           aria-hidden="true"
-                          className="ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-[#f2b24b] px-1 text-[10px] font-bold leading-4 text-[#171521]"
+                          className="ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-[#b9a5f5] px-1 text-[10px] font-bold leading-4 text-[#171521]"
                         >
                           {phoneUnread}
                         </span>
@@ -1730,7 +1730,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
                     <>
                       <span
                         aria-hidden="true"
-                        className="ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-[#f2b24b] px-1 text-[10px] font-bold leading-4 text-[#171521]"
+                        className="ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-[#b9a5f5] px-1 text-[10px] font-bold leading-4 text-[#171521]"
                       >
                         {journalUnread}
                       </span>
@@ -1758,7 +1758,7 @@ const RoomChapterLayerView: React.FC<RoomChapterLayerProps> = ({
                     <>
                       <span
                         aria-hidden="true"
-                        className="ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-[#f2b24b] px-1 text-[10px] font-bold leading-4 text-[#171521]"
+                        className="ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-[#b9a5f5] px-1 text-[10px] font-bold leading-4 text-[#171521]"
                       >
                         {pendingEvents.length}
                       </span>

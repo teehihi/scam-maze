@@ -170,7 +170,7 @@ export const MientayPage: React.FC<MientayPageProps> = ({ settings, onBackToMenu
         >
           <div className="w-full max-w-xl space-y-5">
             <div className="space-y-1.5 text-center">
-              <h1 className="font-display text-3xl text-amber-100 sm:text-4xl">
+              <h1 className="font-display text-3xl text-lilac sm:text-4xl">
                 {t('mientay.loading.title', { region: MIENTAY_PLACE_NAMES.region })}
               </h1>
               <p className="text-sm text-stone-400">{t('mientay.loading.hint')}</p>

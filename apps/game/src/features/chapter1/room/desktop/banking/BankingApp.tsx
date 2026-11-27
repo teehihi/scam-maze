@@ -52,8 +52,8 @@ const INK = "#0f2a22";
 const MUTED = "#4f6a60";
 const LINE = "#d4e6de";
 const SURFACE = "#f5faf8";
-const AMBER = "#8a5a00";
-const AMBER_SOFT = "#fff3d6";
+const NOTICE = "#5b3fb0";
+const NOTICE_SOFT = "#efeaff";
 const FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0a7d5a]";
 const BUTTON = `inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0a7d5a] px-4 py-2 text-sm font-semibold text-white motion-safe:transition-colors hover:bg-[#075c43] disabled:cursor-not-allowed disabled:bg-[#c3d9cf] disabled:text-[#5f7a6f] ${FOCUS}`;
 const BUTTON_QUIET = `inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#bcd8cc] bg-white px-3 py-1.5 text-sm font-medium text-[#0f2a22] motion-safe:transition-colors hover:bg-[#eef7f3] disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS}`;
@@ -125,7 +125,7 @@ export const BankingApp: React.FC<BankingAppProps> = ({ view, phoneView, blocked
   const statusChip = (status: TxStatus) => (
     <span
       className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-      style={status === "completed" ? { background: EM_SOFT, color: EM_DARK } : { background: AMBER_SOFT, color: AMBER }}
+      style={status === "completed" ? { background: EM_SOFT, color: EM_DARK } : { background: NOTICE_SOFT, color: NOTICE }}
       data-testid={`bank-status-${status}`}
     >
       {status === "completed" ? <Check className="h-3 w-3" aria-hidden="true" /> : <Ban className="h-3 w-3" aria-hidden="true" />}
@@ -253,7 +253,7 @@ export const BankingApp: React.FC<BankingAppProps> = ({ view, phoneView, blocked
         ))}
       </dl>
       {selected.status === "blocked" && (
-        <p className="rounded-lg px-3 py-2 text-sm" style={{ background: AMBER_SOFT, color: AMBER }} data-testid="bank-tx-blocked-note">
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ background: NOTICE_SOFT, color: NOTICE }} data-testid="bank-tx-blocked-note">
           {t("banking.blockedNote")}
         </p>
       )}

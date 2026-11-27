@@ -78,7 +78,7 @@ export const Dialer: React.FC<DialerProps> = ({ value, onChange, onCall, notice 
         </button>
       </div>
       {notice !== null && (
-        <p className="text-center text-[13px] leading-snug" style={{ color: PHONE_COLORS.amber }} role="status" data-testid="dial-notice">
+        <p className="text-center text-[13px] leading-snug" style={{ color: PHONE_COLORS.notice }} role="status" data-testid="dial-notice">
           {notice}
         </p>
       )}

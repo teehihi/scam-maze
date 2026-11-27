@@ -43,7 +43,7 @@ export const DESKTOP_COLORS = {
   taskbarActiveBorder: "rgba(110,205,215,0.55)",
   indicator: "#6fd3dc",
   indicatorDim: "rgba(111,211,220,0.4)",
-  badge: "#f2b24b",
+  badge: "#b9a5f5",
   focus: "#8fe0e8",
   windowShadow: "0 14px 34px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35)",
   windowBorder: "rgba(160,200,220,0.22)",

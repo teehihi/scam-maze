@@ -46,7 +46,7 @@ const THUMB_COLORS: Readonly<Record<string, { bg: string; fg: string }>> = {
   evidence: { bg: "#fbe9d3", fg: "#b8691f" },
   bank: { bg: "#e1f3ec", fg: "#0a7d5a" },
   security: { bg: "#efe6f7", fg: "#6a47a8" },
-  bookmarks: { bg: "#fff1cf", fg: "#a8740a" },
+  bookmarks: { bg: "#efeaff", fg: "#5b3fb0" },
 };
 const OTHER_THUMB = { bg: "#eee7da", fg: "#7a6650" };
 

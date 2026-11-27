@@ -291,7 +291,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
                 </span>
                 {!item.read && item.tracksUnread && (
                   <>
-                    <span aria-hidden="true" className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#f2b24b]" />
+                    <span aria-hidden="true" className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#b9a5f5]" />
                     <span className="sr-only">{t("device.unreadMark")}</span>
                   </>
                 )}

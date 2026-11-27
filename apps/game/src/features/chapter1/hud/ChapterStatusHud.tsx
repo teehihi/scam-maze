@@ -53,7 +53,7 @@ const COLOR = {
   security: "#8ec5ff",
   support: "#6fe0a8",
   rested: "#c9bbf7",
-  tired: "#f3c969",
+  tired: "#b9a5f5",
   low: "#f07a6a",
 };
 

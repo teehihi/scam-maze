@@ -98,7 +98,7 @@ export default function OpenWorldApp() {
           <div
             className={`rounded-full transition-all duration-150 ${
               snap?.prompt
-                ? "h-1.5 w-1.5 border border-amber-200/85 bg-amber-200/65"
+                ? "h-1.5 w-1.5 border border-lilac/85 bg-lilac/65"
                 : "h-1 w-1 bg-white/35"
             }`}
           />
@@ -159,7 +159,7 @@ export default function OpenWorldApp() {
               </>
             ) : (
               <>
-                <SlidersHorizontal className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
+                <SlidersHorizontal className="h-3.5 w-3.5 text-lavender" aria-hidden="true" />
                 <span>Đạo Diễn Sài Gòn</span>
               </>
             )}
@@ -203,7 +203,7 @@ export default function OpenWorldApp() {
                     engineRef.current?.setAutoCycle(false);
                     engineRef.current?.setTimeOfDay(parseFloat(e.target.value));
                   }}
-                  className="w-full accent-amber-400"
+                  className="w-full accent-lavender"
                 />
                 <div className="mt-1.5 grid grid-cols-4 gap-1">
                   {[
@@ -219,7 +219,7 @@ export default function OpenWorldApp() {
                         engineRef.current?.setAutoCycle(false);
                         engineRef.current?.setTimeOfDay(t.h);
                       }}
-                      className="cursor-pointer rounded bg-white/10 py-1 text-[10px] font-medium text-white/85 transition hover:bg-amber-400/25 hover:text-amber-200"
+                      className="cursor-pointer rounded bg-white/10 py-1 text-[10px] font-medium text-white/85 transition hover:bg-lavender/25 hover:text-lilac"
                     >
                       {t.label}
                     </button>
@@ -265,7 +265,7 @@ export default function OpenWorldApp() {
                   <button
                     type="button"
                     onClick={() => engineRef.current?.toggleDoor()}
-                    className="cursor-pointer rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200 hover:bg-amber-500/35"
+                    className="cursor-pointer rounded bg-purple/20 px-1.5 py-0.5 text-[10px] font-semibold text-lilac hover:bg-purple/35"
                   >
                     {snap.doorOpen ? "Đóng Cửa 6.07" : "Mở Cửa 6.07"}
                   </button>
@@ -276,7 +276,7 @@ export default function OpenWorldApp() {
                       key={wp.id}
                       type="button"
                       onClick={() => engineRef.current?.moveToWaypoint(wp.id)}
-                      className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left text-[11px] text-white/85 transition hover:border-amber-400/50 hover:bg-amber-400/15"
+                      className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left text-[11px] text-white/85 transition hover:border-lavender/50 hover:bg-lavender/15"
                     >
                       {wp.label}
                     </button>
@@ -338,7 +338,7 @@ export default function OpenWorldApp() {
               <span>{formatClock(snap.atmosphere.timeOfDay)}</span>
             </div>
             <div className="rounded-2xl bg-slate-800/90 p-4 text-sm leading-relaxed text-white/95">
-              <div className="mb-1 text-xs font-semibold text-amber-300">Mẹ</div>
+              <div className="mb-1 text-xs font-semibold text-lavender">Mẹ</div>
               “Trời Sài Gòn vừa tạnh mưa rồi đó con. Có ra ngoài bắt xe buýt hay đi dạo quanh khu trọ thì nhớ mang theo áo khoác kẻo lạnh nha.”
             </div>
             <button
@@ -361,7 +361,7 @@ export default function OpenWorldApp() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{ fontFamily: "'Patrick Hand', cursive" }}
-            className="w-80 -rotate-1 rounded-md border border-amber-300/40 bg-[#f6e8b8] p-6 text-lg leading-relaxed text-slate-800 shadow-2xl"
+            className="w-80 -rotate-1 rounded-md border border-lavender/40 bg-[#f6e8b8] p-6 text-lg leading-relaxed text-slate-800 shadow-2xl"
           >
             <div className="mb-2 text-xl font-bold text-slate-900">Ghi chú — Phòng 6.07</div>
             <p>- Tiền trọ 462/14 Lý Thái Tổ: đóng trước ngày 5</p>

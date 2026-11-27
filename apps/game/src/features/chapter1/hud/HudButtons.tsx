@@ -56,7 +56,7 @@ const HudButton: React.FC<HudButtonProps> = ({ label, keyHint, icon, count, coun
       <>
         <span
           aria-hidden="true"
-          className="absolute -right-2 -top-2 min-w-5 rounded-full bg-[#f2b24b] px-1.5 text-center text-xs font-bold leading-5 text-[#171521]"
+          className="absolute -right-2 -top-2 min-w-5 rounded-full bg-[#b9a5f5] px-1.5 text-center text-xs font-bold leading-5 text-[#171521]"
         >
           {count}
         </span>

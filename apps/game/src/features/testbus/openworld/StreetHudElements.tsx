@@ -69,7 +69,7 @@ export const StreetActionPrompt: React.FC<StreetActionPromptProps> = ({
         {key && (
           <kbd
             aria-hidden="true"
-            className="inline-flex min-w-[1.5rem] items-center justify-center rounded-[4px] border border-amber-300/60 bg-amber-300/15 px-1.5 py-0.5 font-mono text-[11px] font-bold leading-none text-amber-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+            className="inline-flex min-w-[1.5rem] items-center justify-center rounded-[4px] border border-lavender/60 bg-lavender/15 px-1.5 py-0.5 font-mono text-[11px] font-bold leading-none text-lilac shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
           >
             {key}
           </kbd>
@@ -82,7 +82,7 @@ export const StreetActionPrompt: React.FC<StreetActionPromptProps> = ({
             {primary}
           </span>
           {secondary && (
-            <span className="mt-0.5 text-[11px] font-medium tracking-[0.06em] text-amber-200/80">
+            <span className="mt-0.5 text-[11px] font-medium tracking-[0.06em] text-lilac/80">
               {secondary}
             </span>
           )}
@@ -165,7 +165,7 @@ export const DistrictArrivalBanner: React.FC<DistrictArrivalBannerProps> = ({
           className="flex items-center gap-1.5 font-menu text-[11px] font-semibold uppercase tracking-[0.28em] text-[#c9bbf7]/90"
           style={FILM_SHADOW}
         >
-          {WeatherIcon && <WeatherIcon className="h-3 w-3 text-amber-200/80" />}
+          {WeatherIcon && <WeatherIcon className="h-3 w-3 text-lilac/80" />}
           <span>{display.district}</span>
         </div>
       )}
